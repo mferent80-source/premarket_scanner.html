@@ -6,19 +6,20 @@ import vm from 'node:vm';
 const html=readFileSync('desk/index.html','utf8');
 const script=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].find(m=>m[1].includes('var CANDIDATE_FRESH_MS'))[1];
 const NOW=Date.parse('2026-10-08T04:15:00Z');
-function boot(){
- const nodes={},intervals=[],events={},memory=new Map();
+function boot({demo=true,seed={}}={}){
+ const nodes={},intervals=[],events={},listeners={},memory=new Map(Object.entries(seed).map(([k,v])=>[k,JSON.stringify(v)]));
  class Clock extends Date{constructor(...a){super(...(a.length?a:[NOW]));}static now(){return NOW;}}
  function node(id,dataset={}){return nodes[id]||(nodes[id]={id,dataset,style:{setProperty(){}},classList:{toggle(){},remove(){},add(){}},setAttribute(k,v){this[k]=v;},querySelector(){return null;},querySelectorAll(){return[];},contains(){return false;},focus(){},textContent:'',innerHTML:'',value:'',open:false,hidden:false,showModal(){this.open=true;},close(){this.open=false;}});}
  const modes=['momentum','reversal'].map(m=>node('mode-'+m,{signalMode:m}));
  const tabs=['scenario','metrics','checks','ai'].map((t,i)=>node(['focusTabScenario','focusTabMetrics','focusTabChecks','focusTabAI'][i],{focusTab:t}));
+ const sources=['broker','shadow'].map(source=>node('source-'+source,{performanceSource:source}));
  let rows=[],mini=[];
  function buttons(markup,type){return [...markup.matchAll(/<button[^>]*data-(?:mini-)?symbol="([^"]+)"([^>]*)>/g)].map((m,i)=>node(type+i,{symbol:m[1],miniSymbol:m[1],miniMode:m[2].match(/data-mini-mode="([^"]+)"/)?.[1]}));}
- const c={Date:Clock,URLSearchParams,Intl,console,Number,Math,Map,Array,location:{origin:'https://desk.test',search:'?demo=1',hash:''},document:{addEventListener(){},getElementById:node,activeElement:null,hidden:false,querySelectorAll(q){if(q==='[data-signal-mode]')return modes;if(q==='[data-focus-tab]')return tabs;if(q==='#signalRows .row')return rows=buttons(node('signalRows').innerHTML,'row');if(q==='[data-mini-symbol]')return mini=buttons(node('miniLong').innerHTML+node('miniReversal').innerHTML,'mini');return[];}},localStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)},TTBreadth:{load:async()=>null},setInterval:(fn,ms)=>intervals.push({fn,ms}),setTimeout(){},addEventListener:(n,f)=>events[n]=f,GV:{status:()=>({verdict:'HALTED'})}};
+ const c={Date:Clock,URLSearchParams,Intl,console,Number,Math,Map,Array,location:{origin:'https://desk.test',search:demo?'?demo=1':'',hash:''},document:{addEventListener(){},getElementById:node,activeElement:null,hidden:false,querySelectorAll(q){if(q==='[data-signal-mode]')return modes;if(q==='[data-focus-tab]')return tabs;if(q==='[data-performance-source]')return sources;if(q==='#signalRows .row')return rows=buttons(node('signalRows').innerHTML,'row');if(q==='[data-mini-symbol]')return mini=buttons(node('miniLong').innerHTML+node('miniReversal').innerHTML,'mini');return[];}},localStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)},TTBreadth:{load:async()=>null},setInterval:(fn,ms)=>intervals.push({fn,ms}),setTimeout(){},addEventListener:(n,f)=>{events[n]=f;(listeners[n]||(listeners[n]=[])).push(f);},GV:{status:()=>({verdict:'HALTED'})}};
  c.window=c;c.parent=c;vm.createContext(c);
- for(const f of ['lib/daily-series.js','lib/candidate-plan-handoff.js','lib/trade-plans.js','lib/trade-plan-store.js','lib/decision-verdict.js','desk/insight.js'])vm.runInContext(readFileSync(f,'utf8'),c);
+ for(const f of ['lib/daily-series.js','lib/candidate-plan-handoff.js','lib/trade-plans.js','lib/trade-plan-store.js','lib/decision-verdict.js','desk/insight.js','lib/trading212-snapshot.js','lib/trading212-performance.js','desk/performance.js'])vm.runInContext(readFileSync(f,'utf8'),c);
  vm.runInContext(script,c);
- return {c,nodes,tabs,modes,intervals,events,rows:()=>rows,mini:()=>mini};
+ return {c,nodes,tabs,modes,intervals,events,memory,sources,emit:(name,e)=>listeners[name]?.forEach(f=>f(e)),rows:()=>rows,mini:()=>mini};
 }
 test('Desk has no automatically mounted large verdict panel',()=>{
  assert.doesNotMatch(html,/src="[^"\n]*decision-panel\.js|href="[^"\n]*decision-panel\.css/);
@@ -67,4 +68,19 @@ test('AI tab renders all seven compatible models including KNN and rejects anoth
  b.events['tt-decision-ai-updated']();b.tabs[3].onclick();assert.match(b.nodes.focusDetail.innerHTML,/7\/7/);assert.match(b.nodes.focusDetail.innerHTML,/KNN<\/dt><dd>Mixt/);
  const find=b.c.TTDecisionBridge.find;b.c.TTDecisionBridge.find=s=>({...find(s),historyKey:'ohlcv60:12345678'});
  b.events['tt-decision-ai-updated']();assert.match(b.nodes.focusDetail.innerHTML,/Niciun raport AI compatibil/);
+});
+test('broker performance is default and Shadow retains its own USD outcomes and R',async()=>{
+ const b=boot();await new Promise(setImmediate);assert.equal(b.nodes.perfClosed.textContent,3);assert.equal(b.nodes.perfPnl.textContent,'+22,7 EUR');assert.equal(b.nodes.perfAvgLabel.textContent,'MEDIE / VÂNZARE');assert.match(b.nodes.performanceScope.textContent,/DEMO FICTIV/);
+ b.sources[1].onclick();assert.equal(b.nodes.brokerPerformance.hidden,true);assert.equal(b.nodes.strategyPerformance.hidden,false);assert.equal(b.nodes.perfClosed.textContent,1);assert.match(b.nodes.perfAvgR.textContent,/2,15R/);assert.equal(b.nodes.perfAvgLabel.textContent,'AVG R');
+ b.sources[0].onclick();assert.equal(b.nodes.perfPnl.textContent,'+22,7 EUR');assert.equal(b.nodes.strategyPerformance.hidden,true);
+});
+test('broker history imported by another frame automatically refreshes Desk without touching Shadow records',()=>{
+ const b=boot({demo:false});assert.match(b.nodes.performanceStatus.textContent,/Conectează/);
+ const P=b.c.T212Performance,d=P.demo(NOW);d.account.items=d.account.items.slice(0,1);d.account.items[0].realized=12;
+ b.memory.set(P.SNAPSHOT_KEY,JSON.stringify({account:d.snapshot}));b.memory.set(P.KEY,JSON.stringify({accounts:{account:d.account}}));b.emit('storage',{key:P.KEY});assert.equal(b.nodes.perfPnl.textContent,'+12 EUR');assert.equal(b.nodes.perfClosed.textContent,1);
+ d.account.items.push({...d.account.items[0],id:'new-fill',realized:-3});b.memory.set(P.KEY,JSON.stringify({accounts:{account:d.account}}));b.emit('storage',{key:P.KEY});assert.equal(b.nodes.perfPnl.textContent,'+9 EUR');assert.equal(b.nodes.perfClosed.textContent,2);assert.equal(b.nodes.perfWinRate.textContent,'50%');assert.equal(b.memory.has('tt_trade_plans_v1'),false);
+});
+test('Performance currency selector and period filter recalculate only compatible broker results',()=>{
+ const b=boot({demo:false}),P=b.c.T212Performance,d=P.demo(NOW);d.account.items=[{...d.account.items[0],realized:4},{...d.account.items[0],id:'USD',currency:'USD',realized:20},{...d.account.items[0],id:'old',realized:100,date:'2026-01-01T15:00:00Z'}];b.memory.set(P.SNAPSHOT_KEY,JSON.stringify({account:d.snapshot}));b.memory.set(P.KEY,JSON.stringify({accounts:{account:d.account}}));b.emit('storage',{key:P.KEY});assert.equal(b.nodes.perfPnl.textContent,'+104 EUR');
+ b.nodes.performancePeriod.value='30';b.nodes.performancePeriod.onchange();assert.equal(b.nodes.perfPnl.textContent,'+4 EUR');b.nodes.performanceCurrency.value='USD';b.nodes.performanceCurrency.onchange();assert.equal(b.nodes.perfPnl.textContent,'+20 USD');assert.equal(b.nodes.brokerSells.textContent,1);
 });

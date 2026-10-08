@@ -54,6 +54,7 @@ test('known execution on first import page cannot hide a backfilled execution on
  const journal={saveSnapshot(){},merge(scope,environment,items,next,at,options){imported.push({items,next,options});return {count:imported.length,complete:!next,rejected:0,excluded:0};}};
  const s=await setup(true,null,{Date:Clock,journal,response:(b,name,u)=>name==='orders'?{...b,data:new URL(u).searchParams.has('cursor')?{items:[{id:'backfill'}],nextCursor:null}:{items:[{id:'known'}],nextCursor:'late-page'}}:b});
  await s.connect();const tick=s.intervals.find(x=>x.ms===12000).fn;
+ assert.equal(imported.length,1);assert.equal(imported[0].items[0].id,'known');assert.match(s.el('journalState').textContent,/Performance Control/);
  time+=12000;tick();for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));assert.equal(imported[0].next,'late-page');
  time+=12000;tick();for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));assert.equal(imported[1].items[0].id,'backfill');assert.equal(imported[1].next,null);assert.match(s.el('journalState').textContent,/parcurs integral/);
 });

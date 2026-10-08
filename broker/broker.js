@@ -32,8 +32,9 @@ function history(){const orders=kind==='orders';$('history').innerHTML=rows.map(
 async function loadHistory(append=false){if(!token||busy)return;const id=session,selected=kind;busy=true;$('more').disabled=true;document.querySelectorAll('[data-kind]').forEach(b=>b.disabled=true);$('historyState').textContent='Încarc istoricul…';
  try{const b=await api(selected,append?cursor:null);if(id!==session||selected!==kind)return;if(!Array.isArray(b.data?.items))throw Error('Istoric incompatibil.');if(!append){rows=[];seen.clear();}
  for(const item of b.data.items){const key=item.id?selected+':'+item.id:JSON.stringify(item);if(!seen.has(key)){seen.add(key);rows.push(item);}}
+ if(selected==='orders'&&window.T212J&&journalScope)acceptJournalPage(b,!append);
  if(selected!=='orders'&&window.T212J&&journalScope)window.T212J.mergeCash(journalScope,brokerEnvironment,selected,b.data.items,b.data.nextCursor,b.fetchedAt);cursor=b.data.nextCursor;history();$('more').hidden=!cursor;$('historyState').textContent=`${rows.length} înregistrări · ${cursor?'istoric parțial, mai există pagini':'toate paginile disponibile au fost încărcate'} · ${stamp(b.fetchedAt)}`;
- }catch(e){if(id===session&&e.name!=='AbortError')$('historyState').textContent='Istoric neactualizat: '+e.message;}
+ }catch(e){if(id===session&&e.name!=='AbortError'){$('historyState').textContent='Istoric neactualizat: '+e.message;if(selected==='orders')try{window.T212J?.importState?.(journalScope,brokerEnvironment,'error');}catch(_){}}}
  finally{if(id===session){busy=false;$('more').disabled=false;document.querySelectorAll('[data-kind]').forEach(b=>b.disabled=false);}}
 }
 async function sync(){if(busy)return;const id=session;busy=true;$('metrics').replaceChildren();$('positions').replaceChildren();$('account').hidden=true;$('refresh').disabled=true;$('connectButton').disabled=true;$('status').textContent='Sincronizez contul și pozițiile…';
@@ -67,16 +68,20 @@ window.addEventListener('pagehide',reset);
 function connectionReady(value){ready=value;['apiKey','apiSecret','brokerEnvironment','connectButton'].forEach(id=>$(id).disabled=!value);}
 try{const c=await fetch('../app/trading212-config.json',{cache:'no-store'}).then(r=>r.json());if(c.enabled&&c.directCredentials===true){configuredBase=validEndpoint(c.endpoint);connectionReady(true);$('configState').textContent='Introdu API Key și API Secret. Datele sunt citite fără plasare de ordine.';}else {connectionReady(false);$('configState').textContent='Formularul simplu este pregătit. Conectarea online este încă în curs de activare; nu introduce cheia deocamdată.';}}catch(_){connectionReady(false);$('configState').textContent='Conectarea online nu este disponibilă momentan. Cheia nu este solicitată până la activare.';}
 
+function acceptJournalPage(page,restart){
+ const next=page.data.nextCursor,result=window.T212J.merge(journalScope,brokerEnvironment,page.data.items,next,page.fetchedAt,{restart});
+ journalStarted=true;journalCursor=next;journalDone=!journalCursor;if(journalDone)journalNext=Date.now()+300000;
+ $('journalState').textContent=`${result.count} execuții în jurnal și Performance Control · ${result.complete?'istoric disponibil parcurs integral':journalDone?'PARȚIAL · execuții incompatibile, necesită reverificare':'import în curs, urmează pagina următoare'}${result.rejected?' · '+result.rejected+' execuții incompatibile excluse':''}${result.excluded?' · '+result.excluded+' ordine fără execuție excluse':''}`;
+ return result;
+}
 async function importJournalPage(){
  if(!token||busy||journalRunning||!journalScope||!window.T212J||Date.now()<journalNext)return;
  if((times.orders||0)>Date.now())return;
  const id=session,scope=journalScope;journalRunning=true;
- try{const restart=journalDone||!journalStarted,page=await api('orders',journalDone?null:journalCursor);if(id!==session)return;
+ try{window.T212J.importState?.(scope,brokerEnvironment,'loading');const restart=journalDone||!journalStarted,page=await api('orders',journalDone?null:journalCursor);if(id!==session)return;
  // Known fills may precede late/backfilled executions on later pages; always follow the cursor.
- const next=page.data.nextCursor,result=window.T212J.merge(scope,brokerEnvironment,page.data.items,next,page.fetchedAt,{restart});
- journalStarted=true;journalCursor=next;journalDone=!journalCursor;if(journalDone)journalNext=Date.now()+300000;
- $('journalState').textContent=`${result.count} execuții în jurnal · ${result.complete?'istoric disponibil parcurs integral':journalDone?'PARȚIAL · execuții incompatibile, necesită reverificare':'import în curs, urmează pagina următoare'}${result.rejected?' · '+result.rejected+' execuții incompatibile excluse':''}${result.excluded?' · '+result.excluded+' ordine fără execuție excluse':''}`;
- }catch(e){if(id===session&&e.name!=='AbortError')$('journalState').textContent='Import parțial / întrerupt: '+e.message;}
+ acceptJournalPage(page,restart);
+ }catch(e){if(id===session&&e.name!=='AbortError'){$('journalState').textContent='Import parțial / întrerupt: '+e.message;try{window.T212J.importState?.(scope,brokerEnvironment,'error');}catch(_){}}}
  finally{if(id===session)journalRunning=false;}
 }
 setInterval(()=>{if(token&&$('autoSync').checked&&!busy&&!journalRunning&&navigator.onLine!==false&&document.visibilityState!=='hidden')sync();},60000);

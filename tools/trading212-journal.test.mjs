@@ -38,3 +38,6 @@ test('legacy malformed rows are retained but cannot certify complete coverage un
  let r=j.merge('a','live',[],null,fill.date,{restart:true});assert.equal(r.complete,false);assert.equal(r.rejected,1);assert.equal(j.read().accounts.a.items.length,1);
  r=j.merge('a','live',[fill],null,fill.date,{restart:true});assert.equal(r.complete,true);assert.equal(r.count,1);
 });
+test('history import errors retain the previous fills and a successful page clears the error',()=>{
+ const j=setup();j.merge('a','live',[fill],null,fill.date);j.importState('a','live','error');assert.equal(j.read().accounts.a.items.length,1);assert.equal(j.read().accounts.a.syncError,'Import întrerupt');j.merge('a','live',[fill],null,fill.date,{restart:true});assert.equal(j.read().accounts.a.syncError,null);assert.equal(j.read().accounts.a.syncStatus,'complete');
+});
