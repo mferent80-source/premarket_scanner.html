@@ -11,6 +11,7 @@ function prepare(source,{simulation=false}={}){
  if(!broker)$('performanceStatus').textContent='Rezultatele planurilor Shadow sunt păstrate separat de execuțiile reale. P&L în USD; R folosește riscul inițial documentat.';
 }
 function render(r,{simulation=false,limit=20}={}){
+ const ticker=document.getElementById('performanceTicker');if(ticker){const options='<option value="">Toate instrumentele</option>'+(r.symbols||[]).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');if(ticker.innerHTML!==options)ticker.innerHTML=options;ticker.value=r.ticker||'';}
  const c=r.currency;const select=$('performanceCurrency'),options=r.currencies.length?r.currencies:[c||''];
  const markup=options.map(v=>'<option value="'+esc(v)+'">'+esc(v||'Monedă necunoscută')+'</option>').join('');if(select.innerHTML!==markup)select.innerHTML=markup;select.value=c||'';
  $('perfClosed').textContent=r.count;$('perfClosed').title='Execuții SELL cu P&L raportat. O vânzare parțială este o ieșire, nu o poziție complet închisă.';
