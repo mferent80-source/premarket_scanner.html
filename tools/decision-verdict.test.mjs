@@ -62,6 +62,11 @@ test('a bearish holding calls for thesis review and does not invent a trade stop
  assert.equal(r.canPlan,false);assert.match(r.briefing.assessment,/descendent/);
  assert.match(r.briefing.invalidation,/deja deteriorată/);
  assert.doesNotMatch(r.briefing.invalidation,/95 USD/);
+ assert.match(r.briefing.next,/teza, evenimentele și limita de risc/);
+});
+test('defensive Breadth with complete sources uses its market action instead of a missing-data instruction',()=>{
+ const r=V.build({purpose:'market',context:{ready:true,caution:true,cautionReason:'Participare defensivă.',next:'Selectează strict și verifică instrumentul.'}},now);
+ assert.equal(r.code,'CAUTION');assert.equal(r.briefing.next,'Selectează strict și verifică instrumentul.');
 });
 test('Breadth explanations include public participation and sector evidence but exclude account fields',()=>{
  const r=V.build({purpose:'market',context:{ready:true,summary:'Piață selectivă.',evidence:[{id:'participation',label:'Uptrend',value:'42%',role:'support'},{id:'market-trend',label:'Trend',value:'RISING',role:'support'},{id:'sectors',label:'Sectoare',value:'Tech',role:'support'},{id:'account',label:'Sold privat',value:'PRIVATE',role:'support'}]}},now);

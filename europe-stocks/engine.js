@@ -29,6 +29,7 @@
     state.scanning=on;
     ['scanBtn','market','universe'].forEach(id=>$(id).disabled=on);
     $('scanState').textContent=on?'Se verifică datele…':state.verified?'Scanare finalizată':'Nicio serie verificată';
+    if(!state.selected)renderDetail(null);
   }
   function progress(done,total){
     const pct=total?Math.round(done/total*100):0;

@@ -227,6 +227,7 @@
     state.scanning = on; $('scanBtn').disabled = on;
     $('scanState').textContent = on ? 'SCANEZ PIAȚA' : 'SCAN ACTIV';
     $('liveState').classList.toggle('off', false);
+    if (!state.selected) renderDetail(null);
   }
   function showAlert(msg, error) {
     var el = $('alert'); el.hidden = !msg; el.textContent = msg || ''; el.className = 'ce-alert' + (error ? ' error' : '');
