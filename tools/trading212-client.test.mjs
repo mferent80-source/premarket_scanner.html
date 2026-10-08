@@ -2,12 +2,14 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {webcrypto} from 'node:crypto';
+import vm from 'node:vm';
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 async function setup(enabled,vault=null,options={}){
  const elements=new Map(),events={},intervals=[];
- function el(id){if(!elements.has(id))elements.set(id,{value:'',hidden:false,disabled:false,textContent:'',innerHTML:'',handlers:{},replaceChildren(){this.innerHTML=''},addEventListener(name,fn){this.handlers[name]=fn}});return elements.get(id)}
+ function el(id){if(!elements.has(id))elements.set(id,{value:'',hidden:false,disabled:false,textContent:'',innerHTML:'',handlers:{},replaceChildren(){this.innerHTML=''},scrollIntoView(){this.scrolled=true},addEventListener(name,fn){this.handlers[name]=fn}});return elements.get(id)}
  const document={visibilityState:'visible',getElementById:el,querySelectorAll:()=>[]},Clock=options.Date||Date;
  const window={T212Vault:vault,T212J:options.journal,addEventListener:(name,fn)=>events[name]=fn},calls=[];
+ const context=vm.createContext({window,Intl,Date:Clock});for(const file of ['lib/trading212-performance.js','lib/trading212-portfolio.js'])vm.runInContext(readFileSync(file,'utf8'),context);
  const fetch=async(u,request)=>{
   if(String(u).includes('trading212-config'))return {json:async()=>({enabled,endpoint:'https://owned-private.workers.dev',directCredentials:true})};
   calls.push({url:String(u),options:request});if(options.fetch)return options.fetch(u,request);
@@ -15,7 +17,7 @@ async function setup(enabled,vault=null,options={}){
   const body={source:'Trading 212',environment:'live',fetchedAt:new Date(Clock.now()).toISOString(),data};
   return {ok:true,json:async()=>options.response?options.response(body,name,u):body};
  };
- await new AsyncFunction('document','window','fetch','setInterval','btoa','AbortController','crypto','setTimeout','clearTimeout','Date','navigator',readFileSync('broker/broker.js','utf8'))(document,window,fetch,(fn,ms)=>intervals.push({fn,ms}),btoa,AbortController,options.crypto||webcrypto,options.setTimeout||setTimeout,options.clearTimeout||clearTimeout,Clock,{onLine:true});
+ await new AsyncFunction('document','window','fetch','setInterval','btoa','AbortController','crypto','setTimeout','clearTimeout','Date','navigator','location',readFileSync('broker/broker.js','utf8'))(document,window,fetch,(fn,ms)=>intervals.push({fn,ms}),btoa,AbortController,options.crypto||webcrypto,options.setTimeout||setTimeout,options.clearTimeout||clearTimeout,Clock,{onLine:true},options.location||{search:''});
  el('autoSync').checked=true;
  const connect=()=>{el('apiKey').value='test-key';el('apiSecret').value='test-secret';el('brokerEnvironment').value='live';return el('connect').handlers.submit({preventDefault(){}});};
  return {el,events,calls,intervals,connect};
@@ -61,4 +63,32 @@ test('known execution on first import page cannot hide a backfilled execution on
 
 test('numeric strings in portfolio balances cannot become accepted weights or prices',async()=>{
  let writes=0;const s=await setup(true,{read:async()=>null,save:async()=>writes++},{response:(b,name)=>({...b,data:name==='summary'?{currency:'EUR',available:5,totalValue:'100'}:[{ticker:'A',quantity:1,currentPrice:'10'}]})});await s.connect();assert.equal(writes,0);assert.equal(s.el('account').hidden,true);
+});
+
+
+test('portfolio filters preserve currency units and reset with account disconnect',async()=>{
+ const s=await setup(true,null,{response:(b,name)=>({...b,data:name==='positions'?[
+  {ticker:'LOSS_US_EQ',name:'Loss',quantity:1,currency:'EUR',instrumentCurrency:'USD',value:90,unrealized:-10,averagePrice:100,currentPrice:90},
+  {ticker:'WIN_US_EQ',name:'Winner',quantity:2,currency:'EUR',instrumentCurrency:'EUR',value:220,unrealized:20,averagePrice:100,currentPrice:110}
+ ]:b.data})});await s.connect();
+ assert.match(s.el('portfolioSummary').innerHTML,/-10 EUR/);assert.match(s.el('positions').innerHTML,/LOSS_US_EQ/);
+ s.el('positionFilter').value='gain';s.el('positionFilter').handlers.change();assert.doesNotMatch(s.el('positions').innerHTML,/LOSS_US_EQ/);assert.match(s.el('positions').innerHTML,/WIN_US_EQ/);
+ assert.match(s.el('portfolioSummary').innerHTML,/-10 EUR/);s.el('disconnect').onclick();assert.equal(s.el('portfolioSummary').innerHTML,'');assert.equal(s.el('realizedSummary').innerHTML,'');assert.equal(s.el('positionSearch').value,'');
+});
+test('summary failure leaves current position P&L visible with missing weights',async()=>{
+ const s=await setup(true,null,{fetch:async u=>{if(String(u).endsWith('/summary'))throw Error('summary unavailable');return {ok:true,json:async()=>({source:'Trading 212',environment:'live',fetchedAt:new Date().toISOString(),data:String(u).endsWith('/positions')?[{ticker:'A',quantity:1,currency:'EUR',unrealized:-8,value:92}]:{items:[],nextCursor:null}})};}});
+ await s.connect();assert.match(s.el('portfolioSummary').innerHTML,/-8 EUR/);assert.match(s.el('portfolioState').textContent,/Sumar lipsă/);assert.match(s.el('positions').innerHTML,/Pondere din cont<\/dt><dd>—/);
+});
+test('position read failure cannot display old position rankings',async()=>{
+ let time=Date.now(),failed=false;class Clock extends Date{static now(){return time;}}
+ const s=await setup(true,null,{Date:Clock,fetch:async u=>{const name=String(u).split('/').at(-1);if(failed&&name==='positions')throw Error('positions unavailable');return {ok:true,json:async()=>({source:'Trading 212',environment:'live',fetchedAt:new Date(time).toISOString(),data:name==='summary'?{currency:'EUR',totalValue:100}:name==='positions'?[{ticker:'OLD',quantity:1,currency:'EUR',value:80,unrealized:-20}]:{items:[],nextCursor:null}})};}});
+ await s.connect();assert.match(s.el('portfolioSummary').innerHTML,/OLD/);failed=true;time+=60000;await s.el('refresh').onclick();assert.doesNotMatch(s.el('portfolioSummary').innerHTML,/OLD/);assert.match(s.el('portfolioState').textContent,/indisponibles|indisponibile/);
+});
+test('fictitious preview never reads credentials, fetches broker data or saves snapshots',async()=>{
+ let touched=0;const s=await setup(true,{read:async()=>{touched++;return {key:'real-key',secret:'real-secret',environment:'live'}}},{location:{search:'?demo=1'},journal:{saveSnapshot(){touched++},read(){touched++;return {accounts:{}}}}});
+ assert.equal(touched,0);assert.equal(s.calls.length,0);assert.equal(s.el('previewBanner').hidden,false);assert.match(s.el('status').textContent,/DEMO FICTIV/);assert.match(s.el('positions').innerHTML,/FICTIV_A/);assert.match(s.el('realizedSummary').innerHTML,/-50 EUR/);await s.connect();assert.equal(s.calls.length,0);assert.equal(touched,0);
+});
+test('realized attribution consumes only the current credential scope',async()=>{
+ const s=await setup(true,null,{journal:{saveSnapshot(){},merge(){return {count:0,complete:true}},read(){return {accounts:{unrelated:{environment:'live',items:[{ticker:'SECRET_OTHER',side:'SELL',realized:999}],complete:true,fetchedAt:new Date().toISOString()}}}}},response:(b,name)=>({...b,data:name==='summary'?{currency:'EUR',totalValue:100}:b.data})});
+ await s.connect();assert.doesNotMatch(s.el('realizedSummary').innerHTML,/SECRET_OTHER|999/);assert.match(s.el('realizedSummary').innerHTML,/încă nu a fost importat/);
 });

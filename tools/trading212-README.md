@@ -53,3 +53,17 @@ node --test tools/trading212.test.mjs tools/trading212-client.test.mjs tools/dec
 ```
 
 Documentație oficială: https://docs.trading212.com/ și https://helpcentre.trading212.com/hc/en-us/articles/14584770928157-Trading-212-API-key
+
+## Câștiguri și pierderi în pagina brokerului
+
+Secțiunea principală grupează pozițiile deschise după P&L-ul nerealizat raportat în `walletImpact` și moneda sumelor. Cele mai mari pierderi și câștiguri sunt clicabile pentru filtrarea listei. Filtrele după nume, rezultat și monedă și sortările după P&L, variație de preț, valoare și pondere nu schimbă totalurile portofoliului. Lista afișează separat propriul subtotal; filtrele se păstrează la actualizare și se golesc la schimbarea conexiunii. Soldul și sumarul contului se află în secțiunea pliabilă de mai jos.
+
+Variația de preț este `(currentPrice / averagePrice − 1) × 100`; revenirea la prețul mediu este `(averagePrice / currentPrice − 1) × 100` când prețul este pozitiv și sub medie. Aceste rapoarte folosesc moneda instrumentului, inclusiv GBp, fără FX sau costuri. Ponderea în cont folosește `value / summary.totalValue`, inclusiv numerarul din valoarea contului. Partea din pierderi/câștiguri folosește sumele negative/pozitive distincte în aceeași monedă, nu P&L-ul net. Nu se estimează randament total, rezultatul de azi sau momentul recuperării.
+
+Pozițiile fără rezultat ori monedă nu devin automat zero. Dublurile aceluiași ticker și cantitățile incompatibile sunt excluse; acoperirea și diferența față de sumar sunt afișate explicit. O citire de poziții eșuată elimină vechile clasamente; sumarul lipsă nu ascunde P&L-ul unei poziții, dar lasă ponderea indisponibilă. Datele mai vechi de cinci minute sunt marcate.
+
+„Rezultate din vânzări, pe simbol” folosește același registru verificat ca Performance Control, numai pentru scope-ul conexiunii curente. Intervalele 30/90/365 zile și moneda selectată se aplică execuțiilor SELL cu P&L raportat. Vânzările parțiale rămân execuții distincte. Istoricul parțial sau întrerupt și datele vechi sunt etichetate; alte conturi și alte medii nu sunt folosite ca fallback.
+
+`broker/?demo=1` previzualizează numai date fictive în memorie: nu citește credențialele salvate, nu accesează releul și nu scrie snapshot-uri sau execuții. Modul Demo al brokerului conectat este distinct de acest preview. Metodologia folosește [definițiile oficiale ale pozițiilor](https://docs.trading212.com/api/positions); valorile lipsă din schema normalizată existentă nu sunt reconstruite prin schimbarea releului.
+
+Verificare suplimentară: `tools/trading212-portfolio.test.mjs` și testele clientului verifică FX, GBp, recuperarea după −20%, monedele distincte, lipsurile, dublurile, acoperirea, izolarea contului și preview-ul fără credențiale.
