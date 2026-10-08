@@ -83,7 +83,7 @@
     g.TTDecisionPanel?.set({purpose:'entry',executionMode:'native',candidate:x,risk:g.GV?.status?.()||x.governor,earnings:{known:['confirmed','estimated','reported'].includes(e.status),blocked:Number.isFinite(e.days)&&e.days<=1}});
   }
   function renderDetail(x){
-    if(!x){g.TTDecisionPanel?.set({purpose:'entry'});$('detail').innerHTML='<h2>Analiza acțiunii</h2><p>Selectează un candidat pentru trend, volum și niveluri tehnice.</p>';return;}
+    if(!x){g.TTDecisionPanel?.set({purpose:'entry',empty:{title:state.scanning?'Analizez acțiunile Europa':!state.hasScan?'Pornește scanarea Europa':'Niciun candidat pentru selecția curentă',reason:state.scanning?'Verific prețurile EOD și indicii comparativi pentru piețele selectate.':state.verified?state.verified+' instrumente verificate; niciun candidat nu trece strategia și filtrele curente.':'Datele nu sunt încă verificate. Vezi acoperirea și erorile surselor.',next:state.scanning?'Așteaptă finalizarea scanării.':'Scanează Europa sau schimbă strategia și filtrele.'}});$('detail').innerHTML='<h2>Analiza acțiunii</h2><p>Selectează un candidat pentru trend, volum și niveluri tehnice.</p>';return;}
     const stale=!g.DailySeries.usable(x)||Date.now()-x.ts>MAX_AGE;
     const e=EuropeFinance.earnings(state.calendar,x);if(state.calendarError&&!state.calendar)e.reason=state.calendarError;
     refreshVerdict(x);

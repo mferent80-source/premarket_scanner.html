@@ -344,7 +344,7 @@
     return '<svg viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="Evoluția ultimelor 45 sesiuni"><path class="grid" d="M0 30H320M0 59H320M0 88H320"/><polygon class="area" points="' + area + '"/><polyline class="line" points="' + pts + '"/></svg>';
   }
   function renderDetail(x) {
-    window.TTDecisionPanel?.set({purpose:'entry',simulation:x?.kind==='synthetic',candidate:x,risk:x?.kind==='synthetic'?x.governor:window.GV?.status?.()||x?.governor});
+    window.TTDecisionPanel?.set({purpose:'entry',simulation:x?.kind==='synthetic',candidate:x,risk:x?.kind==='synthetic'?x.governor:window.GV?.status?.()||x?.governor,empty:{title:state.scanning?'Analizez piața':requested?'Nicio analiză actuală · '+requested:state.updatedAt?'Niciun candidat pentru selecția curentă':'Scanarea nu este încă disponibilă',reason:state.scanning?'Așteaptă verificarea prețurilor, a trendului și a benchmarkului.':requested?'Simbolul solicitat nu a trecut verificarea datelor sau nu corespunde filtrelor.':state.analyses.length?'Există '+state.analyses.length+' analize, dar niciuna nu corespunde strategiei și filtrelor curente.':'Seriile de prețuri nu sunt încă verificate. Verifică acoperirea și erorile scanării.',next:state.scanning?'Așteaptă terminarea scanării.':'Scanează din nou sau schimbă strategia și filtrele; verifică și sursele excluse.'}});
     if (!x) {
       ['dSymbol','dName','dScore','dSector','dState','dFresh','dReason','dEntry','dStop','dTarget','dGovernor','dGovernorWhy'].forEach(function (id) { $(id).textContent = '—'; });
       $('spark').innerHTML = ''; $('setupBtn').disabled = true; return;

@@ -34,3 +34,38 @@ test('AI explanation must reference current verdict, actual evidence and allowed
 test('snapshot is stable across time checks but changes when evidence or source changes',()=>{const x=candidate(),a=V.build({purpose:'entry',candidate:x,risk},now),b=V.build({purpose:'entry',candidate:x,risk},now+1000);assert.equal(a.snapshotId,b.snapshotId);assert.notEqual(a.snapshotId,build({rvol:.5}).snapshotId);});
 
 test('initial empty selection produces a verification result without crashing',()=>{const r=V.build({purpose:'entry'},now);assert.equal(r.code,'VERIFY');assert.equal(r.canPlan,false);assert.equal(r.symbol,null);});
+
+test('a monitored bullish candidate explains its structure and the actual missing confirmation',()=>{
+ const r=build({actionable:false,state:'WATCH'});
+ assert.equal(r.canPlan,false);assert.match(r.briefing.summary,/trend ascendent aliniat/);
+ assert.ok(r.briefing.supports.some(s=>s.id==='medium'));
+ assert.ok(r.briefing.obstacles.some(s=>s.id==='setup'));
+ assert.match(r.briefing.confirmation,/99 USD.*101 USD/);
+ assert.match(r.briefing.invalidation,/95 USD/);
+ assert.doesNotMatch(r.briefing.confirmation,/Reper structural de confirmare/);
+});
+test('expired analysis and wrong EOD give distinct explanations without enabling a plan',()=>{
+ const expired=build({ts:now-V.MAX_AGE-1}),wrongSession=build({sourceDate:'2026-10-01'});
+ assert.match(expired.briefing.obstacles[0].text,/30 de minute/);
+ assert.match(wrongSession.briefing.obstacles[0].text,/2026-10-01/);
+ assert.equal(expired.canPlan,false);assert.equal(wrongSession.canPlan,false);
+});
+test('empty filtered pages explain their own state instead of inventing failed technical checks',()=>{
+ const r=V.build({purpose:'entry',empty:{title:'Niciun candidat Europa',reason:'Acțiunile verificate nu trec filtrul.',next:'Schimbă strategia și filtrele.'}},now);
+ assert.equal(r.code,'VERIFY');assert.equal(r.evidence.length,0);
+ assert.equal(r.briefing.summary,'Acțiunile verificate nu trec filtrul.');
+ assert.equal(r.briefing.next,'Schimbă strategia și filtrele.');
+ assert.equal(r.blockers.length,1);
+});
+test('a bearish holding calls for thesis review and does not invent a trade stop',()=>{
+ const t=V.trend(bars(240,true));const r=build({trend:t,price:t.price},{purpose:'holding'});
+ assert.equal(r.canPlan,false);assert.match(r.briefing.assessment,/descendent/);
+ assert.match(r.briefing.invalidation,/deja deteriorată/);
+ assert.doesNotMatch(r.briefing.invalidation,/95 USD/);
+});
+test('Breadth explanations include public participation and sector evidence but exclude account fields',()=>{
+ const r=V.build({purpose:'market',context:{ready:true,summary:'Piață selectivă.',evidence:[{id:'participation',label:'Uptrend',value:'42%',role:'support'},{id:'market-trend',label:'Trend',value:'RISING',role:'support'},{id:'sectors',label:'Sectoare',value:'Tech',role:'support'},{id:'account',label:'Sold privat',value:'PRIVATE',role:'support'}]}},now);
+ const facts=V.publicFacts(r);assert.equal(facts.purpose,'market');assert.equal(facts.symbol,null);
+ assert.deepEqual(Array.from(facts.evidence,e=>e.id),['participation','market-trend','sectors']);
+ assert.doesNotMatch(JSON.stringify(facts),/PRIVATE/);assert.equal(r.canPlan,false);
+});
