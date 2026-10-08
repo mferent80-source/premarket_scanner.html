@@ -28,10 +28,10 @@ test('daily context is not labelled live or a calibrated probability and Governo
 function focusDesk(){
  const a={symbol:'WATCH-A',mode:'momentum',score:80,actionable:false,state:'WATCH',reason:'Așteaptă confirmarea'},b={...a,symbol:'WATCH-B',score:70};
  const nodes={},buttons=[a,b].map(x=>({dataset:{symbol:x.symbol}})),reports=[];
- const c={selected:null,requestedSymbol:null,requestedMode:null,handoffExpected:false,handoffCandidate:null,handoffError:'',demoMode:false,breadthData:null,signalMode:'momentum',data:{analyses:[]},confirmed:()=>[],decisionItems:()=>[a,b],sectors:()=>[],gov:()=>({verdict:'HALTED'}),candidateFreshness:()=>'FRESH',age:()=>'',esc:String,fmt:()=>'',decisionFor:()=>({canPlan:false}),window:{TTDecisionVerdict:{},TTDecisionPanel:{set:r=>reports.push(r)}},document:{querySelectorAll:()=>buttons},$:id=>nodes[id]||(nodes[id]={style:{}})};
+ const c={selected:null,requestedSymbol:null,requestedMode:null,handoffExpected:false,handoffCandidate:null,handoffError:'',demoMode:false,breadthData:null,signalMode:'momentum',signalQuery:'',data:{analyses:[]},confirmed:()=>[],decisionItems:()=>[a,b],sectors:()=>[],gov:()=>({verdict:'HALTED'}),candidateFreshness:()=>'FRESH',age:()=>'',esc:String,fmt:()=>'',decisionFor:x=>{reports.push({candidate:x});return {canPlan:false};},renderFocusDetail(){},renderMini(){},renderCoach(){},window:{TTDecisionVerdict:{},TTDecisionPanel:{set:r=>reports.push(r)}},document:{querySelectorAll:q=>q==='#signalRows .row'?buttons:[]},$:id=>nodes[id]||(nodes[id]={style:{}})};
  vm.createContext(c);
  const brief=html.match(/function renderBrief\(\)\{[\s\S]*?(?=\n  function renderStory)/)[0],signals=html.match(/function renderSignals\(\)\{[\s\S]*?(?=\n  function miniHtml)/)[0];
- vm.runInContext(brief+'\n'+signals,c);
+ vm.runInContext(brief+'\n'+html.match(/function selectSignal\(x\)\{[^\n]+/)[0]+'\n'+signals,c);
  return {c,nodes,buttons,reports};
 }
 test('Desk retains a monitored candidate when every new plan is blocked',()=>{
