@@ -62,3 +62,5 @@ test('phone background refresh never scrolls the selected tab or holding into vi
  const {layout,ctx,row,cards}=setup({mobile:true});let scrolls=0;for(const c of cards)for(const b of c.tabs)b.scrollIntoView=()=>scrolls++;
  layout.render(ctx('a'),[row('A'),row('B')]);cards[0].tabs[1].onclick();layout.render(ctx('a'),[row('A'),row('B')]);assert.equal(scrolls,0);
 });
+
+test('exact holding navigation reveals its selected tab without computing models or substituting another ticker',()=>{const {layout,ctx,row,cards,ids,opened}=setup();layout.render(ctx('a'),[row('A')]);ids.holdingReset=element();ids.holdingReset.onclick=()=>layout.render(ctx('a'),[row('A'),row('B')]);ids.holdingReset.click=()=>ids.holdingReset.onclick();assert.equal(layout.openHolding('B',{tab:'plan'}),true);assert.equal(cards[1].hidden,false);assert.equal(cards[1].panels[1].hidden,false);assert.equal(layout.openHolding('SOLD'),false);assert.equal(layout.selected(),'B');assert.deepEqual(opened,[]);});

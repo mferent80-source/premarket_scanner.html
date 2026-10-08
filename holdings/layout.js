@@ -11,6 +11,12 @@ function organize(){const source=$('holdingManagement'),target=$('managementRepo
 function showPage(name,focus=false){page=TOP.includes(name)?name:'holdings';for(const b of document.querySelectorAll('[data-workspace-tab]')){const active=b.dataset.workspaceTab===page;b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;}for(const p of document.querySelectorAll('[data-workspace-panel]'))p.hidden=p.dataset.workspacePanel!==page;if(focus)$('workspace-tab-'+page)?.focus();}
 function detailTab(card,name){name=DETAIL.includes(name)?name:'summary';for(const b of card.querySelectorAll('[data-holding-tab]')){const active=b.dataset.holdingTab===name;b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;}for(const p of card.querySelectorAll('[data-holding-panel]'))p.hidden=p.dataset.holdingPanel!==name;}
 function pick(ticker,{scroll=false,verdict=false}={}){if(!ctx)return;capture();const selected=choose(rows,ticker);remember({ticker:selected});showPage('holdings');if(document.body.dataset.holdingsView==='quick')$('holdingDetailView').click();render(ctx,rows);g.HoldingsNeuralUI?.refresh();if(g.matchMedia?.('(max-width: 760px)').matches){rosterExpanded=false;showRoster();}if(scroll)$('selectedAnalysis')?.scrollIntoView({behavior:'smooth',block:'start'});if(verdict&&selected)g.HoldingsVerdictUI?.open(selected);}
+function openHolding(ticker,{tab='summary',scroll=false}={}){
+ if(!ctx?.positions.some(p=>p.ticker===ticker))return false;
+ if(!rows.some(r=>r.p.ticker===ticker)){const reset=$('holdingReset');if(!reset?.onclick)return false;reset.click();}
+ if(!rows.some(r=>r.p.ticker===ticker))return false;
+ remember({detailTabs:{...(prefs().detailTabs||{}),[ticker]:DETAIL.includes(tab)?tab:'summary'}});pick(ticker,{scroll,verdict:false});return true;
+}
 function openModelLedger(ticker){
  if(!ctx?.positions.some(p=>p.ticker===ticker))return false;
  if(!rows.some(r=>r.p.ticker===ticker)){const reset=$('holdingReset');if(!reset?.onclick)return false;reset.click();}
@@ -32,5 +38,5 @@ function step(delta){const index=rows.findIndex(x=>x.p.ticker===prefs().ticker),
 function showList(){showPage('holdings');rosterExpanded=true;showRoster();$('holdingFilters')?.scrollIntoView({behavior:'smooth',block:'start'});}
 function bindKeys(list){if(!list)return;list.onkeydown=e=>{if(e.altKey||e.ctrlKey||e.metaKey||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key)||!e.target.matches('[role="tab"]'))return;const buttons=[...list.querySelectorAll('[role="tab"]')],at=buttons.indexOf(e.target),index=e.key==='Home'?0:e.key==='End'?buttons.length-1:(at+(e.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;e.preventDefault();buttons[index].click();buttons[index].focus();};}
 if(typeof document!=='undefined'){for(const b of document.querySelectorAll('[data-workspace-tab]'))b.onclick=()=>showPage(b.dataset.workspaceTab);bindKeys(document.querySelector('.workspace-tabs'));$('toggleHoldingRoster').onclick=()=>{rosterExpanded=!rosterExpanded;showRoster();};g.addEventListener('resize',showRoster);}
-g.HoldingsLayout={render,capture,organize,pick,choose,showPage,step,showList,openModelLedger,selected:()=>prefs().ticker};
+g.HoldingsLayout={render,capture,organize,pick,choose,showPage,step,showList,openHolding,openModelLedger,selected:()=>prefs().ticker};
 })(typeof window!=='undefined'?window:globalThis);

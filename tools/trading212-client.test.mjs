@@ -6,10 +6,12 @@ import vm from 'node:vm';
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 async function setup(enabled,vault=null,options={}){
  const elements=new Map(),events={},intervals=[];
- function el(id){if(!elements.has(id))elements.set(id,{value:'',hidden:false,disabled:false,textContent:'',innerHTML:'',handlers:{},setAttribute(k,v){this[k]=v;},replaceChildren(){this.innerHTML=''},scrollIntoView(){this.scrolled=true},addEventListener(name,fn){this.handlers[name]=fn}});return elements.get(id)}
+ function el(id){if(!elements.has(id))elements.set(id,{value:'',hidden:false,disabled:false,textContent:'',innerHTML:'',handlers:{},querySelectorAll:()=>[],setAttribute(k,v){this[k]=v;},replaceChildren(){this.innerHTML=''},scrollIntoView(){this.scrolled=true},addEventListener(name,fn){this.handlers[name]=fn}});return elements.get(id)}
  const document={visibilityState:'visible',getElementById:el,querySelectorAll:()=>[]},Clock=options.Date||Date;
- const window={T212Vault:vault,T212J:options.journal,addEventListener:(name,fn)=>events[name]=fn},calls=[];
- const context=vm.createContext({window,Intl,Date:Clock});for(const file of ['lib/trading212-performance.js','lib/trading212-portfolio.js','lib/trading212-daily.js','lib/holdings-pulse.js'])vm.runInContext(readFileSync(file,'utf8'),context);
+ const saved=options.saved||new Map(),storage={getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},sessionItems=new Map(),sessionStorage={getItem:k=>sessionItems.get(k)||null,setItem:(k,v)=>sessionItems.set(k,v)};
+ const window={crypto:webcrypto,T212Vault:vault,T212J:options.journal,addEventListener:(name,fn)=>events[name]=fn},calls=[];
+ window.parent=options.parent||window;
+ const context=vm.createContext({window,Intl,Date:Clock,localStorage:storage});for(const file of ['lib/trading212-performance.js','lib/trading212-portfolio.js','lib/trading212-daily.js','lib/holdings-pulse.js','lib/position-history.js','lib/holding-handoff.js','lib/trading212-snapshot.js'])vm.runInContext(readFileSync(file,'utf8'),context);
  window.ViewRefresh={patchList:(host,items,key,markup)=>{host.innerHTML=items.map(markup).join('');}};
  const fetch=async(u,request)=>{
   if(String(u).includes('trading212-config'))return {json:async()=>({enabled,endpoint:'https://owned-private.workers.dev',directCredentials:true})};
@@ -18,10 +20,10 @@ async function setup(enabled,vault=null,options={}){
   const body={source:'Trading 212',environment:'live',fetchedAt:new Date(Clock.now()).toISOString(),data};
   return {ok:true,json:async()=>options.response?options.response(body,name,u):body};
  };
- await new AsyncFunction('document','window','fetch','setInterval','btoa','AbortController','crypto','setTimeout','clearTimeout','Date','navigator','location','localStorage',readFileSync('broker/broker.js','utf8'))(document,window,fetch,(fn,ms)=>intervals.push({fn,ms}),btoa,AbortController,options.crypto||webcrypto,options.setTimeout||setTimeout,options.clearTimeout||clearTimeout,Clock,{onLine:true},options.location||{search:''},{getItem:()=>null});
+ await new AsyncFunction('document','window','fetch','setInterval','btoa','AbortController','crypto','setTimeout','clearTimeout','Date','navigator','location','localStorage','sessionStorage',readFileSync('broker/broker.js','utf8'))(document,window,fetch,(fn,ms)=>intervals.push({fn,ms}),btoa,AbortController,options.crypto||webcrypto,options.setTimeout||setTimeout,options.clearTimeout||clearTimeout,Clock,{onLine:true},options.location||{search:''},storage,sessionStorage);
  el('autoSync').checked=true;
  const connect=()=>{el('apiKey').value='test-key';el('apiSecret').value='test-secret';el('brokerEnvironment').value='live';return el('connect').handlers.submit({preventDefault(){}});};
- return {el,events,calls,intervals,connect};
+ return {el,events,calls,intervals,connect,window,saved,sessionStorage};
 }
 test('inactive online relay does not request or send API keys',async()=>{const s=await setup(false);for(const id of ['apiKey','apiSecret','connectButton'])assert.equal(s.el(id).disabled,true);await s.el('connect').handlers.submit({preventDefault(){}});assert.equal(s.calls.length,0);assert.match(s.el('status').textContent,/nu este încă activată/)});
 test('one simple form sends session credentials to configured HTTPS relay and clears fields',async()=>{const s=await setup(true);s.el('apiKey').value='test-key';s.el('apiSecret').value='test-secret';s.el('brokerEnvironment').value='live';await s.el('connect').handlers.submit({preventDefault(){}});assert.equal(s.calls.length,3);for(const c of s.calls){assert.ok(c.url.startsWith('https://owned-private.workers.dev/api/trading212/'));assert.equal(c.options.headers.Authorization,'Basic '+btoa('test-key:test-secret'));assert.equal(c.options.headers['X-T212-Environment'],'live');assert.equal(c.options.cache,'no-store');assert.equal(c.url.includes('test-key'),false)}assert.equal(s.el('apiKey').value,'');assert.equal(s.el('apiSecret').value,'');assert.equal(s.el('connectionSettings').open,false);s.el('disconnect').onclick();assert.equal(s.el('account').hidden,true);assert.equal(s.el('metrics').innerHTML,'')});
@@ -95,3 +97,14 @@ test('realized attribution consumes only the current credential scope',async()=>
 });
 
 test('background sync retains the visible account until both requests settle',async()=>{let time=Date.now(),defer=false,releases=[];class Clock extends Date{static now(){return time;}}const s=await setup(true,null,{Date:Clock,fetch:(u)=>{const name=new URL(u).pathname.split('/').at(-1),body={source:'Trading 212',environment:'live',fetchedAt:new Date(time).toISOString(),data:name==='summary'?{currency:'EUR',totalValue:100}:name==='positions'?[]:{items:[],nextCursor:null}},response={ok:true,json:async()=>body};return defer&&['summary','positions'].includes(name)?new Promise(resolve=>releases.push(()=>resolve(response))):Promise.resolve(response);}});await s.connect();assert.equal(s.el('account').hidden,false);s.el('metrics').innerHTML='previous balance';time+=61000;defer=true;const job=s.el('refresh').onclick();while(releases.length<2)await new Promise(r=>setImmediate(r));assert.equal(s.el('account').hidden,false);assert.equal(s.el('metrics').innerHTML,'previous balance');assert.equal(s.el('account')['aria-busy'],'true');releases.forEach(fn=>fn());await job;assert.equal(s.el('account')['aria-busy'],'false');});
+
+test('broker position action hands the exact selected account to analysis and rejects changed or stale accounts',async()=>{
+ let time=Date.now();class Clock extends Date{static now(){return time;}}const saved=new Map(),opened=[],position={ticker:'EXACT_US_EQ',quantity:2,averagePrice:80,currentPrice:90,instrumentCurrency:'USD',currency:'EUR',value:180,unrealized:20};
+ const journal={saveSnapshot(scope,environment,summary,positions,fetchedAt){saved.set('tt_trading212_portfolio_v1',JSON.stringify({[scope]:{environment,summary,positions,fetchedAt,active:true}}));}};
+ const s=await setup(true,null,{Date:Clock,saved,journal,parent:{postMessage:(data,origin)=>opened.push({data,origin})},location:{search:'',origin:'https://app.example'},response:(body,name)=>name==='positions'?{...body,data:[position]}:body});await s.connect();
+ const click=()=>s.el('positions').handlers.click({target:{closest:()=>({dataset:{analyzePosition:position.ticker},hasAttribute:()=>false})}});
+ assert.match(s.el('positions').innerHTML,/Analizează această poziție/);click();assert.equal(opened.length,1);assert.equal(opened[0].origin,'https://app.example');assert.equal(opened[0].data.ttOpenModule,'holdings/');
+ const nonce=new URLSearchParams(opened[0].data.ttQuery).get('holding'),resolved=s.window.HoldingHandoff.resolve(s.sessionStorage,nonce,time),scope=Object.keys(JSON.parse(saved.get('tt_trading212_portfolio_v1')))[0];assert.equal(resolved.target.scope,scope);assert.equal(resolved.target.ticker,position.ticker);
+ time+=600000;click();assert.equal(opened.length,1);assert.match(s.el('positionCoverage').textContent,/Sincronizează/);
+ saved.set('tt_trading212_portfolio_v1',JSON.stringify({other:{environment:'live',active:true,positions:[position],fetchedAt:new Date(time).toISOString()}}));click();assert.equal(opened.length,1);assert.match(s.el('positionCoverage').textContent,/Contul selectat s-a schimbat/);
+});

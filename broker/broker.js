@@ -34,11 +34,12 @@ function clearPortfolio(){
  ['portfolioSummary','positions','realizedSummary'].forEach(id=>$(id).replaceChildren());
  $('positionSearch').value='';$('positionFilter').value='all';$('positionSort').value='loss';$('positionAttention').value='all';$('portfolioCurrency').value='';$('realizedPeriod').value='all';$('positionCoverage').textContent='';
 }
-function portfolioOptions(){const daily={},stops={};let notes={};try{notes=JSON.parse(localStorage.getItem('tt_holdings_theses_v1')||'{}')||{};}catch{}for(const p of portfolioPositions||[]){daily[p.ticker]=window.T212Daily.compare(dailyHistory,{scope:journalScope,environment:previewMode?'demo':brokerEnvironment,position:p,at:portfolioAt});stops[p.ticker]=window.HoldingsPulse.stop(p,previewMode&&p.ticker===portfolioPositions[0]?.ticker?{stop:p.currentPrice/1.02,stopCurrency:p.instrumentCurrency,stopAlertPct:3}:notes[journalScope+'|'+p.ticker],null,{at:portfolioAt});}return {currency:$('portfolioCurrency').value,filter:$('positionFilter').value||'all',search:$('positionSearch').value,sort:$('positionSort').value||'loss',attention:$('positionAttention').value||'all',daily,stops};}
+function portfolioOptions(){const daily={},stops={};let notes={};try{notes=JSON.parse(localStorage.getItem('tt_holdings_theses_v1')||'{}')||{};}catch{}for(const p of portfolioPositions||[]){daily[p.ticker]=window.T212Daily.compare(dailyHistory,{scope:journalScope,environment:previewMode?'demo':brokerEnvironment,position:p,at:portfolioAt});stops[p.ticker]=window.HoldingsPulse.stop(p,previewMode&&p.ticker===portfolioPositions[0]?.ticker?{stop:p.currentPrice/1.02,stopCurrency:p.instrumentCurrency,stopAlertPct:3}:notes[journalScope+'|'+p.ticker],null,{at:portfolioAt});}return {history:portfolioPositions?{data:dailyHistory,scope:journalScope,environment:previewMode?'demo':brokerEnvironment,at:portfolioAt}:null,analysis:true,preview:previewMode,currency:$('portfolioCurrency').value,filter:$('positionFilter').value||'all',search:$('positionSearch').value,sort:$('positionSort').value||'loss',attention:$('positionAttention').value||'all',daily,stops};}
 function renderPositions(){
  if(!portfolioReport)return;
  const options=portfolioOptions(),result=window.T212Portfolio.positionsMarkup(portfolioReport,options);
  if(result.rows.length)window.ViewRefresh.patchList($('positions'),result.rows,p=>p.ticker,p=>window.T212Portfolio.positionsMarkup({...portfolioReport,rows:[p]},options).html);else $('positions').innerHTML=result.html;
+ window.PositionHistory?.bind($('positions'));
  $('portfolioSummary').innerHTML=window.T212Portfolio.summaryMarkup(portfolioReport,options.currency);
  const available=portfolioReport.rows.filter(p=>options.currency==='unknown'?!p.currency:p.currency===options.currency).length;
  const values=result.rows.filter(p=>p.pnl!==null).map(p=>p.pnl),subtotal=values.reduce((s,n)=>s+n,0);
@@ -69,6 +70,15 @@ function renderRealized(){
   host.innerHTML=window.T212Portfolio.realizedMarkup(report);
  }catch(_){host.textContent='Istoricul contului selectat nu poate fi citit. Reia sincronizarea.';}
 }
+$('positions').addEventListener('click',e=>{
+ const button=e.target.closest('[data-analyze-position],[data-analyze-demo]');if(!button)return;
+ let query;
+ try{
+  if(button.hasAttribute('data-analyze-demo'))query='demo=1&ticker=FICTIVB_US_EQ';
+  else{const target={scope:journalScope,environment:brokerEnvironment,ticker:button.dataset.analyzePosition},entry=window.T212Snapshot.read(brokerEnvironment),checked=window.HoldingHandoff.check(target,entry);if(!checked.ok)throw Error(checked.reason);if(!window.T212Snapshot.fresh(entry[1]))throw Error('Sincronizează Trading 212 înainte de a deschide analiza acestei poziții.');query=window.HoldingHandoff.create(sessionStorage,target);}
+  if(window.parent!==window)window.parent.postMessage({ttOpenModule:'holdings/',ttQuery:query},location.origin);else location.assign('../holdings/?'+query);
+ }catch(error){$('positionCoverage').textContent=error.message;}
+});
 ['positionFilter','positionSort','positionAttention'].forEach(id=>$(id).addEventListener('change',renderPositions));
 $('positionSearch').addEventListener('input',renderPositions);
 $('portfolioCurrency').addEventListener('change',()=>{renderPositions();renderRealized();});
