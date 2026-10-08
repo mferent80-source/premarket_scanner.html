@@ -43,3 +43,5 @@ Broker P&L comes only from the associated reported exits. Quote-price R is separ
 Additional validation: `tools/trading212-capital.test.mjs`, `tools/trade-evidence.test.mjs`, `tools/decision-bridge.test.mjs` and Desk interaction tests cover missing stops, scope rotation, FX, capacity persistence, future-fill rejection, immutable KNN capture, partial exits and ambiguous attribution.
 
 Automatic capture and immutable synchronization are checked by `tools/trade-evidence-auto.test.mjs`, `tools/trade-evidence-cloud.test.mjs`, client concurrency tests and authenticated two-device integration through the standalone encrypted D1 Worker. Local quota or service-record limits stop the operation with an error; originals are not silently trimmed.
+
+A compatible model report observed after a broker BUY can only create a later capture; it never supplies missing states to an earlier capture or claims ownership of that earlier entry. Trade-outcome grouping remains distinct from future-session forecast validation.
