@@ -3,7 +3,7 @@
 const G=g.HoldingsGarch,reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)},{onChange:refresh}),errors=new Map();let context=null,job=null,serial=0;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=(v,d=2)=>Number.isFinite(v)?v.toLocaleString('ro-RO',{maximumFractionDigits:d,minimumFractionDigits:d}):'—',day=t=>new Date(t).toISOString().slice(0,10);
 const key=p=>'tt_holdings_garch_v1:'+encodeURIComponent(context.scope)+'|'+encodeURIComponent(p.ticker);
-const blocked=()=>!!job||['HoldingsNeuralUI','HoldingsHMMUI','HoldingsIsolationUI','HoldingsQuantileUI'].some(name=>g[name]?.busy());
+const blocked=()=>!!job||['HoldingsNeuralUI','HoldingsHMMUI','HoldingsIsolationUI','HoldingsQuantileUI','HoldingsKNNUI'].some(name=>g[name]?.busy());
 function restore(p){return context&&p?reports.restore(key(p),context.demo):Promise.resolve();}
 function read(p){try{return reports.read(key(p),context.demo);}catch{return null;}}
 function usable(r,p,m,now=Date.now()){try{return !!r&&r.symbol===context.symbol(p)&&r.currency===m?.currency&&r.asOf===m?.asOf&&r.kind===(context.demo?'synthetic':'market')&&r.result?.current?.t===r.sourceTime&&g.DailySeries.date(r.sourceTime,r.timezone)===r.asOf&&Number.isFinite(r.sourceClose)&&Math.abs(r.sourceClose-m.price)<=1e-6*Math.max(1,m.price)&&Math.abs(r.result.current.close-m.price)<=1e-6*Math.max(1,m.price)&&Number.isFinite(r.trainedAt)&&r.trainedAt<=now&&now-r.trainedAt<=1800000&&G.valid(r.result,now);}catch{return false;}}

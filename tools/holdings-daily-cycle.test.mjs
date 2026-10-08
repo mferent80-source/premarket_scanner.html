@@ -13,19 +13,19 @@ async function setup({enabled=true,hidden=false,deferRestore=false}={}){
  saved.set(c.HoldingsAutoLearning.key(identity),JSON.stringify({version:c.HoldingsAutoLearning.VERSION,enabled,asOf:'2026-10-02',phase:'done',at:1}));
  const restore=deferRestore?new Promise(r=>release=r):Promise.resolve();
  c.DailySeries={expected:()=>eod};c.HoldingsForecastUI={restore:()=>restore,autoStorage:()=>({getItem:k=>saved.get(k),setItem:(k,v)=>saved.set(k,v)}),learning:()=>null,check:async()=>{checks++;return {state:'checked'};},checkSource:()=>sourceChecks++,capture:()=>captures++,captureVerdict(){},probabilistic:()=>null};
- c.HoldingsVerdict={build:()=>({available:6,total:6})};
- for(const name of ['Neural','HMM','Isolation','Quantile','Garch'])c['Holdings'+name+'UI']={busy:()=>false,refresh(){},restore:async()=>{},inspect:()=>({}),run:async(_,options)=>{runs.push({name,source:options.source});return {state:'ready'};},cancelManaged(){}};
+ c.HoldingsVerdict={IDS:['neural','boosting','hmm','isolation','quantile','garch','knn'],build:()=>({available:7,total:7})};
+ for(const name of ['Neural','HMM','Isolation','Quantile','Garch','KNN'])c['Holdings'+name+'UI']={busy:()=>false,refresh(){},restore:async()=>{},inspect:()=>({}),run:async(_,options)=>{runs.push({name,source:options.source});return {state:'ready'};},cancelManaged(){}};
  const context={scope:'account',demo:false,positions:[p],symbol:()=>reference.symbol,model:()=>model,reference:()=>reference,refresh(){},loadVerdict:async()=>{loads++;model={...reference,asOf:eod,price:100};return {...model,close:100,kind:'market',fingerprint:'verified-'+eod};}};
  vm.runInContext(readFileSync('holdings/learning.js','utf8'),c);c.HoldingsAutoLearningUI.setContext(context);
  await new Promise(r=>setImmediate(r));
  return {c,context,p,identity,saved,runs,release:()=>release?.(),timer:()=>timer(),visible:()=>{c.document.hidden=false;listeners.visibilitychange();},counts:()=>({loads,checks,captures,sourceChecks}),setEod:value=>{eod=value;model=null;},settle:()=>new Promise(r=>setImmediate(r))};
 }
-test('an expired technical analysis still triggers all six models on one freshly verified EOD and listing currency',async()=>{
- const s=await setup();assert.deepEqual(s.counts(),{loads:1,checks:0,captures:1,sourceChecks:1});assert.equal(s.runs.length,5);
+test('an expired technical analysis still triggers all seven models on one freshly verified EOD and listing currency',async()=>{
+ const s=await setup();assert.deepEqual(s.counts(),{loads:1,checks:0,captures:1,sourceChecks:1});assert.equal(s.runs.length,6);
  assert.ok(s.runs.every(r=>r.source.asOf==='2026-10-05'&&r.source.currency==='GBX'));assert.ok(s.runs.every(r=>r.source===s.runs[0].source));
  const state=JSON.parse(s.saved.get(s.c.HoldingsAutoLearning.key(s.identity)));assert.equal(state.phase,'done');assert.equal(state.asOf,'2026-10-05');
  await s.c.HoldingsAutoLearningUI.tick();assert.equal(s.counts().loads,1);
- s.setEod('2026-10-06');await s.c.HoldingsAutoLearningUI.tick();assert.equal(s.counts().loads,2);assert.equal(s.runs.length,10);
+ s.setEod('2026-10-06');await s.c.HoldingsAutoLearningUI.tick();assert.equal(s.counts().loads,2);assert.equal(s.runs.length,12);
 });
 test('stopping retraining preserves automatic outcome verification, including with an expired analysis',async()=>{
  const s=await setup({enabled:false});assert.deepEqual(s.counts(),{loads:0,checks:1,captures:0,sourceChecks:0});assert.equal(s.runs.length,0);

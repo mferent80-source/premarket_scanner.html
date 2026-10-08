@@ -1,20 +1,20 @@
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';
 const now=Date.parse('2026-10-05T08:00:00Z');
-const core={Date:class extends Date{static now(){return now;}}};vm.createContext(core);for(const file of ['holdings-model-storage','holdings-neural','holdings-neural-evaluation','holdings-boosting','holdings-model-comparison','holdings-hmm','holdings-isolation','holdings-quantile','holdings-garch','holdings-verdict','holdings-model-runner'])vm.runInContext(readFileSync('lib/'+file+'.js','utf8'),core);
+const core={Date:class extends Date{static now(){return now;}}};vm.createContext(core);for(const file of ['holdings-model-storage','holdings-neural','holdings-neural-evaluation','holdings-boosting','holdings-model-comparison','holdings-hmm','holdings-isolation','holdings-quantile','holdings-garch','holdings-knn','holdings-verdict','holdings-model-runner'])vm.runInContext(readFileSync('lib/'+file+'.js','utf8'),core);
 const bars=core.HoldingsNeural.demoBars(0,Date.parse('2026-10-02T23:59:00Z'));
 const source={bars,fingerprint:core.HoldingsVerdict.fingerprint(bars),symbol:'TEST',currency:'USD',kind:'synthetic',asOf:'2026-10-02',timezone:'America/New_York',closeMinutes:960,t:bars.at(-1).t,close:bars.at(-1).c};
 function setup(name,{demo=true,quota=false,capture,durable}={}){
  const button={dataset:{[name+'Train']:'0'}},workers=[],writes=[],saved=new Map(),c={scope:demo?'demo':'test-account',demo,positions:[{ticker:'TEST_US_EQ',quantity:123,apiKey:'SECRET'}],symbol:()=> 'TEST',model:()=>({asOf:source.asOf,currency:source.currency,price:source.close}),demoBars:()=>bars};
  const sandbox={...core,Date:class extends Date{static now(){return now;}},document:{querySelectorAll:q=>q==='[data-'+name+'-train]'?[button]:[],querySelector:()=>null,addEventListener(){}},location:{search:''},URLSearchParams,localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>{if(quota)throw Object.assign(new Error('Quota exceeded'),{name:'QuotaExceededError'});writes.push([k,v]);saved.set(k,v);}},HoldingsForecastUI:{setContext(){},bind(){},markup:()=>'',capture:capture||(()=>{})},DailySeries:{date:()=>source.asOf},D:{fetchStock(){throw Error('Duplicate fetch');}},setTimeout:()=>1,setInterval:()=>1,clearTimeout(){},Worker:class{constructor(){workers.push(this);}postMessage(payload){this.payload=payload;}terminate(){this.terminated=true;}}};
  if(durable)sandbox.HoldingsModelStorage={create:(storage,options)=>core.HoldingsModelStorage.create(storage,{...options,durable})};
- vm.createContext(sandbox);vm.runInContext(readFileSync('holdings/'+name+'.js','utf8'),sandbox);const api=sandbox['Holdings'+(name==='hmm'?'HMM':name[0].toUpperCase()+name.slice(1))+'UI'];api.setContext(c);return {api,c,workers,writes,button,sandbox};
+ vm.createContext(sandbox);vm.runInContext(readFileSync('holdings/'+name+'.js','utf8'),sandbox);const api=sandbox['Holdings'+(name==='hmm'?'HMM':name==='knn'?'KNN':name[0].toUpperCase()+name.slice(1))+'UI'];api.setContext(c);return {api,c,workers,writes,button,sandbox};
 }
 let computedResults;
 function examples(){if(computedResults)return computedResults;
  const data=core.HoldingsNeural.dataset(bars,now),neural=core.HoldingsNeuralEvaluation.evaluate(data.rows,data.latest);neural.comparison=core.HoldingsModelComparison.evaluate(data.rows,data.latest,neural);
- return computedResults={neural,hmm:core.HoldingsHMM.evaluate(core.HoldingsHMM.dataset(bars,now)),isolation:core.HoldingsIsolation.evaluate(core.HoldingsIsolation.dataset(bars,now)),quantile:core.HoldingsQuantile.evaluate(core.HoldingsQuantile.dataset(bars,now)),garch:core.HoldingsGarch.evaluate(core.HoldingsGarch.dataset(bars,now))};
+ return computedResults={knn:core.HoldingsKNN.evaluate(data,{t:bars.at(-1).t,close:bars.at(-1).c,x:data.latest}),neural,hmm:core.HoldingsHMM.evaluate(core.HoldingsHMM.dataset(bars,now)),isolation:core.HoldingsIsolation.evaluate(core.HoldingsIsolation.dataset(bars,now)),quantile:core.HoldingsQuantile.evaluate(core.HoldingsQuantile.dataset(bars,now)),garch:core.HoldingsGarch.evaluate(core.HoldingsGarch.dataset(bars,now))};
 }
-test('managed workers share exactly one source, settle after persistence, and feed all six verdict cards',async()=>{
+test('managed workers share exactly one source, settle after persistence, and feed all seven verdict cards',async()=>{
  const results=examples();
  const snapshots={};
  for(const name of Object.keys(results)){
@@ -23,16 +23,16 @@ test('managed workers share exactly one source, settle after persistence, and fe
   worker.onmessage({data:{id:worker.payload.id,result:results[name]}});const result=await promise;assert.equal(result.state,'ready',name+': '+result.error);assert.equal(s.writes.length,0);
   snapshots[name]=s.api.inspect(s.c.positions[0]);assert.equal(snapshots[name].usable,true,name);
  }
- const result=core.HoldingsVerdict.build({expected:source,snapshots,now});assert.equal(result.available,6);assert.notEqual(result.state,'incomplete');assert.ok(result.cards.every(c=>c.trainedAt===now));
+ const result=core.HoldingsVerdict.build({expected:source,snapshots,now});assert.equal(result.available,7);assert.notEqual(result.state,'incomplete');assert.ok(result.cards.every(c=>c.trainedAt===now));
 });
-test('each managed cancellation settles and rejects delayed worker messages',async()=>{for(const name of ['neural','hmm','isolation','quantile','garch']){const s=setup(name),pending=s.api.run(s.c.positions[0],{source});s.api.cancelManaged();assert.equal((await pending).state,'cancelled');assert.equal(s.workers[0].terminated,true);s.workers[0].onmessage({data:{id:s.workers[0].payload.id,result:{}}});assert.equal(s.writes.length,0);assert.equal(s.api.busy(),false);}});
-test('verdict cancellation does not terminate a manual analysis',()=>{for(const name of ['neural','hmm','isolation','quantile','garch']){const s=setup(name);s.api.bind();s.button.onclick();assert.equal(s.api.busy(),true);s.api.cancelManaged();assert.equal(s.api.busy(),true);assert.ok(!s.workers[0].terminated);s.api.cancel();}});
-test('a shared source with a different listing, currency, EOD or close starts no worker',async()=>{for(const name of ['neural','hmm','isolation','quantile','garch'])for(const patch of [{symbol:'OTHER'},{currency:'EUR'},{asOf:'2026-10-01'},{bars:[{...bars.at(-1),c:source.close+1}]}]){const s=setup(name),r=await s.api.run(s.c.positions[0],{source:{...source,...patch}});assert.equal(r.state,'error');assert.equal(s.workers.length,0);}});
+test('each managed cancellation settles and rejects delayed worker messages',async()=>{for(const name of ['neural','hmm','isolation','quantile','garch','knn']){const s=setup(name),pending=s.api.run(s.c.positions[0],{source});s.api.cancelManaged();assert.equal((await pending).state,'cancelled');assert.equal(s.workers[0].terminated,true);s.workers[0].onmessage({data:{id:s.workers[0].payload.id,result:{}}});assert.equal(s.writes.length,0);assert.equal(s.api.busy(),false);}});
+test('verdict cancellation does not terminate a manual analysis',()=>{for(const name of ['neural','hmm','isolation','quantile','garch','knn']){const s=setup(name);s.api.bind();s.button.onclick();assert.equal(s.api.busy(),true);s.api.cancelManaged();assert.equal(s.api.busy(),true);assert.ok(!s.workers[0].terminated);s.api.cancel();}});
+test('a shared source with a different listing, currency, EOD or close starts no worker',async()=>{for(const name of ['neural','hmm','isolation','quantile','garch','knn'])for(const patch of [{symbol:'OTHER'},{currency:'EUR'},{asOf:'2026-10-01'},{bars:[{...bars.at(-1),c:source.close+1}]}]){const s=setup(name),r=await s.api.run(s.c.positions[0],{source:{...source,...patch}});assert.equal(r.state,'error');assert.equal(s.workers.length,0);}});
 test('GARCH context changes settle owned work and discard delayed results',async()=>{for(const patch of [{scope:'other'},{demo:false},{positions:[]},{symbol:()=> 'OTHER'},{model:()=>({...source,price:source.close+1})}]){const s=setup('garch'),pending=s.api.run(s.c.positions[0],{source});s.api.setContext({...s.c,...patch});assert.equal((await pending).state,'cancelled');const worker=s.workers[0];assert.equal(worker.terminated,true);worker.onmessage({data:{id:worker.payload.id,result:{}}});assert.equal(s.writes.length,0);assert.equal(s.api.busy(),false);}});
 test('GARCH worker failure and invalid payload settle without persisting a report',async()=>{for(const kind of ['worker','invalid']){const s=setup('garch'),pending=s.api.run(s.c.positions[0],{source}),worker=s.workers[0];if(kind==='worker')worker.onerror();else worker.onmessage({data:{id:worker.payload.id,result:{}}});assert.equal((await pending).state,'error');assert.equal(s.api.inspect(s.c.positions[0]).usable,false);assert.equal(worker.terminated,true);}});
 test('GARCH rejects a nonnumeric close before starting a worker',async()=>{const s=setup('garch'),r=await s.api.run(s.c.positions[0],{source:{...source,bars:[{...bars.at(-1),c:NaN}]}});assert.equal(r.state,'error');assert.equal(s.workers.length,0);});
 
-test('a full browser store keeps all six verified models ready for the combined verdict',async()=>{
+test('a full browser store keeps all seven verified models ready for the combined verdict',async()=>{
  const results=examples(),expected={...source,kind:'market'},snapshots={};
  for(const name of Object.keys(results)){
   const s=setup(name,{demo:false,quota:true}),pending=s.api.run(s.c.positions[0],{source:expected}),worker=s.workers[0];
@@ -42,9 +42,9 @@ test('a full browser store keeps all six verified models ready for the combined 
   if(name==='hmm'||name==='quantile'||name==='garch'){const markup=name==='hmm'?s.api.markup(s.c.positions[0],0,null,snapshots[name]):s.api.markup(s.c.positions[0],0,snapshots[name]);assert.match(markup,/model-storage-note/);assert.match(markup,/Descarcă raportul pentru păstrare/);}
   if(name==='isolation'){assert.equal(out.persistence,'session');assert.equal(s.writes.length,0);assert.match(snapshots[name].persistence.message,/Spațiul local.*plin/);const markup=s.api.markup(s.c.positions[0],0,snapshots[name]);assert.match(markup,/isolation-storage-note/);assert.match(markup,/Descarcă raportul pentru păstrare/);assert.match(markup,/data-isolation-export/);}
  }
- const r=core.HoldingsVerdict.build({expected,snapshots,now});assert.equal(r.available,6);assert.notEqual(r.state,'incomplete');assert.ok(r.cards.every(c=>c.persistence==='session'&&/disponibil doar în această sesiune/.test(c.detail)));assert.equal(r.cards[3].state,snapshots.isolation.assessment.state);assert.match(r.cards[3].detail,/disponibil doar în această sesiune/);
+ const r=core.HoldingsVerdict.build({expected,snapshots,now});assert.equal(r.available,7);assert.notEqual(r.state,'incomplete');assert.ok(r.cards.every(c=>c.persistence==='session'&&/disponibil doar în această sesiune/.test(c.detail)));assert.equal(r.cards[3].state,snapshots.isolation.assessment.state);assert.match(r.cards[3].detail,/disponibil doar în această sesiune/);
  let loads=0,retrains=0;const runner=core.HoldingsModelRunner.create({load:async()=>{loads++;return expected;},steps:Object.keys(results).map(id=>({models:id==='neural'?['neural','boosting']:[id],run:()=>{retrains++;throw Error('Unexpected reanalysis');},cancel(){}})),current:()=>true,reusable:(step,run)=>step.models.every(id=>core.HoldingsVerdict.accepted(id,snapshots[id==='boosting'?'neural':id],run.source,now)),update(){}});
- const reused=await runner.start({key:'test-account|TEST_US_EQ'});assert.equal(loads,1);assert.equal(retrains,0);assert.equal(reused.statuses.isolation.state,'cached');const cached=core.HoldingsVerdict.build({expected,snapshots,statuses:reused.statuses,now});assert.equal(cached.available,6);assert.match(cached.cards[3].detail,/disponibil doar în această sesiune/);
+ const reused=await runner.start({key:'test-account|TEST_US_EQ'});assert.equal(loads,1);assert.equal(retrains,0);assert.equal(reused.statuses.isolation.state,'cached');const cached=core.HoldingsVerdict.build({expected,snapshots,statuses:reused.statuses,now});assert.equal(cached.available,7);assert.match(cached.cards[3].detail,/disponibil doar în această sesiune/);
 });
 test('a failed prediction registry hook cannot undo any valid calculated model',async()=>{
  for(const name of Object.keys(examples())){
@@ -53,7 +53,7 @@ test('a failed prediction registry hook cannot undo any valid calculated model',
  }
 });
 
-test('all six valid reports survive a fresh page with full localStorage and keep every acceptance check',async()=>{
+test('all seven valid reports survive a fresh page with full localStorage and keep every acceptance check',async()=>{
  const records=new Map(),durable={get:async k=>records.get(k)||null,set:async(k,v)=>{records.set(k,v);}},expected={...source,kind:'market'},snapshots={};
  for(const [name,result] of Object.entries(examples())){
   const s=setup(name,{demo:false,quota:true,durable}),p=s.c.positions[0],pending=s.api.run(p,{source:expected}),w=s.workers[0];
@@ -66,7 +66,7 @@ test('all six valid reports survive a fresh page with full localStorage and keep
   }
   assert.equal(core.HoldingsVerdict.accepted(name,snapshots[name],{...expected,fingerprint:'changed-history'},now),false);assert.equal(core.HoldingsVerdict.accepted(name,{...snapshots[name],record:{...snapshots[name].record,trainedAt:now+1}},expected,now),false);
  }
- const r=core.HoldingsVerdict.build({expected,snapshots,now});assert.equal(r.available,6);assert.ok(r.cards.every(c=>c.persistence==='indexeddb'&&/păstrat în browser/.test(c.detail)));
+ const r=core.HoldingsVerdict.build({expected,snapshots,now});assert.equal(r.available,7);assert.ok(r.cards.every(c=>c.persistence==='indexeddb'&&/păstrat în browser/.test(c.detail)));
  for(const patch of [{trainedAt:now-1800001},{trainedAt:now+60001},{result:{version:'invalid'}}]){
   const altered={get:async k=>JSON.stringify({...JSON.parse(records.get(k)||'null'),...patch}),set:durable.set};
   for(const name of Object.keys(examples())){const fresh=setup(name,{demo:false,quota:true,durable:altered});await fresh.api.restore(fresh.c.positions[0]);const s=fresh.api.inspect(fresh.c.positions[0]);assert.equal(s.usable,false,name);assert.equal(core.HoldingsVerdict.accepted(name,s,expected,now),false);}

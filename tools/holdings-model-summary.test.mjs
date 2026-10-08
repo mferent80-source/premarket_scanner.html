@@ -69,3 +69,13 @@ test('summary export rebuilds the requested instrument instead of reusing an old
  vm.createContext(c);vm.runInContext(readFileSync('holdings/model-summary.js','utf8'),c);let current='NEW';c.HoldingsModelSummaryUI.bind(index=>({...S.build(fixture()),symbol:current,index}));current='SWITCHED';button.onclick();
  assert.equal(emitted.symbol,'SWITCHED');assert.equal(emitted.result.index,1);assert.equal(emitted.result.version,S.VERSION);
 });
+
+test('the seven-model summary includes KNN and GARCH, preserves old history and explains weak or conflicting KNN',()=>{
+ vm.runInContext(readFileSync('lib/holdings-model-history.js','utf8'),core);const H=core.HoldingsModelHistory,f=fixture(),e={scope:'account',symbol:'TEST',currency:'USD',kind:'market'},storage=new Map(),store=H.createStore({getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)}),old=S.build(f);assert.equal(store.save(old,e,now).status,'saved');
+ const record=result=>({...f.neural.record,result});
+ f.quantile={usable:true,record:record({version:'holdings-quantile-v1',nominal:.8,current:{prices:[98,102,106],widthPct:8},report:{test:{n:60,covered:48,coverage:.8}}}),assessment:{state:'descriptive',message:'Interval verificat.'}};
+ f.garch={usable:true,record:record({version:'holdings-garch-v1',current:{horizons:[{horizon:5,cumulativePct:2},{horizon:20,cumulativePct:4}]}}),assessment:{state:'descriptive',message:'Volatilitate verificată.'}};
+ f.knn={usable:true,record:record({version:'holdings-knn-v1',current:{classIndex:2}}),assessment:{state:'research',message:'Vecini verificați.'}};
+ const r=S.build(f);assert.equal(r.version,'holdings-lab-summary-v3');assert.equal(r.available,7);assert.equal(r.state,'research');assert.equal(store.save(r,e,now).status,'saved');assert.equal(store.read(e,now).entries.length,2);const compared=H.compare(old,r,e,now);assert.equal(compared.status,'compared');assert.deepEqual(Array.from(compared.rows.filter(r=>r.added),r=>r.id),['quantile','garch','knn']);
+ f.knn.assessment.state='no-edge';assert.equal(S.build(f).state,'no-edge');f.knn.assessment.state='research';f.knn.record.result.current.classIndex=0;assert.equal(S.build(f).state,'conflict');
+});

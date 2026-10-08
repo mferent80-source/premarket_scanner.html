@@ -1,0 +1,3 @@
+'use strict';
+importScripts('../lib/holdings-neural.js?v=holdings-mlp-v3','../lib/holdings-neural-evaluation.js?v=walk-forward-v1','../lib/holdings-knn.js?v=holdings-knn-v1');
+self.onmessage=function(event){const {id,bars,now}=event.data||{};try{const data=HoldingsKNN.dataset(bars,now),last=bars.at(-1),result=HoldingsKNN.evaluate(data,{t:last.t,close:last.c,x:data.latest},{progress:p=>self.postMessage({id,progress:p})});if(!HoldingsKNN.valid(result))throw Error('Raportul KNN nu poate fi verificat.');self.postMessage({id,result});}catch(e){self.postMessage({id,error:e.message||'Comparația cu vecinii istorici a eșuat.'});}};

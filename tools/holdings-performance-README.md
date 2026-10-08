@@ -1,10 +1,10 @@
 # Performanța AI
 
 `lib/holdings-performance.js` projects verified reports into a per-instrument
-dashboard. It reuses the actual chronological evaluations in the six existing
+dashboard. It reuses the actual chronological evaluations in the seven existing
 model cores, with their original train/validation/reference/test rules and
 blocked windows. `Recalculează testele istorice` invokes the shared-source
-six-model runner, preserving the first forecast for each model/EOD.
+seven-model runner, preserving the first forecast for each model/EOD.
 
 The shared source loader records `model.sourceFingerprint` only after verifying
 the full history and its EOD close. The dashboard uses this provenance instead

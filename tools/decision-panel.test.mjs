@@ -23,11 +23,11 @@ test('unconfigured external AI is labelled explicitly without hiding the technic
  const t=setup({hasKey:false});assert.match(t.host.innerHTML,/Necesită cheia API Anthropic/);
  assert.match(t.host.innerHTML,/trend ascendent aliniat/);assert.equal(t.request(),undefined);
 });
-test('the holdings action runs the existing six-model workflow for the selected holding',()=>{
+test('the holdings action runs the existing seven-model workflow for the selected holding',()=>{
  const t=setup({module:'holdings'});let opened=0;
  const candidate={...t.c.TTDecisionPanel.report().source,symbol:'TEST',currency:'USD',sourceDate:'2026-10-02',sourceTimezone:'America/New_York',sourceCloseMinutes:960,ts:t.clock.now,price:100,trend:t.c.TTDecisionPanel.report().technical};
  t.c.TTDecisionPanel.set({purpose:'holding',candidate,modelAction:()=>opened++});
- assert.match(t.host.innerHTML,/Calculează cele 6 modele AI/);
+ assert.match(t.host.innerHTML,/Calculează cele 7 modele AI/);
  t.host.querySelector('[data-verdict-action="0"]').onclick();assert.equal(opened,1);
 });
 test('current Breadth can request a public evidence explanation without an individual stock symbol',async()=>{
