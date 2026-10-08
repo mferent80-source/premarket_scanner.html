@@ -108,6 +108,14 @@ Apoi: `http://localhost:8080/`
 
 ---
 
+## Dovezi în Decision Desk — 26.10.08.1515
+
+Desk consultă registrul prospectiv original al contului și instrumentului USD selectate. Neural, Boosting și KNN sunt evaluate pe clase la 5 sesiuni; Cuantile pe intervale; GARCH prin QLIKE la 5 și 20 sesiuni. HMM și Isolation rămân context descriptiv. Verdictul are rezultate direcționale separate, fără reper comparativ pentru un avantaj validat. Prognozele restaurate nu autentifică momentul capturii și sunt excluse din confirmare. Sub 20 orizonturi separate sau cu clase observate incomplete, rezultatul rămâne exploratoriu. Un model eligibil cu rezultate actuale fără avantaj față de reper, acoperire insuficientă sau degradare cere monitorizare.
+
+În Performance Control, fiecare analiză asociată fără ambiguitate arată execuțiile față de zona inițială, stop și țintă, costurile raportate în monedele lor și P&L-ul brokerului. Verificarea evoluției după intrare folosește numai sesiuni zilnice complete după ultima execuție BUY și înaintea ieșirii. Zilele intrării/ieșirii sunt excluse; spliturile ulterioare capturii, identitățile incompatibile și golurile mari blochează comparația. Prețurile nu confirmă existența unui ordin stop, ordinea stop/țintă intraday sau slippage față de cotația la ordin.
+
+Alertele compacte verifică stopurile documentate, concentrarea, trendul EOD și actualitatea surselor. Verificările automate rulează cu pagina deschisă; nu sunt un serviciu de fundal și nu plasează ordine. Istoricul prognozelor rămâne pe dispozitiv, distinct de capturile de intrare sincronizate în cloud. Verificările și erorile de stocare păstrează originalele.
+
 ## 🔒 Licență
 
 [MIT License](./LICENSE) — vezi fișierul LICENSE.
