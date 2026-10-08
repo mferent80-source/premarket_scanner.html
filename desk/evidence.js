@@ -22,7 +22,7 @@ async function capture(quiet=false,chosen=null){
 function render(c){
  context=c;if(!$('entryTracking')||!E)return;const d=data(),candidate=c.candidate,quantity=candidate?baseline(d,candidate):null;
  $('trackEntry').disabled=busy||quantity===null||!g.TTDecisionVerdict?.sourceCurrent(candidate)||candidate?.currency!=='USD'||!c.report?.snapshotId||![candidate?.entryLow,candidate?.entryHigh,candidate?.stop,candidate?.target].every(x=>Number.isFinite(x)&&x>0);
- $('entryTrackingStatus').textContent=message||(c.demo?'DEMO FICTIV · Exemple simulate; nimic nu se salvează în cont.':!d.scope?'Conectează Invest pentru urmărirea analizelor înaintea intrărilor reale.':'Analiza se fixează acum; următorul BUY este asociat automat în maximum 30 minute. Un plan salvat păstrează și această analiză.');
+ $('entryTrackingStatus').textContent=message||(c.demo?'DEMO FICTIV · Exemple simulate; nimic nu se salvează în cont.':!d.scope?'Conectează Invest pentru urmărirea analizelor înaintea intrărilor reale.':'Analiza se fixează pe acest dispozitiv; următorul BUY este asociat automat în maximum 30 minute. Un plan salvat păstrează și această analiză.');
  let records=[],outcomes=[],error=null;
  try{records=E.read(d.storage).entries;outcomes=E.evaluate(records,d.history);}catch(e){error=e.message;}
  const cutoff=c.days?Date.now()-c.days*86400000:-Infinity;outcomes=outcomes.filter(x=>(!c.ticker||x.record.ticker===c.ticker)&&(x.closedAt??x.record.createdAt)>=cutoff);const chosenCurrency=c.currency||d.history.currency,summary=E.summarize(outcomes,chosenCurrency),closed=summary.count;

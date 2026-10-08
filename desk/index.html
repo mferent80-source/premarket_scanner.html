@@ -83,14 +83,14 @@
 <script src="../lib/trading212-performance.js?v=26.10.08.0923"></script>
 <script src="performance.js?v=26.10.08.0923"></script>
 <script src="analytics.js?v=26.10.08.0923"></script>
-<script src="../lib/trade-evidence.js?v=26.10.08.0923"></script>
-<script src="evidence.js?v=26.10.08.0923"></script>
+<script src="../lib/trade-evidence.js?v=26.10.08.0929"></script>
+<script src="evidence.js?v=26.10.08.0929"></script>
 <script src="../lib/journal.js?v=26.10.04.0128"></script>
 <script src="../lib/trade-plans.js?v=26.10.08.0923"></script>
 <script src="../lib/trade-plan-store.js?v=26.10.05.1830"></script>
 
 
-<script src="../lib/trading212-capital.js?v=26.10.08.0923"></script>
+<script src="../lib/trading212-capital.js?v=26.10.08.0929"></script>
 <script src="../lib/trading212-capital-ui.js?v=26.10.08.0923"></script>
 <script src="../lib/governor.js?v=26.10.08.0923"></script>
 <script src="../lib/breadth.js?v=20261002c"></script>
@@ -117,7 +117,7 @@
   function receiveCandidate(candidate){if(!handoffExpected||!ticketRequested||!requestedSymbol||!requestedMode||handoffCandidate)return;var checked=CandidatePlanHandoff.read(candidate,{symbol:requestedSymbol,mode:requestedMode});if(checked.ok){handoffCandidate=checked.candidate;handoffError='';data=CandidatePlanHandoff.merge(data,handoffCandidate);}else{handoffError=checked.message;selected=null;}render();openRequestedTicket();}
   async function loadBreadth(){if(demoMode){breadthData=null;render();return;}try{breadthData=await TTBreadth.load('../market-breadth/data/latest.json');render();}catch(e){breadthData={error:true,date:'indisponibil',freshness:'ERROR',stale:true,early:[],contrarian:[]};render();}}
 
-  function gov(){if(demoMode)return {verdict:'TRADE',reasons:[],openCount:0,budgetLeftUsd:200,maxLossWeekUsd:300,weekPnl:0,cfg:{maxOpenPositions:4},broker:window.T212Capital?T212Capital.demo():null};try{return window.GV&&GV.status?GV.status():null;}catch(_){return null;}}
+  function gov(){if(demoMode){var demoBroker=window.T212Capital?T212Capital.demo():null;return {verdict:demoBroker?.verdict||'TRADE',reasons:demoBroker?.reasons||[],openCount:demoBroker?.positions||0,budgetLeftUsd:200,maxLossWeekUsd:300,weekPnl:0,cfg:{maxOpenPositions:4},broker:demoBroker};}try{return window.GV&&GV.status?GV.status():null;}catch(_){return null;}}
   function decisionFor(x){var ai=null;try{ai=(parent!==window?parent.TTDecisionBridge:window.TTDecisionBridge)?.find(TTDecisionVerdict.sourceOf(x));}catch(_){}return window.TTDecisionVerdict?.build({purpose:'entry',candidate:x,risk:gov(),breadth:breadthData&&!breadthData.error?breadthData:null,ai:ai});}
   function confirmed(){return decisionItems().filter(function(x){return x.actionable&&(!window.TTDecisionVerdict||decisionFor(x).canPlan);});}
   function sectors(){var s={};decisionItems().forEach(function(x){if(x.sector&&x.sector!=='Necunoscut')s[x.sector]=(s[x.sector]||0)+1;});return Object.keys(s).sort(function(a,b){return s[b]-s[a];});}
