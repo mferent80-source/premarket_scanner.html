@@ -270,6 +270,7 @@
       var cache = { analyses:state.analyses, momentum: state.momentum, reversal: state.reversal, updatedAt: state.updatedAt, scannedCount: list.length, failureCount: state.failures.length };
       var cacheSaved = true;
       try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch (_) { cacheSaved = false; }
+      window.TTEntryAuto?.observe(cache);
       $('countMomentum').textContent = state.momentum.length; $('countReversal').textContent = state.reversal.length;
       $('ctxEligible').textContent = (state.momentum.length + state.reversal.length) + ' top';
       $('ctxSectors').textContent = topSectors(state[state.mode]);

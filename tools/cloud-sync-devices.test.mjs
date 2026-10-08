@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {DatabaseSync} from 'node:sqlite';
-import {KEYS,mergeRecord,validateValue} from '../lib/cloud-sync-model.mjs';
+import {KEYS,mergeRecord,validateValue,EvidenceCloud} from '../lib/cloud-sync-model.mjs';
 import {handleCloud} from './cloud-sync-worker.bundle.mjs';
 
 const source=readFileSync(new URL('../app/cloud-sync.js',import.meta.url),'utf8').replace(/^import .*;\n/,'');
@@ -25,7 +25,7 @@ async function device(server,{local={},vault=null}={}){
  const storage=new Map(Object.entries(local)),privateStore=new Map(),calls=[];let connection=vault;
  const localStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)};
  const window={addEventListener(){},dispatchEvent(){},TTPlanStore:{create:()=>planStore(localStorage,{durable:null,notify:false})},TTCloudStore:{get:async k=>structuredClone(privateStore.get(k)??null),put:async(k,v)=>privateStore.set(k,structuredClone(v)),remove:async k=>privateStore.delete(k)},T212Vault:{read:async()=>connection,save:async value=>{connection=structuredClone(value);},clear:async()=>{connection=null;}}};
- const context={window,localStorage,KEYS,mergeRecord,validateValue,location:{origin,href:origin+'/app/'},document:{hidden:false,querySelectorAll:()=>[],getElementById:()=>null,addEventListener(){}},navigator:{onLine:true},CustomEvent:class{},StorageEvent:class{},AbortController,URL,Date,setTimeout,clearTimeout,setInterval:()=>{},fetch:async(url,options)=>{calls.push({url,method:options?.method||'GET'});if(url==='cloud-sync-config.json')return Response.json({enabled:false,autoActivate:true,endpoint});return server.fetcher(url,options);}};
+ const context={window,localStorage,KEYS,mergeRecord,validateValue,EvidenceCloud,location:{origin,href:origin+'/app/'},document:{hidden:false,querySelectorAll:()=>[],getElementById:()=>null,addEventListener(){}},navigator:{onLine:true},CustomEvent:class{},StorageEvent:class{},AbortController,URL,Date,setTimeout,clearTimeout,setInterval:()=>{},fetch:async(url,options)=>{calls.push({url,method:options?.method||'GET'});if(url==='cloud-sync-config.json')return Response.json({enabled:false,autoActivate:true,endpoint});return server.fetcher(url,options);}};
  vm.createContext(context);vm.runInContext(source,context);const api=window.TTCloud;await api.recheck();assert.equal(api.state().ready,true);assert.equal(api.state().connected,false);
  return {api,storage,privateStore,calls,vault:()=>connection,forgetConnection:()=>window.T212Vault.clear(),signIn:async(subject='123')=>{const {nonce}=await api.challenge();await api.login(await server.identity(nonce,subject),nonce);}};
 }
@@ -67,5 +67,19 @@ test('Europa histories and risk settings reconcile between signed-in PC and phon
   assert.ok(!server.sqlite.prepare('SELECT packet FROM cloud_records').all().map(r=>r.packet).join('').includes('DE0007164600'));
   pc.storage.set(riskKey,JSON.stringify({...risk,budget:'2000'}));phone.storage.set(riskKey,JSON.stringify({...risk,loss:'50'}));await pc.api.sync();await phone.api.sync();assert.ok(phone.api.state().conflicts.includes(riskKey));assert.equal(JSON.parse(phone.storage.get(riskKey)).budget,'1000');
   await phone.api.resolve(riskKey,'remote');assert.deepEqual(JSON.parse(phone.storage.get(riskKey)),{...risk,budget:'2000'});
+ }finally{server.sqlite.close();}
+});
+
+const {analysis,ledger}=await import('./trade-evidence-fixtures.mjs');
+test('frozen pre-entry captures reconcile PC and phone through real encrypted D1 and survive conflicts without field mixing',async()=>{
+ const server=await service();try{
+  const a=analysis(),key=EvidenceCloud.bucket(a.id);let i=0;while(EvidenceCloud.bucket('phone-'+i)!==key)i++;const b=analysis('phone-'+i);
+  const pc=await device(server,{local:{[EvidenceCloud.KEY]:JSON.stringify(ledger(a))}});await pc.signIn();assert.equal(pc.api.state().error,'');
+  const phone=await device(server,{local:{[EvidenceCloud.KEY]:JSON.stringify(ledger(b))}});await phone.signIn();await pc.api.sync();
+  for(const d of [pc,phone]){assert.equal(JSON.parse(d.storage.get(EvidenceCloud.KEY)).entries.length,2);assert.ok(d.api.state().supportedKeys.includes(EvidenceCloud.KEY));}
+  assert.ok(!server.sqlite.prepare('SELECT packet FROM cloud_records').all().map(r=>r.packet).join('').includes('AAPL_US_EQ'));
+  const changed={...a,stop:90};phone.storage.set(EvidenceCloud.KEY,JSON.stringify(ledger(changed,b)));await phone.api.sync();assert.ok(phone.api.state().conflicts.includes(key));assert.equal(JSON.parse(pc.storage.get(EvidenceCloud.KEY)).entries.find(r=>r.id===a.id).stop,95);
+  await phone.api.resolve(key,'remote');assert.equal(JSON.parse(phone.storage.get(EvidenceCloud.KEY)).entries.length,2);assert.equal(JSON.parse(phone.storage.get(EvidenceCloud.KEY)).entries.find(r=>r.id===a.id).stop,95);assert.equal(phone.privateStore.get('backups:123')[0].snapshot[EvidenceCloud.KEY].entries[0].stop,90);
+  const other=await device(server);await other.signIn('456');assert.equal(other.storage.get(EvidenceCloud.KEY),undefined);
  }finally{server.sqlite.close();}
 });

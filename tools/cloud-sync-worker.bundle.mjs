@@ -91,9 +91,51 @@ async function handle(request,env,upstream=fetch) {
 
 return {ROUTES,nextCursor,handle};
 })();
+const TTEvidenceSchema=(()=>{
+
+/* Shared immutable analysis schema, used by the browser and the sync service. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;root.TradeEvidenceSchema=api;})(typeof globalThis!=='undefined'?globalThis:window,function(){
+'use strict';
+const KEY='tt_trade_evidence_v1',VERSION='trade-evidence-v1',finite=Number.isFinite,IDS=['neural','boosting','hmm','isolation','quantile','garch','knn'];
+const exact=(x,names)=>!!x&&typeof x==='object'&&!Array.isArray(x)&&Object.keys(x).length===names.length&&names.every(k=>Object.hasOwn(x,k)),short=(x,n)=>typeof x==='string'&&x.length>0&&x.length<=n;
+function valid(r,now=Date.now()){
+ if(!exact(r,['version','simulation','id','scope','ticker','symbol','currency','createdAt','expiresAt','baselineAt','baselineQuantity','mode','entryLow','entryHigh','stop','target','source','verdict','models'])||!exact(r.source,['symbol','currency','asOf','kind','historyKey','checkedAt'])||!exact(r.verdict,['code','title','snapshotId'])||!short(r.verdict.code,20)||typeof r.verdict.title!=='string'||r.verdict.title.length>200||!short(r.verdict.snapshotId,100)||!short(r.id,200)||!short(r.scope,200)||!/^\d{4}-\d{2}-\d{2}$/.test(r.source.asOf||'')||!/^ohlcv60:[a-f0-9]{1,8}$/.test(r.source.historyKey||'')||!Array.isArray(r.models)||r.models.some(m=>!exact(m,['id','name','available','eligible','direction','state'])||!short(m.name,80)||(m.state!==null&&(!short(m.state,80)))))return false;
+ return !!r&&r.version===VERSION&&typeof r.simulation==='boolean'&&typeof r.id==='string'&&r.id.length<=200&&typeof r.scope==='string'&&r.scope.length<=200&&/^[A-Z0-9.-]+_US_EQ$/.test(r.ticker||'')&&r.symbol===r.ticker.replace(/_US_EQ$/,'')&&r.currency==='USD'&&finite(r.createdAt)&&r.createdAt<=now&&finite(r.expiresAt)&&r.expiresAt>r.createdAt&&r.expiresAt-r.createdAt<=1800000&&finite(r.baselineAt)&&r.baselineAt<=r.createdAt&&r.createdAt-r.baselineAt<=300000&&finite(r.baselineQuantity)&&r.baselineQuantity>=0&&typeof r.verdict?.code==='string'&&typeof r.verdict.snapshotId==='string'&&(r.simulation?r.source?.kind==='synthetic':r.source?.kind==='market')&&r.source.currency===r.currency&&r.source.symbol===r.symbol&&finite(r.source.checkedAt)&&r.source.checkedAt<=r.createdAt&&r.createdAt-r.source.checkedAt<=1800000&&typeof r.source.asOf==='string'&&typeof r.source.historyKey==='string'&&['momentum','reversal'].includes(r.mode)&&[r.entryLow,r.entryHigh,r.stop,r.target].every(x=>finite(x)&&x>0)&&r.stop<r.entryLow&&r.entryLow<=r.entryHigh&&r.target>r.entryHigh&&Array.isArray(r.models)&&r.models.length===IDS.length&&IDS.every(id=>r.models.filter(x=>x.id===id&&typeof x.available==='boolean'&&typeof x.eligible==='boolean'&&(x.direction===null||[0,1,2].includes(x.direction))).length===1);
+}
+function ledger(value,{simulation=false,now=Date.now()}={}){return exact(value,['version','entries'])&&value.version===VERSION&&Array.isArray(value.entries)&&value.entries.length<=20000&&value.entries.every(r=>valid(r,now)&&r.simulation===simulation)&&new Set(value.entries.map(r=>r.id)).size===value.entries.length;}
+return {KEY,VERSION,IDS,valid,ledger};
+});
+
+return globalThis.TradeEvidenceSchema;
+})();
 const TTCloudModel=(()=>{
 
-const KEYS=Object.freeze(['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_trading212_fills_v1','tt_trading212_portfolio_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','cloud_credentials','tt_europe_signals_v1','tt_europe_risk_settings_v1']);
+const KEYS=Object.freeze(['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_trading212_fills_v1','tt_trading212_portfolio_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','cloud_credentials','tt_europe_signals_v1','tt_europe_risk_settings_v1',globalThis.TradeEvidenceSchema.KEY,...Array.from({length:64},(_,i)=>globalThis.TradeEvidenceSchema.KEY+':'+i.toString(16).padStart(2,'0'))]);
+// Captures are immutable. Fixed buckets keep each encrypted record below the
+// service limit without discarding older analyses or changing their local identity.
+const EvidenceSchema=globalThis.TradeEvidenceSchema,EVIDENCE_KEY=EvidenceSchema.KEY;
+const evidenceKeys=Object.freeze(KEYS.filter(k=>k.startsWith(EVIDENCE_KEY+':')));
+const canonical=x=>JSON.stringify(x,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
+function bucket(id){let h=2166136261;for(let i=0;i<id.length;i++)h=Math.imul(h^id.charCodeAt(i),16777619);return evidenceKeys[(h>>>0)%64];}
+function validateEvidence(key,value){if(!EvidenceSchema.ledger(value)||key!==EVIDENCE_KEY&&value.entries.some(r=>bucket(r.id)!==key))throw Error('invalid_analysis_ledger');}
+function evidenceMerge(key,base,local,remote,choice=null){
+ const entries=new Map(),conflicts=new Set();
+ for(const ledger of [base,choice==='remote'?local:remote,choice==='remote'?remote:local]){
+  if(ledger==null)continue;validateEvidence(key,ledger);
+  for(const r of ledger.entries){const old=entries.get(r.id);if(old&&canonical(old)!==canonical(r))conflicts.add(key+'/entries/'+r.id);entries.set(r.id,r);}
+ }
+ const value=entries.size?{version:EvidenceSchema.VERSION,entries:[...entries.values()].sort((a,b)=>a.createdAt-b.createdAt||a.id.localeCompare(b.id))}:undefined;
+ if(value)validateValue(key,value);
+ return {value,conflicts:choice?[]:[...conflicts]};
+}
+function evidenceStore(storage){
+ let cachedRaw,cachedGroups;
+ function read(){const raw=storage.getItem(EVIDENCE_KEY);if(raw!==cachedRaw||!cachedGroups){const value=raw===null?{version:EvidenceSchema.VERSION,entries:[]}:JSON.parse(raw);validateEvidence(EVIDENCE_KEY,value);cachedGroups=new Map(evidenceKeys.map(k=>[k,[]]));for(const r of value.entries)cachedGroups.get(bucket(r.id)).push(r);cachedRaw=raw;}return cachedGroups;}
+ function value(key){const entries=read().get(key);if(!entries)throw Error('invalid_key');return entries.length?{version:EvidenceSchema.VERSION,entries:[...entries].sort((a,b)=>a.createdAt-b.createdAt||a.id.localeCompare(b.id))}:undefined;}
+ function replace(key,expected,next){if(!evidenceKeys.includes(key))throw Error('invalid_key');if(next!=null)validateValue(key,next);if(canonical(value(key))!==canonical(expected))return false;const before=cachedRaw,entries=[];for(const [k,records] of read())entries.push(...(k===key?next?.entries||[]:records));const ledger={version:EvidenceSchema.VERSION,entries};validateEvidence(EVIDENCE_KEY,ledger);if(storage.getItem(EVIDENCE_KEY)!==before)return false;storage.setItem(EVIDENCE_KEY,JSON.stringify(ledger));cachedGroups=null;return true;}
+ return {value,replace};
+}
+const EvidenceCloud=Object.freeze({KEY:EVIDENCE_KEY,keys:evidenceKeys,bucket,isKey:k=>k===EVIDENCE_KEY||evidenceKeys.includes(k),isBucket:k=>evidenceKeys.includes(k),createStore:evidenceStore,resolve:(key,base,local,remote,choice)=>evidenceMerge(key,base,local,remote,choice)});
 const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
 const categories=['growth','earlyLong','reversal','earlyReversal'];
@@ -160,6 +202,7 @@ function merge(base,local,remote,path=''){
  return {value:local,conflicts:[path||'record']};
 }
 function mergeRecord(key,base,local,remote){
+ if(EvidenceCloud.isKey(key))return evidenceMerge(key,base,local,remote);
  if(key==='tt_europe_signals_v1')return mergeEuropeHistory(base,local,remote);
  // Risk limits are one coherent policy; do not mix budgets from two devices.
  if(key==='tt_europe_risk_settings_v1'){if(equal(local,remote)||equal(local,base)||equal(remote,base))return merge(base,local,remote,key);return {value:local,conflicts:[key]};}
@@ -175,7 +218,8 @@ function mergeRecord(key,base,local,remote){
 function validateValue(key,value){
  if(!KEYS.includes(key))throw Error('invalid_key');
  if(value===null)return true;
- if(key==='tt_europe_signals_v1')validateEuropeHistory(value);
+ if(EvidenceCloud.isKey(key))validateEvidence(key,value);
+ else if(key==='tt_europe_signals_v1')validateEuropeHistory(value);
  else if(key==='tt_europe_risk_settings_v1'){
   if(!object(value)||!['EUR','USD','GBP','CHF','DKK','RON'].includes(value.currency)||typeof value.fractional!=='boolean'||!['budget','loss','fees','entry'].every(k=>['string','number'].includes(typeof value[k])&&String(value[k]).trim()!==''&&Number.isFinite(Number(value[k])))||Number(value.budget)<=0||Number(value.loss)<=0||Number(value.loss)>Number(value.budget)||Number(value.fees)<0||Number(value.entry)<=0)throw Error('invalid_value');
  }
@@ -184,11 +228,11 @@ function validateValue(key,value){
  else if(['tt_pf_account','tt_ticket_capital'].includes(key)){if(typeof value!=='string'||value.length>256)throw Error('invalid_value');}
  else if(['tt_journal_v1','tt_trade_plans_v1','wl_stocks'].includes(key)){if(!Array.isArray(value))throw Error('invalid_value');}
  else if(!object(value))throw Error('invalid_value');
- const text=JSON.stringify(value);if(new TextEncoder().encode(text).length>1000000)throw Error('record_too_large');
+ const text=JSON.stringify(value);if(key!==EVIDENCE_KEY&&new TextEncoder().encode(text).length>1000000)throw Error('record_too_large');
  JSON.parse(text,(k,v)=>{if(['__proto__','constructor','prototype'].includes(k))throw Error('invalid_value');return v;});return true;
 }
 
-return {KEYS,merge,mergeRecord,validateValue};
+return {KEYS,merge,mergeRecord,validateValue,EvidenceCloud};
 })();
 const TTCloudWorker=(()=>{
 const {KEYS,validateValue}=TTCloudModel;const {handle:brokerHandle}=TTBrokerRelay;

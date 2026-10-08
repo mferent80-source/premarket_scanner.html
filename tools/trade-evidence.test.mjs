@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const NOW=Date.parse('2026-10-08T15:00:00Z');
-function setup(){const store=new Map(),storage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},c={Date,Intl,localStorage:storage};c.window=c;vm.createContext(c);vm.runInContext(readFileSync('lib/trade-evidence.js','utf8'),c);return {E:c.TradeEvidence,c,store,storage};}
+function setup(){const store=new Map(),storage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},c={Date,Intl,localStorage:storage};c.window=c;vm.createContext(c);vm.runInContext(readFileSync('lib/trade-evidence-schema.js','utf8'),c);vm.runInContext(readFileSync('lib/trade-evidence.js','utf8'),c);return {E:c.TradeEvidence,c,store,storage};}
 function record(E,extra={}){const r=E.demo(NOW).records[0];return {...JSON.parse(JSON.stringify(r)),simulation:false,source:{...r.source,kind:'market',checkedAt:NOW-300000},scope:'active',createdAt:NOW-300000,expiresAt:NOW+1500000,baselineAt:NOW-301000,...extra};}
 function fill(id,side,extra={}){return {id,orderId:side==='BUY'?'buy-order':'sell-order',ticker:'FICTIVA_US_EQ',type:'TRADE',date:new Date(NOW-240000+(side==='SELL'?60000:0)).toISOString(),side,quantity:2,price:side==='BUY'?100:110,priceCurrency:'USD',currency:'EUR',realized:side==='SELL'?18:null,...extra};}
 function history(rows,extra={}){return {scope:'active',currency:'EUR',rows,complete:true,stale:false,state:'ready',...extra};}

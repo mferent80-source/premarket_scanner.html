@@ -2,7 +2,7 @@
 
 ## Stare la publicare
 
-Codul, interfața și testele sunt implementate. Configurația aplicației păstrează `enabled:false`, cu `autoActivate:true`: sincronizarea devine disponibilă când `/api/cloud/status` confirmă protocolul, Google, criptarea, bindingul și schema D1. Nicio sesiune, înregistrare sau cheie Trading 212 nu este trimisă în această verificare. Protocolul actual include și istoricul semnalelor Europa și setările de risc.
+Codul, interfața și testele sunt implementate. Configurația aplicației păstrează `enabled:false`, cu `autoActivate:true`: sincronizarea devine disponibilă când `/api/cloud/status` confirmă protocolul, Google, criptarea, bindingul și schema D1. Nicio sesiune, înregistrare sau cheie Trading 212 nu este trimisă în această verificare. Protocolul actual include și istoricul semnalelor Europa, setările de risc și capturile imuabile înaintea intrării.
 
 ### Publicare automată din GitHub
 
@@ -56,10 +56,12 @@ Rezultatul trebuie să aibă `enabled:true` și Client ID-ul corect. Testează �
 
 ## Modelul de sincronizare
 
-- Doar o listă explicită de chei: jurnal manual/setări, execuții și snapshot broker, teze/tickere/benchmark, watchlist, temă, selecție cont, conexiune broker, istoric semnale Europa și setări calculator risc Europa. Nu se trimit toate datele localStorage, alte API keys sau cache-uri de piață.
+- Doar o listă explicită de chei: jurnal manual/setări, execuții și snapshot broker, teze/tickere/benchmark, watchlist, temă, selecție cont, conexiune broker, istoric semnale Europa, setări calculator risc Europa și registrul analizelor înaintea intrării. Nu se trimit toate datele localStorage, alte API keys sau cache-uri de piață.
 - Registrele și modelele AI stocate separat în IndexedDB nu sunt incluse în acest protocol. Exporturile lor rămân disponibile în Analiza deținerilor; transferul lor cloud cere integrarea registrelor cu păstrarea estimărilor originale și a verificărilor.
 - Europa: observațiile distincte se unesc după ID; aceeași primă sesiune păstrează prețul, categoria și suportul originale. Actualizările folosesc data sesiunii, nu ora dispozitivului; randamentele deja calculate se păstrează. Reviziile prețului suspendă randamentele. Episoadele suprapuse, valori diferite pentru același rezultat sau depășirea limitei de 1.500 cer alegere. Setările de risc se aleg ca un pachet, fără a combina bugetul unui dispozitiv cu limita celuilalt.
-- Serverul anunță `supportedKeys`; un Worker anterior nu primește noile chei Europa, iar datele rămân locale. După publicarea pachetului actual, **Reverifică serviciul** activează și aceste chei.
+- Serverul anunță `supportedKeys`; un Worker anterior nu primește noile chei Europa sau ale analizelor înaintea intrării, iar datele rămân locale. După publicarea pachetului actual, **Reverifică serviciul** activează și aceste chei.
+- Analize înaintea intrării: schema exactă din `trade-evidence-schema.js` admite numai capturi reale cu sursă, niveluri, cont, verdict și șapte stări publice ale modelelor. Registrul local își păstrează cheia `tt_trade_evidence_v1`; protocolul folosește 64 de partiții stabile după ID pentru a respecta limita de 1 MB per înregistrare, fără ștergeri sau scurtarea istoricului. Clientul le activează numai dacă serverul anunță toate partițiile.
+- Capturile sunt originale imuabile: reconcilierea reunește capturile distincte și nu combină câmpurile aceleiași capturi. Orice diferență față de original produce conflict, inclusiv dacă un dispozitiv este neschimbat. Alegerea explicită se aplică numai ID-urilor disputate; capturile independente se păstrează pe ambele dispozitive, iar copia locală anterioară rămâne în backup. Importul folosește același lock ca salvarea din scanner; o analiză nouă în timpul importului rămâne locală pentru următoarea reconciliere.
 - Trei variante pentru reconciliere: ultima variantă acceptată, dispozitivul curent, serverul. Editările independente se combină; editările incompatibile sunt oprite și prezentate cu previzualizări și alegere explicită.
 - Revizia serverului este verificată atomic în D1. 409 amână reconcilierea; nu folosește un overwrite forțat.
 - Snapshot-urile brokerului folosesc `fetchedAt` al sursei. Listele de execuții se unesc după ID; valori diferite ale aceleiași execuții cer revizuire. Cheia și secretul nu se combină separat din două versiuni diferite.
