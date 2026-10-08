@@ -4,12 +4,12 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const script=readFileSync('holdings/layout.js','utf8');
 function element(dataset={}){return {dataset,hidden:false,children:[],attrs:{},innerHTML:'',textContent:'',querySelectorAll(){return [];},querySelector(){return null;},setAttribute(k,v){this.attrs[k]=v;},replaceChildren(...xs){this.children=xs;},focus(){},scrollIntoView(){}};}
-function setup(){
+function setup({mobile=false}={}){
  const opened=[],saved=new Map(),ids=Object.fromEntries(['managementReports','holdingManagement','status','holdingQuickList','selectedHoldingLabel','selectedAnalysis','rosterBody','toggleHoldingRoster'].map(k=>[k,element()]));
  ids.holdingManagement.hidden=true;
  const cards=['A','B'].map(ticker=>{const card=element({ticker}),tabs=['summary','plan','neural'].map(k=>element({holdingTab:k})),panels=['summary','plan','neural'].map(k=>element({holdingPanel:k}));card.disclosure=element();card.disclosure.open=false;card.querySelectorAll=q=>q==='details'?[card.disclosure]:q==='[data-holding-tab]'?tabs:q==='[data-holding-panel]'?panels:[];card.tabs=tabs;card.panels=panels;card.unsavedNote='Draft intact';return card;});
  const document={body:{dataset:{holdingsView:'full'}},getElementById:k=>ids[k],querySelectorAll:q=>q==='.holding[data-ticker]'?cards:[],querySelector:()=>null};
- const sandbox={HoldingsVerdictUI:{open:ticker=>opened.push(ticker)},Intl,Date,HoldingsEvents:{fresh:()=>false,validDate:()=>false},document,localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},addEventListener(){},matchMedia:()=>({matches:false})};vm.runInNewContext(readFileSync('lib/holdings-review.js','utf8'),sandbox);vm.runInNewContext(script,sandbox);
+ const sandbox={HoldingsVerdictUI:{open:ticker=>opened.push(ticker)},Intl,Date,HoldingsEvents:{fresh:()=>false,validDate:()=>false},document,localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},addEventListener(){},matchMedia:()=>({matches:mobile})};vm.runInNewContext(readFileSync('lib/holdings-review.js','utf8'),sandbox);vm.runInNewContext(script,sandbox);
  const row=ticker=>({p:{ticker,name:ticker,value:20,unrealized:2,currency:'USD'},m:null}),ctx=scope=>({scope,demo:false,symbol:p=>p.ticker,model:()=>null,note:()=>({}),events:()=>null,positions:cards.map(c=>row(c.dataset.ticker).p)});
  return {layout:sandbox.HoldingsLayout,cards,ctx,row,ids,saved,document,opened};
 }
@@ -56,4 +56,9 @@ test('switching holdings does not fold a disclosure the user has just opened',()
  assert.equal(layout.openModelLedger('B'),true);assert.equal(cards[1].hidden,false);assert.equal(cards[1].panels[2].hidden,false);assert.equal(cards[1].panels[0].hidden,true);assert.equal(cards[1].unsavedNote,'Draft intact');assert.equal(layout.openModelLedger('SOLD'),false);
 });
 
-test('explicit holding open runs Verdict while rerenders and model-ledger links do not',()=>{const {layout,ctx,row,opened}=setup();layout.render(ctx('a'),[row('A'),row('B')]);assert.equal(opened.length,0);layout.pick('B');assert.deepEqual(opened,['B']);layout.render(ctx('a'),[row('A'),row('B')]);assert.deepEqual(opened,['B']);layout.openModelLedger('A');assert.deepEqual(opened,['B']);layout.step(1);assert.deepEqual(opened,['B','B']);});
+test('holding navigation remains lightweight; model computation requires an explicit verdict action',()=>{const {layout,ctx,row,opened}=setup();layout.render(ctx('a'),[row('A'),row('B')]);layout.pick('B');layout.render(ctx('a'),[row('A'),row('B')]);layout.openModelLedger('A');layout.step(1);assert.deepEqual(opened,[]);layout.pick('B',{verdict:true});assert.deepEqual(opened,['B']);});
+
+test('phone background refresh never scrolls the selected tab or holding into view',()=>{
+ const {layout,ctx,row,cards}=setup({mobile:true});let scrolls=0;for(const c of cards)for(const b of c.tabs)b.scrollIntoView=()=>scrolls++;
+ layout.render(ctx('a'),[row('A'),row('B')]);cards[0].tabs[1].onclick();layout.render(ctx('a'),[row('A'),row('B')]);assert.equal(scrolls,0);
+});

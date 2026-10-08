@@ -6,10 +6,11 @@ import vm from 'node:vm';
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 async function setup(enabled,vault=null,options={}){
  const elements=new Map(),events={},intervals=[];
- function el(id){if(!elements.has(id))elements.set(id,{value:'',hidden:false,disabled:false,textContent:'',innerHTML:'',handlers:{},replaceChildren(){this.innerHTML=''},scrollIntoView(){this.scrolled=true},addEventListener(name,fn){this.handlers[name]=fn}});return elements.get(id)}
+ function el(id){if(!elements.has(id))elements.set(id,{value:'',hidden:false,disabled:false,textContent:'',innerHTML:'',handlers:{},setAttribute(k,v){this[k]=v;},replaceChildren(){this.innerHTML=''},scrollIntoView(){this.scrolled=true},addEventListener(name,fn){this.handlers[name]=fn}});return elements.get(id)}
  const document={visibilityState:'visible',getElementById:el,querySelectorAll:()=>[]},Clock=options.Date||Date;
  const window={T212Vault:vault,T212J:options.journal,addEventListener:(name,fn)=>events[name]=fn},calls=[];
- const context=vm.createContext({window,Intl,Date:Clock});for(const file of ['lib/trading212-performance.js','lib/trading212-portfolio.js'])vm.runInContext(readFileSync(file,'utf8'),context);
+ const context=vm.createContext({window,Intl,Date:Clock});for(const file of ['lib/trading212-performance.js','lib/trading212-portfolio.js','lib/trading212-daily.js','lib/holdings-pulse.js'])vm.runInContext(readFileSync(file,'utf8'),context);
+ window.ViewRefresh={patchList:(host,items,key,markup)=>{host.innerHTML=items.map(markup).join('');}};
  const fetch=async(u,request)=>{
   if(String(u).includes('trading212-config'))return {json:async()=>({enabled,endpoint:'https://owned-private.workers.dev',directCredentials:true})};
   calls.push({url:String(u),options:request});if(options.fetch)return options.fetch(u,request);
@@ -17,7 +18,7 @@ async function setup(enabled,vault=null,options={}){
   const body={source:'Trading 212',environment:'live',fetchedAt:new Date(Clock.now()).toISOString(),data};
   return {ok:true,json:async()=>options.response?options.response(body,name,u):body};
  };
- await new AsyncFunction('document','window','fetch','setInterval','btoa','AbortController','crypto','setTimeout','clearTimeout','Date','navigator','location',readFileSync('broker/broker.js','utf8'))(document,window,fetch,(fn,ms)=>intervals.push({fn,ms}),btoa,AbortController,options.crypto||webcrypto,options.setTimeout||setTimeout,options.clearTimeout||clearTimeout,Clock,{onLine:true},options.location||{search:''});
+ await new AsyncFunction('document','window','fetch','setInterval','btoa','AbortController','crypto','setTimeout','clearTimeout','Date','navigator','location','localStorage',readFileSync('broker/broker.js','utf8'))(document,window,fetch,(fn,ms)=>intervals.push({fn,ms}),btoa,AbortController,options.crypto||webcrypto,options.setTimeout||setTimeout,options.clearTimeout||clearTimeout,Clock,{onLine:true},options.location||{search:''},{getItem:()=>null});
  el('autoSync').checked=true;
  const connect=()=>{el('apiKey').value='test-key';el('apiSecret').value='test-secret';el('brokerEnvironment').value='live';return el('connect').handlers.submit({preventDefault(){}});};
  return {el,events,calls,intervals,connect};
@@ -92,3 +93,5 @@ test('realized attribution consumes only the current credential scope',async()=>
  const s=await setup(true,null,{journal:{saveSnapshot(){},merge(){return {count:0,complete:true}},read(){return {accounts:{unrelated:{environment:'live',items:[{ticker:'SECRET_OTHER',side:'SELL',realized:999}],complete:true,fetchedAt:new Date().toISOString()}}}}},response:(b,name)=>({...b,data:name==='summary'?{currency:'EUR',totalValue:100}:b.data})});
  await s.connect();assert.doesNotMatch(s.el('realizedSummary').innerHTML,/SECRET_OTHER|999/);assert.match(s.el('realizedSummary').innerHTML,/încă nu a fost importat/);
 });
+
+test('background sync retains the visible account until both requests settle',async()=>{let time=Date.now(),defer=false,releases=[];class Clock extends Date{static now(){return time;}}const s=await setup(true,null,{Date:Clock,fetch:(u)=>{const name=new URL(u).pathname.split('/').at(-1),body={source:'Trading 212',environment:'live',fetchedAt:new Date(time).toISOString(),data:name==='summary'?{currency:'EUR',totalValue:100}:name==='positions'?[]:{items:[],nextCursor:null}},response={ok:true,json:async()=>body};return defer&&['summary','positions'].includes(name)?new Promise(resolve=>releases.push(()=>resolve(response))):Promise.resolve(response);}});await s.connect();assert.equal(s.el('account').hidden,false);s.el('metrics').innerHTML='previous balance';time+=61000;defer=true;const job=s.el('refresh').onclick();while(releases.length<2)await new Promise(r=>setImmediate(r));assert.equal(s.el('account').hidden,false);assert.equal(s.el('metrics').innerHTML,'previous balance');assert.equal(s.el('account')['aria-busy'],'true');releases.forEach(fn=>fn());await job;assert.equal(s.el('account')['aria-busy'],'false');});

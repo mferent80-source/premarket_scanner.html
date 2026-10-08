@@ -10,6 +10,7 @@ test('invalid, expired and future timestamps cannot certify freshness',()=>{
 });
 test('Holdings consumes the same selected account as Portfolio and Coach when positions are missing',()=>{
  const data={old:{environment:'live',fetchedAt:older,positions:[{ticker:'OLD',quantity:1}]},current:{environment:'live',fetchedAt:recent,summary:{currency:'EUR'},positions:null}},c=setup(data),source=readFileSync('holdings/holdings.js','utf8');
- vm.runInContext('let isDemo=false,scope="",snapshot=null,positions=[];'+source.slice(source.indexOf('function loadPositions()'),source.indexOf('\nfunction chart('))+'loadPositions();globalThis.result={scope,snapshot,positions};',c);
+ vm.runInContext(readFileSync('lib/trading212-daily.js','utf8'),c);
+ vm.runInContext('let dailyHistory=null,isDemo=false,scope="",snapshot=null,positions=[];'+source.slice(source.indexOf('function loadPositions()'),source.indexOf('\nfunction chart('))+'loadPositions();globalThis.result={scope,snapshot,positions};',c);
  assert.equal(c.result.scope,'current');assert.equal(c.result.positions.length,0);assert.equal(c.result.snapshot.positions,null);
 });

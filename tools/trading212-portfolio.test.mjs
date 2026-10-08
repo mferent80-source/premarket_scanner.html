@@ -44,6 +44,8 @@ test('unknown P&L is visible without becoming a neutral result or invented zero'
  const {P}=setup(),r=P.build([p('M',null),p('S','-20'),p('N',NaN),p('I',Infinity)],wallet);assert.equal(r.groups[0].known,0);assert.equal(r.groups[0].total,null);
  assert.equal(P.select(r,{currency:'EUR',filter:'unknown'}).length,4);assert.equal(P.select(r,{currency:'EUR',filter:'flat'}).length,0);assert.match(P.summaryMarkup(r,'EUR'),/Acoperire parțială/);
 });
+
+test('stop filter uses only current per-ticker alerts and keeps result and currency filters',()=>{const {P}=setup(),r=P.build([p('A',-20),p('B',15),p('C',-5),p('U',-30,{currency:'USD'})],wallet),stops={A:{state:'near'},B:{state:'crossed'},C:{state:'safe'},U:{state:'near'}};assert.deepEqual(Array.from(P.select(r,{currency:'EUR',attention:'stop',stops}),p=>p.ticker),['A','B']);assert.deepEqual(Array.from(P.select(r,{currency:'EUR',attention:'stop',stops,filter:'gain'}),p=>p.ticker),['B']);assert.equal(P.select(r,{currency:'EUR',attention:'stop'}).length,0);});
 test('filters are exact by outcome and currency, sorting puts missing metrics last and never mutates source data',()=>{
  const {P}=setup(),xs=[p('A',-10,{name:'Companie Alfa'}),p('B',25,{currentPrice:120}),p('C',null),p('U',999,{currency:'USD'})],before=JSON.stringify(xs),r=P.build(xs,wallet);
  assert.deepEqual(Array.from(P.select(r,{currency:'EUR',sort:'loss'}),p=>p.ticker),['A','B','C']);

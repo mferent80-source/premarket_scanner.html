@@ -1,5 +1,5 @@
 const previewMode=typeof location!=='undefined'&&new URLSearchParams(location.search).get('demo')==='1';
-let portfolioReport=null,portfolioSummary=null,portfolioPositions=null,portfolioAt=null,summaryAt=null,previewFixture=null;
+let portfolioReport=null,portfolioSummary=null,portfolioPositions=null,portfolioAt=null,summaryAt=null,previewFixture=null,dailyHistory=null;
 let journalScope='',journalCursor=null,journalStarted=false,journalDone=false,journalRunning=false,journalNext=0;
 const $=id=>document.getElementById(id),esc=v=>String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const numeric=v=>typeof v==='number'&&Number.isFinite(v);
@@ -32,13 +32,13 @@ const pair=(name,value)=>`<dt>${esc(name)}</dt><dd>${esc(value)}</dd>`;
 function clearPortfolio(){
  portfolioReport=null;portfolioSummary=null;portfolioPositions=null;portfolioAt=null;summaryAt=null;
  ['portfolioSummary','positions','realizedSummary'].forEach(id=>$(id).replaceChildren());
- $('positionSearch').value='';$('positionFilter').value='all';$('positionSort').value='loss';$('portfolioCurrency').value='';$('realizedPeriod').value='all';$('positionCoverage').textContent='';
+ $('positionSearch').value='';$('positionFilter').value='all';$('positionSort').value='loss';$('positionAttention').value='all';$('portfolioCurrency').value='';$('realizedPeriod').value='all';$('positionCoverage').textContent='';
 }
-function portfolioOptions(){return {currency:$('portfolioCurrency').value,filter:$('positionFilter').value||'all',search:$('positionSearch').value,sort:$('positionSort').value||'loss'};}
+function portfolioOptions(){const daily={},stops={};let notes={};try{notes=JSON.parse(localStorage.getItem('tt_holdings_theses_v1')||'{}')||{};}catch{}for(const p of portfolioPositions||[]){daily[p.ticker]=window.T212Daily.compare(dailyHistory,{scope:journalScope,environment:previewMode?'demo':brokerEnvironment,position:p,at:portfolioAt});stops[p.ticker]=window.HoldingsPulse.stop(p,previewMode&&p.ticker===portfolioPositions[0]?.ticker?{stop:p.currentPrice/1.02,stopCurrency:p.instrumentCurrency,stopAlertPct:3}:notes[journalScope+'|'+p.ticker],null,{at:portfolioAt});}return {currency:$('portfolioCurrency').value,filter:$('positionFilter').value||'all',search:$('positionSearch').value,sort:$('positionSort').value||'loss',attention:$('positionAttention').value||'all',daily,stops};}
 function renderPositions(){
  if(!portfolioReport)return;
  const options=portfolioOptions(),result=window.T212Portfolio.positionsMarkup(portfolioReport,options);
- $('positions').innerHTML=result.html;
+ if(result.rows.length)window.ViewRefresh.patchList($('positions'),result.rows,p=>p.ticker,p=>window.T212Portfolio.positionsMarkup({...portfolioReport,rows:[p]},options).html);else $('positions').innerHTML=result.html;
  $('portfolioSummary').innerHTML=window.T212Portfolio.summaryMarkup(portfolioReport,options.currency);
  const available=portfolioReport.rows.filter(p=>options.currency==='unknown'?!p.currency:p.currency===options.currency).length;
  const values=result.rows.filter(p=>p.pnl!==null).map(p=>p.pnl),subtotal=values.reduce((s,n)=>s+n,0);
@@ -51,7 +51,7 @@ function updatePortfolioTime(){
  $('portfolioState').textContent=(previewMode?'DEMO FICTIV · ':brokerEnvironment==='demo'?'DEMO T212 · ':'INVEST LIVE · ')+(portfolioReport.available?(stale?'DATE VECHI · ':'Poziții citite · ')+stamp(portfolioAt):'Poziții indisponibile · sincronizează din nou.')+(!portfolioSummary?' · Sumar lipsă: ponderile nu pot fi calculate.':'')+(summaryAt&&Date.now()-Date.parse(summaryAt)>300000?' · Sumar vechi: ponderile folosesc acea citire.':'');
 }
 function positions(xs){
- portfolioPositions=xs;portfolioReport=window.T212Portfolio.build(xs,portfolioSummary);
+ portfolioPositions=xs;dailyHistory=previewMode?window.T212Daily.demo(journalScope,'demo',xs||[],portfolioAt):window.T212Daily.read(localStorage);portfolioReport=window.T212Portfolio.build(xs,portfolioSummary);
  const select=$('portfolioCurrency'),previous=select.value,choices=[...portfolioReport.currencies,...(portfolioReport.wallet&&!portfolioReport.currencies.includes(portfolioReport.wallet)?[portfolioReport.wallet]:[]),...(portfolioReport.unknownCurrency?['unknown']:[])];
  select.innerHTML=choices.map(c=>'<option value="'+esc(c)+'">'+esc(c==='unknown'?'Monedă lipsă':c)+'</option>').join('');
  select.value=choices.includes(previous)?previous:portfolioReport.wallet||choices[0]||'';
@@ -69,15 +69,16 @@ function renderRealized(){
   host.innerHTML=window.T212Portfolio.realizedMarkup(report);
  }catch(_){host.textContent='Istoricul contului selectat nu poate fi citit. Reia sincronizarea.';}
 }
-['positionFilter','positionSort'].forEach(id=>$(id).addEventListener('change',renderPositions));
+['positionFilter','positionSort','positionAttention'].forEach(id=>$(id).addEventListener('change',renderPositions));
 $('positionSearch').addEventListener('input',renderPositions);
 $('portfolioCurrency').addEventListener('change',()=>{renderPositions();renderRealized();});
 $('realizedPeriod').addEventListener('change',renderRealized);
+window.addEventListener('storage',e=>{if(!previewMode&&['tt_holdings_theses_v1',window.T212Daily.KEY].includes(e.key)&&portfolioReport){dailyHistory=window.T212Daily.read(localStorage);renderPositions();}});
 $('portfolioSummary').addEventListener('click',e=>{
  const button=e.target.closest('[data-position]');if(!button)return;
  $('positionFilter').value='all';$('positionSearch').value=button.dataset.position;renderPositions();$('positions').scrollIntoView({behavior:'smooth',block:'start'});
 });
-$('clearPositionFilters').addEventListener('click',()=>{$('positionSearch').value='';$('positionFilter').value='all';$('positionSort').value='loss';renderPositions();});
+$('clearPositionFilters').addEventListener('click',()=>{$('positionSearch').value='';$('positionFilter').value='all';$('positionSort').value='loss';$('positionAttention').value='all';renderPositions();});
 window.addEventListener('storage',e=>{if(e.key===window.T212Performance?.KEY)renderRealized();});
 
 function history(){const orders=kind==='orders';$('history').innerHTML=rows.map(r=>`<article class="card"><h3>${esc(r.ticker||r.type)}</h3><p>${esc(stamp(r.date))}</p><p>${esc(orders?(r.side||'Sens indisponibil')+' · '+(r.status||'Stare indisponibilă'):r.type)}</p><dl>${orders?pair('Cantitate executată',fmt(r.quantity))+pair('Preț execuție',fmt(r.price,r.priceCurrency)):''}${pair(orders?'Valoare netă':'Sumă',fmt(r.amount,r.currency))}${orders?pair('P&L realizat raportat',fmt(r.realized,r.currency)):''}</dl></article>`).join('');}
@@ -89,14 +90,14 @@ async function loadHistory(append=false){if(!token||busy)return;const id=session
  }catch(e){if(id===session&&e.name!=='AbortError'){$('historyState').textContent='Istoric neactualizat: '+e.message;if(selected==='orders')try{window.T212J?.importState?.(journalScope,brokerEnvironment,'error');}catch(_){}}}
  finally{if(id===session){busy=false;$('more').disabled=false;document.querySelectorAll('[data-kind]').forEach(b=>b.disabled=false);}}
 }
-async function sync(){if(busy)return;const id=session;busy=true;portfolioSummary=null;portfolioPositions=null;portfolioReport=null;portfolioAt=null;summaryAt=null;$('portfolioSummary').replaceChildren();$('positionCoverage').textContent='';$('realizedSummary').replaceChildren();$('metrics').replaceChildren();$('positions').replaceChildren();$('account').hidden=true;$('refresh').disabled=true;$('connectButton').disabled=true;$('status').textContent='Sincronizez contul și pozițiile…';
+async function sync(){if(busy)return;const id=session;busy=true;$('account').setAttribute('aria-busy','true');$('refresh').disabled=true;$('connectButton').disabled=true;$('status').textContent='Sincronizez contul și pozițiile…';
  const results=await Promise.allSettled([api('summary'),api('positions')]);if(id!==session)return;
- const warnings=[];let success=false;
+ portfolioSummary=null;portfolioPositions=null;portfolioReport=null;portfolioAt=null;summaryAt=null;$('metrics').replaceChildren();const warnings=[];let success=false;
  for(let i=0;i<results.length;i++){const r=results[i];if(r.status==='fulfilled'){if(i===0){portfolioSummary=r.value.data;summaryAt=r.value.fetchedAt;metrics(r.value.data);}else{portfolioAt=r.value.fetchedAt;positions(r.value.data);}environment=r.value.environment;success=true;}else warnings.push((i===0?'Sold':'Poziții')+': '+r.reason.message);}
  if(success)lastFetched=Math.min(...results.filter(r=>r.status==='fulfilled').map(r=>Date.parse(r.value.fetchedAt)));
  if(success&&journalScope&&window.T212J){try{window.T212J.saveSnapshot(journalScope,brokerEnvironment,results[0].status==='fulfilled'?results[0].value.data:null,results[1].status==='fulfilled'?results[1].value.data:null,new Date(lastFetched).toISOString());}catch(e){warnings.push('Portofoliu nesalvat: '+e.message);}}
  $('account').hidden=!success;$('refresh').hidden=false;$('disconnect').hidden=false;$('status').textContent=success?`${environment==='demo'?'DEMO · bani virtuali':'INVEST LIVE'} · citire ${stamp(lastFetched)}${warnings.length?' · PARȚIAL: '+warnings.join(' / '):''}`:'Conectare nereușită: '+warnings.join(' / ');
- if(portfolioPositions===null)positions(null);renderRealized();busy=false;$('refresh').disabled=false;$('connectButton').disabled=!ready;if(success&&!rows.length)await loadHistory();if(id!==session)return false;if(success){$('connectionSettings').open=false;await importJournalPage();}return success;
+ if(portfolioPositions===null)positions(null);renderRealized();$('account').setAttribute('aria-busy','false');busy=false;$('refresh').disabled=false;$('connectButton').disabled=!ready;if(success&&!rows.length)await loadHistory();if(id!==session)return false;if(success){$('connectionSettings').open=false;await importJournalPage();}return success;
 }
 async function startConnection(payload,persist){
  if(previewMode)return false;

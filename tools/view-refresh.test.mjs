@@ -1,0 +1,14 @@
+import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';
+function setup(){const c={setTimeout,clearTimeout};vm.createContext(c);vm.runInContext(readFileSync('lib/view-refresh.js','utf8'),c);return c.ViewRefresh;}
+test('many simultaneous storage and progress events schedule just one render',()=>{const V=setup(),timers=new Map();let id=0,renders=0;const gate=V.create({render:()=>renders++,setTimer:fn=>{timers.set(++id,fn);return id;},clearTimer:i=>timers.delete(i)});for(let i=0;i<500;i++)gate.request();assert.equal(timers.size,1);timers.values().next().value();assert.equal(renders,1);assert.equal(gate.pending(),false);});
+test('typing and hidden pages retain pending data without repeated timers or rebuilding',()=>{const V=setup();let blocked=true,fn,renders=0;const gate=V.create({render:()=>renders++,blocked:()=>blocked,setTimer:f=>(fn=f,1),clearTimer(){}});gate.request();fn();assert.equal(renders,0);assert.equal(gate.pending(),true);assert.equal(gate.flush(),false);blocked=false;assert.equal(gate.flush(),true);assert.equal(renders,1);});
+test('cancelling an account refresh discards its pending render and timer',()=>{const V=setup();let renders=0,cleared=0;const gate=V.create({render:()=>renders++,setTimer:()=>9,clearTimer:()=>cleared++});gate.request();gate.cancel();assert.equal(cleared,1);assert.equal(gate.pending(),false);assert.equal(gate.flush(),false);assert.equal(renders,0);});
+
+test('list updates preserve unchanged card identity, user disclosures and the selected order',()=>{
+ const host={children:[],insertBefore(node,next){const old=this.children.indexOf(node);if(old>=0)this.children.splice(old,1);const i=this.children.indexOf(next);this.children.splice(i<0?this.children.length:i,0,node);}};
+ function card(html){const d={open:false,querySelector:()=>({textContent:'Plan'})};return {dataset:{},html,querySelectorAll:()=>[d],disclosure:d,remove(){const i=host.children.indexOf(this);if(i>=0)host.children.splice(i,1);},replaceWith(next){host.children[host.children.indexOf(this)]=next;}};}
+ const c={setTimeout,clearTimeout,document:{createElement(){return {content:{},set innerHTML(v){this.content.firstElementChild=card(v);}};}}};vm.createContext(c);vm.runInContext(readFileSync('lib/view-refresh.js','utf8'),c);const V=c.ViewRefresh,markup=x=>'<article>'+x.name+'</article>';
+ V.patchList(host,[{id:'A',name:'A'},{id:'B',name:'B'}],x=>x.id,markup);const a=host.children[0],b=host.children[1];a.disclosure.open=true;
+ V.patchList(host,[{id:'B',name:'B'},{id:'A',name:'A'}],x=>x.id,markup);assert.equal(host.children[0],b);assert.equal(host.children[1],a);assert.equal(a.disclosure.open,true);
+ V.patchList(host,[{id:'A',name:'New quote'}],x=>x.id,markup);assert.equal(host.children.length,1);assert.notEqual(host.children[0],a);assert.equal(host.children[0].disclosure.open,true);
+});
