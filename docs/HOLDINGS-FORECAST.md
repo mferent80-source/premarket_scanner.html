@@ -8,7 +8,7 @@ După finalizarea unui model se salvează automat prima estimare pe instrument, 
 
 Estimările conțin versiunea modelului, momentul antrenării și al salvării, timestampul barei de origine, fusul bursei, închiderea și ATR inițial, estimarea și reperul fixat. Fără cantități, solduri, chei API sau ponderi antrenate. Modelele blocate de drift/disagreement nu sunt capturate ca predicții de direcție; rezultatele fără avantaj istoric pot fi urmărite, cu starea lor explicită.
 
-Reantrenarea nu suprascrie primul rezultat, nici dacă aplicația schimbă versiunea modelului. Numai modelele recente, compatibile și legate de sesiunea verificată pot produce o înregistrare. Rezultatele Neural vechi fără metadata sursei nu se importă retrospectiv. Captura este refuzată de la începutul următoarei zile lucrătoare în fusul bursei, chiar înainte de deschidere; este o regulă conservatoare, care poate refuza și o zi de sărbătoare. Data actuală trebuie să corespundă sesiunii EOD așteptate.
+Reantrenarea nu suprascrie primul rezultat, nici dacă aplicația schimbă versiunea modelului. Numai modelele recente, compatibile și legate de sesiunea verificată pot produce o înregistrare. Rezultatele Neural vechi fără metadata sursei nu se importă retrospectiv. Pentru calendarele bursiere acoperite și verificate, captura se oprește la următoarea deschidere reală, ținând cont de sărbători și fusul bursei. Calendarele neacoperite păstrează regula conservatoare veche: refuz de la începutul următoarei zile lucrătoare. Zilele scurte cu ora finală nepublicată blochează captura în acea zi. Acoperirea și sursele sunt documentate în PROFESSIONAL-UPGRADE.md. Data actuală trebuie să corespundă sesiunii EOD așteptate.
 
 ## Verificare
 

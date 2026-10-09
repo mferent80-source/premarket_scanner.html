@@ -1,5 +1,5 @@
 // Cache only the application shell. Market data and scans always require network.
-const CACHE = 'tt-decision-phone-20261003-v2';
+const CACHE = 'tt-decision-phone-professional-v1';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './install.js?v=phone-20261003', './icons/icon-192.png', './icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -25,3 +25,8 @@ self.addEventListener('fetch', event => {
     return (await caches.match(request)) || Response.error();
   }));
 });
+
+// Notifications contain no portfolio amounts or API credentials.
+async function receipt(data,phase){try{const url=new URL(data.receiptUrl);if(url.origin!=='https://premarket-scanner-html.mferent80.workers.dev'||url.pathname!=='/api/cloud/push/receipt'||typeof data.receipt!=='string')return;await fetch(url.href,{method:'POST',credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:data.receipt,phase})});}catch{}}
+self.addEventListener('push',event=>{event.waitUntil((async()=>{let data={};try{data=event.data?.json()||{};}catch{}await self.registration.showNotification('Trading Tools',{body:typeof data.body==='string'?data.body.slice(0,200):'Ai o alertă nouă în inbox.',icon:new URL('./icons/icon-192.png',self.registration.scope).href,tag:'trading-tools-monitor',data:{receipt:data.receipt,receiptUrl:data.receiptUrl}});await receipt(data,'received');})());});
+self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil((async()=>{await receipt(event.notification.data||{},'opened');const target=new URL('./?module=app%2Fsync%2F',self.registration.scope).href,windows=await self.clients.matchAll({type:'window',includeUncontrolled:true}),client=windows.find(c=>c.url.startsWith(self.registration.scope));if(client){await client.navigate(target);await client.focus();}else await self.clients.openWindow(target);})());});
