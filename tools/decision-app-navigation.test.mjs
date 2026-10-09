@@ -8,7 +8,8 @@ function boot(search=''){
  const elements={},events={},child={postMessage(){}};
  const el=id=>elements[id]||(elements[id]={value:'',hidden:false,contentWindow:child,contains:()=>false,querySelectorAll:()=>[],getAttribute(k){return this[k]||null;},focus(){},blur(){}});
  const document={documentElement:{dataset:{appVersion:"release-test"}},getElementById:el,addEventListener(){}};
- const ctx={document,location:{origin:'https://example.test',href:'https://example.test/project/app/',search},localStorage:{setItem(){}},window:{addEventListener:(n,f)=>events[n]=f},Intl,Date,URLSearchParams,URL};
+ const location={origin:'https://example.test',href:'https://example.test/project/app/'+search,search};
+ const ctx={document,location,history:{state:null,replaceState(state,_,url){this.state=state;location.href=url;location.search=new URL(url).search;}},localStorage:{setItem(){}},window:{addEventListener:(n,f)=>events[n]=f},Intl,Date,URLSearchParams,URL};
  vm.runInNewContext(script,ctx);
  return {elements,send:data=>events.message({origin:ctx.location.origin,source:child,data}),events,ctx};
 }
@@ -31,3 +32,23 @@ test('reselecting an open module preserves its document, while explicit reload n
 });
 
 test('fragment navigation reuses a loaded journal document and dismisses the spinner',()=>{const b=boot();b.send({ttOpenModule:'journal/#desk'});b.elements.frame.onload.call(b.elements.frame);assert.equal(b.elements.loading.hidden,true);b.send({ttOpenModule:'journal/#portfolio'});assert.match(b.elements.frame.src,/#portfolio$/);assert.equal(b.elements.loading.hidden,true);b.send({ttOpenModule:'journal/#exec'});assert.equal(b.elements.loading.hidden,true);b.elements.reloadModule.onclick();assert.equal(b.elements.loading.hidden,false);});
+
+test('a full reload returns to the current module and retains the release query',()=>{
+ const b=boot('?module=candidate-engine%2F&v=release-test');b.send({ttOpenModule:'journal/#portfolio'});
+ const url=new URL(b.ctx.location.href);assert.equal(url.searchParams.get('module'),'journal/#portfolio');assert.equal(url.searchParams.get('v'),'release-test');
+ const next=boot(url.search);assert.match(next.elements.frame.src,/#portfolio$/);
+ b.send({ttOpenModule:'broker/'});assert.equal(new URL(b.ctx.location.href).searchParams.get('module'),'broker/');
+});
+test('unrecognized routes never replace the current URL and handoff details stay out of it',()=>{
+ const b=boot();const before=b.ctx.location.href;b.send({ttOpenModule:'https://untrusted.test/'});assert.equal(b.ctx.location.href,before);
+ b.send({ttOpenModule:'holdings/',ttQuery:'holding=temporary-handoff'});assert.equal(new URL(b.ctx.location.href).searchParams.get('module'),'holdings/');assert.doesNotMatch(b.ctx.location.href,/temporary-handoff/);
+});
+
+test('an internal example link keeps its demo query when opened through the shell',()=>{
+ const b=boot(),anchor={textContent:'Vezi exemplul',style:{},getAttribute:()=> '../shadow-book/?demo=ai-strategy',addEventListener(_,fn){this.click=fn;}};
+ b.elements.frame.src='https://example.test/project/desk/?app=decision-mobile-v2';
+ b.elements.frame.contentDocument={createElement:()=>({}),head:{appendChild(){}},querySelectorAll:()=>[anchor]};
+ b.elements.frame.onload.call(b.elements.frame);assert.equal(typeof anchor.click,'function');
+ anchor.click({preventDefault(){}});assert.match(b.elements.frame.src,/shadow-book\/\?app=.*&demo=ai-strategy$/);
+ assert.doesNotMatch(b.ctx.location.href,/demo=ai-strategy/);
+});

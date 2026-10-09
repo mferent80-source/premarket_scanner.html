@@ -76,3 +76,12 @@ test('coverage updates the confirmation count when the selected strategy changes
  const n=state.reversal.filter(x=>x.actionable).length;assert.match(f.node('scanDetailsBody').innerHTML,new RegExp('Governor: TRADE\\. '+n+' '+(n===1?'candidat cu confirmare':'candidați cu confirmare')+' în clasamentul curent'));
  state.mode='momentum';f.ctx.hooks.render();const count=state.momentum.filter(x=>x.actionable).length;assert.match(f.node('scanDetailsBody').innerHTML,new RegExp('Governor: TRADE\\. '+count+' '));
 });
+
+test('a declining EMA21 slope cannot be described as an aligned Long trend just because the averages remain stacked',async()=>{
+ const f=setup(),fetch=f.ctx.D.fetchStock;
+ f.ctx.D.fetchStock=async(sym,opts)=>{const out=await fetch(sym,opts);if(opts.range==='1y')for(let i=220;i<240;i++){const price=i===239?126:130-(i-220)*.5;Object.assign(out[i],{o:price-.1,c:price,h:price+.8,l:price-.8});}return out;};
+ await f.ctx.hooks.scan();const x=f.ctx.hooks.state.analyses.find(x=>x.mode==='momentum');
+ assert.ok(x.trend.price>x.trend.ema21&&x.trend.ema21>x.trend.ema50,'price and stacked averages alone look positive');
+ assert.ok(x.trend.slope21<0);assert.notEqual(x.trend.short,'up');assert.equal(x.actionable,false);
+ assert.match(x.reason,/Trend neconfirmat pe orizonturile scurt și mediu/);assert.doesNotMatch(x.reason,/Trend aliniat/);
+});

@@ -34,6 +34,20 @@ const K = 100000, bucata = (n) => 'x'.repeat(n);
 const puneTtd = (store, n, t0) => { for (let i = 0; i < n; i++) store.set('ttd:vechi' + i, JSON.stringify({ t: t0 + i, v: bucata(K) })); };
 const ttdMarime = (store) => [...store].filter(([k]) => k.startsWith('ttd:')).reduce((s, [k, v]) => s + k.length + v.length, 0);
 
+test('invalid and future cache timestamps cannot pass either freshness window',()=>{
+  const {D,store}=loadData();
+  for(const t of [undefined,null,'bad',String(Date.now()),0,-1,Date.now()+3600000]){
+    const raw=JSON.stringify({t,v:{price:123}});store.set('ttd:bad',raw);
+    assert.equal(D.cacheGet('bad',1800),null);assert.equal(D.cacheGetStale('bad',3600),null);
+    assert.equal(store.get('ttd:bad'),raw,'reading rejects the cache without deleting stored originals');
+  }
+});
+test('valid cached data still respects the fresh and explicit stale limits',()=>{
+  const {D,store}=loadData();store.set('ttd:old',JSON.stringify({t:Date.now()-2000000,v:123}));
+  assert.equal(D.cacheGet('old',1800),null);assert.equal(D.cacheGetStale('old',3600),123);
+  assert.equal(D.cacheGetStale('old',900),null);D.cacheSet('new',456);assert.equal(D.cacheGet('new',1800),456);
+});
+
 test('cacheTrim: scoate intrările ttd: cele mai VECHI până intră în buget; alte chei rămân neatinse', () => {
   const { D, store } = loadData();
   puneTtd(store, 30, Date.now() - 3600000); store.set('radar_cheie', 'cheia'); store.set('wl_hist_cache', bucata(K));

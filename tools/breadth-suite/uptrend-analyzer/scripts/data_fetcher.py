@@ -12,6 +12,7 @@ Data Sources:
 
 import csv
 import io
+import math
 import sys
 from datetime import date
 from pathlib import Path
@@ -202,15 +203,19 @@ class UptrendDataFetcher:
 def _parse_timeseries_row(row: dict) -> Optional[dict]:
     """Parse a timeseries CSV row, casting numeric fields."""
     try:
+        worksheet = (row.get("worksheet") or "").strip()
+        day = (row.get("date") or "").strip()
+        if not worksheet or date.fromisoformat(day).isoformat() != day:
+            return None
         return {
-            "worksheet": row.get("worksheet", "").strip(),
-            "date": row.get("date", "").strip(),
+            "worksheet": worksheet,
+            "date": day,
             "count": _safe_int(row.get("count")),
             "total": _safe_int(row.get("total")),
             "ratio": _safe_float(row.get("ratio")),
             "ma_10": _safe_float(row.get("ma_10")),
             "slope": _safe_float(row.get("slope")),
-            "trend": row.get("trend", "").strip(),
+            "trend": (row.get("trend") or "").strip(),
         }
     except (ValueError, TypeError):
         return None
@@ -236,8 +241,9 @@ def _safe_float(value) -> Optional[float]:
     if value is None or str(value).strip() == "":
         return None
     try:
-        return float(value)
-    except (ValueError, TypeError):
+        number = float(value)
+        return number if math.isfinite(number) else None
+    except (ValueError, TypeError, OverflowError):
         return None
 
 
@@ -247,5 +253,5 @@ def _safe_int(value) -> Optional[int]:
         return None
     try:
         return int(float(value))
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return None

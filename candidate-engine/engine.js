@@ -175,7 +175,7 @@
       metricA: f.ret20, metricB: f.ext21,
       eligible: knownGovernor && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 55,
       actionable: !!source.currency && benchmarkRet20!==null && !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 68 && trendAligned && f.rs20>=0 && f.rvol>=1,
-      reason: 'EOD '+source.asOf+' · Trend ' + (price > ema21 && ema21 > ema50 ? 'aliniat' : 'în formare') + ' · RS vs benchmark ' + signed(f.rs20, 1) + ' · RVOL ' + fmt(f.rvol, 2) + '× · ' + earn.text+' · țintă 2R calculată la limita intrării, nu rezistență confirmată',
+      reason: 'EOD '+source.asOf+' · Trend ' + (trendAligned ? 'ascendent aliniat pe EMA21 / EMA50' : 'neconfirmat pe orizonturile scurt și mediu') + ' · RS vs benchmark ' + signed(f.rs20, 1) + ' · RVOL ' + fmt(f.rvol, 2) + '× · ' + earn.text+' · țintă 2R calculată la limita intrării, nu rezistență confirmată',
       entryLow: entryLow, entryHigh: entryHigh, stop: stop, target: target, spark: f.spark,
       governor: gov, earnings: earn.text, ts: Date.now()
     };

@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
-const CACHE_VERSION = 'tt-v857-2026-10-07';
+const CACHE_VERSION = 'tt-v858-2026-10-09';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -262,6 +262,11 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (req.method !== 'GET') return;
+
+  // Data and explicit rechecks never use the asset cache, including offline.
+  // A cached JSON response must not impersonate a successful current reading.
+  if (['no-store', 'no-cache', 'reload'].includes(req.cache) ||
+      /\.(json|csv)$/.test(url.pathname) || /\/api\//.test(url.pathname)) return;
 
   // isHubEntry acoperă deja navigate + *.html + accept: text/html
   // suite-version.js e fișierul care DECIDE ce versiune de SW se înregistrează. Servit prin

@@ -229,6 +229,27 @@ class TestUptrendDataFetcherMocked:
             fetcher.fetch_timeseries()
             assert mock_get.call_count == 1
 
+    def test_invalid_dated_rows_do_not_abort_valid_completed_observations(self):
+        fetcher = UptrendDataFetcher()
+        text = ('worksheet,date,count,total,ratio,ma_10,slope,trend\n'
+                'all,,20,100,0.2,0.2,0,up\n'
+                'all,2026-02-30,20,100,0.2,0.2,0,up\n'
+                'all,20260115,20,100,0.2,0.2,0,up\n'
+                ',2026-01-15,20,100,0.2,0.2,0,up\n'
+                'all,2026-01-15,20,100,0.2,0.2,0,up\n'
+                'all,9999-12-31,20,100,0.2,0.2,0,up\n')
+        with patch.object(fetcher.session, 'get', return_value=self._make_mock_response(text)):
+            rows = fetcher.fetch_timeseries()
+        assert len(rows) == 1
+        assert rows[0]['date'] == '2026-01-15'
+        assert fetcher.excluded_uncompleted == 1
+
+
+def test_nonfinite_csv_numbers_are_missing_instead_of_valid_metrics():
+    for value in ['nan', 'NaN', 'inf', '-inf', '1e999']:
+        assert _safe_float(value) is None
+        assert _safe_int(value) is None
+
 
 # --- build_summary_from_timeseries edge cases ---
 

@@ -39,7 +39,7 @@ function makeContext({ cache, netBody, netFails }) {
   const calls = { fetch: [] };
   const ctx = {
     console, setTimeout, clearTimeout, URL, Promise,
-    Request: class { constructor(u) { this.url = String(u); this.method = 'GET'; this.headers = { get: () => null }; } },
+    Request: class { constructor(u,options={}) { this.url = String(u); this.method = options.method||'GET'; this.cache=options.cache||'default'; this.headers = { get: () => null }; } },
     Response: class {
       constructor(body, init) {
         this.body = body; init = init || {};
@@ -70,16 +70,17 @@ function makeContext({ cache, netBody, netFails }) {
 }
 
 // Trece o cerere prin handler-ul de fetch al SW-ului și întoarce răspunsul servit.
-async function serve(ctx, url) {
+async function serve(ctx, url, options={}) {
   let served;
   const waits = [];
-  const req = new ctx.Request(url);
+  const req = new ctx.Request(url,options);
   await ctx.self.on_fetch({
     request: req,
     respondWith: p => { served = p; },
     waitUntil: p => waits.push(p),
   });
-  const res = await served;
+  // Requests the worker does not intercept follow the browser's normal network path.
+  const res = await (served||ctx.fetch(req));
   await Promise.allSettled(waits);
   return res;
 }
@@ -140,4 +141,23 @@ test('scrierea în cache păstrează versiunea în cheie', async () => {
   await serve(ctx, ORIGIN + LIB + '?v=796');
   assert.ok(cache.map.has(ORIGIN + LIB + '?v=796'),
     'fără versiune în cheie, următoarea cerere ar rata din nou potrivirea exactă');
+});
+
+for(const path of ['/market-breadth/data/latest.json?v=123','/app/version.json','/app/cloud-sync-config.json','/europe-stocks/calendar.json','/data/observations.csv','/api/cloud/records']){
+  test('runtime data bypasses every asset cache: '+path,async()=>{
+    const cache=new FakeCache(),url=ORIGIN+path;
+    await cache.put(url,{body:'OLD-DATA'});
+    const {ctx}=makeContext({cache,netBody:'CURRENT-DATA'});
+    assert.equal((await serve(ctx,url)).body,'CURRENT-DATA');
+    assert.equal(cache.map.get(url).body,'OLD-DATA','no background write pretends this is a reusable asset');
+    const offline=makeContext({cache,netFails:true});await assert.rejects(serve(offline.ctx,url),/offline/);
+  });
+}
+test('explicit rechecks bypass the asset cache even for otherwise cacheable paths',async()=>{
+  const cache=new FakeCache(),url=ORIGIN+'/lib/test.js?v=857';await cache.put(url,{body:'OLD'});
+  for(const cacheMode of ['no-store','no-cache','reload']){
+    const {ctx}=makeContext({cache,netBody:'CURRENT'});
+    assert.equal((await serve(ctx,url,{cache:cacheMode})).body,'CURRENT');
+    const offline=makeContext({cache,netFails:true});await assert.rejects(serve(offline.ctx,url,{cache:cacheMode}),/offline/);
+  }
 });
