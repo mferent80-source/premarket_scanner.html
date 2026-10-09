@@ -3282,12 +3282,12 @@ pe un singur chart.
 | I-574 | Cifra Busolei și pe monedele FUTURES ale boților deschiși (analizeaza pe barele perp aduse deja pentru pază) | busola/cron/masoara.ts, src/motor/rezumatRadar.ts | S | P2 | făcut (v100.148 / Busola 1.48.1, 2026-10-10) | ideation | 2026-10-09 |
 | I-575 | Rândul „BTC și botul tău” pe cartela botului din Acasă + în rezumatul de dimineață pe Discord („boții tăi față de BTC: MET CU · NIL CONTRA”) | crypto/public/app.js (acasă), scripts/colector (rezumat), lib/busola.js | S | P3 | făcut (v100.148 / Busola 1.48.1, 2026-10-10) | ideation | 2026-10-09 |
 | I-576 | Starea Busolei pe 1h și 1z lângă cea pe 4h în rândul „Busola” (rezumatul le are deja) — pentru grid pe 5m/15m | crypto/public/lib/busola.js (eticheta), app.js (tbCitireExtra) | M | P2 | făcut (v100.148 / Busola 1.48.1, 2026-10-10) | ideation | 2026-10-09 |
-| I-577 | Jurnalul vocilor: la fiecare schimbare a frazei (spun la fel ⇄ se contrazic) colectorul notează momentul și prețul; după 24 h: „când vocile s-au contrazis, prețul a mers cu graficul în 12 din 20” | crypto/scripts/colector.mjs (tura 15 min), functions/api/istoric-bot.js (KV), lib/busola.js | M | P1 | propus | ideation | 2026-10-10 |
-| I-578 | Paza: UN mesaj „toate vocile contra botului tău” (grafic 4h + Busola + Monte Carlo) care înlocuiește cele două alerte separate când coincid | crypto/scripts/lib/paza-boti.mjs, lib/mesaje-colector.mjs, public/lib/busola.js (concluzie) | S | P1 | propus | ideation | 2026-10-10 |
-| I-579 | Monte Carlo pe regimul Busolei: drumurile trase doar din episoadele cu aceeași stare (mai agitată / mai calmă), nu din toate ultimele 14 zile — ipoteză, de validat pe date nevăzute | crypto/public/lib/grid-sim.js, scripts/lib/tura-monte-carlo-bot.mjs, lib/busola.js | M | P2 | propus | ideation | 2026-10-10 |
-| I-580 | Cifra și direcția Busolei pe 1h (nu doar 4h) în rezumat și în citire, pentru gridurile pe 5m/15m | busola/src/motor/rezumatRadar.ts, cron/masoara.ts; crypto/public/lib/busola.js, app.js | S | P2 | propus | ideation | 2026-10-10 |
-| I-581 | Pagina Alerte: lângă fiecare alertă a pazei, „ce a urmat” după 24 h (prețul, PnL-ul botului) — bilanțul avertizărilor, în Radar | crypto/functions/api/istoric-bot.js (alerte în KV), scripts/colector.mjs, public/app.js (alerte) | M | P3 | propus | ideation | 2026-10-10 |
-| I-582 | Rândul Busolei din Tablou cu butonul „deschide în Busolă” pe moneda și intervalul botului (?sym=&interval=, ca panoul lui Paznic) | crypto/public/app.js (tbCitireExtra / tbBusolaLinie), public/lib/busola.js | S | P3 | propus | ideation | 2026-10-10 |
+| I-577 | Jurnalul vocilor: la fiecare schimbare a frazei (spun la fel ⇄ se contrazic) colectorul notează momentul și prețul; după 24 h: „când vocile s-au contrazis, prețul a mers cu graficul în 12 din 20” | crypto/scripts/colector.mjs (tura 15 min), functions/api/istoric-bot.js (KV), lib/busola.js | M | P1 | făcut (v100.149 / colector v101.92, 2026-10-10) | ideation | 2026-10-10 |
+| I-578 | Paza: UN mesaj „toate vocile contra botului tău” (grafic 4h + Busola + Monte Carlo) care înlocuiește cele două alerte separate când coincid | crypto/scripts/lib/paza-boti.mjs, lib/mesaje-colector.mjs, public/lib/busola.js (concluzie) | S | P1 | făcut (v100.149 / colector v101.92, 2026-10-10) | ideation | 2026-10-10 |
+| I-579 | Monte Carlo pe regimul Busolei: drumurile trase doar din episoadele cu aceeași stare (mai agitată / mai calmă), nu din toate ultimele 14 zile — ipoteză, de validat pe date nevăzute | crypto/public/lib/grid-sim.js, scripts/lib/tura-monte-carlo-bot.mjs, lib/busola.js | M | P2 | făcut (v100.149 / colector v101.92; poarta de validare ÎNCHISĂ: 0 tăieturi, jurnalul Busolei are 7 zile — rerulează proba-mc-regim peste ~3 săptămâni) | ideation | 2026-10-10 |
+| I-580 | Cifra și direcția Busolei pe 1h (nu doar 4h) în rezumat și în citire, pentru gridurile pe 5m/15m | busola/src/motor/rezumatRadar.ts, cron/masoara.ts; crypto/public/lib/busola.js, app.js | S | P2 | făcut (v100.149 / colector v101.92, 2026-10-10) | ideation | 2026-10-10 |
+| I-581 | Pagina Alerte: lângă fiecare alertă a pazei, „ce a urmat” după 24 h (prețul, PnL-ul botului) — bilanțul avertizărilor, în Radar | crypto/functions/api/istoric-bot.js (alerte în KV), scripts/colector.mjs, public/app.js (alerte) | M | P3 | făcut (v100.149 / colector v101.92, 2026-10-10) | ideation | 2026-10-10 |
+| I-582 | Rândul Busolei din Tablou cu butonul „deschide în Busolă” pe moneda și intervalul botului (?sym=&interval=, ca panoul lui Paznic) | crypto/public/app.js (tbCitireExtra / tbBusolaLinie), public/lib/busola.js | S | P3 | făcut (v100.149 / colector v101.92, 2026-10-10) | ideation | 2026-10-10 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5852,7 +5852,7 @@ Verificat pe disc: niciun buton spre Busolă în Radar (doar comentariul din bus
 are verdict/cifră doar pe 4h; alertele se scriu în KV, fără urmărire. Excluse (deschise): I-522 (verdict unic Radar/Busola),
 I-523 (semaforul cu bilanțul pazei), I-526 (verdict-titlu dimineața), I-509 (paznicul Busolei).
 
-#### I-577 · Jurnalul vocilor: cine a avut dreptate · [M] · P1 · propus
+#### I-577 · Jurnalul vocilor: cine a avut dreptate · [M] · P1 · făcut (v100.149 / colector v101.92, 2026-10-10)
 - **Problema:** fraza „Vocile se contrazic: graficul urcă · Busola înclină short · MC aș ține” nu spune pe cine să asculți; nu
   există nicio măsurătoare pe boții lui.
 - **Soluția:** tura de 15 min a colectorului (are deja Monte Carlo pe bot) notează în KV fiecare schimbare a frazei cu prețul și
@@ -5862,7 +5862,7 @@ I-523 (semaforul cu bilanțul pazei), I-526 (verdict-titlu dimineața), I-509 (p
 - **Riscuri:** cazuri puține luni de zile; nu e semnal, e bilanț.
 - **Fișiere:** crypto/scripts/colector.mjs, scripts/lib/tura-monte-carlo-bot.mjs, functions/api/istoric-bot.js, public/lib/busola.js.
 
-#### I-578 · Paza: un singur mesaj când toate vocile sunt contra · [S] · P1 · propus
+#### I-578 · Paza: un singur mesaj când toate vocile sunt contra · [S] · P1 · făcut (v100.149 / colector v101.92, 2026-10-10)
 - **Problema:** după I-572 pot pleca două alerte în aceeași tură (direcția Busolei + BTC CONTRA), iar semnalul cel mai tare —
   grafic 4h, Busola și Monte Carlo toate contra — nu are mesaj propriu.
 - **Soluția:** în pazaPas, când `Busola.concluzie` dă „spun la fel: contra botului tău” cu ≥ 2 voci, UN mesaj „toate vocile
@@ -5870,7 +5870,7 @@ I-523 (semaforul cu bilanțul pazei), I-526 (verdict-titlu dimineața), I-509 (p
 - **Impact:** mai puțin zgomot, avertizarea cea mai importantă are prioritate.
 - **Fișiere:** crypto/scripts/lib/paza-boti.mjs, lib/mesaje-colector.mjs, public/lib/busola.js.
 
-#### I-579 · Monte Carlo pe regimul Busolei · [M] · P2 · propus
+#### I-579 · Monte Carlo pe regimul Busolei · [M] · P2 · făcut (v100.149 / colector v101.92; poarta de validare ÎNCHISĂ: 0 tăieturi, jurnalul Busolei are 7 zile — rerulează proba-mc-regim peste ~3 săptămâni)
 - **Problema:** GridSim trage drumuri „ca ultimele 14 zile”, amestecând zile calme și agitate; când Busola spune „mai agitată
   ca de obicei”, șansele arătate sunt ale unui regim care nu mai e.
 - **Soluția:** bootstrap pe blocuri DOAR din episoadele cu aceeași stare a Busolei (din jurnalul ei de stări); „șanse în regimul
@@ -5879,21 +5879,21 @@ I-523 (semaforul cu bilanțul pazei), I-526 (verdict-titlu dimineața), I-509 (p
 - **Riscuri:** episoade puține ⇒ drumuri repetate; bootstrap pe ~20 de monede dă „dovedit” fals în 3,5% (regula din memorie).
 - **Fișiere:** crypto/public/lib/grid-sim.js, scripts/lib/tura-monte-carlo-bot.mjs, busola/cron/stare/jurnal-stari.json.
 
-#### I-580 · Cifra și direcția Busolei pe 1h · [S] · P2 · propus
+#### I-580 · Cifra și direcția Busolei pe 1h · [S] · P2 · făcut (v100.149 / colector v101.92, 2026-10-10)
 - **Problema:** gridurile lui pe 5m/15m trăiesc în ore; rezumatul duce verdictul și cifra doar pe 4h (1h are doar starea de mișcare).
 - **Soluția:** cron-ul scrie `directie1h` + `verdict1h` din analiza de 1h (o are deja pentru hartă); citirea arată rândul pe
   intervalul gridului când graficul e sub 4h, cu 4h rămas ca referință.
 - **Impact:** verdictul pe orizontul gridului, nu doar pe 4h.
 - **Fișiere:** busola/src/motor/rezumatRadar.ts, cron/masoara.ts; crypto/public/lib/busola.js, app.js.
 
-#### I-581 · Pagina Alerte: ce a urmat după fiecare avertizare · [M] · P3 · propus
+#### I-581 · Pagina Alerte: ce a urmat după fiecare avertizare · [M] · P3 · făcut (v100.149 / colector v101.92, 2026-10-10)
 - **Problema:** alertele pazei stau în KV și se văd în Radar, dar nimeni nu știe dacă au contat.
 - **Soluția:** după 24 h colectorul scrie lângă alertă prețul și PnL-ul botului; pagina Alerte arată „după «mai agitată»: −1,2% în
   24 h”, cu un bilanț pe tipuri de alertă sus.
 - **Impact:** bilanțul avertizărilor; cele care nu contează se pot tăia.
 - **Fișiere:** crypto/functions/api/istoric-bot.js, scripts/colector.mjs, public/app.js (alerte).
 
-#### I-582 · „Deschide în Busolă” din rândul Busolei · [S] · P3 · propus
+#### I-582 · „Deschide în Busolă” din rândul Busolei · [S] · P3 · făcut (v100.149 / colector v101.92, 2026-10-10)
 - **Problema:** citirea spune ce zice Busola, dar detaliile (canalul, dovada, graficul ei) sunt un drum manual.
 - **Soluția:** buton pe rândul Busolei din Tablou spre `busola.mferent80.workers.dev/?sym=&interval=4h` (adresa cu stare, ca în
   panoul lui Paznic); pe futures „1000X” cheia fără „1000”.
