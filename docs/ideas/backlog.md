@@ -3276,12 +3276,12 @@ pe un singur chart.
 | I-568 | GRID-FISA: după stop / take-profit zona botului se oprește la bara opririi (grilele, umbra, fundalul) + eticheta „oprit aici” | pine-scripts/GRID-FISA (DESEN) | S | P3 | făcut (GRID-FISA v2.4) | ideation | 2026-10-06 |
 | I-569 | GRID-FISA: grilele dese mai lizibile - „toate / din 5 în 5 / doar ±10 în jurul prețului” și atingerile mutate în dreapta ultimei bare | pine-scripts/GRID-FISA (DESEN, atingeri) | S | P3 | făcut (GRID-FISA v2.4) | ideation | 2026-10-06 |
 | I-570 | GRID-FISA: ultima umplere estimată pe grafic (cumpărare / vânzare, la nivelul ei, cu ora) - vezi unde a lucrat botul ultima dată | pine-scripts/GRID-FISA (urmărirea celulelor + DESEN) | M | P4 | făcut (GRID-FISA v2.4) | ideation | 2026-10-06 |
-| I-571 | Citire: fraza-concluzie „Busola, graficul pe 4h și Monte Carlo spun la fel / se contrazic” sus în „Ce spune piața acum” | crypto/public/app.js (tbDeseneazaCitire, tbCitScurt), lib/busola.js | S | P1 | propus | ideation | 2026-10-09 |
-| I-572 | Paza boților: alertă pe Discord la trecerea Busolei pe „invers față de botul tău” sau CONTRA cu legătură DA și BTC mișcat > 2% | crypto/scripts/colector (tura paza), lib/busola.js | M | P1 | propus | ideation | 2026-10-09 |
-| I-573 | Măsurat pe boții LUI: cât a pierdut botul în 24 h când Busola zicea „invers față de bot” față de „ca botul” ⇒ „pe boții tăi” în rând | busola/src/motor/jurnalPaza.ts + dinRadar.ts, crypto/lib/risc-luna | M | P2 | propus | ideation | 2026-10-09 |
-| I-574 | Cifra Busolei și pe monedele FUTURES ale boților deschiși (analizeaza pe barele perp aduse deja pentru pază) | busola/cron/masoara.ts, src/motor/rezumatRadar.ts | S | P2 | propus | ideation | 2026-10-09 |
-| I-575 | Rândul „BTC și botul tău” pe cartela botului din Acasă + în rezumatul de dimineață pe Discord („boții tăi față de BTC: MET CU · NIL CONTRA”) | crypto/public/app.js (acasă), scripts/colector (rezumat), lib/busola.js | S | P3 | propus | ideation | 2026-10-09 |
-| I-576 | Starea Busolei pe 1h și 1z lângă cea pe 4h în rândul „Busola” (rezumatul le are deja) — pentru grid pe 5m/15m | crypto/public/lib/busola.js (eticheta), app.js (tbCitireExtra) | M | P2 | propus | ideation | 2026-10-09 |
+| I-571 | Citire: fraza-concluzie „Busola, graficul pe 4h și Monte Carlo spun la fel / se contrazic” sus în „Ce spune piața acum” | crypto/public/app.js (tbDeseneazaCitire, tbCitScurt), lib/busola.js | S | P1 | făcut (v100.148 / Busola 1.48.1, 2026-10-10) | ideation | 2026-10-09 |
+| I-572 | Paza boților: alertă pe Discord la trecerea Busolei pe „invers față de botul tău” sau CONTRA cu legătură DA și BTC mișcat > 2% | crypto/scripts/colector (tura paza), lib/busola.js | M | P1 | făcut (v100.148 / Busola 1.48.1, 2026-10-10) | ideation | 2026-10-09 |
+| I-573 | Măsurat pe boții LUI: cât a pierdut botul în 24 h când Busola zicea „invers față de bot” față de „ca botul” ⇒ „pe boții tăi” în rând | busola/src/motor/jurnalPaza.ts + dinRadar.ts, crypto/lib/risc-luna | M | P2 | făcut (v100.148 / Busola 1.48.1, 2026-10-10) | ideation | 2026-10-09 |
+| I-574 | Cifra Busolei și pe monedele FUTURES ale boților deschiși (analizeaza pe barele perp aduse deja pentru pază) | busola/cron/masoara.ts, src/motor/rezumatRadar.ts | S | P2 | făcut (v100.148 / Busola 1.48.1, 2026-10-10) | ideation | 2026-10-09 |
+| I-575 | Rândul „BTC și botul tău” pe cartela botului din Acasă + în rezumatul de dimineață pe Discord („boții tăi față de BTC: MET CU · NIL CONTRA”) | crypto/public/app.js (acasă), scripts/colector (rezumat), lib/busola.js | S | P3 | făcut (v100.148 / Busola 1.48.1, 2026-10-10) | ideation | 2026-10-09 |
+| I-576 | Starea Busolei pe 1h și 1z lângă cea pe 4h în rândul „Busola” (rezumatul le are deja) — pentru grid pe 5m/15m | crypto/public/lib/busola.js (eticheta), app.js (tbCitireExtra) | M | P2 | făcut (v100.148 / Busola 1.48.1, 2026-10-10) | ideation | 2026-10-09 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5784,7 +5784,7 @@ rânduri ale Busolei fără o concluzie deasupra; pe telefon se citesc greu. Ing
 ale Busolei, deși barele futures sunt aduse deja. Automator — paza boților are mecanismul de alertă, dar nu știe de direcție.
 Excluse: nimic respins pe mecanismele astea (căutat „busol”, „citire”, „tablou” în backlog).
 
-#### I-571 · Fraza-concluzie: vocile spun la fel sau se contrazic · [S] · P1 · propus
+#### I-571 · Fraza-concluzie: vocile spun la fel sau se contrazic · [S] · P1 · făcut (v100.148 / Busola 1.48.1, 2026-10-10)
 - **Problema:** citirea are rândul „Trendul pe TF-uri”, Monte Carlo pe primul rând și acum 6 rânduri ale Busolei; cititorul
   face singur adunarea („semaforul urcă, Busola înclină short, MC zice aș ține”).
 - **Soluția:** o frază în `tbCitScurt`, înaintea rândurilor: „Semaforul pe 4h, Busola și Monte Carlo spun la fel: ține” /
@@ -5793,7 +5793,7 @@ Excluse: nimic respins pe mecanismele astea (căutat „busol”, „citire”, 
 - **Riscuri:** fără „verdict unic” care ar promite mai mult decât cifrele (regula lui: avertizează, nu refuză).
 - **Fișiere:** crypto/public/app.js (tbDeseneazaCitire), public/lib/busola.js, scripts/proba nouă.
 
-#### I-572 · Alertă pe Discord când Busola trece invers față de bot · [M] · P1 · propus
+#### I-572 · Alertă pe Discord când Busola trece invers față de bot · [M] · P1 · făcut (v100.148 / Busola 1.48.1, 2026-10-10)
 - **Problema:** paza boților anunță doar „mai agitat”; direcția Busolei și CONTRA pe BTC se văd doar dacă deschide Tabloul.
 - **Soluția:** în tura pazei din colector (`mcVerdict`/`paza` există), un mesaj la TRECERE: „MET short: Busola a trecut pe
   înclinată LONG (nedovedită)” și „BTC −2,3% în 24 h, NIL long merge cu BTC DA ⇒ CONTRA” — doar la schimbare, cel mult unul
@@ -5802,7 +5802,7 @@ Excluse: nimic respins pe mecanismele astea (căutat „busol”, „citire”, 
 - **Riscuri:** zgomot dacă direcția oscilează la prag ⇒ anunț abia după 2 rezumate la rând (ca la Monte Carlo pe bot).
 - **Fișiere:** crypto/scripts/colector (tura paza), public/lib/busola.js (randDirectie/randBtc refolosite), proba colectorului.
 
-#### I-573 · Pe boții tăi: ce a urmat după „invers față de bot” · [M] · P2 · propus
+#### I-573 · Pe boții tăi: ce a urmat după „invers față de bot” · [M] · P2 · făcut (v100.148 / Busola 1.48.1, 2026-10-10)
 - **Problema:** rândul „Direcția, după Busola” spune „(nedovedită)”; nu știm dacă pe boții LUI a contat vreodată.
 - **Soluția:** Busola notează deja starea monedei la fiecare rulare (`jurnal-stari.json`) și bilanțul boților (`dinRadar.ts`);
   se adaugă direcția la notare, iar după 24 h se compară PnL-ul botului „invers” vs „ca botul” ⇒ „pe boții tăi: după invers
@@ -5811,7 +5811,7 @@ Excluse: nimic respins pe mecanismele astea (căutat „busol”, „citire”, 
 - **Riscuri:** boți puțini ⇒ luni până la 10 cazuri; nu e un semnal, e o statistică.
 - **Fișiere:** busola/src/motor/dinRadar.ts, jurnalPaza.ts, cron/masoara.ts; crypto/public/lib/busola.js (nota).
 
-#### I-574 · Cifra Busolei și pe monedele futures · [S] · P2 · propus
+#### I-574 · Cifra Busolei și pe monedele futures · [S] · P2 · făcut (v100.148 / Busola 1.48.1, 2026-10-10)
 - **Problema:** boții lui sunt pe MET, PONS, NIL — rândul „Cifra Busolei” lipsește exact acolo (celula futures n-are măsurătoarea).
 - **Soluția:** în cron, pentru boții deschiși (din `pentru-busola.json`), `analizeaza` pe barele perp deja aduse (`bareFutures`,
   ~1.900 de bare) ⇒ `verdict4h` și pe ele; doar boții deschiși, ca să nu crească durata rulării.
@@ -5819,14 +5819,14 @@ Excluse: nimic respins pe mecanismele astea (căutat „busol”, „citire”, 
 - **Riscuri:** `analizeaza` pe 5–10 monede în plus ⇒ +1–2 min pe rulare; de măsurat.
 - **Fișiere:** busola/cron/masoara.ts, src/motor/rezumatRadar.ts, probe/verdict-in-rezumat.ts.
 
-#### I-575 · BTC și botul tău pe Acasă și în rezumatul de dimineață · [S] · P3 · propus
+#### I-575 · BTC și botul tău pe Acasă și în rezumatul de dimineață · [S] · P3 · făcut (v100.148 / Busola 1.48.1, 2026-10-10)
 - **Problema:** rândul BTC trăiește doar în citirea Tabloului; dimineața, pe Discord, nu vede cum stau boții față de BTC.
 - **Soluția:** `Busola.randBtc` pe cartela botului din Acasă (lângă cartela Busolei) și un rând în rezumatul de dimineață al
   colectorului: „boții tăi față de BTC (−1,8% în 24 h): MET short CU · NIL long CONTRA · PONS nemăsurat”.
 - **Impact:** aceeași informație, acolo unde se uită dimineața.
 - **Fișiere:** crypto/public/app.js (acasă), scripts/colector (rezumatul de dimineață), lib/busola.js (liniaBoti).
 
-#### I-576 · Busola pe 1h și 1z lângă 4h · [M] · P2 · propus
+#### I-576 · Busola pe 1h și 1z lângă 4h · [M] · P2 · făcut (v100.148 / Busola 1.48.1, 2026-10-10)
 - **Problema:** rezumatul are stările pe 1h și 1z pentru cele 30 de monede, dar citirea arată doar 4h; gridurile lui pe 5m/15m
   trăiesc într-un orizont de ore.
 - **Soluția:** rândul „Busola, pe 4h” devine „Busola: 1h mai calmă · 4h nimic neobișnuit · 1z nemăsurat” (doar unde există;
