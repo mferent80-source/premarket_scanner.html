@@ -28,15 +28,15 @@ function showRoster(){const mobile=g.matchMedia?.('(max-width: 760px)').matches,
 function rosterCard({p,m},review,c,selected){
  const active=selected===p.ticker,sym=c.symbol(p)||p.ticker,trend=m?.medium||'Neverificat',kind=m?.medium==='Descendent'?'bad':m?.medium==='Ascendent'?'good':'warn';
  const currency=esc(p.currency||'monedă necunoscută'),pnl=Number.isFinite(p.unrealized)?(p.unrealized>0?'+':'')+fmt(p.unrealized):'—';
- return `<li><button class="holding-roster-item" data-pick-holding="${esc(p.ticker)}" aria-pressed="${active}" title="${esc(review.reasons.join(' · ')||'Nicio regulă de revizuire declanșată; continuă monitorizarea.')}">
- <span class="roster-identity"><b>${esc(sym)}</b><span class="roster-company">${esc(p.name||p.ticker)}</span></span>
+ return `<li class="roster-entry"><button class="holding-roster-item" data-pick-holding="${esc(p.ticker)}" aria-pressed="${active}" title="${esc(review.reasons.join(' · ')||'Nicio regulă de revizuire declanșată; continuă monitorizarea.')}">
+ <span class="roster-identity"><b>${esc(sym)}</b><span class="roster-company">${esc(p.name||p.ticker)}</span>${g.HoldingsRosterUI?.badge(p)||''}</span>
  <span class="roster-money"><span><small>Valoare · ${currency}</small><strong>${fmt(p.value)}</strong></span><span><small>P&amp;L · ${currency}</small><strong class="${p.unrealized<0?'bad':p.unrealized>0?'good':''}">${pnl}</strong></span></span>
  <span class="roster-state"><span><small>Trend mediu</small><b class="${kind}">${esc(trend)}</b></span><em class="review-cue ${review.kind}">${esc(review.label)}</em></span>
  <span class="roster-foot"><small>${m?.asOf?'EOD '+esc(m.asOf):'Analiză EOD indisponibilă'}</small><span class="roster-selection">${active?'Analiză deschisă':'Deschide analiza →'}</span></span>
- </button></li>`;
+ </button>${g.HoldingsRosterUI?.controls(p)||''}</li>`;
 }
 function renderRoster(host,c,reviews,selected,sameScope){
- const scroll=sameScope?host.scrollTop||0:0,focused=document.activeElement,focusTicker=sameScope&&focused?.dataset?.pickHolding;
+ const scroll=sameScope?host.scrollTop||0:0,focused=document.activeElement,focusAttr=focused?.dataset?.rosterFavorite?'rosterFavorite':'pickHolding',focusTicker=sameScope&&focused?.dataset?.[focusAttr];
  host.hidden=false;
  if(rows.length){
   let list=host.querySelector('.holding-roster-list');
@@ -45,10 +45,10 @@ function renderRoster(host,c,reviews,selected,sameScope){
   else host.innerHTML='<ul class="holding-roster-list">'+rows.map(x=>rosterCard(x,reviews[x.p.ticker],c,selected)).join('')+'</ul>';
  }else host.innerHTML=`<div class="empty">${c.positions.length?'Nicio deținere nu corespunde filtrelor.':'Conectează Trading 212 pentru deținerile tale sau deschide demo-ul din Instrumente.'}</div>`;
  host.scrollTop=scroll;
- if(focusTicker&&focused.isConnected===false)[...host.querySelectorAll('[data-pick-holding]')].find(b=>b.dataset.pickHolding===focusTicker)?.focus({preventScroll:true});
+ if(focusTicker&&focused.isConnected===false)[...host.querySelectorAll('[data-pick-holding],[data-roster-favorite]')].find(b=>b.dataset[focusAttr]===focusTicker)?.focus({preventScroll:true});
 }
 function render(c,list){const sameScope=ctx?.scope===c.scope;ctx=c;rows=list;organize();const reviews=Object.fromEntries(c.positions.map(p=>[p.ticker,g.HoldingsReview.assess(p,c.model(p),c.note(p),c.events(p),c.symbol(p),Date.now(),c.snapshot?.fetchedAt)]));renderShortcuts(reviews);const selected=choose(rows,prefs().ticker);remember({ticker:selected});const host=$('holdingQuickList');renderRoster(host,c,reviews,selected,sameScope);
- for(const b of host.querySelectorAll('[data-pick-holding]'))b.onclick=()=>pick(b.dataset.pickHolding,{scroll:g.matchMedia?.('(max-width: 760px)').matches});
+ g.HoldingsRosterUI?.bindRoster(host);for(const b of host.querySelectorAll('[data-pick-holding]'))b.onclick=()=>pick(b.dataset.pickHolding,{scroll:g.matchMedia?.('(max-width: 760px)').matches});
  const chosen=rows.find(x=>x.p.ticker===selected),model=chosen&&c.model(chosen.p);
  if(g.TTDecisionPanel){const ticker=chosen&&c.symbol(chosen.p);g.TTDecisionPanel.set({purpose:'holding',candidate:model?{symbol:ticker,currency:model.currency,sourceDate:model.asOf,sourceTimezone:c.demo?'America/New_York':model.timezone,sourceCloseMinutes:c.demo?960:model.closeMinutes,ts:model.checkedAt,kind:c.demo?'synthetic':'market',trend:model.decisionTrend,price:model.price,atr:model.atr,rs:model.rs20,rvol:model.rvol}:null,modelAction:chosen?()=>g.HoldingsVerdictUI?.open(chosen.p.ticker):null,empty:{title:chosen?'Reanalizează '+(ticker||chosen.p.ticker):c.positions.length?'Nicio deținere pentru filtrele curente':'Deținerile nu sunt încă încărcate',reason:chosen?'Deținerea selectată nu are o serie EOD actuală și verificată. Verifică asocierea simbolului și erorile analizei.':c.positions.length?'Schimbă filtrele pentru a vedea deținerile disponibile.':'Încarcă snapshot-ul Trading 212 pentru a analiza deținerile tale.',next:chosen?'Reanalizează deținerile și verifică simbolul de piață.':c.positions.length?'Resetează filtrele și selectează o deținere.':'Deschide Trading 212 și actualizează contul.'}});}
  $('selectedHoldingLabel').textContent=selected?c.symbol(rows.find(x=>x.p.ticker===selected).p)||selected:'Alege o deținere';$('selectedAnalysis').hidden=!selected||document.body.dataset.holdingsView==='quick';
