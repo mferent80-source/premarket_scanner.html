@@ -71,3 +71,8 @@ test('a watchlist edited during a scan cannot relabel its cached universe',async
  const scanning=f.ctx.hooks.scan();await flush();f.setWatch(['OTHER']);resolve(bars('TEST'));await scanning;
  const c=JSON.parse(f.store.get('ce_results_v2'));assert.deepEqual(JSON.parse(c.universeKey),['watchlist',['TEST']]);f.ctx.hooks.state.momentum=[];f.ctx.hooks.loadCache();assert.equal(f.ctx.hooks.state.momentum.length,0);
 });
+test('coverage updates the confirmation count when the selected strategy changes',async()=>{
+ const f=setup({reversal:true});await f.ctx.hooks.scan();const state=f.ctx.hooks.state;state.mode='reversal';f.ctx.hooks.render();
+ const n=state.reversal.filter(x=>x.actionable).length;assert.match(f.node('scanDetailsBody').innerHTML,new RegExp('Governor: TRADE\\. '+n+' '+(n===1?'candidat cu confirmare':'candidați cu confirmare')+' în clasamentul curent'));
+ state.mode='momentum';f.ctx.hooks.render();const count=state.momentum.filter(x=>x.actionable).length;assert.match(f.node('scanDetailsBody').innerHTML,new RegExp('Governor: TRADE\\. '+count+' '));
+});

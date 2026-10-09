@@ -253,7 +253,7 @@
     $('scanDetailsTitle').textContent='Acoperire · '+state.verified+' serii verificate · '+state.failures.length+' excluse';
     var risk=window.GV?.status?.(),blocked=risk&&!['TRADE','CAUTION'].includes(risk.verdict),confirmed=state[state.mode].filter(function(x){return x.actionable;}).length;
     $('scanDetailsBody').innerHTML='<p>'+state.verified+' / '+state.scanned+' serii verificate. '+(state.scanning?'Scanarea continuă.':state.hasScan?'Clasamentele includ numai criteriile strategiei; numărul de analize nu este numărul de confirmări.':'Scanarea nu a fost încă finalizată.')+'</p>'
-      +'<p>Governor: '+escapeHtml(risk?.verdict||'neverificat')+(blocked?' · candidații tehnici rămân vizibili pentru analiză; planurile noi sunt blocate. '+escapeHtml((risk.reasons||[]).join(' · ')):'. '+confirmed+' candidați cu confirmare în clasamentul curent.')+'</p>'
+      +'<p>Governor: '+escapeHtml(risk?.verdict||'neverificat')+(blocked?' · candidații tehnici rămân vizibili pentru analiză; planurile noi sunt blocate. '+escapeHtml((risk.reasons||[]).join(' · ')):'. '+confirmed+' '+(confirmed===1?'candidat cu confirmare':'candidați cu confirmare')+' în clasamentul curent.')+'</p>'
       +'<p>Sectoare: '+(state.sectorPending?'completare în fundal; rezultatele sunt deja disponibile.':'sunt folosite clasificările disponibile; cele lipsă rămân „Necunoscut”.')+'</p>'
       +'<div class="ce-coverage-grid"><div><b>Indici de comparație</b><ul>'+state.benchmarks.map(function(x){return '<li>'+escapeHtml(x.region+' · '+x.symbol+' · '+(x.asOf||x.reason))+'</li>';}).join('')+'</ul></div><div><b>Surse excluse</b><ul>'+state.failures.map(function(x){return '<li>'+escapeHtml(x.symbol+' · '+x.reason)+'</li>';}).join('')+'</ul>'+(state.failures.length?'':'<p>Nicio eroare de serie raportată.</p>')+'</div></div>';
   }
@@ -336,6 +336,7 @@
 
   function render() {
     tableHead();
+    coverage();
     var items = currentItems();
     if (!items.length) {
       var query=$('search').value.trim(),only=$('onlyActionable').checked;
