@@ -16,6 +16,13 @@ test('logout cannot change the identity during an in-flight reconciliation',asyn
 test('explicit cloud conflict choice applies cloud version and retains recovery copy',async()=>{const s=await setup({local:{tt_journal_v1:'[{"id":"a","note":"PC"}]'},remote:{tt_journal_v1:{revision:2,updated:9,value:[{id:'a',note:'phone'}]}},baseline:{tt_journal_v1:{revision:1,value:[{id:'a',note:'old'}]}}});await s.api.resolve('tt_journal_v1','remote');assert.equal(JSON.parse(s.storage.get('tt_journal_v1'))[0].note,'phone');assert.equal(s.api.state().conflicts.length,0);assert.ok(s.privateStore.get('backups:123').length);});
 
 function planBackup(legacy,plans){let saved={raw:JSON.stringify(plans),localRaw:JSON.stringify(legacy),revision:1},tail=Promise.resolve();return {get saved(){return saved;},read:async()=>structuredClone(saved),update(fn){const p=tail.then(()=>{const next=fn(structuredClone(saved));saved=structuredClone(next.record);return next.value;});tail=p.catch(()=>{});return p;}};}
+test('backup pause persists and blocks automatic cloud reads and uploads until resumed',async()=>{
+ const s=await setup({local:{tt_journal_v1:'[{"id":"original"}]'}});await s.api.pauseForBackup();assert.equal(s.api.state().backupPaused,true);assert.equal(s.privateStore.get('backup-pause'),true);
+ const before=s.calls.length;s.storage.set('tt_journal_v1','[{"id":"restored"}]');await s.api.sync();assert.equal(s.calls.length,before);await s.api.resumeAfterBackup();assert.equal(s.api.state().backupPaused,false);assert.equal(s.privateStore.has('backup-pause'),false);assert.match(JSON.stringify(s.records.tt_journal_v1),/restored/);
+});
+test('backup cannot suspend a reconciliation already in flight',async()=>{
+ let count=0,release;const s=await setup({onRecords:async()=>{if(++count===2)await new Promise(r=>{release=r;});}});const pending=s.api.sync();await new Promise(r=>setImmediate(r));await assert.rejects(s.api.pauseForBackup(),/Sincronizare în curs/);release();await pending;
+});
 test('cloud uploads recovered plans instead of the older legacy copy',async()=>{
  const old=[{id:'old'}],full=[{id:'new'},...old],backup=planBackup(old,full),s=await setup({local:{tt_trade_plans_v1:JSON.stringify(old)},planBackup:backup});
  assert.deepEqual(s.records.tt_trade_plans_v1.value,full);assert.equal(s.storage.get('tt_trade_plans_v1'),JSON.stringify(old));assert.deepEqual((await s.planLedger.read()).plans,full);

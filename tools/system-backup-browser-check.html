@@ -1,0 +1,46 @@
+<!doctype html><html lang="ro"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Verificare izolată backup — Trading Tools</title><style>body{background:#090d12;color:#e8edf0;font:16px/1.6 system-ui;margin:0}main{max-width:860px;margin:40px auto;padding:24px}h1{font-size:28px}button{font:inherit;padding:12px 18px;border-radius:8px;background:#49d3aa;color:#090d12;border:0;cursor:pointer}li{padding:10px 0;border-bottom:1px solid #263340}.ok{color:#49d3aa}.fail{color:#edb65d}p{color:#98a5af}</style><main><h1>Verificare izolată · backup</h1><p>Scenarii fictive, cu registre temporare independente. Nu citesc jurnalul, contul, modelele sau conexiunile utilizatorului. Verifică tranzacțiile IndexedDB reale, manifestul, recuperarea și protecția pentru modificări concurente.</p><button id="run">Rulează verificările</button><h2 id="result">Verificări nepornite</h2><ol id="checks"></ol></main><script type="module">
+import {browserAdapter,createController,createArchive,readArchive} from '../lib/system-backup.mjs?v=26.10.09.1822';
+const $=id=>document.getElementById(id),assert=(value,message)=>{if(!value)throw Error(message);};
+$('run').onclick=async()=>{
+ $('run').disabled=true;$('checks').replaceChildren();let passed=0,failed=0;
+ const prefix='tt_system_backup_qa_'+crypto.randomUUID()+'_',values=new Map();let refuse=null;
+ const storage={get length(){return values.size;},key:n=>[...values.keys()][n]??null,getItem:k=>values.get(k)??null,setItem:(k,v)=>{if(k===refuse){refuse=null;throw Error('QuotaExceededError · simulare');}values.set(k,v);},removeItem:k=>values.delete(k)};
+ const adapter=browserAdapter({storage,databasePrefix:prefix}),controller=createController(adapter);
+ async function test(name,fn){const li=document.createElement('li');try{await fn();passed++;li.className='ok';li.textContent='TRECUT · '+name;}catch(error){failed++;li.className='fail';li.textContent='EȘEC · '+name+' · '+error.message;}$('checks').append(li);}
+ let raw,plan;
+ await test('Export complet din registre locale și IndexedDB',async()=>{
+  storage.setItem('tt_journal_v1','[{"id":"qa","note":"original"}]');storage.setItem('tt_theme','dark');storage.setItem('tt_tg_config','DO-NOT-EXPORT');
+  await adapter.replace('models',[{key:'tt_holdings_neural_v1:qa|TEST_US_EQ',before:null,after:JSON.stringify({trainedAt:Date.now()-1000,symbol:'TEST',currency:'USD',result:{version:'holdings-mlp-v3'}})}]);
+  raw=JSON.stringify(await controller.export({appVersion:'browser-check'}));assert(JSON.parse(raw).entries.length===3,'număr de registre incorect');assert(!raw.includes('DO-NOT-EXPORT'),'adresă exclusă exportată');
+ });
+ await test('Previzualizarea nu modifică datele',async()=>{
+  storage.setItem('tt_journal_v1','[{"id":"qa","note":"pe dispozitiv"}]');plan=await controller.preview(raw);assert(storage.getItem('tt_journal_v1').includes('pe dispozitiv'),'previzualizarea a scris date');assert(await adapter.recovery()===null,'copie creată prea devreme');
+ });
+ await test('Restaurare cu copie de recuperare durabilă',async()=>{
+  const row=plan.rows.find(r=>r.key==='tt_journal_v1');await controller.restore(plan,[row.id]);assert(storage.getItem('tt_journal_v1').includes('original'),'registrul nu a fost restaurat');assert((await adapter.recovery()).state==='committed','tranzacția de recuperare nu a fost confirmată');
+ });
+ await test('Anulare după recrearea controllerului',async()=>{
+  const fresh=createController(browserAdapter({storage,databasePrefix:prefix}));const result=await fresh.undo();assert(result.pending===0,'anulare incompletă');assert(storage.getItem('tt_journal_v1').includes('pe dispozitiv'),'copia anterioară nu a fost recuperată');
+ });
+ await test('JSON alterat este respins',async()=>{
+  const a=JSON.parse(raw);a.entries[0].value='alterat';let blocked=false;try{await readArchive(JSON.stringify(a));}catch{blocked=true;}assert(blocked,'manifestul nu a detectat alterarea');
+ });
+ await test('Eșecul unei scrieri locale recuperează și copia IndexedDB',async()=>{
+  const reportKey='tt_holdings_knn_v1:qa|TEST_US_EQ';
+  const a=await createArchive([{target:'local',key:'tt_journal_v1',value:'[{"id":"quota"}]'},{target:'models',key:reportKey,value:JSON.stringify({trainedAt:Date.now()-1000,symbol:'TEST',currency:'USD',result:{version:'holdings-knn-v1'}})}]);
+  const p=await controller.preview(JSON.stringify(a));refuse='tt_journal_v1';let blocked=false;try{await controller.restore(p,p.rows.map(r=>r.id));}catch{blocked=true;}assert(blocked,'eșecul simulat a trecut');assert(storage.getItem('tt_journal_v1').includes('pe dispozitiv'),'originalul local s-a pierdut');assert(!(await adapter.snapshot()).some(r=>r.key===reportKey),'raportul parțial nu a fost recuperat');
+ });
+ await test('Tranzacția IndexedDB respinge întregul lot la conflict',async()=>{
+  const key='tt_holdings_learning_v1:qa|TEST|TEST|USD|market';await adapter.replace('history',[{key,before:null,after:'{"version":"original"}'}]);let blocked=false;
+  try{await adapter.replace('history',[{key,before:'{"version":"original"}',after:'{"version":"nou"}'},{key:key+'2',before:'lipsă',after:'{}'}]);}catch{blocked=true;}
+  assert(blocked,'conflictul a fost ignorat');assert((await adapter.snapshot()).find(r=>r.key===key).value==='{"version":"original"}','prima scriere a supraviețuit anulării tranzacției');
+ });
+ await test('Registrele schimbate după previzualizare sunt păstrate',async()=>{
+  const p=await controller.preview(raw);storage.setItem('tt_journal_v1','[{"id":"qa","note":"modificare ulterioară"}]');let blocked=false;try{await controller.restore(p,[p.rows.find(r=>r.key==='tt_journal_v1').id]);}catch{blocked=true;}
+  assert(blocked,'previzualizarea expirată a fost acceptată');assert(storage.getItem('tt_journal_v1').includes('ulterioară'),'modificarea ulterioară s-a pierdut');
+ });
+ $('result').textContent=passed+' verificări trecute · '+failed+' eșecuri';$('run').disabled=false;
+ // Only this run's uniquely named temporary databases are removed.
+ for(const name of ['tt_trade_plans_store_v1','tt_holdings_ai_reports_v1','tt_holdings_forecasts_v1','tt_system_backup_recovery_v1']) indexedDB.deleteDatabase(prefix+name);
+};
+</script></html>
