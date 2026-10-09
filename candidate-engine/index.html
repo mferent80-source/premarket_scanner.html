@@ -20,13 +20,15 @@
 .ce-status{height:28px;display:flex;align-items:center;gap:18px;padding:0 12px;border-top:1px solid var(--ce-line);background:var(--ce-panel2);font-size:8px;color:var(--ce-faint)}.ce-status b{color:var(--ce-muted)}.ce-status .ok{color:var(--ce-green)}.ce-status .fail{color:var(--ce-red)}
 @media(max-width:1050px){.ce-app{width:calc(100% - 12px);margin:6px auto 72px}.ce-context{grid-template-columns:repeat(3,1fr)}.ce-work{grid-template-columns:1fr 310px}.ce-th,.ce-row{grid-template-columns:30px minmax(125px,1.3fr) minmax(90px,1fr) 54px 54px 58px 48px}.ce-th>*:nth-child(7),.ce-th>*:nth-child(8),.ce-row>*:nth-child(7),.ce-row>*:nth-child(8){display:none}}
 @media(max-width:760px){.ce-head{grid-template-columns:1fr 120px}.ce-head select{grid-column:1}.ce-refresh{grid-column:2}.ce-live{justify-self:end}.ce-context{grid-template-columns:repeat(2,1fr)}.ce-context>div:nth-child(n+5){display:none}.ce-toolbar{overflow-x:auto}.ce-toolbar input,.ce-toolbar label{display:none}.ce-work{grid-template-columns:1fr}.ce-list{border-right:0}.ce-detail{border-top:1px solid var(--ce-line)}.ce-th,.ce-row{grid-template-columns:26px minmax(120px,1fr) 55px 50px 45px}.ce-th>*:nth-child(3),.ce-th>*:nth-child(6),.ce-th>*:nth-child(7),.ce-th>*:nth-child(8),.ce-row>*:nth-child(3),.ce-row>*:nth-child(6),.ce-row>*:nth-child(7),.ce-row>*:nth-child(8){display:none}}
+.ce-reset{min-height:30px;padding:6px 9px;border:1px solid var(--ce-line2);border-radius:5px;background:var(--ce-panel2);font-size:10px;cursor:pointer}.ce-scan-details{margin:12px 14px;border:1px solid var(--ce-line);border-radius:8px;font-size:12px;color:var(--ce-muted);overflow-wrap:anywhere}.ce-scan-details>summary{padding:12px;cursor:pointer;min-height:44px;font-weight:600;color:var(--ce-text)}#scanDetailsBody{padding:0 12px 12px;line-height:1.5}.ce-coverage-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.ce-coverage-grid ul{padding-left:20px;margin:8px 0}.ce-coverage-grid li+li{margin-top:5px}
+@media(max-width:760px){.ce-scan-details{margin:8px}.ce-coverage-grid{grid-template-columns:1fr}.ce-app .ce-toolbar{height:auto;min-height:50px;flex-wrap:wrap;overflow:visible;padding:8px;gap:8px}.ce-app .ce-toolbar input[type=search]{display:block;width:100%;height:44px;order:3;font-size:14px}.ce-app .ce-toolbar label{display:flex;font-size:12px;min-height:44px}.ce-app .ce-toolbar input[type=checkbox]{display:block;width:18px;height:18px;accent-color:var(--ce-green)}.ce-app .ce-reset{min-height:44px;font-size:12px}.ce-app .ce-mode{min-height:44px;font-size:12px}.ce-app .ce-toolbar .spacer{display:none}.ce-app .ce-toolbar .fresh{font-size:11px}}
 </style>
 <link rel="stylesheet" href="../lib/mobile-ui.css?v=20261002m1">
 <link rel="stylesheet" href="../lib/decision-panel.css?v=26.10.08.0607"><script src="../lib/decision-verdict.js?v=26.10.08.1850"></script><script src="../lib/decision-bridge.js?v=26.10.08.1850"></script><script src="../lib/ai.js?v=26.10.07.2305"></script><link rel="stylesheet" href="../lib/decision-insights.css?v=26.10.08.1850"><script src="../lib/decision-insights.js?v=26.10.08.1850"></script><script src="../lib/decision-panel.js?v=26.10.08.1850" data-decision-module="candidate"></script></head>
 <body>
 <div class="ce-app">
   <header class="ce-head">
-    <div class="ce-title"><span class="ce-kicker">CANDIDATE ENGINE · SUA + EUROPA</span><h1>Market Opportunity Desk</h1><p>Două clasamente live, construite din motoarele existente ale suitei.</p></div>
+    <div class="ce-title"><span class="ce-kicker">CANDIDATE ENGINE · SUA + EUROPA</span><h1>Market Opportunity Desk</h1><p>Candidați tehnici EOD · confirmările și limitele contului sunt afișate separat.</p></div>
     <div class="ce-live" id="liveState"><i></i><div><b id="scanState">PREGĂTIT</b><small id="nextScan">scan automat la 5 min</small></div></div>
     <select id="universe" aria-label="Univers scanat"><option value="core">Core lichid + Watchlist</option><option value="watchlist">Doar Watchlist</option><option value="us">Doar SUA</option><option value="eu">Doar Europa</option></select>
     <button class="ce-refresh" id="scanBtn">SCANEAZĂ ACUM</button>
@@ -42,8 +44,10 @@
     <span class="spacer"></span>
     <input id="search" type="search" placeholder="Caută simbol sau sector">
     <label><input id="onlyActionable" type="checkbox"> doar confirmate</label>
+    <button class="ce-reset" id="resetFilters">Resetează filtrele</button>
     <span class="fresh" id="updatedAt">nescanat</span>
   </div>
+  <details class="ce-scan-details"><summary id="scanDetailsTitle">Acoperirea scanării și motivele excluderii</summary><div id="scanDetailsBody"></div></details>
   <main class="ce-work">
     <section class="ce-list">
       <div class="ce-th" id="tableHead"></div>
@@ -84,7 +88,7 @@
 <script src="../lib/trade-evidence-schema.js?v=26.10.08.1414"></script>
 <script src="../lib/trade-evidence.js?v=26.10.08.1515"></script>
 <script src="../lib/trade-evidence-auto.js?v=26.10.08.1515"></script>
-<script src="engine.js?v=26.10.08.1414"></script>
+<script src="engine.js?v=26.10.09.1238"></script>
 <script>document.getElementById("backToList").onclick=function(){document.getElementById("rows").scrollIntoView({block:"start",behavior:window.matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"});};</script>
 </body>
 </html>

@@ -21,7 +21,8 @@
   var state = {
     mode: requested?requestedMode:'momentum', analyses: [], scanning: false, shellVisible: true,
     momentum: [], reversal: [], selected: null, updatedAt: 0,
-    failures: [], earningsOk: false, earningsMap: {}, timer: null
+    failures: [], earningsOk: false, earningsMap: {}, timer: null,
+    verified: 0, scanned: 0, hasScan: false, benchmarks: [], sectorPending: false, generation: 0, scanKey: null
   };
 
   function $(id) { return document.getElementById(id); }
@@ -159,6 +160,7 @@
     var mScore = momentumScore(f, earn);
     var rScore = reversalScore(f, eb, earn);
     var gov = window.GV && GV.status ? GV.status() : { verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] };
+    var knownGovernor = ['TRADE','CAUTION','HALTED'].includes(gov.verdict);
     var blocked = earn.blocked || !['TRADE','CAUTION'].includes(gov.verdict);
     var sector = window.EL && EL.sectorOf ? EL.sectorOf(sym) : 'Necunoscut';
     var trend=window.TTDecisionVerdict?.trend(bars);
@@ -171,7 +173,7 @@
       symbol: sym, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, trend:trend, atr:atr, region: f.region, sector: sector, mode: 'momentum', score: mScore,
       state: momentumState, price: price, dayChg: f.dayChg, rvol: f.rvol, rs: f.rs20,
       metricA: f.ret20, metricB: f.ext21,
-      eligible: !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 55,
+      eligible: knownGovernor && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 55,
       actionable: !!source.currency && benchmarkRet20!==null && !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 68 && trendAligned && f.rs20>=0 && f.rvol>=1,
       reason: 'EOD '+source.asOf+' · Trend ' + (price > ema21 && ema21 > ema50 ? 'aliniat' : 'în formare') + ' · RS vs benchmark ' + signed(f.rs20, 1) + ' · RVOL ' + fmt(f.rvol, 2) + '× · ' + earn.text+' · țintă 2R calculată la limita intrării, nu rezistență confirmată',
       entryLow: entryLow, entryHigh: entryHigh, stop: stop, target: target, spark: f.spark,
@@ -188,13 +190,14 @@
       symbol: sym, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, trend:trend, atr:atr, region: f.region, sector: sector, mode: 'reversal', score: rScore,
       state: reversalState, price: price, dayChg: f.dayChg, rvol: f.rvol, rs: f.rs20,
       metricA: f.drawdown, metricB: f.bounce60, baseDays: f.baseDays,
-      eligible: !blocked && price >= 5 && f.avgDollarVol >= 3000000 && reversalWatch && rScore >= 32,
+      eligible: knownGovernor && price >= 5 && f.avgDollarVol >= 3000000 && reversalWatch && rScore >= 32,
       actionable: reversalActionable,
       reason: 'EOD '+source.asOf+' · '+(reversalActionable ? 'Confirmare tehnică zilnică · ' : 'Monitorizare · ') + (eb && MEB.ebSignalText ? MEB.ebSignalText(eb) : 'structură reversal') + ' · scădere ' + signed(f.drawdown, 1) + ' · revenire ' + signed(f.bounce60, 1) + ' · ' + earn.text,
       entryLow: entryLow, entryHigh: entryHigh, stop: stop, target: target, spark: f.spark,
       governor: gov, earnings: earn.text, ts: Date.now()
     };
-    if(window.TTDecisionVerdict){for(const item of [momentum,reversal]){const verdict=TTDecisionVerdict.build({purpose:'entry',candidate:item,risk:gov});if(!verdict.canPlan){item.actionable=false;item.state=verdict.code==='BLOCKED'?'BLOCKED':'WATCH';item.reason+=' · '+(verdict.blockers[0]?.text||verdict.cautions[0]?.text||verdict.title);}}}
+    if(blocked){for(const item of [momentum,reversal])item.reason+=' · Plan blocat: '+(earn.blocked?earn.text:gov.reasons?.[0]||'Governor '+gov.verdict);}
+    if(window.TTDecisionVerdict){for(const item of [momentum,reversal]){const verdict=TTDecisionVerdict.build({purpose:'entry',candidate:item,risk:gov});if(!verdict.canPlan){item.actionable=false;item.state=blocked||verdict.code==='BLOCKED'?'BLOCKED':'WATCH';item.reason+=' · '+(verdict.blockers[0]?.text||verdict.cautions[0]?.text||verdict.title);}}}
     return { momentum: momentum, reversal: reversal };
   }
 
@@ -210,13 +213,14 @@
   }
   async function benchmarkReturns() {
     var out = { US:null,EU:null };
-    for(var pair of [['US','SPY'],['EU','^STOXX50E']]){try{var source=DailySeries.read(await D.fetchStock(pair[1],{range:'6mo',interval:'1d',ttl:1800}),pair[1]),ret=retAt(closes(source.bars),20);if(ret!==null)out[pair[0]]={asOf:source.asOf,ret20:ret};}catch(_){}}
+    state.benchmarks=[];
+    for(var pair of [['US','SPY'],['EU','^STOXX50E']]){try{var source=DailySeries.read(await D.fetchStock(pair[1],{range:'6mo',interval:'1d',ttl:1800}),pair[1]),ret=retAt(closes(source.bars),20);if(ret===null)throw Error('Istoric indice insuficient.');out[pair[0]]={asOf:source.asOf,ret20:ret};state.benchmarks.push({region:pair[0],symbol:pair[1],asOf:source.asOf});}catch(e){state.benchmarks.push({region:pair[0],symbol:pair[1],reason:e.message||'Indice indisponibil'});}}
     return out;
   }
   async function updateSectors(items) {
     if (!window.EL || !EL.enrichSectorsYahoo) return;
     try {
-      var syms = unique(items.map(function (x) { return x.symbol; }));
+      var syms = unique(items.filter(function(x){return x.eligible;}).slice().sort(function(a,b){return b.score-a.score;}).map(function (x) { return x.symbol; })).slice(0,24);
       var map = EL.loadSectorMap();
       for (var i = 0; i < syms.length; i += 12) map = await EL.enrichSectorsYahoo(syms.slice(i, i + 12), map);
       items.forEach(function (x) { x.sector = EL.sectorOf(x.symbol, map); });
@@ -224,9 +228,9 @@
   }
 
   function setScanning(on) {
-    state.scanning = on; $('scanBtn').disabled = on;
-    $('scanState').textContent = on ? 'SCANEZ PIAȚA' : 'SCAN ACTIV';
-    $('liveState').classList.toggle('off', false);
+    state.scanning = on; $('scanBtn').disabled = on; $('universe').disabled = on;
+    $('scanState').textContent = on ? 'SCANEZ PIAȚA' : state.hasScan && !state.verified ? 'DATE INDISPONIBILE' : 'SCANARE FINALIZATĂ';
+    $('liveState').classList.toggle('off', !!state.hasScan && !state.verified);
     if (!state.selected) renderDetail(null);
   }
   function showAlert(msg, error) {
@@ -241,20 +245,33 @@
     return Object.keys(c).sort(function (a, b) { return c[b] - c[a]; }).slice(0, 3).join(' · ') || '—';
   }
 
+  function universeKey(){return JSON.stringify([$('universe').value,universe()]);}
+  function scanCache(){return {universeKey:state.scanKey,analyses:requested?state.analyses.filter(function(x){return x.symbol===requested;}):[],momentum:state.momentum,reversal:state.reversal,updatedAt:state.updatedAt,scannedCount:state.scanned,verifiedCount:state.verified,failureCount:state.failures.length,failures:state.failures,benchmarks:state.benchmarks};}
+  function saveScan(){var cache=scanCache();try{localStorage.setItem(CACHE_KEY,JSON.stringify(cache));return {saved:true,cache:cache};}catch(_){return {saved:false,cache:cache};}}
+  function rankResults(){state.momentum=capSectors(state.analyses.filter(function(x){return x.mode==='momentum'&&x.eligible;}));state.reversal=capSectors(state.analyses.filter(function(x){return x.mode==='reversal'&&x.eligible;}));$('countMomentum').textContent=state.momentum.length;$('countReversal').textContent=state.reversal.length;$('ctxEligible').textContent=(state.momentum.length+state.reversal.length)+' top';}
+  function coverage(){
+    $('scanDetailsTitle').textContent='Acoperire · '+state.verified+' serii verificate · '+state.failures.length+' excluse';
+    var risk=window.GV?.status?.(),blocked=risk&&!['TRADE','CAUTION'].includes(risk.verdict),confirmed=state[state.mode].filter(function(x){return x.actionable;}).length;
+    $('scanDetailsBody').innerHTML='<p>'+state.verified+' / '+state.scanned+' serii verificate. '+(state.scanning?'Scanarea continuă.':state.hasScan?'Clasamentele includ numai criteriile strategiei; numărul de analize nu este numărul de confirmări.':'Scanarea nu a fost încă finalizată.')+'</p>'
+      +'<p>Governor: '+escapeHtml(risk?.verdict||'neverificat')+(blocked?' · candidații tehnici rămân vizibili pentru analiză; planurile noi sunt blocate. '+escapeHtml((risk.reasons||[]).join(' · ')):'. '+confirmed+' candidați cu confirmare în clasamentul curent.')+'</p>'
+      +'<p>Sectoare: '+(state.sectorPending?'completare în fundal; rezultatele sunt deja disponibile.':'sunt folosite clasificările disponibile; cele lipsă rămân „Necunoscut”.')+'</p>'
+      +'<div class="ce-coverage-grid"><div><b>Indici de comparație</b><ul>'+state.benchmarks.map(function(x){return '<li>'+escapeHtml(x.region+' · '+x.symbol+' · '+(x.asOf||x.reason))+'</li>';}).join('')+'</ul></div><div><b>Surse excluse</b><ul>'+state.failures.map(function(x){return '<li>'+escapeHtml(x.symbol+' · '+x.reason)+'</li>';}).join('')+'</ul>'+(state.failures.length?'':'<p>Nicio eroare de serie raportată.</p>')+'</div></div>';
+  }
+
   async function scan() {
     if (demoMode) return;
     if (state.scanning || !state.shellVisible) return;
     if (!validateDeps()) { showAlert('Lipsesc biblioteci critice din lib/. Scanarea a fost oprită.', true); return; }
-    setScanning(true); showAlert(''); progress(0, 1); state.failures = [];
+    var token=++state.generation;
+    setScanning(true); showAlert(''); progress(0, 1); state.failures = [];state.verified=0;state.sectorPending=false;
     try {
-      var list = universe(); $('ctxUniverse').textContent = list.length + ' simboluri';
-      await earningsGate();
-      var bench = await benchmarkReturns();
+      var list = universe(); state.scanKey=JSON.stringify([$('universe').value,list]);state.scanned=list.length;$('ctxUniverse').textContent = list.length + ' simboluri';
+      var initial=await Promise.all([earningsGate(),benchmarkReturns()]),bench=initial[1];
       var all = [], q = list.slice(), done = 0, concurrency = 5;
       async function worker() {
         while (q.length) {
           var sym = q.shift();
-          try { all.push(await analyze(sym, bench[regionOf(sym)])); }
+          try { all.push(await analyze(sym, bench[regionOf(sym)]));state.verified++; }
           catch (e) { state.failures.push({ symbol: sym, reason: e && e.message || 'eroare' }); }
           done++; progress(done, list.length);
         }
@@ -262,29 +279,26 @@
       await Promise.all(Array.from({ length: concurrency }, function () { return worker(); }));
       var combined = [];
       all.forEach(function (x) { combined.push(x.momentum, x.reversal); });
-      await updateSectors(combined);
-      state.analyses=requested?combined.filter(function(x){return x.symbol===requested;}):[];
-      state.momentum = capSectors(combined.filter(function (x) { return x.mode === 'momentum' && x.eligible; }));
-      state.reversal = capSectors(combined.filter(function (x) { return x.mode === 'reversal' && x.eligible; }));
-      state.updatedAt = Date.now();
-      var cache = { analyses:state.analyses, momentum: state.momentum, reversal: state.reversal, updatedAt: state.updatedAt, scannedCount: list.length, failureCount: state.failures.length };
-      var cacheSaved = true;
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch (_) { cacheSaved = false; }
-      window.TTEntryAuto?.observe(cache);
-      $('countMomentum').textContent = state.momentum.length; $('countReversal').textContent = state.reversal.length;
-      $('ctxEligible').textContent = (state.momentum.length + state.reversal.length) + ' top';
+      state.analyses=combined;state.hasScan=true;state.updatedAt = Date.now();rankResults();
+      var saved=saveScan();window.TTEntryAuto?.observe(saved.cache);
       $('ctxSectors').textContent = topSectors(state[state.mode]);
       var gs = window.GV && GV.status ? GV.status() : null;
       $('ctxGovernor').textContent = gs ? gs.verdict : 'indisponibil';
-      $('ctxFreshness').textContent = 'EOD verificat · scan ' + ageText(state.updatedAt);
+      $('ctxFreshness').textContent = state.verified?'EOD verificat · scan ' + ageText(state.updatedAt):'Nicio serie verificată';
       $('updatedAt').textContent = 'actualizat acum';
       if (state.failures.length) showAlert(state.failures.length + ' simboluri nu au răspuns; au fost excluse, nu înlocuite cu date vechi.');
-      if (!cacheSaved) showAlert('Copia locală a scanării nu a putut fi salvată. Candidații sunt disponibili în această sesiune; Construiește planul transmite direct analiza selectată.');
-      render();
+      if(!list.length)showAlert('Watchlist-ul selectat este gol. Alege Core lichid, SUA sau Europa pentru scanare.');
+      if(gs&&!['TRADE','CAUTION'].includes(gs.verdict))showAlert('Governor '+gs.verdict+': '+((gs.reasons||[])[0]||'verifică limitele contului')+'. Candidații tehnici rămân vizibili; planurile noi sunt blocate.');
+      if (!saved.saved) showAlert('Copia locală a scanării nu a putut fi salvată. Candidații sunt disponibili în această sesiune; Construiește planul transmite direct analiza selectată.');
+      state.sectorPending=!!window.EL?.enrichSectorsYahoo&&combined.some(function(x){return x.eligible&&x.sector==='Necunoscut';});
+      render();coverage();
+      if(state.sectorPending)updateSectors(combined).then(function(){if(token!==state.generation)return;state.sectorPending=false;rankResults();saveScan();render();coverage();}).catch(function(){if(token===state.generation){state.sectorPending=false;coverage();}});
     } catch (e) {
       showAlert('Scanarea nu s-a finalizat: ' + ((e && e.message) || 'eroare neașteptată') + '. Rezultatele anterioare nu au fost suprascrise.', true);
     } finally {
       setScanning(false);
+      if(!currentItems().length)render();
+      coverage();
       schedule();
     }
   }
@@ -292,7 +306,7 @@
   function currentItems() {
     var q = $('search').value.trim().toUpperCase();
     var only = $('onlyActionable').checked;
-    var source=requested&&q===requested?state.analyses:state[state.mode];
+    var source=q&&state.analyses.some(function(x){return x.symbol===q;})?state.analyses:state[state.mode];
     return source.filter(function (x) {
       if(x.mode!==state.mode)return false;
       if (only && !x.actionable) return false;
@@ -324,14 +338,16 @@
     tableHead();
     var items = currentItems();
     if (!items.length) {
-      $('rows').innerHTML = '<div class="ce-empty"><b>Niciun candidat valid.</b>Scannerul nu umple artificial lista; relaxează filtrul sau așteaptă următoarea scanare.</div>';
+      var query=$('search').value.trim(),only=$('onlyActionable').checked;
+      $('rows').innerHTML = '<div class="ce-empty"><b>'+(state.scanning?'Scanarea este în curs':!state.hasScan?'Scanarea se pregătește':!state.verified?'Nicio serie verificată':'Niciun candidat pentru filtrele curente')+'</b>'
+        +(query?'Căutarea „'+escapeHtml(query)+'” nu are rezultate în selecția curentă. Resetează filtrele.':only?'Filtrul „doar confirmate” ascunde candidații de monitorizare și cei cu plan blocat. Resetează filtrele pentru a-i vedea.':!state.verified?'Vezi Acoperire pentru erorile surselor sau schimbă universul scanat.':'Seriile au fost verificate, dar nu trec criteriile acestei strategii. Verifică Acoperire sau schimbă între Top Long și Early Reversal.')+'</div>';
       state.selected = null; renderDetail(null); return;
     }
-    if (!state.selected || !items.some(function (x) { return x.symbol === state.selected.symbol && x.mode === state.selected.mode; })) state.selected = items[0];
+    state.selected=items.find(function(x){return x.symbol===state.selected?.symbol&&x.mode===state.selected?.mode;})||items[0];
     $('rows').innerHTML = items.map(rowHtml).join('');
     Array.prototype.forEach.call(document.querySelectorAll('.ce-row'), function (btn) {
       btn.onclick = function () {
-        state.selected = state[btn.dataset.mode].concat(state.analyses).find(function (x) { return x.symbol === btn.dataset.symbol; }); render();
+        state.selected = state[btn.dataset.mode].concat(state.analyses).find(function (x) { return x.symbol === btn.dataset.symbol&&x.mode===btn.dataset.mode; }); render();
         if(window.matchMedia('(max-width:760px)').matches)$('detail').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
       };
     });
@@ -346,7 +362,7 @@
     return '<svg viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="Evoluția ultimelor 45 sesiuni"><path class="grid" d="M0 30H320M0 59H320M0 88H320"/><polygon class="area" points="' + area + '"/><polyline class="line" points="' + pts + '"/></svg>';
   }
   function renderDetail(x) {
-    window.TTDecisionPanel?.set({purpose:'entry',simulation:x?.kind==='synthetic',candidate:x,risk:x?.kind==='synthetic'?x.governor:window.GV?.status?.()||x?.governor,empty:{title:state.scanning?'Analizez piața':requested?'Nicio analiză actuală · '+requested:state.updatedAt?'Niciun candidat pentru selecția curentă':'Scanarea nu este încă disponibilă',reason:state.scanning?'Așteaptă verificarea prețurilor, a trendului și a benchmarkului.':requested?'Simbolul solicitat nu a trecut verificarea datelor sau nu corespunde filtrelor.':state.analyses.length?'Există '+state.analyses.length+' analize, dar niciuna nu corespunde strategiei și filtrelor curente.':'Seriile de prețuri nu sunt încă verificate. Verifică acoperirea și erorile scanării.',next:state.scanning?'Așteaptă terminarea scanării.':'Scanează din nou sau schimbă strategia și filtrele; verifică și sursele excluse.'}});
+    window.TTDecisionPanel?.set({purpose:'entry',simulation:x?.kind==='synthetic',candidate:x,risk:x?.kind==='synthetic'?x.governor:window.GV?.status?.()||x?.governor,empty:{title:state.scanning?'Analizez piața':requested?'Nicio analiză actuală · '+requested:state.updatedAt?'Niciun candidat pentru selecția curentă':'Scanarea nu este încă disponibilă',reason:state.scanning?'Așteaptă verificarea prețurilor, a trendului și a benchmarkului.':requested?'Simbolul solicitat nu a trecut verificarea datelor sau nu corespunde filtrelor.':state.verified?'Există '+state.verified+' instrumente verificate, dar niciunul nu corespunde strategiei și filtrelor curente.':'Seriile de prețuri nu sunt încă verificate. Verifică acoperirea și erorile scanării.',next:state.scanning?'Așteaptă terminarea scanării.':'Scanează din nou sau schimbă strategia și filtrele; verifică și sursele excluse.'}});
     if (!x) {
       ['dSymbol','dName','dScore','dSector','dState','dFresh','dReason','dEntry','dStop','dTarget','dGovernor','dGovernorWhy'].forEach(function (id) { $(id).textContent = '—'; });
       $('spark').innerHTML = ''; $('setupBtn').disabled = true; return;
@@ -357,20 +373,21 @@
     $('dEntry').textContent = fmt(x.entryLow, 2) + '–' + fmt(x.entryHigh, 2);
     $('dStop').textContent = fmt(x.stop, 2); $('dTarget').textContent = fmt(x.target, 2);
     $('spark').innerHTML = sparkSvg(x.spark);
-    var g = x.governor || { verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] };
+    var g = x.kind==='synthetic'?x.governor:window.GV?.status?.()||x.governor||{ verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] };
     $('dGovernor').textContent = 'Governor: ' + g.verdict;
     $('dGovernorWhy').textContent = (g.reasons && g.reasons[0]) || (x.earnings + ' · R:R țintă 2.0');
     $('governorBox').className = 'ce-governor ' + (g.verdict === 'HALTED' ? 'halted' : (g.verdict === 'CAUTION' ? 'caution' : ''));
-    $('setupBtn').disabled = x.state === 'BLOCKED' || !x.actionable;
+    $('setupBtn').disabled = x.state === 'BLOCKED' || !x.actionable || !['TRADE','CAUTION'].includes(g.verdict);
     $('setupBtn').title = $('setupBtn').disabled ? 'Plan indisponibil: ' + x.reason : 'Deschide dimensionarea pentru ' + x.symbol;
   }
 
   function loadCache() {
     try {
       var c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-      if (!c || !c.updatedAt || c.updatedAt>Date.now()+60000 || Date.now() - c.updatedAt > 30 * 60 * 1000 || (c.momentum||[]).concat(c.reversal||[]).some(function(x){return !DailySeries.usable(x);})) return;
+      if (!c || c.universeKey!==universeKey() || !c.updatedAt || c.updatedAt>Date.now()+60000 || Date.now() - c.updatedAt > 30 * 60 * 1000 || !Array.isArray(c.momentum)||!Array.isArray(c.reversal)||!Array.isArray(c.analyses)||c.momentum.concat(c.reversal,c.analyses).some(function(x){return !DailySeries.usable(x);})) return;
       state.analyses = Array.isArray(c.analyses) ? c.analyses : [];
       state.momentum = Array.isArray(c.momentum) ? c.momentum : []; state.reversal = Array.isArray(c.reversal) ? c.reversal : []; state.updatedAt = Number(c.updatedAt) || 0;
+      state.hasScan=true;state.scanKey=c.universeKey;state.verified=Number(c.verifiedCount)||0;state.scanned=Number(c.scannedCount)||0;state.failures=Array.isArray(c.failures)?c.failures:[];state.benchmarks=Array.isArray(c.benchmarks)?c.benchmarks:[];
       $('countMomentum').textContent = state.momentum.length; $('countReversal').textContent = state.reversal.length;
       $('ctxUniverse').textContent = (Number(c.scannedCount) || '—') + ' simboluri';
       $('ctxScanned').textContent = (Number(c.scannedCount) || '—') + (c.failureCount ? ' · ' + c.failureCount + ' excluse' : '');
@@ -379,7 +396,7 @@
       var gs = window.GV && GV.status ? GV.status() : null;
       $('ctxGovernor').textContent = gs ? gs.verdict : 'indisponibil';
       $('ctxFreshness').textContent = 'cache · ' + ageText(c.updatedAt);
-      $('updatedAt').textContent = 'cache · ' + ageText(c.updatedAt); render();
+      $('updatedAt').textContent = 'cache · ' + ageText(c.updatedAt); render();coverage();
     } catch (_) {}
   }
   function schedule() {
@@ -388,9 +405,11 @@
     $('nextScan').textContent = 'următorul scan în 5 min';
   }
   function bind() {
-    $('scanBtn').onclick = scan; $('universe').onchange = function () { scan(); };
+    $('scanBtn').onclick = scan; $('universe').onchange = function () {state.generation++;state.analyses=[];state.momentum=[];state.reversal=[];state.selected=null;state.hasScan=false;state.updatedAt=0;state.verified=0;rankResults();render();scan();};
     $('search').oninput = render; $('onlyActionable').onchange = render;
+    $('resetFilters').onclick=function(){$('search').value='';$('onlyActionable').checked=false;render();};
     $('setupBtn').onclick = function () {
+      if(!demoMode&&!['TRADE','CAUTION'].includes(window.GV?.status?.().verdict)){showAlert('Planul este blocat de Governor. Verifică limitele și datele contului.',true);renderDetail(state.selected);return;}
       var result = window.CandidatePlanHandoff ? CandidatePlanHandoff.read(state.selected) : {ok:false,message:'Modulul planului nu s-a încărcat. Reîncarcă aplicația.'};
       if (!result.ok) { showAlert(result.message, true); return; }
       var candidate = result.candidate;
