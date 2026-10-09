@@ -385,7 +385,7 @@
   function loadCache() {
     try {
       var c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-      if (!c || c.universeKey!==universeKey() || !c.updatedAt || c.updatedAt>Date.now()+60000 || Date.now() - c.updatedAt > 30 * 60 * 1000 || !Array.isArray(c.momentum)||!Array.isArray(c.reversal)||!Array.isArray(c.analyses)||c.momentum.concat(c.reversal,c.analyses).some(function(x){return !DailySeries.usable(x);})) return;
+      if (!c || c.universeKey!==universeKey() || typeof c.updatedAt!=='number' || !Number.isFinite(c.updatedAt) || c.updatedAt<=0 || c.updatedAt>Date.now()+60000 || Date.now() - c.updatedAt > 30 * 60 * 1000 || !Array.isArray(c.momentum)||!Array.isArray(c.reversal)||!Array.isArray(c.analyses)||c.momentum.concat(c.reversal,c.analyses).some(function(x){return !DailySeries.usable(x);})) return;
       state.analyses = Array.isArray(c.analyses) ? c.analyses : [];
       state.momentum = Array.isArray(c.momentum) ? c.momentum : []; state.reversal = Array.isArray(c.reversal) ? c.reversal : []; state.updatedAt = Number(c.updatedAt) || 0;
       state.hasScan=true;state.scanKey=c.universeKey;state.verified=Number(c.verifiedCount)||0;state.scanned=Number(c.scannedCount)||0;state.failures=Array.isArray(c.failures)?c.failures:[];state.benchmarks=Array.isArray(c.benchmarks)?c.benchmarks:[];

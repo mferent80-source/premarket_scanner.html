@@ -63,6 +63,15 @@ test('empty watchlists explain how to select a nonempty universe',async()=>{
 test('cache scope prevents another watchlist from being shown as the selected universe',async()=>{
  const f=setup();await f.ctx.hooks.scan();const c=JSON.parse(f.store.get('ce_results_v2'));assert.equal(c.verifiedCount,1);assert.equal(c.analyses.length,0);f.ctx.hooks.state.momentum=[];f.ctx.hooks.loadCache();assert.equal(f.ctx.hooks.state.momentum.length,1);f.setWatch(['OTHER']);f.ctx.hooks.state.momentum=[];f.ctx.hooks.loadCache();assert.equal(f.ctx.hooks.state.momentum.length,0);
 });
+
+test('cache restoration rejects nonnumeric and malformed scan clocks without changing stored originals',async()=>{
+ const f=setup();await f.ctx.hooks.scan();const saved=JSON.parse(f.store.get('ce_results_v2'));
+ for(const updatedAt of [String(now),'not-a-date',{},now+3600000,0,-1]){
+  const original=JSON.stringify({...saved,updatedAt});f.store.set('ce_results_v2',original);f.ctx.hooks.state.momentum=[];
+  f.ctx.hooks.loadCache();assert.equal(f.ctx.hooks.state.momentum.length,0,'invalid clock '+JSON.stringify(updatedAt));
+  assert.equal(f.store.get('ce_results_v2'),original);
+ }
+});
 test('an unsavable scan keeps current results and passes the same top candidates to existing evidence capture',async()=>{
  const f=setup({quota:true});await f.ctx.hooks.scan();assert.equal(f.ctx.hooks.state.momentum.length,1);assert.equal(f.messages.length,1);assert.equal(f.messages[0].momentum[0].symbol,'TEST');assert.equal(f.messages[0].analyses.length,0);assert.match(f.node('alert').textContent,/Copia locală/);
 });

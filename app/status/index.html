@@ -4,9 +4,170 @@
 <section class="card"><h2>Market Breadth</h2><div class="value" id="breadth">Verific…</div><p id="breadthText"></p></section>
 <section class="card"><h2>Trading 212 Invest</h2><div class="value" id="broker">Verific…</div><p id="brokerText"></p></section><section class="card"><h2>PC ↔ telefon</h2><div class="value" id="cloud">Verific…</div><p id="cloudText"></p></section>
 <section class="card"><h2>Stocare locală</h2><div class="value" id="storage">Verific…</div><p>Planurile și jurnalul sunt păstrate în acest browser. Exportă periodic datele importante.</p></section>
-<section class="card"><h2>Fișierele aplicației</h2><div class="value" id="modules">Verific…</div><p id="moduleText">Accesibilitatea fișierelor nu garantează disponibilitatea furnizorilor de cotații.</p></section></div>
+<section class="card"><h2>Fișierele aplicației</h2><div class="value" id="modules">Verific…</div><p id="moduleText">Accesibilitatea fișierelor nu garantează disponibilitatea furnizorilor de cotații.</p><details><summary>Rezultatul fiecărui modul</summary><output id="moduleChecks" style="white-space:pre-line;overflow-wrap:anywhere"></output></details></section></div>
 <div class="note">Un raport STALE sau o sursă indisponibilă nu devine semnal de intrare. Confirmă prețurile, volumul și rezultatele financiare înaintea unui plan.</div><div class="actions"><button id="scanner">DESCHIDE SCANNERUL</button><button id="copy">COPIAZĂ RAPORTUL</button></div><output id="message" aria-live="polite"></output></main>
 <script src="../../lib/trading212-snapshot.js?v=26.10.03.2316"></script><script src="../../lib/breadth.js?v=20261002c"></script>
 <script>
-(function(){var report={};function set(id,value,warn){var e=document.getElementById(id);e.textContent=value;e.className='value'+(warn?' warn':'');report[id]=value;}function publishReport(){window.TTDecisionPanel?.set({purpose:'operations',context:{ready:true,caution:!report.modules||!report.modules.startsWith('11 / 11')||report.storage!=='DISPONIBILĂ'||Object.entries(report).some(([k,v])=>k!=='checkedAt'&&typeof v==='string'&&/LIPSĂ|STALE|INVALID|NEVERIFICAT|NECONECTAT|FĂRĂ|VECHI|PARȚIAL|INDISPONIBIL|NEACTIVAT|EROARE|CONFLICTE|VERIFIC SERVICIUL/.test(v)),title:'Verificări operaționale finalizate',cautionReason:'Unele surse, module sau stocarea locală nu au putut fi verificate.',evidence:Object.entries(report).filter(([k,v])=>typeof v==='string'&&k!=='checkedAt').map(([id,value])=>({id,label:({scan:'Scanare',storage:'Stocare',breadth:'Breadth',broker:'Broker',cloud:'Cloud',modules:'Module'})[id]||id,value,role:/LIPSĂ|STALE|INVALID|NEVERIFICAT|NECONECTAT|FĂRĂ|VECHI|PARȚIAL|INDISPONIBIL|NEACTIVAT|EROARE|CONFLICTE|VERIFIC SERVICIUL/.test(value)?'unknown':'support'})),next:'Actualizează sursa lipsă pe pagina ei; accesibilitatea modulelor nu validează datele de piață.'}});}function showCloud(cs){set('cloud',cs.checking?'VERIFIC SERVICIUL':!cs.ready?'NEACTIVAT':cs.error?'EROARE':!cs.connected?'NECONECTAT':cs.conflicts&&cs.conflicts.length?'CONFLICTE':'CONECTAT',!!cs.checking||!cs.ready||!cs.connected||!!cs.error||!!cs.conflicts?.length);document.getElementById('cloudText').textContent=cs.checking?'Verific disponibilitatea serviciului. Starea se actualizează după răspuns.':!cs.ready?'Serviciul nu este încă disponibil. Datele sunt păstrate local.':cs.lastSync?'Ultima reconciliere: '+new Date(cs.lastSync).toLocaleString('ro-RO')+'.':'Nicio reconciliere cloud confirmată.';}async function run(){var button=document.getElementById('run');button.disabled=true;report={checkedAt:new Date().toISOString()};window.TTDecisionPanel?.set({purpose:'operations',context:{ready:false,reason:'Verificările surselor sunt în curs.',next:'Așteaptă rezultatul fiecărei surse.'}});try{var cache=null;try{cache=JSON.parse(localStorage.getItem('ce_results_v2')||'null');}catch(_){}var scanAt=cache?.updatedAt,invalid=!!cache&&(typeof scanAt!=='number'||!Number.isFinite(scanAt)||scanAt<=0||scanAt>Date.now()+60000),mins=!invalid&&typeof scanAt==='number'?Math.max(0,Math.round((Date.now()-scanAt)/60000)):null;set('scan',invalid?'DATĂ INVALIDĂ':mins===null?'LIPSĂ':mins>30?'STALE':mins+' MIN',invalid||mins===null||mins>30);document.getElementById('scanText').textContent=invalid?'Data scanării este incompatibilă sau în viitor; scanarea nu este considerată recentă.':mins===null?'Nicio scanare salvată.':mins>30?'Scanarea este exclusă din planuri noi.':'Ora scanării este recentă. Verifică separat ora fiecărei cotații.';try{var key='decision-storage-test-'+Date.now();localStorage.setItem(key,'1');if(localStorage.getItem(key)!=='1')throw Error('read');localStorage.removeItem(key);set('storage','DISPONIBILĂ',false);}catch(_){set('storage','INDISPONIBILĂ',true);}try{var b=await TTBreadth.load('../../market-breadth/data/latest.json');set('breadth',b.freshness+' · '+b.date,b.stale||b.partial);report.breadthSources={uptrend:b.uptrend.freshness,sp500:b.sp500.freshness,checkedAt:b.checkedAt};document.getElementById('breadthText').textContent='Uptrend: '+b.uptrend.freshness+' ('+(b.uptrend.asOf||'lipsă')+'). S&P 500: '+b.sp500.freshness+' ('+(b.sp500.asOf||'lipsă')+'). Ultima verificare: '+new Date(b.checkedAt).toLocaleString('ro-RO')+'. EOD, nu intraday.';}catch(e){set('breadth','NEVERIFICAT',true);document.getElementById('breadthText').textContent=e.message;}try{var latest=T212Snapshot.read('live')?.[1],recent=T212Snapshot.fresh(latest),partial=!!latest&&(!latest.summary||!Array.isArray(latest.positions));set('broker',!latest?'FĂRĂ SNAPSHOT':!recent?'SNAPSHOT VECHI':partial?'SNAPSHOT PARȚIAL':'SNAPSHOT RECENT',!latest||!recent||partial);document.getElementById('brokerText').textContent=latest?'Citire: '+new Date(latest.fetchedAt).toLocaleString('ro-RO')+(partial?' · PARȚIAL: soldul sau pozițiile lipsesc':'')+'. Acest indicator verifică snapshot-ul salvat, nu autentifică din nou brokerul.':'Conectează Trading 212 pentru importul contului.';}catch(_){set('broker','DATE INCOMPATIBILE',true);}try{var cs=parent!==window&&parent.TTCloud?parent.TTCloud.state():null;if(!cs){var cc=await fetch('../cloud-sync-config.json',{cache:'no-store'}).then(function(r){return r.json();});cs=parent!==window&&parent.TTCloud?parent.TTCloud.state():{ready:false,connected:false,checking:cc.enabled===true||cc.autoActivate===true};}showCloud(cs);}catch(_){set('cloud','NEVERIFICAT',true);}var paths=['../../desk/','../../candidate-engine/','../../journal/','../../shadow-book/','../../holdings/','../../broker/','../sync/','../coach/','../../europe-stocks/','../../market-breadth/','./'];var checks=await Promise.all(paths.map(async function(p){try{var r=await fetch(p,{method:'HEAD',cache:'no-store'});return r.ok;}catch(_){return false;}}));set('modules',checks.filter(Boolean).length+' / '+checks.length+' ACCESIBILE',checks.some(function(x){return!x;}));}finally{publishReport();button.disabled=false;}}window.addEventListener('message',function(e){if(e.source!==parent||e.origin!==location.origin||!e.data?.ttCloudState)return;showCloud(e.data.ttCloudState);if(!document.getElementById('run').disabled)publishReport();});document.getElementById('run').onclick=run;document.getElementById('scanner').onclick=function(){if(parent!==window)parent.postMessage({ttOpenModule:'candidate-engine/'},location.origin);else location.href='../../candidate-engine/';};document.getElementById('copy').onclick=async function(){try{await navigator.clipboard.writeText(JSON.stringify(report,null,2));document.getElementById('message').textContent='Raport copiat.';}catch(_){document.getElementById('message').textContent=JSON.stringify(report,null,2);}};run();})();
+(function () {
+  'use strict';
+  var report = {}, cloudState = null;
+  var labels = {scan:'Scanare', storage:'Stocare', breadth:'Market Breadth', broker:'Trading 212', cloud:'PC ↔ telefon', modules:'Module'};
+  var modules = [
+    ['Decision Desk', '../../desk/'], ['Long & Reversal', '../../candidate-engine/'],
+    ['Performance Control', '../../journal/'], ['Simulări', '../../shadow-book/'],
+    ['Analiza deținerilor', '../../holdings/'], ['Trading 212', '../../broker/'],
+    ['Cont & sincronizare', '../sync/'], ['Ghid', '../coach/'],
+    ['Acțiuni Europa', '../../europe-stocks/'], ['Market Breadth', '../../market-breadth/'],
+    ['Starea datelor', './']
+  ];
+  function set(id, value, warning) {
+    var node = document.getElementById(id);
+    node.textContent = value;
+    node.className = 'value' + (warning ? ' warn' : '');
+    report[id] = value;
+    report.checks[id] = {value:value, warning:!!warning};
+  }
+  function publishReport() {
+    var entries = Object.entries(report.checks), warnings = entries.filter(function (entry) { return entry[1].warning; });
+    window.TTDecisionPanel?.set({purpose:'operations', context:{
+      ready:!document.getElementById('run').disabled,
+      reason:'Verificările surselor sunt în curs.',
+      caution:warnings.length > 0,
+      title:'Verificări operaționale finalizate',
+      cautionReason:warnings.length ? 'Necesită verificare: ' + warnings.map(function (entry) { return labels[entry[0]] + ' (' + entry[1].value + ')'; }).join('; ') + '.' : '',
+      evidence:entries.map(function (entry) { return {id:entry[0], label:labels[entry[0]], value:entry[1].value, role:entry[1].warning ? 'unknown' : 'support'}; }),
+      next:'Actualizează sursa indicată pe pagina ei; accesibilitatea modulelor nu validează datele de piață.'
+    }});
+  }
+  // One slow provider must not hold the other checks or the retry button.
+  async function bounded(work) {
+    var timer, controller = new AbortController();
+    try {
+      return await Promise.race([
+        Promise.resolve().then(function () { return work(controller.signal); }),
+        new Promise(function (_, reject) { timer = setTimeout(function () {
+          reject(new Error('Sursa nu a răspuns în limita de timp (12 secunde).'));
+          controller.abort();
+        }, 12000); })
+      ]);
+    } finally { clearTimeout(timer); }
+  }
+  function showCloud(state) {
+    var warning = !!state.checking || !state.ready || !state.connected || !!state.error || !!state.conflicts?.length;
+    set('cloud', state.checking ? 'VERIFIC SERVICIUL' : !state.ready ? 'NEACTIVAT' : state.error ? 'EROARE' : !state.connected ? 'NECONECTAT' : state.conflicts?.length ? 'CONFLICTE' : 'CONECTAT', warning);
+    document.getElementById('cloudText').textContent = state.checking ? 'Verific disponibilitatea serviciului. Starea se actualizează după răspuns.' : !state.ready ? 'Serviciul nu este încă disponibil. Datele sunt păstrate local.' : state.error ? 'Sincronizarea a raportat o eroare. Verifică detaliile în Cont & sincronizare.' : state.conflicts?.length ? 'Există ' + state.conflicts.length + ' conflicte de sincronizare. Rezolvă-le în Cont & sincronizare.' : state.lastSync ? 'Ultima reconciliere: ' + new Date(state.lastSync).toLocaleString('ro-RO') + '.' : 'Nicio reconciliere cloud confirmată.';
+  }
+  function checkScan() {
+    try {
+      var cache = JSON.parse(localStorage.getItem('ce_results_v2') || 'null');
+      var at = cache?.updatedAt, invalid = cache !== null && (typeof at !== 'number' || !Number.isFinite(at) || at <= 0 || at > Date.now() + 60000);
+      var age = !invalid && typeof at === 'number' ? Math.max(0, Date.now() - at) : null;
+      var stale = age !== null && age > 30 * 60000;
+      set('scan', invalid ? 'DATĂ INVALIDĂ' : age === null ? 'LIPSĂ' : stale ? 'STALE' : Math.floor(age / 60000) + ' MIN', invalid || age === null || stale);
+      document.getElementById('scanText').textContent = invalid ? 'Data scanării este incompatibilă sau în viitor; scanarea nu este considerată recentă.' : age === null ? 'Nicio scanare salvată.' : stale ? 'Scanarea este exclusă din planuri noi.' : 'Ora scanării este recentă. Verifică separat ora fiecărei cotații.';
+    } catch (_) {
+      set('scan', 'DATE INCOMPATIBILE', true);
+      document.getElementById('scanText').textContent = 'Copia scanării nu poate fi citită. Originalul este păstrat; rulează o scanare nouă.';
+    }
+  }
+  function checkStorage() {
+    var key = 'decision-storage-test-' + Date.now();
+    try {
+      localStorage.setItem(key, '1');
+      if (localStorage.getItem(key) !== '1') throw Error('read');
+      localStorage.removeItem(key);
+      set('storage', 'DISPONIBILĂ', false);
+    } catch (_) { set('storage', 'INDISPONIBILĂ', true); }
+  }
+  function checkBroker() {
+    try {
+      var data = JSON.parse(localStorage.getItem('tt_trading212_portfolio_v1') || '{}');
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw Error('Invalid snapshot');
+      var latest = T212Snapshot.read('live')?.[1], recent = T212Snapshot.fresh(latest);
+      var partial = !!latest && (!latest.summary || !Array.isArray(latest.positions));
+      set('broker', !latest ? 'FĂRĂ SNAPSHOT' : !recent ? 'SNAPSHOT VECHI' : partial ? 'SNAPSHOT PARȚIAL' : 'SNAPSHOT RECENT', !latest || !recent || partial);
+      document.getElementById('brokerText').textContent = latest ? 'Citire: ' + new Date(latest.fetchedAt).toLocaleString('ro-RO') + (partial ? ' · PARȚIAL: soldul sau pozițiile lipsesc' : '') + '. Acest indicator verifică snapshot-ul salvat, nu autentifică din nou brokerul.' : 'Conectează Trading 212 pentru importul contului.';
+    } catch (_) {
+      set('broker', 'DATE INCOMPATIBILE', true);
+      document.getElementById('brokerText').textContent = 'Snapshot-ul nu poate fi citit. Originalul este păstrat; actualizează contul în Trading 212.';
+    }
+  }
+  async function checkBreadth() {
+    try {
+      var b = await bounded(function () { return TTBreadth.load('../../market-breadth/data/latest.json'); });
+      set('breadth', b.freshness + ' · ' + b.date, b.stale || b.partial);
+      report.breadthSources = {uptrend:b.uptrend.freshness, sp500:b.sp500.freshness, checkedAt:b.checkedAt};
+      document.getElementById('breadthText').textContent = 'Uptrend: ' + b.uptrend.freshness + ' (' + (b.uptrend.asOf || 'lipsă') + '). S&P 500: ' + b.sp500.freshness + ' (' + (b.sp500.asOf || 'lipsă') + '). Ultima verificare: ' + new Date(b.checkedAt).toLocaleString('ro-RO') + '. EOD, nu intraday.';
+    } catch (error) {
+      set('breadth', 'NEVERIFICAT', true);
+      document.getElementById('breadthText').textContent = error.message;
+    }
+  }
+  async function checkCloud() {
+    try {
+      var state = parent !== window && parent.TTCloud ? parent.TTCloud.state() : cloudState;
+      if (!state) {
+        var config = await bounded(async function (signal) {
+          var response = await fetch('../cloud-sync-config.json', {cache:'no-store', signal:signal});
+          if (!response.ok) throw Error('HTTP ' + response.status);
+          return response.json();
+        });
+        state = parent !== window && parent.TTCloud ? parent.TTCloud.state() : cloudState || {ready:false, connected:false, checking:config.enabled === true || config.autoActivate === true};
+      }
+      showCloud(state);
+    } catch (error) {
+      set('cloud', 'NEVERIFICAT', true);
+      document.getElementById('cloudText').textContent = error.message;
+    }
+  }
+  async function checkModules() {
+    var results = await Promise.all(modules.map(async function (module) {
+      try {
+        var response = await bounded(function (signal) { return fetch(module[1], {method:'HEAD', cache:'no-store', signal:signal}); });
+        return {name:module[0], path:module[1], ok:response.ok, detail:response.ok ? 'Accesibil' : 'HTTP ' + response.status};
+      } catch (error) { return {name:module[0], path:module[1], ok:false, detail:error.message}; }
+    }));
+    var failed = results.filter(function (module) { return !module.ok; });
+    report.moduleChecks = results;
+    set('modules', (results.length - failed.length) + ' / ' + results.length + ' ACCESIBILE', failed.length > 0);
+    document.getElementById('moduleText').textContent = failed.length ? 'Inaccesibile: ' + failed.map(function (module) { return module.name; }).join(', ') + '. Deschide rezultatul fiecărui modul pentru detalii.' : 'Toate modulele au răspuns. Accesibilitatea fișierelor nu garantează disponibilitatea furnizorilor de cotații.';
+    document.getElementById('moduleChecks').textContent = results.map(function (module) { return module.name + ' — ' + module.detail; }).join('\n');
+  }
+  async function run() {
+    var button = document.getElementById('run');
+    if (button.disabled) return;
+    button.disabled = true;
+    report = {checkedAt:new Date().toISOString(), checks:{}};
+    Object.keys(labels).forEach(function (id) { set(id, 'Verific…', true); });
+    ['scanText','breadthText','brokerText','cloudText','moduleChecks'].forEach(function (id) { document.getElementById(id).textContent = ''; });
+    document.getElementById('moduleText').textContent = 'Verific fiecare modul în parte.';
+    document.getElementById('message').textContent = '';
+    window.TTDecisionPanel?.set({purpose:'operations', context:{ready:false, reason:'Verificările surselor sunt în curs.', next:'Așteaptă rezultatul fiecărei surse.'}});
+    try {
+      checkScan(); checkStorage(); checkBroker();
+      await Promise.allSettled([checkBreadth(), checkCloud(), checkModules()]);
+    } finally {
+      report.finishedAt = new Date().toISOString();
+      button.disabled = false;
+      publishReport();
+    }
+  }
+  window.addEventListener('message', function (event) {
+    if (event.source !== parent || event.origin !== location.origin || !event.data?.ttCloudState) return;
+    cloudState = event.data.ttCloudState;
+    showCloud(cloudState);
+    if (!document.getElementById('run').disabled) publishReport();
+  });
+  document.getElementById('run').onclick = run;
+  document.getElementById('scanner').onclick = function () {
+    if (parent !== window) parent.postMessage({ttOpenModule:'candidate-engine/'}, location.origin);
+    else location.href = '../../candidate-engine/';
+  };
+  document.getElementById('copy').onclick = async function () {
+    var text = JSON.stringify(report, null, 2);
+    try { await navigator.clipboard.writeText(text); document.getElementById('message').textContent = 'Raport copiat.'; }
+    catch (_) { document.getElementById('message').textContent = text; }
+  };
+  run();
+})();
 </script></body></html>
