@@ -170,7 +170,7 @@
     var reversalState = blocked ? 'BLOCKED' : (eb && eb.isConfirmed && rScore >= 82 ? 'FIRE' : (eb && eb.isConfirmed ? 'ARMED' : 'EARLY'));
     var trendAligned=trend?trend.short==='up'&&trend.medium==='up':price>ema21&&ema21>ema50;
     var momentum = {
-      symbol: sym, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, trend:trend, atr:atr, region: f.region, sector: sector, mode: 'momentum', score: mScore,
+      symbol: sym, dataQuality:source.dataQuality, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, trend:trend, atr:atr, region: f.region, sector: sector, mode: 'momentum', score: mScore,
       state: momentumState, price: price, dayChg: f.dayChg, rvol: f.rvol, rs: f.rs20,
       metricA: f.ret20, metricB: f.ext21,
       eligible: knownGovernor && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 55,
@@ -187,7 +187,7 @@
       && f.bounce60 >= 2 && f.bounce60 <= 30 && reversalSafe && eb.isConfirmed && rScore >= 50;
     if (!blocked && !reversalActionable && reversalWatch) reversalState = 'WATCH';
     var reversal = {
-      symbol: sym, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, trend:trend, atr:atr, region: f.region, sector: sector, mode: 'reversal', score: rScore,
+      symbol: sym, dataQuality:source.dataQuality, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, trend:trend, atr:atr, region: f.region, sector: sector, mode: 'reversal', score: rScore,
       state: reversalState, price: price, dayChg: f.dayChg, rvol: f.rvol, rs: f.rs20,
       metricA: f.drawdown, metricB: f.bounce60, baseDays: f.baseDays,
       eligible: knownGovernor && price >= 5 && f.avgDollarVol >= 3000000 && reversalWatch && rScore >= 32,

@@ -110,7 +110,7 @@ return globalThis.TradeEvidenceSchema;
 })();
 const TTCloudModel=(()=>{
 
-const KEYS=Object.freeze(['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_trading212_fills_v1','tt_trading212_portfolio_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','cloud_credentials','tt_europe_signals_v1','tt_europe_risk_settings_v1',globalThis.TradeEvidenceSchema.KEY,...Array.from({length:64},(_,i)=>globalThis.TradeEvidenceSchema.KEY+':'+i.toString(16).padStart(2,'0'))]);
+const KEYS=Object.freeze(['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_trading212_fills_v1','tt_trading212_portfolio_v1','tt_trading212_account_history_v1','tt_trading212_cash_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','cloud_credentials','tt_europe_signals_v1','tt_europe_risk_settings_v1',globalThis.TradeEvidenceSchema.KEY,...Array.from({length:64},(_,i)=>globalThis.TradeEvidenceSchema.KEY+':'+i.toString(16).padStart(2,'0'))]);
 // Captures are immutable. Fixed buckets keep each encrypted record below the
 // service limit without discarding older analyses or changing their local identity.
 const EvidenceSchema=globalThis.TradeEvidenceSchema,EVIDENCE_KEY=EvidenceSchema.KEY;
@@ -208,6 +208,16 @@ function mergeRecord(key,base,local,remote){
  if(key==='tt_europe_risk_settings_v1'){if(equal(local,remote)||equal(local,base)||equal(remote,base))return merge(base,local,remote,key);return {value:local,conflicts:[key]};}
  if(key==='cloud_credentials'){if(equal(local,remote))return {value:local,conflicts:[]};if(equal(local,base))return {value:remote,conflicts:[]};if(equal(remote,base))return {value:local,conflicts:[]};return {value:local,conflicts:[key]};}
  if(key==='tt_trading212_fills_v1'&&object(local?.accounts)&&object(remote?.accounts)){const accounts={...remote.accounts,...local.accounts};for(const k of Object.keys(remote.accounts)){const l=local.accounts[k],r=remote.accounts[k];if(l){const byId=new Map((r.items||[]).map(v=>[String(v.id),v]));for(const v of l.items||[]){const old=byId.get(String(v.id));if(old&&!equal(old,v))return {value:local,conflicts:[key+'/accounts/'+k+'/items/'+v.id]};byId.set(String(v.id),v);}const latest=Date.parse(r.fetchedAt)>Date.parse(l.fetchedAt)?r:l;accounts[k]={...latest,items:[...byId.values()].sort((a,b)=>Date.parse(b.date)-Date.parse(a.date)),complete:l.complete===true||r.complete===true};}}return {value:{accounts},conflicts:[]};}
+ if(key==='tt_trading212_account_history_v1'&&object(local)&&object(remote)){
+  const value={...remote,...local},conflicts=[];
+  for(const scope of Object.keys(remote)){if(!local[scope])continue;const days=new Map();for(const row of [...remote[scope],...local[scope]]){const day=row.at.slice(0,10),old=days.get(day);if(old&&old.at===row.at&&!equal(old,row))conflicts.push(key+'/'+scope+'/'+row.at);if(!old||Date.parse(row.at)>Date.parse(old.at))days.set(day,row);}value[scope]=[...days.values()].sort((a,b)=>Date.parse(a.at)-Date.parse(b.at)).slice(-500);}
+  return {value,conflicts};
+ }
+ if(key==='tt_trading212_cash_v1'&&object(local)&&object(remote)){
+  const value={...remote,...local},conflicts=[];
+  for(const scope of Object.keys(remote)){const l=local[scope],r=remote[scope];if(!l)continue;if(l.environment!==r.environment){conflicts.push(key+'/'+scope);continue;}value[scope]={environment:l.environment};for(const kind of ['transactions','dividends']){if(!l[kind]||!r[kind]){value[scope][kind]=l[kind]||r[kind];continue;}const byId=new Map(r[kind].items.map(x=>[String(x.id),x]));for(const x of l[kind].items){const old=byId.get(String(x.id));if(old&&!equal(old,x))conflicts.push(key+'/'+scope+'/'+kind+'/'+x.id);byId.set(String(x.id),x);}const latest=Date.parse(r[kind].fetchedAt)>Date.parse(l[kind].fetchedAt)?r[kind]:l[kind];value[scope][kind]={...latest,items:[...byId.values()].sort((a,b)=>Date.parse(b.date)-Date.parse(a.date))};}}
+  return {value,conflicts};
+ }
  // Broker snapshots are observations: newer broker timestamp wins, not the syncing device's clock.
  if(key==='tt_trading212_portfolio_v1'&&object(local)&&object(remote)){
   const value={...remote,...local};for(const k of Object.keys(remote)){if(local[k]){const l=Date.parse(local[k].fetchedAt),r=Date.parse(remote[k].fetchedAt);if(Number.isFinite(r)&&(!Number.isFinite(l)||r>l))value[k]=remote[k];}}
@@ -223,6 +233,12 @@ function validateValue(key,value){
  else if(key==='tt_europe_risk_settings_v1'){
   if(!object(value)||!['EUR','USD','GBP','CHF','DKK','RON'].includes(value.currency)||typeof value.fractional!=='boolean'||!['budget','loss','fees','entry'].every(k=>['string','number'].includes(typeof value[k])&&String(value[k]).trim()!==''&&Number.isFinite(Number(value[k])))||Number(value.budget)<=0||Number(value.loss)<=0||Number(value.loss)>Number(value.budget)||Number(value.fees)<0||Number(value.entry)<=0)throw Error('invalid_value');
  }
+ else if(key==='tt_trading212_account_history_v1'){
+  if(!object(value)||Object.entries(value).some(([scope,xs])=>!scope||!Array.isArray(xs)||xs.length>500||xs.some(x=>!object(x)||typeof x.at!=='string'||!Number.isFinite(Date.parse(x.at))||!Number.isFinite(x.total)||x.total<0||!/^[A-Z]{3}$/.test(x.currency||''))))throw Error('invalid_value');
+ }
+ else if(key==='tt_trading212_cash_v1'){
+  if(!object(value))throw Error('invalid_value');for(const a of Object.values(value)){if(!object(a)||!['live','demo'].includes(a.environment))throw Error('invalid_value');for(const kind of ['dividends','transactions']){const r=a[kind];if(r!==undefined&&(!object(r)||!Array.isArray(r.items)||r.items.some(x=>!object(x)||!x.id||!Number.isFinite(x.amount)||typeof x.date!=='string'||!Number.isFinite(Date.parse(x.date))||!/^[A-Z]{3}$/.test(x.currency||''))))throw Error('invalid_value');}}
+ }
  else if(key==='cloud_credentials'){if(!value||!['live','demo'].includes(value.environment)||typeof value.key!=='string'||typeof value.secret!=='string'||!value.key||!value.secret||value.key.length>256||value.secret.length>512||value.key.includes(':')||!/^[\x21-\x7e]+$/.test(value.key+value.secret))throw Error('invalid_credentials');}
  else if(key==='tt_theme'){if(!['auto','light','dark'].includes(value))throw Error('invalid_value');}
  else if(['tt_pf_account','tt_ticket_capital'].includes(key)){if(typeof value!=='string'||value.length>256)throw Error('invalid_value');}
@@ -234,8 +250,70 @@ function validateValue(key,value){
 
 return {KEYS,merge,mergeRecord,validateValue,EvidenceCloud};
 })();
+const TTCloudMonitor=(()=>{
+
+// Private opt-in monitor. Only broker GET routes; no order execution or outbound messaging.
+const MONITOR_KEY='__account_monitor_v1';
+const HEARTBEAT_KEY='__monitor_scheduler_v1';
+const ORIGIN='https://mferent80-source.github.io',finite=Number.isFinite,INTERVAL=300000;
+async function monitorScope(credentials){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(credentials.environment+':'+credentials.key));return credentials.environment+':'+Array.from(new Uint8Array(b),x=>x.toString(16).padStart(2,'0')).join('');}
+function monitorRules({scope,positions,summary,notes={},previous=null,now=Date.now()}={}){
+ if(!summary||!finite(summary.totalValue)||summary.totalValue<0||!/^[A-Z]{3}$/.test(summary.currency||'')||!Array.isArray(positions)||positions.length>500||positions.some(p=>!p||typeof p.ticker!=='string'||!p.ticker||!finite(p.quantity)||p.quantity<0)||new Set(positions.map(p=>p.ticker)).size!==positions.length)throw Error('monitor_schema_invalid');
+ const current=positions.filter(p=>p.quantity>0),alerts=[],coverage={positions:current.length,prices:0,stops:0,targets:0};
+ const add=(key,type,ticker,text)=>alerts.push({key,type,ticker,text,at:now});
+ for(const p of current){const n=notes[scope+'|'+p.ticker]||{},price=finite(p.currentPrice)&&p.currentPrice>0&&/^[A-Z]{3}$/.test(p.instrumentCurrency||'');if(price)coverage.prices++;else add('price:'+p.ticker,'data',p.ticker,'Preț sau monedă a instrumentului neverificată.');
+  const stop=finite(n.stop)&&n.stop>0&&n.stopCurrency===p.instrumentCurrency,target=finite(n.targetPrice)&&n.targetPrice>0&&n.targetCurrency===p.instrumentCurrency;
+  if(price&&stop){coverage.stops++;const pct=(p.currentPrice/n.stop-1)*100,near=finite(n.stopAlertPct)&&n.stopAlertPct>=.5&&n.stopAlertPct<=20?n.stopAlertPct:3;if(pct<=0)add('stop:'+p.ticker,'stop',p.ticker,'Prețul raportat de broker este la/sub stopul de reevaluare: '+p.currentPrice+' / '+n.stop+' '+p.instrumentCurrency+'.');else if(pct<=near)add('near-stop:'+p.ticker,'near-stop',p.ticker,'Preț la '+pct.toFixed(2)+'% peste stopul de reevaluare.');}
+  else add('stop-missing:'+p.ticker,'coverage',p.ticker,'Stop sau monedă a stopului neverificată; poziția nu este acoperită de alerta la stop.');
+  if(price&&target){coverage.targets++;if(p.currentPrice>=n.targetPrice)add('target:'+p.ticker,'target',p.ticker,'Prețul raportat este la/peste ținta de reevaluare.');}
+  if(p.currency===summary.currency&&finite(p.value)&&summary.totalValue>0&&p.value/summary.totalValue>=.2)add('concentration:'+p.ticker,'risk',p.ticker,'Poziție ≥20% din valoarea contului.');
+  if(typeof n.earnings==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(n.earnings)){const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Bucharest',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now)),days=(Date.parse(n.earnings+'T12:00:00Z')-Date.parse(day+'T12:00:00Z'))/86400000;if(days>=0&&days<=7)add('earnings:'+p.ticker+':'+n.earnings,'event',p.ticker,'Earnings în '+days+' zile · '+n.earnings+' · reper manual, de reconfirmat.');}
+ }
+ if(previous?.scope===scope&&Array.isArray(previous.positions)){const old=new Map(previous.positions.map(p=>[p.ticker,p]));for(const p of current){const before=old.get(p.ticker);if(!before)add('position-added:'+p.ticker,'change',p.ticker,'Poziție nouă față de verificarea precedentă.');else if(before.quantity!==p.quantity)add('quantity:'+p.ticker+':'+p.quantity,'change',p.ticker,'Cantitate schimbată: '+before.quantity+' → '+p.quantity+'.');old.delete(p.ticker);}for(const p of old.values())add('position-removed:'+p.ticker,'change',p.ticker,'Poziția nu mai apare în lista completă raportată de broker.');}
+ return {scope,checkedAt:now,summary:{currency:summary.currency,totalValue:summary.totalValue},positions:current.map(p=>({ticker:p.ticker,quantity:p.quantity,currentPrice:p.currentPrice,instrumentCurrency:p.instrumentCurrency})),coverage,alerts};
+}
+function empty(){return {version:1,enabled:false,scope:null,startedAt:null,lastAttempt:null,lastChecked:null,lastError:null,report:null,events:[],activeKeys:[]};}
+async function read(db,subject,key,env,unseal){const row=await db.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=? AND key=?').bind(subject,key).first();return row?{...row,value:await unseal(row.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+key+'|'+row.revision)}:null;}
+async function write(db,subject,key,value,revision,env,seal,now){const next=revision+1,packet=await seal(value,env.CLOUD_ENCRYPTION_KEY,subject+'|'+key+'|'+next),seconds=Math.floor(now/1000);const result=revision?await db.prepare('UPDATE cloud_records SET revision=?,packet=?,updated=? WHERE subject=? AND key=? AND revision=?').bind(next,packet,seconds,subject,key,revision).run():await db.prepare('INSERT OR IGNORE INTO cloud_records(subject,key,revision,packet,updated) VALUES(?,?,?,?,?)').bind(subject,key,next,packet,seconds).run();return result.meta.changes===1?next:null;}
+async function schedulerStatus(env){let at=null;if(env.CLOUD_DB)try{const r=await env.CLOUD_DB.prepare('SELECT updated FROM cloud_records WHERE subject=? AND key=?').bind('__monitor_service__',HEARTBEAT_KEY).first();if(r)at=r.updated*1000;}catch{}return {protocol:'tt-account-monitor-v1',intervalSeconds:300,notification:'inbox',schedulerAt:at,schedulerFresh:finite(at)&&at<=Date.now()+60000&&Date.now()-at<900000};}
+function view(value){return {...value,stale:!finite(value.lastChecked)||Date.now()-value.lastChecked>600000,notification:'inbox'};}
+async function runOne(subject,env,deps,upstream,now){
+ const {seal,unseal,brokerHandle}=deps,db=env.CLOUD_DB,row=await read(db,subject,MONITOR_KEY,env,unseal);if(!row?.value.enabled)return row?.value||empty();let state=row.value;
+ if(finite(state.lastAttempt)&&now-state.lastAttempt<INTERVAL)return state;
+ const locked=await write(db,subject,MONITOR_KEY,{...state,lastAttempt:now},row.revision,env,seal,now);if(!locked)return (await read(db,subject,MONITOR_KEY,env,unseal))?.value||empty();state={...state,lastAttempt:now};
+ try{
+  const credentials=(await read(db,subject,'cloud_credentials',env,unseal))?.value;
+  if(!credentials||credentials.environment!=='live'||typeof credentials.key!=='string'||typeof credentials.secret!=='string'||!/^[\x21-\x7e]+$/.test(credentials.key+credentials.secret)||credentials.key.includes(':'))throw Error('monitor_credentials_missing');
+  if(await monitorScope(credentials)!==state.scope)throw Error('monitor_account_changed');
+  const headers={Origin:ORIGIN,Authorization:'Basic '+btoa(credentials.key+':'+credentials.secret),'X-T212-Environment':'live'},responses=await Promise.all(['summary','positions'].map(kind=>brokerHandle(new Request('https://monitor/api/trading212/'+kind,{headers}),{...env,T212_AUTH_MODE:'session'},upstream))),payload=[];
+  for(const response of responses){const b=await response.json();if(!response.ok)throw Error(['rate_limited','broker_credentials_invalid','broker_permission_missing','broker_timeout'].includes(b.error)?b.error:'monitor_broker_unavailable');if(b.source!=='Trading 212'||b.environment!=='live'||!finite(Date.parse(b.fetchedAt))||Math.abs(Date.parse(b.fetchedAt)-now)>300000)throw Error('monitor_schema_invalid');payload.push(b.data);}
+  const notes=(await read(db,subject,'tt_holdings_theses_v1',env,unseal))?.value||{},report=monitorRules({scope:state.scope,summary:payload[0],positions:payload[1],notes,previous:state.report,now}),active=new Set(state.activeKeys||[]),newEvents=report.alerts.filter(a=>!active.has(a.key)).map(a=>({...a,id:now+':'+a.key}));
+  state={...state,lastChecked:now,lastError:null,report,activeKeys:report.alerts.map(a=>a.key),events:[...newEvents,...(state.events||[])].slice(0,200)};
+ }catch(e){const allowed=['monitor_credentials_missing','monitor_account_changed','monitor_schema_invalid','rate_limited','broker_credentials_invalid','broker_permission_missing','broker_timeout','monitor_broker_unavailable'],code=allowed.includes(e.message)?e.message:'monitor_broker_unavailable',key='error:'+code,event={id:now+':'+key,key,type:'error',ticker:null,text:code,at:now};state={...state,lastError:{code,at:now},activeKeys:[key],events:[...(state.activeKeys?.includes(key)?[]:[event]),...(state.events||[])].slice(0,200)};}
+ await write(db,subject,MONITOR_KEY,state,locked,env,seal,now);return (await read(db,subject,MONITOR_KEY,env,unseal))?.value||empty();
+}
+async function handleMonitor({request,subject,env,deps,upstream=fetch,parseBody}){
+ const url=new URL(request.url),db=env.CLOUD_DB,now=Date.now(),reply=(body,status=200)=>({body,status});
+ if(url.pathname==='/api/cloud/monitor'&&request.method==='GET')return reply({monitor:view((await read(db,subject,MONITOR_KEY,env,deps.unseal))?.value||empty()),scheduler:await schedulerStatus(env)});
+ if(url.pathname==='/api/cloud/monitor'&&request.method==='PUT'){
+  const b=await parseBody(request,1000);if(!b||typeof b.enabled!=='boolean'||Object.keys(b).some(k=>k!=='enabled'))return reply({error:'invalid_monitor'},400);
+  const old=await read(db,subject,MONITOR_KEY,env,deps.unseal);let state=old?.value||empty();if(b.enabled){const credentials=(await read(db,subject,'cloud_credentials',env,deps.unseal))?.value;if(!credentials||credentials.environment!=='live')return reply({error:'monitor_credentials_missing'},400);const scope=await monitorScope(credentials);state=state.scope===scope?{...state,enabled:true}:{...empty(),scope,enabled:true,startedAt:now};}else state={...state,enabled:false};
+  const revision=await write(db,subject,MONITOR_KEY,state,old?.revision||0,env,deps.seal,now);return revision?reply({monitor:view(state),scheduler:await schedulerStatus(env)}):reply({error:'revision_conflict'},409);
+ }
+ if(url.pathname==='/api/cloud/monitor/check'&&request.method==='POST'){await parseBody(request,1000);return reply({monitor:view(await runOne(subject,env,deps,upstream,now)),scheduler:await schedulerStatus(env)});}
+ return reply({error:'not_found'},404);
+}
+async function runMonitors(env,deps,upstream=fetch,now=Date.now()){
+ if(!env.CLOUD_DB||!env.CLOUD_ENCRYPTION_KEY)return {configured:false};const db=env.CLOUD_DB,rows=(await db.prepare('SELECT subject FROM cloud_records WHERE key=? ORDER BY updated ASC').bind(MONITOR_KEY).all()).results;let checked=0,failed=0;
+ // Keep each invocation below the subrequest budget. Updated timestamps rotate active accounts fairly.
+ for(const row of rows){if(checked+failed>=10)break;if(env.GOOGLE_ALLOWED_SUB&&row.subject!==env.GOOGLE_ALLOWED_SUB)continue;try{const current=await read(db,row.subject,MONITOR_KEY,env,deps.unseal);if(!current?.value.enabled)continue;await runOne(row.subject,env,deps,upstream,now);checked++;}catch{failed++;}}
+ const heartbeat=await read(db,'__monitor_service__',HEARTBEAT_KEY,env,deps.unseal);await write(db,'__monitor_service__',HEARTBEAT_KEY,{at:now,checked,failed},heartbeat?.revision||0,env,deps.seal,now);return {checked,failed};
+}
+
+return {MONITOR_KEY,HEARTBEAT_KEY,monitorScope,monitorRules,schedulerStatus,handleMonitor,runMonitors};
+})();
 const TTCloudWorker=(()=>{
-const {KEYS,validateValue}=TTCloudModel;const {handle:brokerHandle}=TTBrokerRelay;
+const {KEYS,validateValue}=TTCloudModel;const {handle:brokerHandle}=TTBrokerRelay;const {handleMonitor,runMonitors,schedulerStatus}=TTCloudMonitor;
 const ORIGIN='https://mferent80-source.github.io',E=new TextEncoder(),D=new TextDecoder();
 const b64=b=>{const bytes=new Uint8Array(b);let text='';for(let i=0;i<bytes.length;i+=32768)text+=String.fromCharCode(...bytes.subarray(i,i+32768));return btoa(text).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');};
 const bytes=s=>{if(typeof s!=='string'||s.length>2000000||!/^[A-Za-z0-9_-]+$/.test(s))throw Error('invalid_encoding');return Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));};
@@ -244,7 +322,7 @@ const PROTOCOL='tt-cloud-sync-v1';
 async function readiness(env){
  const checks={database:!!env.CLOUD_DB,google:/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(env.GOOGLE_CLIENT_ID||''),encryption:/^[A-Za-z0-9_-]{43}$/.test(env.CLOUD_ENCRYPTION_KEY||''),schema:false};
  if(checks.database)try{await env.CLOUD_DB.prepare('SELECT s.hash,s.subject,s.email,s.expires,c.nonce,c.expires,r.subject,r.key,r.revision,r.packet,r.updated,l.key,l.bucket,l.count FROM cloud_sessions s,cloud_challenges c,cloud_records r,cloud_limits l WHERE 0').first();checks.schema=true;}catch{}
- const enabled=Object.values(checks).every(v=>v===true);return {enabled,protocol:PROTOCOL,clientId:enabled?env.GOOGLE_CLIENT_ID:null,checks,supportedKeys:KEYS};
+ const enabled=Object.values(checks).every(v=>v===true);return {enabled,protocol:PROTOCOL,clientId:enabled?env.GOOGLE_CLIENT_ID:null,checks,supportedKeys:KEYS,monitor:await schedulerStatus(env)};
 }
 const hash=async s=>b64(await crypto.subtle.digest('SHA-256',E.encode(s)));
 async function seal(value,secret,aad){const raw=bytes(secret);if(raw.length!==32)throw Error('encryption_key_invalid');const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt']),iv=crypto.getRandomValues(new Uint8Array(12));return JSON.stringify({v:1,iv:b64(iv),cipher:b64(await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:E.encode(aad)},key,E.encode(JSON.stringify(value))))});}
@@ -289,8 +367,9 @@ async function handleCloud(request,env,upstream=fetch){
   const subject=session.subject;if(await limited('session:'+sessionHash,120))return reply({error:'rate_limited'},429);
   if(url.pathname==='/api/cloud/session'&&request.method==='DELETE'){await db.prepare('DELETE FROM cloud_sessions WHERE hash=?').bind(sessionHash).run();return reply({ok:true});}
   if(url.pathname==='/api/cloud/session'&&request.method==='GET')return reply({subject,email:session.email,expires:session.expires});
+  if(['/api/cloud/monitor','/api/cloud/monitor/check'].includes(url.pathname)){const result=await handleMonitor({request,subject,env,deps:{seal,unseal,brokerHandle},upstream,parseBody:body});return reply(result.body,result.status);}
   if(url.pathname==='/api/cloud/records'&&request.method==='GET'){
-   const rows=await db.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=?').bind(subject).all(),records={};for(const r of rows.results)records[r.key]={revision:r.revision,updated:r.updated,value:await unseal(r.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+r.key+'|'+r.revision)};return reply({records});
+   const rows=await db.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=?').bind(subject).all(),records={};for(const r of rows.results){if(!KEYS.includes(r.key))continue;records[r.key]={revision:r.revision,updated:r.updated,value:await unseal(r.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+r.key+'|'+r.revision)};}return reply({records});
   }
   if(url.pathname==='/api/cloud/record'&&request.method==='PUT'){
    const b=await body(request);validateValue(b.key,b.value);if(!Number.isSafeInteger(b.revision)||b.revision<0)return reply({error:'invalid_revision'},400);
@@ -302,8 +381,9 @@ async function handleCloud(request,env,upstream=fetch){
   return reply({error:'not_found'},404);
  }catch(error){const safe=['invalid_google_token','google_unavailable','invalid_encoding','invalid_key','invalid_value','invalid_credentials','record_too_large','body_too_large','json_required','invalid_body'];const code=safe.includes(error.message)?error.message:'cloud_unavailable';const stage=code==='google_unavailable'&&['keys_fetch','keys_decode','key_import','signature_verify'].includes(error.stage)?error.stage:null;return reply({error:code,...(stage?{stage}:{})},code==='invalid_google_token'?401:code==='google_unavailable'||code==='cloud_unavailable'?503:400);}
 }
+async function runScheduled(env,upstream=fetch,now=Date.now()){return runMonitors(env,{seal,unseal,brokerHandle},upstream,now);}
 
-return {PROTOCOL,readiness,seal,unseal,verifyGoogle,handleCloud};
+return {PROTOCOL,readiness,seal,unseal,verifyGoogle,handleCloud,runScheduled};
 })();
-export const {PROTOCOL,readiness,seal,unseal,verifyGoogle,handleCloud}=TTCloudWorker;
-export default {fetch(request,env){return handleCloud(request,env);}};
+export const {PROTOCOL,readiness,seal,unseal,verifyGoogle,handleCloud,runScheduled}=TTCloudWorker;
+export default {fetch(request,env){return handleCloud(request,env);},scheduled(controller,env,ctx){ctx.waitUntil(runScheduled(env));}};

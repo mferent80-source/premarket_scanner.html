@@ -1,5 +1,6 @@
 import {KEYS,validateValue} from '../lib/cloud-sync-model.mjs';
 import {handle as brokerHandle} from './trading212-worker.mjs';
+import {handleMonitor,runMonitors,schedulerStatus} from '../lib/cloud-monitor.mjs';
 const ORIGIN='https://mferent80-source.github.io',E=new TextEncoder(),D=new TextDecoder();
 const b64=b=>{const bytes=new Uint8Array(b);let text='';for(let i=0;i<bytes.length;i+=32768)text+=String.fromCharCode(...bytes.subarray(i,i+32768));return btoa(text).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');};
 const bytes=s=>{if(typeof s!=='string'||s.length>2000000||!/^[A-Za-z0-9_-]+$/.test(s))throw Error('invalid_encoding');return Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));};
@@ -8,7 +9,7 @@ export const PROTOCOL='tt-cloud-sync-v1';
 export async function readiness(env){
  const checks={database:!!env.CLOUD_DB,google:/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(env.GOOGLE_CLIENT_ID||''),encryption:/^[A-Za-z0-9_-]{43}$/.test(env.CLOUD_ENCRYPTION_KEY||''),schema:false};
  if(checks.database)try{await env.CLOUD_DB.prepare('SELECT s.hash,s.subject,s.email,s.expires,c.nonce,c.expires,r.subject,r.key,r.revision,r.packet,r.updated,l.key,l.bucket,l.count FROM cloud_sessions s,cloud_challenges c,cloud_records r,cloud_limits l WHERE 0').first();checks.schema=true;}catch{}
- const enabled=Object.values(checks).every(v=>v===true);return {enabled,protocol:PROTOCOL,clientId:enabled?env.GOOGLE_CLIENT_ID:null,checks,supportedKeys:KEYS};
+ const enabled=Object.values(checks).every(v=>v===true);return {enabled,protocol:PROTOCOL,clientId:enabled?env.GOOGLE_CLIENT_ID:null,checks,supportedKeys:KEYS,monitor:await schedulerStatus(env)};
 }
 const hash=async s=>b64(await crypto.subtle.digest('SHA-256',E.encode(s)));
 export async function seal(value,secret,aad){const raw=bytes(secret);if(raw.length!==32)throw Error('encryption_key_invalid');const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt']),iv=crypto.getRandomValues(new Uint8Array(12));return JSON.stringify({v:1,iv:b64(iv),cipher:b64(await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:E.encode(aad)},key,E.encode(JSON.stringify(value))))});}
@@ -53,8 +54,9 @@ export async function handleCloud(request,env,upstream=fetch){
   const subject=session.subject;if(await limited('session:'+sessionHash,120))return reply({error:'rate_limited'},429);
   if(url.pathname==='/api/cloud/session'&&request.method==='DELETE'){await db.prepare('DELETE FROM cloud_sessions WHERE hash=?').bind(sessionHash).run();return reply({ok:true});}
   if(url.pathname==='/api/cloud/session'&&request.method==='GET')return reply({subject,email:session.email,expires:session.expires});
+  if(['/api/cloud/monitor','/api/cloud/monitor/check'].includes(url.pathname)){const result=await handleMonitor({request,subject,env,deps:{seal,unseal,brokerHandle},upstream,parseBody:body});return reply(result.body,result.status);}
   if(url.pathname==='/api/cloud/records'&&request.method==='GET'){
-   const rows=await db.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=?').bind(subject).all(),records={};for(const r of rows.results)records[r.key]={revision:r.revision,updated:r.updated,value:await unseal(r.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+r.key+'|'+r.revision)};return reply({records});
+   const rows=await db.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=?').bind(subject).all(),records={};for(const r of rows.results){if(!KEYS.includes(r.key))continue;records[r.key]={revision:r.revision,updated:r.updated,value:await unseal(r.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+r.key+'|'+r.revision)};}return reply({records});
   }
   if(url.pathname==='/api/cloud/record'&&request.method==='PUT'){
    const b=await body(request);validateValue(b.key,b.value);if(!Number.isSafeInteger(b.revision)||b.revision<0)return reply({error:'invalid_revision'},400);
@@ -66,4 +68,5 @@ export async function handleCloud(request,env,upstream=fetch){
   return reply({error:'not_found'},404);
  }catch(error){const safe=['invalid_google_token','google_unavailable','invalid_encoding','invalid_key','invalid_value','invalid_credentials','record_too_large','body_too_large','json_required','invalid_body'];const code=safe.includes(error.message)?error.message:'cloud_unavailable';const stage=code==='google_unavailable'&&['keys_fetch','keys_decode','key_import','signature_verify'].includes(error.stage)?error.stage:null;return reply({error:code,...(stage?{stage}:{})},code==='invalid_google_token'?401:code==='google_unavailable'||code==='cloud_unavailable'?503:400);}
 }
-export default {fetch(request,env){return handleCloud(request,env);}};
+export async function runScheduled(env,upstream=fetch,now=Date.now()){return runMonitors(env,{seal,unseal,brokerHandle},upstream,now);}
+export default {fetch(request,env){return handleCloud(request,env);},scheduled(controller,env,ctx){ctx.waitUntil(runScheduled(env));}};

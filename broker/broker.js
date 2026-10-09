@@ -101,7 +101,7 @@ async function loadHistory(append=false){if(!token||busy)return;const id=session
  try{const b=await api(selected,append?cursor:null);if(id!==session||selected!==kind)return;if(!Array.isArray(b.data?.items))throw Error('Istoric incompatibil.');if(!append){rows=[];seen.clear();}
  for(const item of b.data.items){const key=item.id?selected+':'+item.id:JSON.stringify(item);if(!seen.has(key)){seen.add(key);rows.push(item);}}
  if(selected==='orders'&&window.T212J&&journalScope)acceptJournalPage(b,!append);
- if(selected!=='orders'&&window.T212J&&journalScope)window.T212J.mergeCash(journalScope,brokerEnvironment,selected,b.data.items,b.data.nextCursor,b.fetchedAt);cursor=b.data.nextCursor;history();$('more').hidden=!cursor;$('historyState').textContent=`${rows.length} înregistrări · ${cursor?'istoric parțial, mai există pagini':'toate paginile disponibile au fost încărcate'} · ${stamp(b.fetchedAt)}`;
+ if(selected!=='orders'&&window.T212J&&journalScope)window.T212J.mergeCash(journalScope,brokerEnvironment,selected,b.data.items,b.data.nextCursor,b.fetchedAt,{restart:!append});cursor=b.data.nextCursor;history();$('more').hidden=!cursor;$('historyState').textContent=`${rows.length} înregistrări · ${cursor?'istoric parțial, mai există pagini':'toate paginile disponibile au fost încărcate'} · ${stamp(b.fetchedAt)}`;
  }catch(e){if(id===session&&e.name!=='AbortError'){$('historyState').textContent='Istoric neactualizat: '+e.message;if(selected==='orders')try{window.T212J?.importState?.(journalScope,brokerEnvironment,'error');}catch(_){}}}
  finally{if(id===session){busy=false;$('more').disabled=false;document.querySelectorAll('[data-kind]').forEach(b=>b.disabled=false);}}
 }
@@ -164,7 +164,7 @@ async function importCashPage(){
  const selected=['dividends','transactions'][cashTurn++%2],id=session,scope=journalScope,state=cashStates[scope+'|'+selected]||{cursor:null,done:false,next:0};
  if(state.next>Date.now()||(times[selected]||0)>Date.now())return;
  cashRunning=true;
- try{const page=await api(selected,state.done?null:state.cursor);if(id!==session)return;if(!Array.isArray(page.data?.items))throw Error('Istoric monetar incompatibil.');window.T212J.mergeCash(scope,brokerEnvironment,selected,page.data.items,page.data.nextCursor,page.fetchedAt);state.cursor=page.data.nextCursor;state.done=!state.cursor;state.next=Date.now()+(state.done?300000:12000);}
+ try{const restart=state.done||!state.cursor;window.T212J.cashImportState?.(scope,brokerEnvironment,selected);const page=await api(selected,state.done?null:state.cursor);if(id!==session)return;if(!Array.isArray(page.data?.items))throw Error('Istoric monetar incompatibil.');window.T212J.mergeCash(scope,brokerEnvironment,selected,page.data.items,page.data.nextCursor,page.fetchedAt,{restart});state.cursor=page.data.nextCursor;state.done=!state.cursor;state.next=Date.now()+(state.done?300000:12000);}
  catch(e){if(id===session&&e.name!=='AbortError'){window.T212J.cashError(scope,brokerEnvironment,selected,e.message);state.next=Date.now()+300000;}}
  finally{cashStates[scope+'|'+selected]=state;cashRunning=false;}
 }

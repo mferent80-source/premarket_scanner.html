@@ -1,13 +1,14 @@
-import {KEYS,mergeRecord,validateValue,EvidenceCloud} from '../lib/cloud-sync-model.mjs?v=26.10.08.1414';
+import {KEYS,mergeRecord,validateValue,EvidenceCloud} from '../lib/cloud-sync-model.mjs?v=26.10.09.1548';
 const EvidenceStore=EvidenceCloud.createStore(localStorage);
 const PlanStore=window.TTPlanStore?.create(localStorage);
 const Store=window.TTCloudStore,LOCAL_KEYS=KEYS.filter(k=>k!=='cloud_credentials'&&!EvidenceCloud.isBucket(k)),rawKeys=['tt_theme','tt_pf_account','tt_ticket_capital'];
+const PERFORMANCE_KEYS=['tt_trading212_account_history_v1','tt_trading212_cash_v1'];
 const EUROPE_KEYS=['tt_europe_signals_v1','tt_europe_risk_settings_v1'];let activeKeys=[];
-let endpoint='',ready=false,session=null,busy=false,baseline={},conflicts={},lastSync=null,error='',timer=null,checking=false,setup=null,initialization=null,poll=null;
+let endpoint='',ready=false,session=null,busy=false,baseline={},conflicts={},lastSync=null,error='',timer=null,checking=false,setup=null,initialization=null,poll=null,monitorCapability=null;
 const emptyConnection=()=>({local:null,cloud:null,synced:false,environment:null,checkedAt:null,message:''});let trading212=emptyConnection();
 const sameConnection=(a,b)=>!!a&&!!b&&a.key===b.key&&a.secret===b.secret&&a.environment===b.environment;
 function connectionState(local,record){const remote=record?.value;trading212={local:!!local,cloud:!!remote,synced:sameConnection(local,remote),environment:remote?.environment||local?.environment||null,checkedAt:Date.now(),message:sameConnection(local,remote)?trading212.message:''};}
-const state=()=>({ready,connected:!!session,email:session?.email||null,busy,checking,setup,lastSync,error,conflicts:Object.keys(conflicts),supportedKeys:[...activeKeys,...(EvidenceCloud.keys.every(k=>activeKeys.includes(k))?[EvidenceCloud.KEY]:[])],trading212:{...trading212}});
+const state=()=>({ready,connected:!!session,email:session?.email||null,busy,checking,setup,lastSync,error,conflicts:Object.keys(conflicts),supportedKeys:[...activeKeys,...(EvidenceCloud.keys.every(k=>activeKeys.includes(k))?[EvidenceCloud.KEY]:[])],trading212:{...trading212},monitor:monitorCapability});
 function broadcast(){window.dispatchEvent(new CustomEvent('tt-cloud-state',{detail:state()}));document.querySelectorAll('iframe').forEach(f=>f.contentWindow?.postMessage({ttCloudState:state()},location.origin));}
 function local(key){const raw=localStorage.getItem(key);if(raw===null)return undefined;if(rawKeys.includes(key))return raw;try{return JSON.parse(raw);}catch(_){throw Error('Date locale incompatibile: '+key);}}
 async function deviceOwner(){const stored=await Store.get('owner'),legacy=localStorage.getItem('tt_cloud_owner');if(stored!==null&&typeof stored!=='string')throw Error('account_mismatch');if(stored&&legacy&&stored!==legacy)throw Error('account_mismatch');return stored||legacy;}
@@ -53,7 +54,7 @@ async function restore(){if(!session)return;const list=await Store.get('backups:
 function conflictView(key){const c=conflicts[key];if(!c)return null;const preview=v=>v===undefined?'Fără înregistrare':JSON.stringify(v,null,2).slice(0,4000);return key==='cloud_credentials'?{local:'Conexiune Trading 212 locală · '+(c.local?.environment||'absentă'),remote:'Conexiune Trading 212 cloud · '+(c.remote?.value?.environment||'absentă')}:{local:preview(c.local),remote:preview(c.remote?.value)};}
 async function mutation(fn){if(busy||checking)throw Error('Sincronizare în curs. Așteaptă finalizarea înainte de această acțiune.');busy=true;error='';broadcast();try{return await fn();}catch(e){error=e.message;throw e;}finally{busy=false;broadcast();}}
 const wrapped={};for(const [name,fn] of Object.entries({login,logout,resolve,deleteCredentials,publishCredentials,restoreCredentials,restore})){wrapped[name]=async(...args)=>{await mutation(()=>fn(...args));if(!['logout','restore'].includes(name))await sync();};}
-window.TTCloud={conflictView,state,sync,recheck,login,logout,resolve,deleteCredentials,publishCredentials,restoreCredentials,restore,challenge:()=>api('challenge','POST',{}),config:()=>({endpoint}),...wrapped};
+window.TTCloud={monitor:()=>api('monitor'),configureMonitor:enabled=>api('monitor','PUT',{enabled}),runMonitor:()=>api('monitor/check','POST',{}),conflictView,state,sync,recheck,login,logout,resolve,deleteCredentials,publishCredentials,restoreCredentials,restore,challenge:()=>api('challenge','POST',{}),config:()=>({endpoint}),...wrapped};
 window.addEventListener('storage',e=>{if(KEYS.includes(e.key)&&!busy){clearTimeout(timer);timer=setTimeout(sync,2500);}});
 function plansChanged(){if(!busy){clearTimeout(timer);timer=setTimeout(sync,2500);}}
 window.addEventListener('tt-plan-store-changed',plansChanged);PlanStore?.subscribe(plansChanged);
@@ -62,10 +63,10 @@ async function initialize(){let available=false;checking=true;error='';setup=nul
  const cfg=await fetch('cloud-sync-config.json',{cache:'no-store'}).then(r=>r.json());if(cfg.enabled!==true&&cfg.autoActivate!==true)throw Error('cloud_not_configured');
  const u=new URL(cfg.endpoint);if(u.origin!=='https://premarket-scanner-html.mferent80.workers.dev'||u.pathname!=='/'||u.search||u.hash||u.username||u.password)throw Error('Endpoint cloud incompatibil.');endpoint=u.origin;
  // Readiness is public: no session, journal or broker credentials accompany this request.
- const status=await api('status','GET',undefined,true);if(status.protocol!=='tt-cloud-sync-v1')throw Error('cloud_protocol_mismatch');
+ const status=await api('status','GET',undefined,true);monitorCapability=status.monitor||null;if(status.protocol!=='tt-cloud-sync-v1')throw Error('cloud_protocol_mismatch');
  setup=Object.fromEntries(['database','google','encryption','schema'].map(k=>[k,status.checks?.[k]===true]));
  if(status.enabled!==true||Object.values(setup).some(v=>!v))throw Error('cloud_not_configured');if(!/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(status.clientId||''))throw Error('cloud_not_configured');
- const evidenceReady=Array.isArray(status.supportedKeys)&&EvidenceCloud.keys.every(k=>status.supportedKeys.includes(k));activeKeys=KEYS.filter(k=>k!==EvidenceCloud.KEY&&(!EvidenceCloud.isBucket(k)||evidenceReady)&&(!EUROPE_KEYS.includes(k)||status.supportedKeys?.includes(k)));
+ const evidenceReady=Array.isArray(status.supportedKeys)&&EvidenceCloud.keys.every(k=>status.supportedKeys.includes(k));activeKeys=KEYS.filter(k=>k!==EvidenceCloud.KEY&&(!EvidenceCloud.isBucket(k)||evidenceReady)&&(!EUROPE_KEYS.includes(k)||status.supportedKeys?.includes(k))&&(!PERFORMANCE_KEYS.includes(k)||status.supportedKeys?.includes(k)));
  ready=true;available=true;window.TTCloud.clientId=status.clientId;
  if(poll===null)poll=setInterval(()=>{if(!document.hidden)sync();},30000);
  session=await Store.get('session');if(session){const verified=await api('session');if(verified.subject!==session.subject){session=null;await Store.remove('session');throw Error('session_expired');}baseline=await Store.get('baseline:'+session.subject)||{};}
