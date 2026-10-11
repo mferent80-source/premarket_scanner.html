@@ -3294,6 +3294,17 @@ pe un singur chart.
 | I-586 | Monedele boților lui marcate în pândă, cu direcția botului față de direcția pieței (CU / CONTRA) și rândul lățimii pe „atenție” când regimul larg e contra botului | crypto/public/lib/sugestii-ecran.js, public/app.js (tbCitireExtra) | S | P2 | propus | ideation | 2026-10-11 |
 | I-587 | Oprirea PAZNIC după 2–3 zile de comparație (|Δ| ≤ 3 pe agregate, acord ≥ 95% pe direcții): sarcinile Robot / Paza / Panou / Publica; Copie Zilnica rămâne până la 100 trade-uri pe hârtie | scripts/proba-latime-vs-paznic.mjs (nou, în crypto); sarcinile Windows „Paznic *” | S | P1 | propus | user | 2026-10-11 |
 | I-588 | Lățimea calculată în worker-ul Radar (cron 15 min, PC oprit = zero sarcină) — cere Workers Paid (5 $/lună; planul gratuit are 50 subcereri/rulare) | crypto/workers/radar-monitor.js, wrangler.monitor.toml | S | P4 | propus (amânat: decizia lui, 11.10) | ideation | 2026-10-11 |
+| I-589 | Radar: bara de sus = celule cu cifre ca la PAZNIC (sold Pionex, boți activi, total boți USDT, cea mai aproape lichidare %, T212 deschise, alerte noi, colectorul „acum N min · următoarea HH:MM” care se îngălbenește când îmbătrânește); simbolul/4h/AUTO/BINANCE și banda lungă a botului se mută în Tablou / Analizează | crypto/public/index.html (.topRight, #botStrip), public/app.js (renderBotStrip, chips), public/app.css | M | P1 | propus | ideation | 2026-10-11 |
+| I-590 | Tabloul botului începe cu VERDICTUL: un verb mare (ȚINE / IEȘI / AȘTEAPTĂ, din Consilier) + o frază + vocile ca bife (6 TF, Busola, Monte Carlo, lățimea) — azi verdictul stă jos, sub „Ce ai de făcut” | crypto/public/app.js (renderTabloBot, tbDeseneazaTabloulUnic, consilier), public/lib/consilier.js, public/index.html | M | P1 | propus | ideation | 2026-10-11 |
+| I-591 | „Drumul botului”: o singură bară lichidare · stop · grid jos · zero · acum · plan + · grid sus, cu prețul ca marcaj (ca bara de R a pozițiilor din PAZNIC) — în locul celor două bare separate „până la lichidare” și „prețul în grid” | crypto/public/app.js (cartelele Tabloului), public/lib/tablou-extra.js (pretTintaPentru, pretOpritorPentru), public/app.css | S | P1 | propus | ideation | 2026-10-11 |
+| I-592 | Radar pe telefon: ecranul „Acum” ca la PAZNIC - grilă de cifre 3×2, o frază „ce ai de făcut acum”, boții și pozițiile pe câte un rând cu bara drumului (I-591), apoi restul Dashboard-ului | crypto/public/app.js (dash, navTo), public/index.html, public/app.css (@media ≤550) | M | P1 | propus | ideation | 2026-10-11 |
+| I-593 | „Ce spune piața acum”: deschise doar fraza-concluzie, Monte Carlo și trendul; restul (indicatori, unde e prețul, ADX, volum, estimare, Busola…) pliate cu rezumatul de o linie în titlu, ca „De ce / Funding / Notă” din PAZNIC | crypto/public/app.js (tbDeseneazaCitire, tbCitireExtra), public/app.css | S | P2 | propus | ideation | 2026-10-11 |
+| I-594 | Dashboard: cadranele semicerc (frică/lăcomie, VIX) → cifra mare + bara intervalului pe 31 de zile cu marcajul de azi (textul „între 50 și 78; acum la mijloc” devine desen); la fel de lizibil, de 3 ori mai puțin loc | crypto/public/lib/acasa-ecran.js, public/app.css | S | P2 | propus | ideation | 2026-10-11 |
+| I-595 | Cartelele Tabloului: proza cifrelor („din grid +1.70 USDT · pe grilă 0,28% ≈ … · funding 0,012% pe zi…”) → rânduri cheie–valoare (eticheta stânga, cifra mono dreapta) + glosar la atingere pe termenii subliniați punctat, ca „anatomia mișcării” din PAZNIC | crypto/public/app.js (cartelele tb*), public/lib/text-ro.js (glosar nou), public/app.css | M | P2 | propus | ideation | 2026-10-11 |
+| I-596 | Sub graficul botului: rândul „ultimii boți închiși: NIL −2,1 · TAKE +1,3 · … vezi toate ↗” (din arhivă / Jurnal de trade), ca „ultimele închise” din PAZNIC | crypto/public/app.js (tbDeseneazaTabloulUnic), public/lib/jurnal-trade.js, functions/api/istoric-bot.js | S | P3 | propus | ideation | 2026-10-11 |
+| I-597 | O singură componentă de avertisment: chenar stâng în culoarea gravității + rândul mic „din: <sursa>” (fișa, Pionex, colectorul, Busola) sub fiecare afirmație — azi banner roșu plin pe toată lățimea | crypto/public/app.css, public/app.js (tbAvertismente, banda gridul-prea-larg) | S | P3 | propus | ideation | 2026-10-11 |
+| I-598 | Blocul BUILD din josul meniului (v100.x · Spot source · Engine) se mută în Health; în bară rămâne o pastilă de mod ca „hartie · live 2/7” din PAZNIC (doar citire · v100.x) | crypto/public/index.html (.sideBuild), public/app.js (renderBuild), Health | S | P3 | propus | ideation | 2026-10-11 |
+| I-599 | Tablou pe 1920: coloana din stânga cu boții și pozițiile (T212, Salt) sortați după distanța la stop / lichidare, cu % și rezultatul, ca „aproape de rupere” din PAZNIC; un clic schimbă botul din Tablou | crypto/public/app.js (renderTabloBot, alegerea botului), public/index.html, public/app.css (≥1280) | M | P3 | propus | ideation | 2026-10-11 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5967,3 +5978,68 @@ tura la 15 min în colectorul care rulează deja; PAZNIC (5 sarcini, paza la 1 m
   1.000 subcereri/rulare, 30 s CPU) — ajută și DatorieTrack, aproape de limita gratuită.
 - **Impact:** zero sarcină pe PC; decizia de plată e a lui (11.10: „A acum”).
 - **Fișiere:** crypto/workers/radar-monitor.js, wrangler.monitor.toml (⚠ `wrangler deploy` fără `[triggers]` șterge cronul).
+
+### I-589..I-599 (2026-10-11) — ce mai merită luat din PAZNIC în Radar: așezarea (după tema PAZNIC demo)
+
+Context: EL a văzut demo-ul „tema PAZNIC” (127.0.0.1:8799: culori, colțuri, mono, graficul cu perechile închise jos) și a cerut, ÎNAINTE de implementare, analiza a ce mai merită importat (așezare, layout). Regula LUI la toate: nimic pierdut — ce se mută primește loc nou scris, fapta rămâne la vedere, se pliază doar informația.
+
+#### I-589 · Bara de sus cu cifre · [M] · P1 · propus
+- **Problema:** bara de sus a Radarului poartă simbolul de analiză (BTC/USDT · 4h · AUTO · BINANCE), o bandă lungă de text a botului și 4 pastile tehnice (Alerts, WS, LIVE DATA, versiunea). Cifrele care contează (soldul, cât pierd boții, cât de aproape e lichidarea) se văd abia în Tablou.
+- **Soluția:** ca PAZNIC: celule etichetă mică + cifră mono, despărțite de linii de 1 px — sold Pionex, boți activi, total boți (USDT, verde/roșu), cea mai aproape lichidare (%), T212 deschise, alerte noi, colectorul („acum 3 min · următoarea 11:17”, galben peste 20 min, roșu peste 45). Simbolul de analiză trece în pagina Analizează; banda botului devine celulele (clic = Tabloul).
+- **Impact:** starea banilor la o privire de pe orice pagină; colectorul oprit se vede imediat (azi apare doar în cartela Monte Carlo).
+- **Riscuri:** inventarul „nimic pierdut” trebuie să găsească fiecare pastilă veche în locul nou; pe 390 grila trece pe 2 rânduri.
+- **Fișiere:** crypto/public/index.html (.topRight, #botStrip), public/app.js, public/app.css.
+
+#### I-590 · Tabloul începe cu verdictul · [M] · P1 · propus
+- **Problema:** în Tablou, primul lucru e bannerul roșu și 4 cartele de cifre; ce ar face Consilierul (Ține / Ieși) stă sub „Ce ai de făcut” și sub grafic. PAZNIC pune sus un verb mare (AȘTEPT), o frază și porțile ca bife.
+- **Soluția:** antet: verbul Consilierului mare, fraza de ce, apoi bifele vocilor (6 becuri TF, Busola, Monte Carlo, lățimea I-583): ✓ cu botul / ✗ contra / – neutru. Cartela Consilierului de jos rămâne cu detaliile.
+- **Impact:** decizia întâi, dovezile după — „verdict + trigger” din convențiile LUI.
+- **Riscuri:** a doua voce cu același sfat — verbul vine DIN Consilier, nu se recalculează.
+- **Fișiere:** crypto/public/app.js (renderTabloBot), public/lib/consilier.js, public/index.html.
+
+#### I-591 · Drumul botului într-o bară · [S] · P1 · propus
+- **Problema:** „Până la lichidare” și „Prețul în grid” sunt două bare separate; stopul, zero-ul și planul se văd doar pe grafic.
+- **Soluția:** o bară orizontală cu toate nivelurile botului ca liniuțe etichetate și prețul ca marcaj alb (ca bara de R din cartelele PAZNIC). Nivelurile din pretTintaPentru / pretOpritorPentru (cu cumpărările gridului pe drum, ca liniile graficului din v100.98).
+- **Impact:** „unde sunt față de stop și de plan” fără grafic — pe telefon mai ales.
+- **Fișiere:** crypto/public/app.js, public/lib/tablou-extra.js, public/app.css.
+
+#### I-592 · Ecranul „Acum” pe telefon · [M] · P1 · propus
+- **Problema:** pe 390 Radarul deschide Dashboard-ul (piața azi, ce aș cumpăra) — boții LUI vin abia în Tablou. PAZNIC pe telefon: cifrele, o frază, pozițiile cu bara, atât.
+- **Soluția:** primul ecran pe telefon: grilă 3×2 (aceleași cifre ca I-589), fraza de sus din „Ce ai de făcut acum”, boții și pozițiile pe rânduri cu bara I-591; dedesubt Dashboard-ul neschimbat.
+- **Impact:** deschizi pe telefon și știi în 3 secunde dacă ai ceva de făcut.
+- **Riscuri:** depinde de I-589 și I-591.
+- **Fișiere:** crypto/public/app.js, public/index.html, public/app.css.
+
+#### I-593 · „Ce spune piața acum” pliat cu rezumat · [S] · P2 · propus
+- **Problema:** coloana din dreapta are ~12 cartele una sub alta (Monte Carlo, trend, indicatori, unde e prețul, ADX, volum, estimare, Busola…), mai lungă decât graficul.
+- **Soluția:** deschise: fraza-concluzie (I-571), Monte Carlo, trendul; celelalte pliate, fiecare cu rezumatul de o linie ÎN titlu („ADX 17 · stă pe loc”), deci nimic nu dispare de la vedere.
+- **Fișiere:** crypto/public/app.js (tbDeseneazaCitire), public/app.css.
+
+#### I-594 · Cadranele → cifră + bara intervalului · [S] · P2 · propus
+- **Problema:** frica/lăcomia și VIX sunt cadrane semicerc mari; propoziția de sub ele („între 50 și 78; acum la mijloc”) spune mai mult decât desenul.
+- **Soluția:** cifra mare + o bară min–max pe 31 de zile cu marcajul de azi și mini-istoricul existent; validatorul dataviz pe culori.
+- **Fișiere:** crypto/public/lib/acasa-ecran.js, public/app.css.
+
+#### I-595 · Proză → rânduri cheie–valoare + glosar · [M] · P2 · propus
+- **Problema:** sub cifrele mari ale Tabloului stă proză lungă cu 5–6 cifre înșirate cu „·”; greu de citit pe coloană.
+- **Soluția:** rânduri cheie (stânga) – valoare mono (dreapta), ca „anatomia mișcării” din PAZNIC; termenii au subliniere punctată și explicația la atingere (glosar unic în text-ro.js, ca GLOSAR din panou.html).
+- **Fișiere:** crypto/public/app.js, public/lib/text-ro.js, public/app.css.
+
+#### I-596 · Ultimii boți închiși sub grafic · [S] · P3 · propus
+- **Soluția:** un rând de cipuri „NIL −2,1 · TAKE +1,3 · …” + „vezi toate ↗” spre Jurnal de trade; date din arhiva existentă.
+- **Impact:** comparația cu ce s-a întâmplat data trecută pe aceeași monedă, fără să schimbi pagina.
+- **Fișiere:** crypto/public/app.js, public/lib/jurnal-trade.js.
+
+#### I-597 · Avertismentul cu sursa · [S] · P3 · propus
+- **Soluția:** componentă unică: chenar stâng 3 px în culoarea gravității, textul pe fond închis, rândul mic „din: fișa / Pionex / colectorul / Busola”. Bannerul roșu plin dispare, mesajul rămâne.
+- **Fișiere:** crypto/public/app.css, public/app.js.
+
+#### I-598 · BUILD în Health · [S] · P3 · propus
+- **Soluția:** blocul tehnic din josul meniului (versiunea lungă, Spot source, Engine) trece în Health; în bară o pastilă de mod „doar citire · v100.x”.
+- **Fișiere:** crypto/public/index.html, public/app.js.
+
+#### I-599 · Coloana boților pe 1920 · [M] · P3 · propus
+- **Soluția:** pe ≥1280 Tabloul primește în stânga lista boților și pozițiilor sortată după distanța la stop / lichidare (ca „aproape de rupere”), clic = schimbă botul.
+- **Impact:** util când are mai mulți boți deodată; azi are unul ⇒ P3.
+- **Fișiere:** crypto/public/app.js, public/index.html, public/app.css.
+
