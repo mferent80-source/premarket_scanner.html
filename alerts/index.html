@@ -12,10 +12,10 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314181f'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link rel="stylesheet" href="../lib/plex.css?v=742">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=700">
-<link rel="stylesheet" href="tema-paznic-suita.css?v=862">
-<link rel="stylesheet" href="../lib/radar-ui.css?v=862">
-<script src="../lib/radar-poza.js?v=862"></script>
-<script src="../lib/radar-ecran.js?v=862"></script>
+<link rel="stylesheet" href="tema-paznic-suita.css?v=863">
+<link rel="stylesheet" href="../lib/radar-ui.css?v=863">
+<script src="../lib/radar-poza.js?v=863"></script>
+<script src="../lib/radar-ecran.js?v=863"></script>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -849,7 +849,7 @@ body.al-page input, body.al-page select { font-weight:400; }
   --bull-bg:rgba(38,169,108,.14);--bear-bg:rgba(224,82,74,.14);--warn-bg:rgba(233,185,73,.12);--topbar-bg:#141C24;--shadow:none;--topbar-shadow:none;--r:5px;--rs:3px}
 :root[data-theme] body.al-page{background:#0E141A!important;color:#E6EDF3!important;font-family:"IBM Plex Sans",system-ui,"Segoe UI",sans-serif!important;font-variant-numeric:tabular-nums}
 body.al-page header.al-topbar{background:#141C24!important;border-bottom:1px solid #26333F!important}
-body.al-page .num,body.al-page code,body.al-page kbd{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace!important}
+body.al-page .num:not(table):not(tbody):not(tr),body.al-page code,body.al-page kbd{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace!important}
 body.al-page ::selection{background:#E9B949;color:#0E141A}
 body.al-page :focus-visible{outline:1px solid #E9B949!important;outline-offset:1px}
 </style>
@@ -857,7 +857,7 @@ body.al-page :focus-visible{outline:1px solid #E9B949!important;outline-offset:1
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v148</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v149</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="det" class="on">💼 Ce dețin <span class="tab-cnt" id="tabCntDet">0</span><span class="tab-clop" id="tabClopDet" hidden></span></button>
     <button type="button" data-tab="urm">👀 Ce urmăresc <span class="tab-cnt" id="tabCntUrm">0</span><span class="tab-clop" id="tabClopUrm" hidden></span></button>
@@ -1098,13 +1098,13 @@ body.al-page :focus-visible{outline:1px solid #E9B949!important;outline-offset:1
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=862"></script>
+<script src="../lib/suite-version.js?v=863"></script>
 <script src="../lib/data.js?v=26.10.09.2330"></script>
-<script src="../lib/poll-wake.js?v=862"></script>
+<script src="../lib/poll-wake.js?v=863"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=862"></script>
+<script src="../lib/price-day.js?v=863"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -2482,6 +2482,8 @@ function saveTgModal() {
   $('tgMsg').style.color = 'var(--bull-s)';
   render();
 }
+// 11.10.2026: „Alertele de azi” pliabil - deschiderea se ține minte pe filă (toggle nu urcă în arbore ⇒ faza de capturare)
+document.addEventListener('toggle', function (e) { var d = e.target; if (d && d.matches && d.matches('details.alAzi')) { try { localStorage.setItem('al_azi_deschis_' + d.dataset.alazi, d.open ? '1' : '0'); } catch (x) {} } }, true);
 $('tgBtn').addEventListener('click', openTgModal);
 $('tgClose').addEventListener('click', closeTgModal);
 $('tgCancel').addEventListener('click', closeTgModal);
@@ -3801,7 +3803,7 @@ if ($('rad') && typeof RadarPoza !== 'undefined') {
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v862';
+const SW_VER_INLINE = 'tt-v863';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -3818,7 +3820,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v862';
+  var PAGE_VER = 'tt-v863';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

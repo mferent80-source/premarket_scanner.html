@@ -243,3 +243,15 @@ body.al-page .rad td.c-plata{text-align:right}
 body.al-page .rad td.c-plata .mic{display:block}
 @media (max-width:900px){body.al-page .rad .adPoz{grid-template-columns:1fr 1fr}}
 @media (max-width:640px){body.al-page .rad #radSalt tr.rand td.c-acum{display:block;grid-column:2;grid-row:1;text-align:right}}
+
+/* 11.10.2026 (el: „alertele de azi fă în dropdown”): panoul pliabil — titlul cu numărul, săgeata, fără marcajul browserului */
+body.al-page .rad .alAziCap{cursor:pointer;list-style:none;border-bottom:0}
+body.al-page .rad .alAziCap::-webkit-details-marker{display:none}
+body.al-page .rad .alAziCap::after{content:"▸";color:var(--muted);margin-left:auto}
+body.al-page .rad details.alAzi[open]>.alAziCap::after{content:"▾"}
+body.al-page .rad details.alAzi[open]>.alAziCap{border-bottom:1px solid var(--line2)}
+body.al-page .rad .alAziNr{color:var(--muted);font-size:12.5px;font-weight:400}
+body.al-page .rad .alAziFiltre{padding:8px 14px 0}
+/* 11.10.2026 telefon (poza lui: rândul botului cu numele strâns într-o coloană îngustă): prețul nu mai ia lățimea numelui,
+   eticheta (ATENȚIE / ȚINE) stă deasupra textului; doar sub 640 px */
+@media (max-width:640px){body.al-page .rad .poz tr.rand td.c-acum{max-width:46%;white-space:normal}body.al-page .rad .poz tr.rand td .sim{flex-wrap:wrap;row-gap:4px}body.al-page .rad .poz tr.rand td .sim>div{flex:1 1 100%;min-width:0}}

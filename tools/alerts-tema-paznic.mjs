@@ -80,7 +80,7 @@ export const FINAL = `
   --bull-bg:rgba(38,169,108,.14);--bear-bg:rgba(224,82,74,.14);--warn-bg:rgba(233,185,73,.12);--topbar-bg:${P.f1};--shadow:none;--topbar-shadow:none;--r:5px;--rs:3px}
 :root[data-theme] body.al-page{background:${P.f0}!important;color:${P.t0}!important;font-family:"IBM Plex Sans",system-ui,"Segoe UI",sans-serif!important;font-variant-numeric:tabular-nums}
 body.al-page header.al-topbar{background:${P.f1}!important;border-bottom:1px solid ${P.li}!important}
-body.al-page .num,body.al-page code,body.al-page kbd{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace!important}
+body.al-page .num:not(table):not(tbody):not(tr),body.al-page code,body.al-page kbd{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace!important}
 body.al-page ::selection{background:${P.aur};color:${P.f0}}
 body.al-page :focus-visible{outline:1px solid ${P.aur}!important;outline-offset:1px}
 `;
