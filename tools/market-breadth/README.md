@@ -13,8 +13,10 @@ weekday (16:15 New York cutoff) are excluded and counted. Earlier observations
 retain their original dates. Mismatched ratios, non-finite values and regressing
 source dates are rejected.
 
-`market-breadth/data/latest.json` is the shared versioned contract consumed by the
-Breadth page, Decision Desk and Data Status. Context rules are documented in the
+`market-breadth/data/latest.json` is the shared versioned contract consumed by
+Crypto Radar (since 11.10.2026: row „Acțiuni US” + block on the stocks page; the
+old Breadth page was removed), Decision Desk and Data Status. Keep the data, the
+workflow and tools/breadth-suite: Crypto Radar reads this file. Context rules are documented in the
 page; they are not the original composite score. Aggregate ratios are fractions;
 UI participation is percentage. Sector rotations are MA slope, not price returns.
 

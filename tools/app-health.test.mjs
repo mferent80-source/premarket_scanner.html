@@ -23,7 +23,7 @@ test('incompatible broker data is never supporting evidence',async()=>{
 
 test('module failures name the failed page and never count as supporting evidence',async()=>{
  const el=await setup(null,{},null,{fetch:async(path)=>({ok:!path.includes('holdings'),status:path.includes('holdings')?503:200,json:async()=>({enabled:false})})});
- assert.equal(el('modules').textContent,'10 / 11 ACCESIBILE');
+ assert.equal(el('modules').textContent,'9 / 10 ACCESIBILE'); /* 11.10.2026: Market Breadth scoasă din listă (mutată în Crypto Radar) */
  assert.match(el('moduleText').textContent,/Analiza deținerilor/);
  assert.match(el('moduleChecks').textContent,/Analiza deținerilor.*503/);
  assert.equal(el('verdict').report.context.evidence.find(e=>e.id==='modules').role,'unknown');
@@ -34,7 +34,7 @@ test('a stalled breadth source cannot hold the broker and module checks or disab
   TTBreadth:{load:()=>new Promise(()=>{})},
   setTimeout(fn){timers.add(fn);return fn;},clearTimeout(fn){timers.delete(fn);}
  });
- assert.equal(el('modules').textContent,'11 / 11 ACCESIBILE');
+ assert.equal(el('modules').textContent,'10 / 10 ACCESIBILE');
  assert.equal(el('broker').textContent,'FĂRĂ SNAPSHOT');
  for(const fn of timers)fn();for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));
  assert.equal(el('run').disabled,false);
