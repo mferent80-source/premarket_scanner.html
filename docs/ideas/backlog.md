@@ -3288,6 +3288,12 @@ pe un singur chart.
 | I-580 | Cifra și direcția Busolei pe 1h (nu doar 4h) în rezumat și în citire, pentru gridurile pe 5m/15m | busola/src/motor/rezumatRadar.ts, cron/masoara.ts; crypto/public/lib/busola.js, app.js | S | P2 | făcut (v100.149 / colector v101.92, 2026-10-10) | ideation | 2026-10-10 |
 | I-581 | Pagina Alerte: lângă fiecare alertă a pazei, „ce a urmat” după 24 h (prețul, PnL-ul botului) — bilanțul avertizărilor, în Radar | crypto/functions/api/istoric-bot.js (alerte în KV), scripts/colector.mjs, public/app.js (alerte) | M | P3 | făcut (v100.149 / colector v101.92, 2026-10-10) | ideation | 2026-10-10 |
 | I-582 | Rândul Busolei din Tablou cu butonul „deschide în Busolă” pe moneda și intervalul botului (?sym=&interval=, ca panoul lui Paznic) | crypto/public/app.js (tbCitireExtra / tbBusolaLinie), public/lib/busola.js | S | P3 | făcut (v100.149 / colector v101.92, 2026-10-10) | ideation | 2026-10-10 |
+| I-583 | Lățimea pieței pe 150 perp-uri Binance (regim larg sus/jos, câte sus/jos, conturile mari long, extreme de funding/OI/volatilitate/buget) calculată de colector, publicată în KV, un rând în „Ce spune piața acum” — portată din PAZNIC, cu aceleași praguri | crypto/scripts/lib/latime.mjs (nou), scripts/lib/tura-latime.mjs (nou), scripts/colector.mjs, functions/api/istoric-bot.js, public/app.js (tbCitireExtra) | M | P1 | propus | user | 2026-10-11 |
+| I-584 | Pânda în Sugestii: tabelul celor 150 de monede cu faptele măsurate (direcție 4h, percentile, funding, OI, conturi mari/mici, agresiune), filtre (monedele boților, contra mulțimii, extreme), FĂRĂ permisiune și fișă de intrare (p = 0,23) | crypto/public/lib/sugestii-ecran.js, public/app.js (sugPorneste), public/index.html | M | P1 | propus | user | 2026-10-11 |
+| I-585 | Persistența direcției pe monedă: „SUS de N zile” (câte bare de 4h la rând ține EMA 21 peste/sub EMA 55) — PAZNIC n-o are | crypto/scripts/lib/latime.mjs, public/lib/sugestii-ecran.js | S | P2 | propus | ideation | 2026-10-11 |
+| I-586 | Monedele boților lui marcate în pândă, cu direcția botului față de direcția pieței (CU / CONTRA) și rândul lățimii pe „atenție” când regimul larg e contra botului | crypto/public/lib/sugestii-ecran.js, public/app.js (tbCitireExtra) | S | P2 | propus | ideation | 2026-10-11 |
+| I-587 | Oprirea PAZNIC după 2–3 zile de comparație (|Δ| ≤ 3 pe agregate, acord ≥ 95% pe direcții): sarcinile Robot / Paza / Panou / Publica; Copie Zilnica rămâne până la 100 trade-uri pe hârtie | scripts/proba-latime-vs-paznic.mjs (nou, în crypto); sarcinile Windows „Paznic *” | S | P1 | propus | user | 2026-10-11 |
+| I-588 | Lățimea calculată în worker-ul Radar (cron 15 min, PC oprit = zero sarcină) — cere Workers Paid (5 $/lună; planul gratuit are 50 subcereri/rulare) | crypto/workers/radar-monitor.js, wrangler.monitor.toml | S | P4 | propus (amânat: decizia lui, 11.10) | ideation | 2026-10-11 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5899,3 +5905,65 @@ I-523 (semaforul cu bilanțul pazei), I-526 (verdict-titlu dimineața), I-509 (p
   panoul lui Paznic); pe futures „1000X” cheia fără „1000”.
 - **Impact:** un clic în loc de căutare.
 - **Fișiere:** crypto/public/app.js (tbCitireExtra / tbDeseneazaCitire), public/lib/busola.js.
+
+### I-583..I-588 (2026-10-11) — PAZNIC → Radar: lățimea pieței și pânda („un tool, nu 10”)
+
+Spec: `crypto/docs/superpowers/specs/2026-10-11-latimea-pietei-si-panda-design.md`. Context: PAZNIC măsurat 11.10 — ca robot nu
+ajută (avantaj zero ±0,06R pe 4.963 trade-uri; hârtia +9,3R din 3 trade-uri; nimeni nu-i citește ieșirea; 5 sarcini pe PC). El:
+„întâi facem trecerea în Radar așa avem un tool nu 10”, a ales doar lățimea + pânda ca tabel descriptiv, calculul în colector (A).
+
+**Lentile.** Trader: lățimea pe 150 spune când riscul e corelat (larg sus/jos), nu diversificat — Radarul n-are nimic pe crypto
+(lățimea lui e pe Nasdaq-100) · Designer: un rând în citire + un tabel cu filtre, culoarea doar pe prag, „fapte, nu semnal” scris
+pe ecran · Inginer: modul pur refolosibil în colector și, mai târziu, în worker; o singură cheie KV, o scriere pe tură · Automator:
+tura la 15 min în colectorul care rulează deja; PAZNIC (5 sarcini, paza la 1 min) se oprește după comparație.
+**Excluse din backlog:** I-357 (lățimea în PAZNIC, făcut 03.09 — acum drumul e invers), permisiunea/fișa (măsurate: nu selectează).
+
+#### I-583 · Lățimea pieței pe 150 perp-uri în „Ce spune piața acum” · [M] · P1 · propus
+- **Problema:** Radarul judecă moneda botului (semafor, Busola, Monte Carlo) dar nu știe dacă TOATĂ piața e într-un sens — pe
+  06.09 patru long-uri deodată cu piața larg sus 76% erau o singură idee de patru ori. Lățimea există doar în PAZNIC, pe care nu-l citește.
+- **Soluția:** tură nouă în colector la 15 min: universul (150 perp-uri USDT, doar cripto, ≥ 10 zile), bare 4h/1d la 15 min, seriile
+  (funding, OI, poziționare, taker) o dată pe oră; modul pur cu formulele și pragurile din `PAZNIC-CRYPTO/decizie.mjs`; o scriere în
+  KV `latime` (acum + istoric 30 zile); rând în citire după „Trendul pe TF-uri”, „atenție” la larg contra botului / buget epuizat ≥ 60% /
+  volatilitate extremă ≥ 40%; vechimea spusă.
+- **Impact:** decizia pe bot (pornire, mărime, direcție) vede piața întreagă; fără PC pornit valoarea rămâne, marcată veche.
+- **Riscuri/dependențe:** 429 Binance (același IP cu PAZNIC cât rulează amândouă); scrierile KV pe plan gratuit (1.000/zi) — numărate înainte.
+- **Fișiere:** crypto/scripts/lib/latime.mjs, scripts/lib/tura-latime.mjs, scripts/colector.mjs, functions/api/istoric-bot.js, public/app.js.
+
+#### I-584 · Pânda în Sugestii — tabelul celor 150, descriptiv · [M] · P1 · propus
+- **Problema:** PAZNIC ținea pânda (150 de monede cu direcție, percentile, funding, OI, conturi mari/mici) într-un panou pe care el
+  nu-l deschide; faptele sunt bune, filtrul de permisiune și fișa de intrare nu (p = 0,23; Carnetul fișei a spus la fel).
+- **Soluția:** tab în Sugestii din aceeași cheie KV: 150 rânduri, filtre (toate / monedele boților / contra mulțimii |diverg| ≥ 15 /
+  extreme / SUS / JOS), coloane cu o zecimală, culoarea doar pe prag, legături Tablou/Busolă, fraza de cinste sus; pe telefon tabelul
+  derulează lateral cu capul fix (regula Salt).
+- **Impact:** ce vedea în PAZNIC vede în Radar, fără partea dovedită inutilă; „un tool, nu 10”.
+- **Riscuri/dependențe:** depinde de I-583; 150 rânduri de HTML (~60 KB) se desenează o dată.
+- **Fișiere:** crypto/public/lib/sugestii-ecran.js, public/app.js (sugPorneste), public/index.html.
+
+#### I-585 · „SUS de N zile” — persistența direcției pe monedă · [S] · P2 · propus
+- **Problema:** direcția SUS/JOS fără „de când” nu spune dacă e trend bătrân sau întoarcere de ieri.
+- **Soluția:** în modulul pur, câte bare de 4h la rând ține relația EMA 21 / EMA 55, ÷ 6 = zile; coloană în pândă și în textul rândului
+  de lățime („larg SUS de 3 zile”, din istoricul KV).
+- **Impact:** citire mai bogată cu zero cereri în plus. Ipoteză descriptivă, nu semnal.
+- **Fișiere:** crypto/scripts/lib/latime.mjs, public/lib/sugestii-ecran.js.
+
+#### I-586 · Monedele boților marcate, CU / CONTRA · [S] · P2 · propus
+- **Problema:** tabelul de 150 e lung; ce-l interesează întâi sunt monedele pe care are boți.
+- **Soluția:** rândurile boților sus, cu direcția botului lângă direcția pieței (CU / CONTRA); rândul lățimii din citire pe
+  „atenție” când regimul larg e contra botului.
+- **Impact:** un filtru în loc de căutare; avertizarea la risc corelat (regula „pragul botului e un privilegiu”: se avertizează, nu se refuză).
+- **Fișiere:** crypto/public/lib/sugestii-ecran.js, public/app.js (tbCitireExtra).
+
+#### I-587 · Oprirea PAZNIC după comparație · [S] · P1 · propus
+- **Problema:** două unelte care măsoară același lucru, 5 sarcini pe PC (scanarea de 74–100 s la 15 min, paza la 1 min).
+- **Soluția:** `scripts/proba-latime-vs-paznic.mjs` compară 2–3 zile `PAZNIC-CRYPTO/stare.json` cu KV `latime` (|Δ| ≤ 3 pe agregate,
+  acord ≥ 95% pe direcții, 3 zile la rând); când trece, raportul scrie comanda de oprire pentru Robot / Paza / Panou / Publica — EL o dă.
+  Copie Zilnica rămâne până hârtia ajunge la 100 trade-uri (~21.10).
+- **Impact:** PC-ul scapă de 4 sarcini; codul și istoricul PAZNIC rămân pe disc și pe GitHub.
+- **Fișiere:** crypto/scripts/proba-latime-vs-paznic.mjs (nou); sarcinile Windows „Paznic *”.
+
+#### I-588 · Lățimea în worker (Workers Paid) · [S] · P4 · propus (amânat)
+- **Problema:** varianta A ține ~490 cereri la 15 min pe PC; cu PC-ul oprit lățimea îmbătrânește.
+- **Soluția:** același modul pur în `workers/radar-monitor.js` (cron `*/15` există), scris în KV `latime`; cere Workers Paid (5 $/lună:
+  1.000 subcereri/rulare, 30 s CPU) — ajută și DatorieTrack, aproape de limita gratuită.
+- **Impact:** zero sarcină pe PC; decizia de plată e a lui (11.10: „A acum”).
+- **Fișiere:** crypto/workers/radar-monitor.js, wrangler.monitor.toml (⚠ `wrangler deploy` fără `[triggers]` șterge cronul).
