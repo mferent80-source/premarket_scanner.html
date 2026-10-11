@@ -10,9 +10,13 @@
 // · daily / weekly risk digest
 // · sentiment delta 24h · audit log
 //
-// Secrets: TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, FINNHUB_API_KEY
+// Secrets: DISCORD_WEBHOOK, FINNHUB_API_KEY
+// 11.10.2026: mesajele pleacă pe DISCORD (același canal ca Crypto Radar), nu pe Telegram —
+// Marius: „aș vrea să se ducă tot pe Discord”. Textul rămâne scris în HTML; tools/discord-mesaj.mjs
+// îl face markdown. Numele `sendTelegram`/`tg`/`maxTelegramPerRun` rămân (setările salvate le folosesc).
 // ═══════════════════════════════════════════════════════════════════
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs';
+import { trimiteDiscord } from './discord-mesaj.mjs';
 
 const FILE = new URL('./news-watch.json', import.meta.url);
 const ALERTS_FILE = new URL('./alerts.json', import.meta.url);
@@ -26,8 +30,7 @@ const EARNINGS_HORIZON_DAYS = 21;
 const AUDIT_MAX_LINES = 200;
 const TG_CHUNK = 3500;
 
-const TOKEN = process.env.TELEGRAM_TOKEN || '';
-const CHAT = process.env.TELEGRAM_CHAT_ID || '';
+const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || '';
 const FH_KEY = process.env.FINNHUB_API_KEY || process.env.FINNHUB_TOKEN || '';
 
 const DEFAULT_SETTINGS = {
@@ -310,45 +313,8 @@ function dueForCheck(w) {
 }
 
 async function sendTelegram(html) {
-  if (!TOKEN || !CHAT) {
-    console.log('⚠ TELEGRAM lipsă — nesent:\n' + html.slice(0, 400));
-    return false;
-  }
-  // split pe lungime
-  const chunks = [];
-  let rest = html;
-  while (rest.length > TG_CHUNK) {
-    let cut = rest.lastIndexOf('\n', TG_CHUNK);
-    if (cut < TG_CHUNK * 0.5) cut = TG_CHUNK;
-    chunks.push(rest.slice(0, cut));
-    rest = rest.slice(cut).replace(/^\n+/, '');
-  }
-  if (rest) chunks.push(rest);
-  let ok = true;
-  for (const part of chunks) {
-    try {
-      const r = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: CHAT,
-          text: part,
-          parse_mode: 'HTML',
-          disable_web_page_preview: true
-        }),
-        signal: AbortSignal.timeout(12000)
-      });
-      if (!r.ok) {
-        console.log('⚠ Telegram HTTP ' + r.status + ': ' + await r.text());
-        ok = false;
-      }
-    } catch (e) {
-      console.log('⚠ Telegram: ' + e.message);
-      ok = false;
-    }
-    await new Promise(r => setTimeout(r, 250));
-  }
-  return ok;
+  // 11.10.2026: pleacă pe Discord (vezi capul fișierului); numele a rămas, îl cheamă `tg()`
+  return trimiteDiscord(html, { webhook: DISCORD_WEBHOOK });
 }
 
 function fmtWhen(ts) {

@@ -1,17 +1,17 @@
 # ═══════════════════════════════════════════════════════════════════
-# Price Alerts → Telegram (server-side, fără pagină deschisă)
+# Price Alerts → Discord (server-side, fără pagină deschisă) — Telegram închis 11.10.2026
 # Rulează tools/check-alerts.mjs la 15 min, NON-STOP (toate zilele, toate orele) —
 # crypto (USDT/-USD) se tranzacționează 24/7, deci trebuie verificat și noaptea/weekend.
 # Stocks în afara orelor de piață: Yahoo dă ultima cotație (staționară) → nu produc
 # alerte noi false (pragul ar fi declanșat deja în sesiune), deci e safe să rulăm mereu.
 # ⚠ GitHub NU garantează cadența pe cron programat — sub încărcare poate sări/întârzia.
 #   */15 ≈ 1/3 din costul metered față de */5 (buget Actions; iul 2026 ~$31 pe premarket).
-# Necesită secrets: TELEGRAM_TOKEN + TELEGRAM_CHAT_ID
+# Necesită secrets: DISCORD_WEBHOOK (canalul Crypto Radar; până la 11.10.2026: TELEGRAM_TOKEN + TELEGRAM_CHAT_ID)
 #   (+ FINNHUB_API_KEY pentru News Watch — opțional; fără el skip pe news)
 #   (repo → Settings → Secrets and variables → Actions → New repository secret)
 # Test manual: tab-ul Actions → Price Alerts → Run workflow.
 # ═══════════════════════════════════════════════════════════════════
-name: Price Alerts → Telegram
+name: Price Alerts → Discord
 
 # 27.09.2026 (alerts v116): pragurile au fost scoase din pagina alerts, deci pasul lor a disparut de aici.
 # Cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis).
@@ -41,8 +41,7 @@ jobs:
 
       - name: Verifică News Watch
         env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
         run: node tools/check-news-watch.mjs
 
