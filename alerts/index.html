@@ -12,9 +12,9 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314181f'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link rel="stylesheet" href="../lib/plex.css?v=742">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=700">
-<link rel="stylesheet" href="../lib/radar-ui.css?v=858">
-<script src="../lib/radar-poza.js?v=858"></script>
-<script src="../lib/radar-ecran.js?v=858"></script>
+<link rel="stylesheet" href="../lib/radar-ui.css?v=860">
+<script src="../lib/radar-poza.js?v=860"></script>
+<script src="../lib/radar-ecran.js?v=860"></script>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -844,7 +844,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v146</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v147</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="det" class="on">💼 Ce dețin <span class="tab-cnt" id="tabCntDet">0</span><span class="tab-clop" id="tabClopDet" hidden></span></button>
     <button type="button" data-tab="urm">👀 Ce urmăresc <span class="tab-cnt" id="tabCntUrm">0</span><span class="tab-clop" id="tabClopUrm" hidden></span></button>
@@ -857,7 +857,7 @@ body.al-page input, body.al-page select { font-weight:400; }
     <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
     <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
     <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
-    <button class="icon-btn" id="tgBtn" title="Configurează Telegram pentru price alerts">📡</button>
+    <button class="icon-btn" id="tgBtn" title="Configurează Discord pentru price alerts">📡</button>
     <button class="icon-btn" id="btnNwSettings" title="Deschide Setări News Desk (digest, quiet hours, filtru)">⚙</button>
     <button class="icon-btn" id="hdrMenuBtn" title="Mai multe acțiuni">⋯</button>
     <a href="../" class="nav-link">Hub</a>
@@ -1057,26 +1057,23 @@ body.al-page input, body.al-page select { font-weight:400; }
 <div class="refresh-info" id="refreshInfo">—</div>
 <div id="toasts"></div>
 
-<!-- Modal Telegram -->
+<!-- Modal Discord (până la 11.10.2026: Telegram) -->
 <div class="modal-ov" id="tgModal" style="display:none">
   <div class="modal">
-    <div class="modal-head"><h3>📡 Telegram — Price Alerts</h3><button class="icon-btn" id="tgClose" title="Închide">✕</button></div>
+    <div class="modal-head"><h3>📡 Discord — Price Alerts</h3><button class="icon-btn" id="tgClose" title="Închide">✕</button></div>
     <div class="modal-body">
       <div style="font-size:11px;color:var(--t3);line-height:1.55;font-family:var(--mono)">
-        1. Bot cu <b style="color:var(--t2)">@BotFather</b> → <i>token</i>.<br>
-        2. Scrie botului, apoi <span style="color:var(--accent)">api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span> → <i>chat.id</i>.
+        Lipește adresa <b style="color:var(--t2)">webhook</b> a canalului Discord (aceeași ca la Crypto Radar):<br>
+        Discord → canalul → ⚙ Editează canalul → Integrări → Webhook-uri → <i>Copiază URL-ul</i>.<br>
+        Se ține doar în browserul tău.
       </div>
       <div class="modal-field">
-        <label>Bot token</label>
-        <input type="text" id="tgToken" placeholder="123456789:ABC-DEF..." autocomplete="off">
-      </div>
-      <div class="modal-field">
-        <label>Chat ID</label>
-        <input type="text" id="tgChatId" placeholder="123456789" autocomplete="off">
+        <label>Webhook Discord</label>
+        <input type="text" id="tgToken" placeholder="https://discord.com/api/webhooks/…" autocomplete="off">
       </div>
       <div class="modal-check">
         <input type="checkbox" id="tgEnabled">
-        <label for="tgEnabled">Activează alertele Telegram la declanșare</label>
+        <label for="tgEnabled">Activează alertele pe Discord la declanșare</label>
       </div>
       <div id="tgMsg" style="font-size:11px;font-family:var(--mono);color:var(--t3);min-height:14px"></div>
     </div>
@@ -1088,13 +1085,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=859"></script>
+<script src="../lib/suite-version.js?v=860"></script>
 <script src="../lib/data.js?v=26.10.09.2330"></script>
-<script src="../lib/poll-wake.js?v=859"></script>
+<script src="../lib/poll-wake.js?v=860"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=859"></script>
+<script src="../lib/price-day.js?v=860"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -2456,8 +2453,7 @@ $('soundBtn').addEventListener('click', () => {
 
 function openTgModal() {
   const c = getTgConfig();
-  $('tgToken').value = c.token || '';
-  $('tgChatId').value = c.chatId || '';
+  $('tgToken').value = c.webhook || '';
   $('tgEnabled').checked = !!c.enabled;
   $('tgMsg').textContent = '';
   $('tgModal').style.display = 'flex';
@@ -2465,10 +2461,10 @@ function openTgModal() {
 function closeTgModal() { $('tgModal').style.display = 'none'; }
 function saveTgModal() {
   if (!window.TG || !TG.setConfig) return;
-  const token = $('tgToken').value.trim();
-  const chatId = $('tgChatId').value.trim();
+  const webhook = $('tgToken').value.trim();
   const enabled = $('tgEnabled').checked;
-  TG.setConfig(token, chatId, enabled);
+  if (webhook && TG.esteWebhook && !TG.esteWebhook(webhook)) { $('tgMsg').textContent = '⚠ nu e un webhook Discord'; $('tgMsg').style.color = 'var(--warn)'; return; }
+  TG.setConfig(webhook, '', enabled);
   $('tgMsg').textContent = '✓ salvat';
   $('tgMsg').style.color = 'var(--bull-s)';
   render();
@@ -2479,12 +2475,11 @@ $('tgCancel').addEventListener('click', closeTgModal);
 $('tgSave').addEventListener('click', () => { saveTgModal(); setTimeout(closeTgModal, 600); });
 $('tgTest').addEventListener('click', async () => {
   if (!window.TG) return;
-  const token = $('tgToken').value.trim();
-  const chatId = $('tgChatId').value.trim();
-  if (!token || !chatId) { $('tgMsg').textContent = '⚠ token + chat ID'; $('tgMsg').style.color = 'var(--warn)'; return; }
+  const webhook = $('tgToken').value.trim();
+  if (!webhook || (TG.esteWebhook && !TG.esteWebhook(webhook))) { $('tgMsg').textContent = '⚠ lipește webhook-ul Discord'; $('tgMsg').style.color = 'var(--warn)'; return; }
   $('tgMsg').textContent = '…';
-  const ok = await TG.send('✅ Test Price Alerts — conexiune Telegram OK.', { token, chatId, force: true });
-  $('tgMsg').textContent = ok ? '✓ test trimis' : '✗ eșec (verifică token/chat)';
+  const ok = await TG.send('✅ Test Price Alerts — conexiune Discord OK.', { webhook, force: true });
+  $('tgMsg').textContent = ok ? '✓ test trimis pe Discord' : '✗ eșec (verifică webhook-ul)';
   $('tgMsg').style.color = ok ? 'var(--bull-s)' : 'var(--bear-s)';
 });
 $('tgModal').addEventListener('click', e => { if (e.target === $('tgModal')) closeTgModal(); });
@@ -3793,7 +3788,7 @@ if ($('rad') && typeof RadarPoza !== 'undefined') {
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v859';
+const SW_VER_INLINE = 'tt-v860';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -3810,7 +3805,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v859';
+  var PAGE_VER = 'tt-v860';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
