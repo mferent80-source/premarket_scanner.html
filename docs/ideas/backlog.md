@@ -3305,6 +3305,8 @@ pe un singur chart.
 | I-597 | O singură componentă de avertisment: chenar stâng în culoarea gravității + rândul mic „din: <sursa>” (fișa, Pionex, colectorul, Busola) sub fiecare afirmație — azi banner roșu plin pe toată lățimea | crypto/public/app.css, public/app.js (tbAvertismente, banda gridul-prea-larg) | S | P3 | propus | ideation | 2026-10-11 |
 | I-598 | Blocul BUILD din josul meniului (v100.x · Spot source · Engine) se mută în Health; în bară rămâne o pastilă de mod ca „hartie · live 2/7” din PAZNIC (doar citire · v100.x) | crypto/public/index.html (.sideBuild), public/app.js (renderBuild), Health | S | P3 | propus | ideation | 2026-10-11 |
 | I-599 | Tablou pe 1920: coloana din stânga cu boții și pozițiile (T212, Salt) sortați după distanța la stop / lichidare, cu % și rezultatul, ca „aproape de rupere” din PAZNIC; un clic schimbă botul din Tablou | crypto/public/app.js (renderTabloBot, alegerea botului), public/index.html, public/app.css (≥1280) | M | P3 | propus | ideation | 2026-10-11 |
+| I-600 | Early Bird în Radar: scannerul de momentum pe instrumentele Salt Bank (Yahoo, US+EU) din `salt-instrumente`, arhivat 11.10 — ca filtru în pagina Salt, peste `data/salt-univers.json` | crypto/public/lib/salt-ecran.js, crypto/public/index.html | M | P3 | propus | mutare | 2026-10-11 |
+| I-601 | Mișcările zilei pe capitalizare + heatmap pe categorii (narrative tracker) din `scanner/crypto-events.html`, arhivat 11.10 — ca bloc în Sugestii, lângă pândă | crypto/public/lib/sugestii-ecran.js, crypto/scripts/colector.mjs | M | P3 | propus | mutare | 2026-10-11 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6042,4 +6044,18 @@ Context: EL a văzut demo-ul „tema PAZNIC” (127.0.0.1:8799: culori, colțuri
 - **Soluția:** pe ≥1280 Tabloul primește în stânga lista boților și pozițiilor sortată după distanța la stop / lichidare (ca „aproape de rupere”), clic = schimbă botul.
 - **Impact:** util când are mai mulți boți deodată; azi are unul ⇒ P3.
 - **Fișiere:** crypto/public/app.js, public/index.html, public/app.css.
+
+
+#### I-600 · Early Bird în Radar (din salt-instrumente) · [M] · P3 · propus
+- **Problema/golul:** 11.10.2026, la arhivarea `salt-instrumente` (direcția „o aplicație și atât”): pagina Salt din Radar citește pozițiile și universul Salt, dar NU are scannerul Early Bird (momentum pe toate instrumentele Salt, US+EU). Pagina veche rămâne deschisă, înghețată.
+- **Soluția:** filtrul Early Bird ca vedere în pagina Salt, pe universul deja încărcat; mutare doar dacă îl folosește (întrebat).
+- **Impact:** o adresă mai puțin; decizia Salt într-un singur loc.
+- **Fișiere:** crypto/public/lib/salt-ecran.js, crypto/public/index.html.
+
+#### I-601 · Mișcările zilei + heatmap pe categorii (din scanner/crypto-events) · [M] · P3 · propus
+- **Problema/golul:** 11.10.2026, la arhivarea `scanner`: Radarul n-are „movers” pe praguri de capitalizare (>100M / >1B / >10B) și nici heatmap-ul pe categorii (narrative). Restul paginilor din `scanner` au echivalent în Radar sau în premarket_scanner (pump-radar, smart-trade-long, watchlist-monitor — pasul 4).
+- **Soluția:** bloc în Sugestii, lângă pândă, calculat în colector; mutare doar dacă îl folosește.
+- **Impact:** context de piață într-un singur loc.
+- **Fișiere:** crypto/public/lib/sugestii-ecran.js, crypto/scripts/colector.mjs.
+
 
