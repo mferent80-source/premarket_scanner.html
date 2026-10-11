@@ -1,0 +1,674 @@
+/* GENERAT de tools/alerts-tema-paznic.mjs — NU se editează de mână.
+   Copia transformată în designul PAZNIC a foilor comune lib/theme-light.css + lib/suite-ui.css, încărcată DOAR de
+   pagina alerts, după originale (care rămân neschimbate pentru celelalte pagini). */
+/* theme-light.css — tema deschisă suite-wide (paletă „hârtie caldă")
+ * ------------------------------------------------------------------
+ * Se încarcă pe TOATE paginile. Nu face nimic în dark; tot ce e aici e scopat
+ * pe `:root[data-theme="light"]`, pe care îl scrie lib/theme.js în <head>.
+ *
+ * De ce funcționează fără să atingem paletele existente:
+ *   `:root[data-theme="light"]` = specificitate (0,1,1) > `:root` (0,1,0) din
+ *   <style>-ul fiecărei pagini, deci bate indiferent de ordinea în cascadă.
+ *
+ * Paleta de referință (Hub tt-v790, suita întreagă):
+ *   surface-0 #E6EDF3 · surface-1 #ffffff · surface-2 #ffffff
+ *   ink #0E141A · ink2 #35485A · muted #8799AA · border #E6EDF3
+ */
+
+/* ── tokeni care lipsesc din paginile dark (definiți ca default dark) ── */
+:root {
+  --topbar-bg: rgba(20,28,36,.94);
+  --topbar-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT — remap complet al tokenilor folosiți în suită
+   ═══════════════════════════════════════════════════════════════════ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* ── suprafețe (o singură luminozitate pe toată suita) ── */
+  --bg: #E6EDF3;
+  --bg-grad: linear-gradient(180deg, #ffffff 0%, #E6EDF3 55%);
+  --bg1: #ffffff;
+  --bg2: #ffffff;
+  --bg3: #ffffff;
+  --bg4: #E6EDF3;
+  --panel: #ffffff;
+  --panel2: #ffffff;
+  --panel3: #E6EDF3;
+
+  /* ── borduri (b1 = mai vizibilă, b2 = fină; păstrăm ierarhia din dark) ── */
+  --b1: #E6EDF3;
+  --b2: #E6EDF3;
+  --br: #E6EDF3;
+  --br2: #E6EDF3;
+  --br-l: #E6EDF3;
+  --border: #E6EDF3;
+  --border-soft: #E6EDF3;
+
+  /* ── text ── */
+  --t1: #0E141A;
+  --t2: #26333F;
+  --t3: #8799AA;
+  --text: #0E141A;
+  --muted: #8799AA;
+  --text-dim: #8799AA;
+  --txt: #0E141A;
+  --txt-d: #35485A;
+  --txt-dd: #8799AA;
+
+  /* ── accente (aliniate la paleta light deja folosită în nasdaq-scanner,
+        ca tintele rgba() ale ei — --accl/--greenl/--redl... — să se potrivească) ── */
+  --accent: #5B8FC7;
+  --accent2: #6d3fd4;
+  --acc: #5B8FC7;
+  --acc-1: #5B8FC7;
+  --acc-2: #26A96C;
+  --blue: #5B8FC7;
+  --indigo: #5B8FC7;
+  --purple: #7c3aed;
+  --teal: #5B8FC7;
+  --cyan: #5B8FC7;
+  --orange: #E9B949;
+  --yellow: #E9B949;
+
+  /* ── semantice: variantele dark (#26A96C, #E0524A, #E9B949) sunt invizibile
+        pe fundal deschis → variante întunecate, contrast ≥ 4.5:1 pe #E6EDF3 ── */
+  --green: #26A96C;
+  --emerald: #26A96C;
+  --emerald-l: #26A96C;
+  --red: #E0524A;
+  --bull-s: #26A96C;
+  --bull: #26A96C;
+  --bull-bg: rgba(38,169,108,.10);
+  --bear-s: #E0524A;
+  --bear: #E0524A;
+  --bear-bg: rgba(224,82,74,.10);
+  --warn: #E9B949;
+  --warn-bg: rgba(233,185,73,.12);
+  --gold: #E9B949;
+  --gold-bg: rgba(233,185,73,.12);
+  --crypto-1: #E9B949;
+  --crypto-2: #E9B949;
+  --high: #E0524A;
+  --high-bg: rgba(224,82,74,.10);
+  --med: #E9B949;
+  --med-bg: rgba(233,185,73,.12);
+  --low: #8799AA;
+  --low-bg: rgba(135,153,170,.10);
+  --vol: #7c3aed;
+  --vol-bg: rgba(124, 58, 237, .10);
+  --mom: #5B8FC7;
+  --mom-bg: rgba(91,143,199,.10);
+
+  /* ── umbre: pe hârtie, umbre calde și discrete ── */
+  --glow: rgba(233,185,73,.10);
+  --sh: 0 1px 2px rgba(20,28,36,.08);
+  --shh: 0 8px 24px rgba(20,28,36,.12), 0 1px 2px rgba(20,28,36,.06);
+  --shadow-sm: 0 1px 2px rgba(20,28,36,.08);
+  --shadow: none;
+
+  /* ── topbar sticky ── */
+  --topbar-bg: rgba(255, 255, 255, .97);
+  --topbar-shadow: none;
+
+  /* ── lib/suite-ui.css ── */
+  --suite-bg: #E6EDF3;
+  --suite-bg-grad: linear-gradient(180deg, #ffffff 0%, #E6EDF3 55%);
+  --suite-panel: #ffffff;
+  --suite-panel2: #ffffff;
+  --suite-panel3: #E6EDF3;
+  --suite-border: #E6EDF3;
+  --suite-border2: #E6EDF3;
+  --suite-t1: #0E141A;
+  --suite-t2: #26333F;
+  --suite-t3: #8799AA;
+  --suite-accent: #5B8FC7;
+  --suite-shadow: 0 4px 14px rgba(20,28,36,.10), 0 1px 2px rgba(20,28,36,.06);
+  --suite-shadow-sm: 0 1px 2px rgba(20,28,36,.08);
+
+  /* ── accente de secțiune care erau pastel (invizibile pe alb) ── */
+  --al-sec-hist: #5B8FC7;
+  --eh-sec-stat: #5B8FC7;
+  --wl-sec-funnel: #5B8FC7;
+  --nq-sec-macro: #5B8FC7;
+  --pr-sec-thr: #5B8FC7;
+  --pr-sec-stat: #5B8FC7;
+  --sr-sec-spark: #5B8FC7;
+  --me-sec-vol: #5B8FC7;
+}
+
+:root[data-theme="dark"] { color-scheme: dark; }
+
+/* suite-ui.css setează --text/--muted/--text-dim HARDCODAT pe <body>, iar
+   definițiile pe body bat :root pentru tot ce e înăuntru → override explicit. */
+:root[data-theme="light"] body.suite-page,
+:root[data-theme="light"] body.hub-page,
+:root[data-theme="light"] body.cap-page,
+:root[data-theme="light"] body.macro-page,
+:root[data-theme="light"] body.al-page {
+  --bg: #E6EDF3;
+  --bg-grad: linear-gradient(180deg, #ffffff 0%, #E6EDF3 55%);
+  --bg2: #ffffff;
+  --bg3: #ffffff;
+  --bg4: #E6EDF3;
+  --panel: #ffffff;
+  --panel2: #ffffff;
+  --panel3: #E6EDF3;
+  --suite-bg: #E6EDF3;
+  --t1: #0E141A;
+  --t2: #26333F;
+  --t3: #8799AA;
+  --text: #0E141A;
+  --muted: #8799AA;
+  --text-dim: #8799AA;
+  --topbar-bg: rgba(255, 255, 255, .97);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Butonul de comutare (injectat de theme.js)
+   ═══════════════════════════════════════════════════════════════════ */
+.tt-theme-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size:14px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius:var(--rs, 4px);
+  border: 1px solid var(--b1, var(--border, #8799AA));
+  background: var(--panel2, var(--bg3, #26333F));
+  color: var(--t1, var(--text, #E6EDF3));
+  font-family: inherit;
+  transition: filter .15s ease, transform .15s ease;
+}
+.tt-theme-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
+.tt-theme-btn:focus-visible { outline: 2px solid var(--accent, #5B8FC7); outline-offset: 2px; }
+
+.tt-theme-btn.tt-theme-btn-float {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 9000;
+  width: 38px;
+  height: 38px;
+  box-shadow:none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Corecții structurale pentru light (suita e scrisă dark-first)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* banda cockpit (lib/cockpit.js injectează CSS dark-only cu culori literale) */
+:root[data-theme="light"] .ckb-band {
+  background: #E6EDF3 !important;
+  border-color: #E6EDF3 !important;
+  color: #0E141A !important;
+}
+:root[data-theme="light"] .ckb-lbl,
+:root[data-theme="light"] .ckb-sub,
+:root[data-theme="light"] .ckb-flat { color: #8799AA !important; }
+:root[data-theme="light"] .ckb-sub b { color: #0E141A !important; }
+:root[data-theme="light"] .ckb-up { color: #26A96C !important; }
+:root[data-theme="light"] .ckb-dn { color: #E0524A !important; }
+:root[data-theme="light"] .ckb-sep { background: #E6EDF3 !important; }
+:root[data-theme="light"] .ckb-dot { text-shadow:none; }
+:root[data-theme="light"] .ckb-gauge .ckb-gv { fill: #0E141A !important; }
+:root[data-theme="light"] .ckb-gauge .ckb-gl { fill: #8799AA !important; }
+:root[data-theme="light"] .ckb-link {
+  color: #5B8FC7 !important;
+  border-color: rgba(91,143,199,.35) !important;
+  background: rgba(91,143,199,.07) !important;
+}
+:root[data-theme="light"] .ckb-link:hover { background: rgba(91,143,199,.16) !important; }
+:root[data-theme="light"] .ckb-stale { color: #E9B949 !important; }
+
+:root[data-theme="light"] .ht-gap-strip {
+  background: var(--bg) !important;
+  border-color: #E6EDF3 !important;
+  border-left-color: #5B8FC7 !important;
+}
+:root[data-theme="light"] .ht-gap-title { color: #35485A !important; }
+:root[data-theme="light"] .ht-gap-count {
+  color: #ffffff !important;
+  background: #5B8FC7 !important;
+}
+:root[data-theme="light"] .ht-gap-chip {
+  background: #ffffff !important;
+  border-color: #E6EDF3 !important;
+  color: #1A242E !important;
+}
+:root[data-theme="light"] .ht-gap-chip:hover { background: #E6EDF3 !important; }
+:root[data-theme="light"] .ht-gap-chip.up,
+:root[data-theme="light"] .ht-gap-chip.down { background: #ffffff !important; }
+
+/* scanner-ui.css: cockpitul are gradient dark literal */
+:root[data-theme="light"] .scanner-cockpit {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(230,237,243,.97));
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   AUDIT LIGHT — selectori STRUCTURALI cu culori dark literale
+   (suita e scrisă dark-first; aici mutăm pe hârtie doar ce rupe vizibil
+   light-ul: panouri, headere, tabele, rânduri. Decorativele rămân.)
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root[data-theme="light"] {
+  --tt-glass: linear-gradient(180deg, rgba(255, 255, 255, .97), rgba(230,237,243,.94));
+  --tt-glass-soft: rgba(255, 255, 255, .70);
+}
+
+/* ── plasă de siguranță: nasdaq-scanner are `class="dark"` în markup-ul <body>
+      (fallback dacă JS pică). Definițiile lui pe body ar bate :root, deci le
+      re-suprascriem pe ACELAȘI element, cu specificitate mai mare. ── */
+:root[data-theme="light"] body.dark {
+  --bg: #E6EDF3; --bg2: #ffffff; --bg3: #ffffff; --bg4: #E6EDF3;
+  --panel: #ffffff; --panel2: #ffffff; --panel3: #E6EDF3;
+  --b1: #E6EDF3; --b2: #E6EDF3;
+  --t1: #0E141A; --t2: #26333F; --t3: #8799AA;
+  --acc: #5B8FC7; --accl: rgba(91,143,199,.08); --accb: rgba(91,143,199,.22);
+  --green: #26A96C; --greenl: rgba(38,169,108,.08); --greenb: rgba(38,169,108,.22);
+  --red: #E0524A; --redl: rgba(224,82,74,.08); --redb: rgba(224,82,74,.22);
+  --gold: #E9B949; --goldl: rgba(233,185,73,.08); --goldb: rgba(233,185,73,.22);
+  --cyan: #5B8FC7; --cyanl: rgba(91,143,199,.07);
+  --purple: #7c3aed; --purpll: rgba(124, 58, 237, .08); --purplb: rgba(124, 58, 237, .22);
+  --orange: #E9B949; --orangl: rgba(233,185,73,.08);
+  --teal: #5B8FC7; --teall: rgba(91,143,199,.08); --tealb: rgba(91,143,199,.22);
+  --crypto-1: #E9B949; --crypto-2: #E9B949;
+  --sh: 0 1px 2px rgba(20,28,36,.08);
+  --shh: 0 8px 24px rgba(20,28,36,.12), 0 1px 2px rgba(20,28,36,.06);
+  background-image: linear-gradient(180deg, #ffffff 0%, #E6EDF3 55%);
+}
+
+/* ── lib/suite-ui.css + macro-ui + scanner-ui + capital-ui: „glass" dark ── */
+:root[data-theme="light"] body.suite-page header.suite-cockpit,
+:root[data-theme="light"] body.suite-page .topbar.suite-cockpit,
+:root[data-theme="light"] body.suite-page .hdr.suite-cockpit,
+:root[data-theme="light"] body.suite-page header:not(.no-suite-shell),
+:root[data-theme="light"] body.suite-page .fd-top,
+:root[data-theme="light"] body.hub-page .hub-head-compact,
+:root[data-theme="light"] body.cap-page header.cap-header,
+:root[data-theme="light"] .cap-page header.cap-header,
+:root[data-theme="light"] .macro-cockpit {
+  background: var(--topbar-bg) !important;
+  box-shadow:none;
+}
+:root[data-theme="light"] body.suite-page .panel-head,
+:root[data-theme="light"] .suite-fold,
+:root[data-theme="light"] .suite-fold > summary,
+:root[data-theme="light"] .macro-fold,
+:root[data-theme="light"] .macro-fold > summary,
+:root[data-theme="light"] .cap-shell,
+:root[data-theme="light"] .cap-page .cfg,
+:root[data-theme="light"] .cap-journal .desk-macro-rail,
+:root[data-theme="light"] .cap-journal .dmr-chip,
+:root[data-theme="light"] .cap-equity .chart-wrap,
+:root[data-theme="light"] .hub-sess-bar,
+:root[data-theme="light"] .hub-pre5-steps li,
+:root[data-theme="light"] .hub-platform-strip,
+:root[data-theme="light"] .hub-launch,
+:root[data-theme="light"] .hub-catalog-fold,
+:root[data-theme="light"] .hub-dash-panel,
+:root[data-theme="light"] .hub-cockpit-fold,
+:root[data-theme="light"] .hub-checklist-panel,
+:root[data-theme="light"] .hub-search-fold,
+:root[data-theme="light"] .hub-search input,
+:root[data-theme="light"] .hub-card-live,
+:root[data-theme="light"] .ht-gold-bar .ht-ev,
+:root[data-theme="light"] .sig-metrics .metric,
+:root[data-theme="light"] .reco-stat,
+:root[data-theme="light"] .trade-detail {
+  background: var(--tt-glass) !important;
+}
+:root[data-theme="light"] .ht-gold-bar .ht-ev:hover { background: rgba(255, 255, 255, .99) !important; }
+
+/* accente păstrate, doar baza trece pe hârtie */
+:root[data-theme="light"] .hub-pre5,
+:root[data-theme="light"] body[data-hub-mode="pre"] .hub-checklist-panel {
+  background: linear-gradient(180deg, rgba(233,185,73,.10), rgba(255, 255, 255, .95)) !important;
+}
+:root[data-theme="light"] .hub-na { background: linear-gradient(135deg, rgba(233,185,73,.10), rgba(255, 255, 255, .95)) !important; }
+:root[data-theme="light"] .hub-na.prio-halt { background: linear-gradient(135deg, rgba(224,82,74,.14), rgba(255, 255, 255, .95)) !important; }
+:root[data-theme="light"] .hub-na.prio-warn { background: linear-gradient(135deg, rgba(233,185,73,.12), rgba(255, 255, 255, .95)) !important; }
+:root[data-theme="light"] .hub-na.prio-ok { background: linear-gradient(135deg, rgba(38,169,108,.12), rgba(255, 255, 255, .95)) !important; }
+
+/* ── hub (index.html): cardurile aveau gradient dark literal ── */
+:root[data-theme="light"] .card {
+  background: linear-gradient(180deg, #ffffff 0%, #E6EDF3 100%) !important;
+}
+
+/* ── alerts: bara de taburi „glass" ── */
+:root[data-theme="light"] .desk-tabs {
+  background: rgba(255, 255, 255, .92);
+  border-color: var(--b1);
+  box-shadow:none;
+}
+
+/* ── watchlist-monitor: panouri + tabel complet hardcodate dark ── */
+:root[data-theme="light"] .panel-box { background: var(--panel); border-color: var(--b1); }
+:root[data-theme="light"] .panel-head { background: var(--bg); border-bottom-color: var(--b1); }
+:root[data-theme="light"] .panel-head h3 { color: #0E141A !important; }
+:root[data-theme="light"] .panel-head .panel-sub { color: #35485A !important; }
+:root[data-theme="light"] .scanner-wrap,
+:root[data-theme="light"] #wlTable { background: #ffffff; }
+:root[data-theme="light"] #wlTable thead th { background: var(--bg); color: #0E141A; border-bottom-color: var(--b1); }
+:root[data-theme="light"] #wlTable thead th:hover { background: #E6EDF3; color: #5B8FC7; }
+:root[data-theme="light"] #wlTable tbody tr,
+:root[data-theme="light"] #wlTable tbody tr.v-strong-buy,
+:root[data-theme="light"] #wlTable tbody tr.v-strong-sell { background: #ffffff; }
+:root[data-theme="light"] #wlTable tbody tr:nth-child(even),
+:root[data-theme="light"] #wlTable tbody tr.v-strong-buy:nth-child(even) { background: #E6EDF3; }
+:root[data-theme="light"] #wlTable tbody tr:hover,
+:root[data-theme="light"] #wlTable tbody tr.v-strong-buy:hover { background: #E6EDF3; }
+:root[data-theme="light"] #wlTable .td-score,
+:root[data-theme="light"] #wlTable .td-price,
+:root[data-theme="light"] #wlTable .cell-num { color: #0E141A; }
+:root[data-theme="light"] #wlTable .cell-num.down { color: #E0524A; }
+:root[data-theme="light"] #wlTable .cell-num.warn { color: #E9B949; }
+:root[data-theme="light"] #wlTable .pre-price,
+:root[data-theme="light"] .pre-price { color: #35485A !important; }
+:root[data-theme="light"] #wlTable .action-btn { color: #0E141A; border-color: var(--b1); }
+:root[data-theme="light"] #wlTable .spark-trend-pct,
+:root[data-theme="light"] .anchor-tag { color: #26333F !important; }
+:root[data-theme="light"] .wlm-heat-chip,
+:root[data-theme="light"] .wlm-fun-meta,
+:root[data-theme="light"] .wlm-near-title,
+:root[data-theme="light"] .wlm-desk-hint,
+:root[data-theme="light"] .corr-banner,
+:root[data-theme="light"] .wl-regime,
+:root[data-theme="light"] .wl-pulse,
+:root[data-theme="light"] .fb-count,
+:root[data-theme="light"] .fb-toggle,
+:root[data-theme="light"] .add-bar label,
+:root[data-theme="light"] #wlMeta,
+:root[data-theme="light"] .status-pill { color: #26333F !important; }
+:root[data-theme="light"] .wlm-desk-bar { background: var(--tt-glass); }
+
+/* suite-ui.css v678 — shell layout MACRO pe toată suita
+ * Sursă canonică: macro-dashboard (full-bleed, sticky solid, radial bg, r=14).
+ * Pagini: body.suite-page | body.hub-page | body.cap-page | body.macro-page
+ */
+
+:root {
+  --suite-bg: #0E141A;
+  --suite-bg-grad: linear-gradient(#22303C,#22303C);
+  --suite-panel: #22303C;
+  --suite-panel2: #26333F;
+  --suite-panel3: #26333F;
+  --suite-border: #8799AA;
+  --suite-border2: #35485A;
+  --suite-t1: #E6EDF3;
+  --suite-t2: #E6EDF3;
+  --suite-t3: #E6EDF3;
+  --suite-accent: #5B8FC7;
+  --suite-r: 14px;
+  --suite-rs: 8px;
+  --suite-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --suite-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --suite-pad-x: clamp(8px, 1.2vw, 18px);
+  --suite-pad-y: 8px;
+  --mono: 'DM Mono', ui-monospace, monospace;
+  --head: 'Sora', system-ui, sans-serif;
+}
+
+/* ── Shell comun (layout Macro) ── */
+body.suite-page,
+body.hub-page,
+body.cap-page,
+body.macro-page {
+  padding: var(--suite-pad-y) var(--suite-pad-x) 24px !important;
+  background: var(--bg, var(--suite-bg));
+  background-image: var(--bg-grad, var(--suite-bg-grad));
+  background-attachment: fixed;
+  color: var(--t1, var(--suite-t1));
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+/* Tokeni clari (pagina poate suprascrie pe :root înainte de acest fișier) */
+body.suite-page,
+body.hub-page,
+body.cap-page {
+  --t1: var(--t1, #E6EDF3);
+  --t2: var(--t2, #E6EDF3);
+  --t3: var(--t3, #E6EDF3);
+  --text: #E6EDF3;
+  --muted: #E6EDF3;
+  --text-dim: #E6EDF3;
+  --accent: var(--accent, #5B8FC7);
+  --r: var(--r, 14px);
+  --rs: var(--rs, 8px);
+}
+
+/* Full-bleed wrap — ca .macro-wrap (fără max-width îngust) */
+.suite-wrap,
+.macro-wrap,
+.hub-wrap,
+.cap-wrap,
+body.hub-page .wrap,
+body.suite-page .fd-wrap,
+body.suite-page .app-wrap {
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0;
+}
+
+/* ── Sticky cockpit / header — solid, FĂRĂ blur (pattern Macro) ── */
+body.suite-page header.suite-cockpit,
+body.suite-page .topbar.suite-cockpit,
+body.suite-page .hdr.suite-cockpit,
+body.suite-page header:not(.no-suite-shell),
+body.suite-page .fd-top,
+body.hub-page .hub-head-compact,
+body.cap-page header.cap-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  margin-bottom: 12px;
+  border-radius: var(--suite-r);
+  border: 1px solid var(--b1, var(--suite-border));
+  background: linear-gradient(rgba(34,48,60,0.94),rgba(34,48,60,0.94)) !important;
+  box-shadow:none;
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+}
+
+/* Hub header: trece de la underline la cockpit Macro */
+body.hub-page .hub-head-compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  border-bottom: none;
+  background: linear-gradient(rgba(34,48,60,0.94),rgba(34,48,60,0.94));
+}
+
+body.suite-page .hdr.suite-cockpit,
+body.suite-page .fd-top.suite-cockpit {
+  border-bottom: 1px solid var(--br, var(--suite-border));
+}
+
+body.suite-page .fd-top {
+  top: 0;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+/* Badge suite (albastru Macro, nu orange forțat) */
+.suite-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight:600;
+  letter-spacing: 0.2px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #5B8FC7;
+  background: rgba(91,143,199,0.14);
+  border: 1px solid rgba(91,143,199,0.4);
+  margin-left: 4px;
+  vertical-align: middle;
+  -webkit-text-fill-color: #5B8FC7;
+}
+
+/* Panouri / carduri — radius + umbră Macro */
+body.suite-page .panel-box,
+body.suite-page .card,
+body.suite-page .panel,
+body.suite-page .add-bar,
+body.suite-page .thr-bar,
+body.suite-page .scan-bar,
+body.suite-page .stat,
+body.suite-page .heat-card,
+body.suite-page .stat-tile,
+body.hub-page .card,
+body.hub-page .panel,
+body.hub-page .pb-wrap,
+body.hub-page .hub-cockpit,
+body.hub-page .ht-card,
+body.cap-page .panel,
+body.cap-page .card {
+  border-radius: var(--suite-r);
+}
+
+body.suite-page .tabs-row,
+body.suite-page .filter-bar {
+  border-radius:5px;
+}
+
+body.suite-page header.suite-cockpit.mk-header {
+  display: block;
+  padding: 12px 14px;
+}
+
+body.suite-page header.suite-cockpit.mk-header h1 {
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+body.suite-page header.suite-cockpit.mk-header .hub-link {
+  margin-left: auto;
+}
+
+/* Clarity — text pe --t2, fără ceață */
+body.suite-page label,
+body.suite-page .muted,
+body.suite-page .sub,
+body.suite-page .meta,
+body.suite-page .hint,
+body.suite-page .stat-label,
+body.suite-page .stat-sub,
+body.suite-page .panel-sub,
+body.suite-page .subtitle,
+body.hub-page .card-desc,
+body.hub-page .lead {
+  color: var(--t2, var(--suite-t2));
+  opacity: 1;
+}
+
+body.suite-page header,
+body.suite-page .topbar,
+body.suite-page [class*="sticky"],
+body.suite-page .sticky {
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+}
+
+body.suite-page input::placeholder,
+body.suite-page textarea::placeholder {
+  color: #E6EDF3;
+  opacity: 1;
+}
+
+body.suite-page .status-pill {
+  color: var(--t1, var(--suite-t1));
+  font-weight: 600;
+}
+
+/* Panel Macro-like pe suite (dacă există .panel-box) */
+body.suite-page .panel-box {
+  border: 1px solid var(--b1, var(--suite-border));
+  background: var(--panel, var(--suite-panel));
+  box-shadow:none;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+body.suite-page .panel-head {
+  border-radius: var(--suite-r) var(--suite-r) 0 0;
+  background: linear-gradient(rgba(34,48,60,0.55),rgba(34,48,60,0.55));
+  border-bottom: 1px solid var(--b1, var(--suite-border));
+}
+
+/* Fold sections (pattern macro-fold) pe orice details.suite-fold */
+.suite-fold {
+  margin-bottom: 10px;
+  border: 1px solid var(--b1, var(--suite-border));
+  border-radius: var(--suite-r);
+  background: rgba(26,36,46,0.55);
+  overflow: hidden;
+  box-shadow:none;
+}
+
+.suite-fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--head);
+  font-size: 12px;
+  font-weight:600;
+  color: var(--t1, var(--suite-t1));
+  background: linear-gradient(rgba(34,48,60,0.55),rgba(34,48,60,0.55));
+  user-select: none;
+}
+
+.suite-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.suite-fold > summary::after {
+  content: "▾";
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--t3, var(--suite-t3));
+}
+
+.suite-fold:not([open]) > summary::after {
+  transform: rotate(-90deg);
+}
+
+.suite-fold[open] > summary {
+  border-bottom: 1px solid var(--b1, var(--suite-border));
+}
+
+@media (max-width: 640px) {
+  body.suite-page,
+  body.hub-page,
+  body.cap-page,
+  body.macro-page {
+    padding: 8px !important;
+  }
+
+  body.suite-page header.suite-cockpit,
+  body.suite-page .topbar.suite-cockpit,
+  body.hub-page .hub-head-compact {
+    border-radius:5px;
+  }
+}
+

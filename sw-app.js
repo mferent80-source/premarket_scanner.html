@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
-const CACHE_VERSION = 'tt-v861-2026-10-11';
+const CACHE_VERSION = 'tt-v862-2026-10-11';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -74,6 +74,7 @@ const PRECACHE = [
   './lib/suite-sessions.js',
   './alerts/',
   './alerts/index.html',
+  './alerts/tema-paznic-suita.css',
   './guide/',
   './guide/index.html',
   './health/',
