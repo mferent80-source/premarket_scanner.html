@@ -24,7 +24,7 @@ const LAT = +(process.argv[3] ?? 1440);
 
 const PAGINI = [
   'macro-dashboard/', 'sector-rotation/', 'nasdaq-scanner/', 'watchlist-monitor/',
-  'market-events/', 'smart-trade-long/', 'pump-radar/', 'markov-lab/', 'earnings-hub/',
+  'market-events/', 'smart-trade-long/', 'pump-radar/', 'markov-lab/',
   'factor-lab/', 'alerts/', 'journal/', 'portfolio/', 'weekly/', 'health/', 
   'equity/', 'shadow-book/', 'postmortem/', 'governor/', 'guide/', 'mfx-screener/', '',
 ];
