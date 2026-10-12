@@ -30,7 +30,6 @@ const PAGINI = [
   // „Calendar" / „Setari" si a raportat 6 butoane inexistente: taburile paginii sunt
   // etichetate DOAR cu emoji (📜 📖 ⚙). Un fals pozitiv intr-o garda e mai rau decat
   // lipsa ei, asa ca aici stau semnele care exista pe ecran.
-  { cale: '/macro-dashboard/', nume: 'macro-dashboard', apasa: ['📜', '📖', '⚙', '👁', '🇺🇸 US', '🟢 Bull'] },
   { cale: '/', nume: 'hub', apasa: ['Watchlist', 'deschide', 'rotație', 'scanner', 'reîmprospătează', 'hub clasic'] },
   { cale: '/hub-clasic/', nume: 'hub-clasic', apasa: ['🌅 Pre', '🔬 Review'] },
   { cale: '/pump-radar/', nume: 'pump-radar', apasa: ['scanează', 'varianta veche'] },

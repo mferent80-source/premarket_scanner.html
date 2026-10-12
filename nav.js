@@ -8,7 +8,7 @@
 
   var SEGS = [
     'nasdaq-scanner/', 'watchlist-monitor/', 'market-events/', 'smart-trade-long/', 'pump-radar/',
-    'macro-dashboard/', 'alerts/', 'guide/', 'health/', 'europe-stocks/'
+    'alerts/', 'guide/', 'health/', 'europe-stocks/'
   ];
 
   // ── iframe: fără dock, link-uri interne → shell ──
@@ -58,8 +58,7 @@
     {
       title: 'Hub & plan',
       items: [
-        { u: '', n: 'Hub', e: '🏠' },
-        { u: 'macro-dashboard/', n: 'Macro', e: '🌍' }
+        { u: '', n: 'Hub', e: '🏠' }
       ]
     },
     {
@@ -91,7 +90,6 @@
   // Bara scurtă (mereu vizibilă) — restul e în panoul „Toate”
   var QUICK = [
     { u: '', n: 'Hub', e: '🏠' },
-    { u: 'macro-dashboard/', n: 'Macro', e: '🌍' },
     { u: 'nasdaq-scanner/', n: 'Nasdaq', e: '📈' },
     { u: 'market-events/', n: 'Events', e: '📊' },
     { u: 'alerts/', n: 'Alerts', e: '🔔' },
