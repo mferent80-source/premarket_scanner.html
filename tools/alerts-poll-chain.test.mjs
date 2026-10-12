@@ -71,21 +71,8 @@ test('revenirea pe tab re-armează lanțul, nu doar un poll unic', () => {
   assert.match(PW, /visibilitychange/, 'lib/poll-wake.js re-armează la visibilitychange');
 });
 
-test('watchlist și nasdaq trezesc scan-ul prin PollWake', () => {
-  const wlm = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'watchlist-monitor', 'index.html'), 'utf8');
-  const nq = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'nasdaq-scanner', 'index.html'), 'utf8');
-  assert.match(wlm, /poll-wake\.js/);
-  assert.match(wlm, /PollWake\.bind/);
-  assert.match(nq, /poll-wake\.js/);
-  assert.match(nq, /PollWake\.bind/);
-});
-
-// 12.10.2026: market-events s-a mutat în Crypto Radar (index.html e doar indicator) ⇒ rămâne doar pump-radar
-test('pump-radar trezește poll-ul prin PollWake', () => {
-  const pr = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'pump-radar', 'index.html'), 'utf8');
-  assert.match(pr, /poll-wake\.js/);
-  assert.match(pr, /PollWake\.bind/);
-});
+// 12.10.2026: watchlist-monitor, nasdaq-scanner, pump-radar (și înainte market-events) s-au oprit după auditul semnalelor
+// (index.html e doar anunț) ⇒ testele lor de PollWake s-au scos; alerts rămâne mai sus.
 
 test('DATE VECHI pe pill sună o dată, nu la fiecare tick', () => {
   const fn = HTML.slice(HTML.indexOf('function paintPollHeartbeat'));

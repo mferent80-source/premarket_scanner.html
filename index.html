@@ -197,7 +197,7 @@ a.rand:hover .ce { color: var(--acc); }
     <div class="kick" id="kick">se încarcă</div>
     <h2 id="verdict">…</h2>
     <p id="dece">Adun macro, sectoarele și piața.</p>
-    <a class="go" id="go" href="./pump-radar/">Vezi ce se mișcă</a>
+    <a class="go" id="go" href="https://mau.tail9144fe.ts.net:8443/" target="_blank" rel="noopener">Vezi ce se mișcă</a>
     <div class="dovezi" id="dovezi"></div>
   </section>
 
@@ -211,7 +211,7 @@ a.rand:hover .ce { color: var(--acc); }
 
     <section class="f">
       <div class="f-cap"><h3>Piața</h3><span class="ago" id="piataAgo"></span>
-        <a class="deschide" href="./nasdaq-scanner/">scanner →</a></div>
+        <a class="deschide" href="https://mau.tail9144fe.ts.net:8443/" target="_blank" rel="noopener" title="Crypto Radar → Acțiuni">acțiuni în Radar ↗</a></div>
       <div class="cifre" id="piataCifre"></div>
     </section>
 
@@ -223,7 +223,7 @@ a.rand:hover .ce { color: var(--acc); }
 
     <section class="f">
       <div class="f-cap"><h3>Se mișcă acum</h3><span class="ago" id="pumpAgo"></span>
-        <a class="deschide" href="./pump-radar/">pump radar →</a></div>
+        <a class="deschide" href="https://mau.tail9144fe.ts.net:8443/" target="_blank" rel="noopener" title="Crypto Radar → Acțiuni">în Radar ↗</a></div>
       <div id="pump"></div>
     </section>
 
@@ -242,9 +242,6 @@ a.rand:hover .ce { color: var(--acc); }
     <section class="f">
       <div class="f-cap"><h3>Unelte</h3>
         <a class="deschide" href="./guide/">ghid →</a></div>
-      <a class="rand" href="./watchlist-monitor/"><span class="ce">Watchlist</span><span class="dr">ce urmăresc</span></a>
-      <a class="rand" href="./pump-radar/"><span class="ce">Pump Radar</span><span class="dr">mișcări bruște</span></a>
-      <a class="rand" href="./smart-trade-long/"><span class="ce">Smart Trade Long</span><span class="dr">intrări pe long</span></a>
       <a class="rand" href="https://mau.tail9144fe.ts.net:8443/" target="_blank" rel="noopener"><span class="ce">Rezultate ↗</span><span class="dr">în Crypto Radar</span></a>
       <a class="rand" href="./alerts/"><span class="ce">Alerte</span><span class="dr">Telegram</span></a>
       <a class="rand" href="./health/"><span class="ce">Sănătatea suitei</span><span class="dr">surse, chei</span></a>
@@ -423,7 +420,7 @@ function deseneaza() {
     ? j.why + ' Dar piața nu e în ședință, deci nu e nimic de executat acum.'
     : j.why;
   $('go').textContent = inchis ? 'Vezi rotația' : 'Vezi ce se mișcă';
-  $('go').href = inchis ? 'https://mau.tail9144fe.ts.net:8443/' : './pump-radar/';
+  $('go').href = 'https://mau.tail9144fe.ts.net:8443/';
   $('dovezi').innerHTML = j.dovezi.map((d) =>
     '<span class="pf ' + d.k + '"><b>' + esc(d.t) + '</b> ' + esc(d.v) + '</span>').join('');
 
@@ -498,7 +495,7 @@ function deseneaza() {
   const er = S.earn;
   if (!er || !er.ok) {
     $('earn').innerHTML = '<div class="gol">nu știu — ' + esc((er && er.motiv) || 'nu am putut întreba')
-      + (er && er.motiv === 'fără cheie' ? '. Pune cheia Finnhub în <a href="./nasdaq-scanner/" style="color:var(--acc)">Nasdaq Scanner</a>.' : '') + '</div>';
+      + (er && er.motiv === 'fără cheie' ? '. Cheia Finnhub e în <a href="https://mau.tail9144fe.ts.net:8443/" target="_blank" rel="noopener" style="color:var(--acc)">Crypto Radar → Rezultate</a>.' : '') + '</div>';
     $('earnAgo').textContent = '';
   } else if (!er.items.length) {
     $('earn').innerHTML = '<div class="gol">Nicio raportare în următoarele 14 zile.</div>';
@@ -573,13 +570,13 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script src="lib/suite-version.js?v=868"></script>
+<script src="lib/suite-version.js?v=869"></script>
 <script src="nav.js?v=682" data-nav-root="./"></script>
 <!-- tt:sw-guard:start -->
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v868';
+  var PAGE_VER = 'tt-v869';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

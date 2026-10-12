@@ -32,7 +32,6 @@ const PAGINI = [
   // lipsa ei, asa ca aici stau semnele care exista pe ecran.
   { cale: '/', nume: 'hub', apasa: ['Watchlist', 'deschide', 'rotație', 'scanner', 'reîmprospătează', 'hub clasic'] },
   { cale: '/hub-clasic/', nume: 'hub-clasic', apasa: ['🌅 Pre', '🔬 Review'] },
-  { cale: '/pump-radar/', nume: 'pump-radar', apasa: ['scanează', 'varianta veche'] },
 ];
 
 const asteapta = (ms) => new Promise((r) => setTimeout(r, ms));

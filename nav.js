@@ -7,7 +7,6 @@
   'use strict';
 
   var SEGS = [
-    'nasdaq-scanner/', 'watchlist-monitor/', 'smart-trade-long/', 'pump-radar/',
     'alerts/', 'guide/', 'health/', 'europe-stocks/'
   ];
 
@@ -64,11 +63,7 @@
     {
       title: 'Scan',
       items: [
-        { u: 'nasdaq-scanner/', n: 'Nasdaq', e: '📈' },
         { u: 'europe-stocks/', n: 'Acțiuni Europa', e: '🇪🇺' },
-        { u: 'smart-trade-long/', n: 'Smart Long', e: '🚀' },
-        { u: 'watchlist-monitor/', n: 'Watchlist', e: '👁' },
-        { u: 'pump-radar/', n: 'Pump Radar', e: '🔥' },
         { u: 'alerts/', n: 'Alerts', e: '🔔' }
       ]
     },
@@ -89,7 +84,6 @@
   // Bara scurtă (mereu vizibilă) — restul e în panoul „Toate”
   var QUICK = [
     { u: '', n: 'Hub', e: '🏠' },
-    { u: 'nasdaq-scanner/', n: 'Nasdaq', e: '📈' },
     { u: 'alerts/', n: 'Alerts', e: '🔔' },
     { u: 'health/', n: 'Health', e: '💚' }
   ];
@@ -272,7 +266,9 @@
   var RETRASE = [
     'router/', 'journal/', 'portfolio/', 'equity/', 'governor/', 'weekly/', 'shadow-book/',
     'postmortem/', 'markov-lab/', 'factor-lab/', 'mfx-screener/', 'hub-demo/',
-    'shell/', 'proxy/'
+    'shell/', 'proxy/',
+    // 12.10.2026: oprite după auditul semnalelor (niciunul n-a bătut întâmplarea) — index.html e doar anunț
+    'nasdaq-scanner/', 'watchlist-monitor/', 'smart-trade-long/', 'pump-radar/', 'candidate-engine/'
   ];
 
   function eRetras(href) {
