@@ -1,0 +1,28 @@
+# TEMPORAR (12.10.2026): scoate cheia Finnhub CRIPTATĂ (RSA-OAEP, cheia privată doar pe PC-ul lui Marius) ca s-o pună în Crypto Radar.
+# Se șterge imediat după o rulare. În jurnal apare doar textul criptat.
+name: temp-cheie-finnhub
+on: workflow_dispatch
+permissions: {}
+jobs:
+  cripteaza:
+    runs-on: ubuntu-latest
+    steps:
+      - name: cripteaza
+        env:
+          K: ${{ secrets.FINNHUB_API_KEY }}
+        run: |
+          cat > pub.pem <<'PEM'
+          -----BEGIN PUBLIC KEY-----
+          MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA3QRkF4FRArVj1WQ6akA9
+          yQ2rDUiM3yiqH0h4HrZxortY9LKrTVdv3LXj5jMU9nvYhqQaqEooyQQFpQtrFV9D
+          IyhZLGUfsWtkqvrihGoY42EBd5kmmFdxmxQsiz4ojTLrRNHIaeyNQneaSK44IuHe
+          aY191iTEdu0ZpFD2T1gLTCDxFGaSOtcydzpM5R2K9nMigQjbafLwsgCWxQKH7fX6
+          /GjXTdqNfRW66jUZ7tRAP1YhHTy6loIMqg5rtixB1KHgyOkSqnLdQ1D6xahN2nM2
+          GNcgLV4k8PRDgrDZ/h4xRv17297HvMMPhpuPtsRzybYuooVR1UrVQyP9i0azQGPG
+          mfL/nl1yVYlqbjDBhOGpvzwodgq+9rxdJkZ1y8ti91hLURHTJvH6LADKAL7qZaCz
+          PhBKPIJ9XGnv3GIJZmzTDcaV1rVwqJ7uMVS1v0noI866BgP2DURU8xfuV1rhqMfx
+          ifGOzCqKr5k8bhzJsrdJfCLqsx+n6I8pLEcSNi9/b5/BAgMBAAE=
+          -----END PUBLIC KEY-----
+          PEM
+          printf '%s' "$K" | openssl pkeyutl -encrypt -pubin -inkey pub.pem -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 | base64 -w0 > c.txt
+          echo "CRIPTAT_INCEPUT"; cat c.txt; echo; echo "CRIPTAT_SFARSIT"
