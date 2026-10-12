@@ -80,13 +80,11 @@ test('watchlist și nasdaq trezesc scan-ul prin PollWake', () => {
   assert.match(nq, /PollWake\.bind/);
 });
 
-test('pump-radar și market-events trezesc poll-ul prin PollWake', () => {
+// 12.10.2026: market-events s-a mutat în Crypto Radar (index.html e doar indicator) ⇒ rămâne doar pump-radar
+test('pump-radar trezește poll-ul prin PollWake', () => {
   const pr = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'pump-radar', 'index.html'), 'utf8');
-  const me = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'market-events', 'index.html'), 'utf8');
   assert.match(pr, /poll-wake\.js/);
   assert.match(pr, /PollWake\.bind/);
-  assert.match(me, /poll-wake\.js/);
-  assert.match(me, /PollWake\.bind/);
 });
 
 test('DATE VECHI pe pill sună o dată, nu la fiecare tick', () => {

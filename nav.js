@@ -7,7 +7,7 @@
   'use strict';
 
   var SEGS = [
-    'nasdaq-scanner/', 'watchlist-monitor/', 'market-events/', 'smart-trade-long/', 'pump-radar/',
+    'nasdaq-scanner/', 'watchlist-monitor/', 'smart-trade-long/', 'pump-radar/',
     'alerts/', 'guide/', 'health/', 'europe-stocks/'
   ];
 
@@ -68,7 +68,6 @@
         { u: 'europe-stocks/', n: 'Acțiuni Europa', e: '🇪🇺' },
         { u: 'smart-trade-long/', n: 'Smart Long', e: '🚀' },
         { u: 'watchlist-monitor/', n: 'Watchlist', e: '👁' },
-        { u: 'market-events/', n: 'Events', e: '📊' },
         { u: 'pump-radar/', n: 'Pump Radar', e: '🔥' },
         { u: 'alerts/', n: 'Alerts', e: '🔔' }
       ]
@@ -91,7 +90,6 @@
   var QUICK = [
     { u: '', n: 'Hub', e: '🏠' },
     { u: 'nasdaq-scanner/', n: 'Nasdaq', e: '📈' },
-    { u: 'market-events/', n: 'Events', e: '📊' },
     { u: 'alerts/', n: 'Alerts', e: '🔔' },
     { u: 'health/', n: 'Health', e: '💚' }
   ];
