@@ -471,21 +471,20 @@ function deseneaza() {
       }).join('')
     : '<div class="gol">Niciun eveniment high-impact în perioada acoperită de calendar.</div>';
 
-  // ── fereastra SE MIȘCĂ ACUM (Pump Radar) ──
-  // Aratam doar ce merita o privire: buy / watch / avoid. `skip` si `wait` sunt
-  // majoritatea simbolurilor in orice moment - o lista cu 24 de randuri din care 20
-  // spun „nimic" nu e informatie, e zgomot cu aspect de informatie.
-  const ACT = { buy: 'CUMPĂRĂ', watch: 'URMĂREȘTE', avoid: 'EVITĂ', wait: 'așteaptă', skip: '' };
-  const interesante = (S.pump || []).filter((x) => ['buy', 'watch', 'avoid'].includes(x.act));
-  $('pump').innerHTML = interesante.length
-    ? interesante.slice(0, 7).map((x) => {
-        const cls = x.act === 'avoid' ? 'dn' : 'up';
+  // ── fereastra SE MIȘCĂ ACUM ──
+  // 12.10.2026: Pump Radar s-a oprit după audit (sugestia „urmărește” a pierdut după costuri cât o intrare la întâmplare, „cumpără”
+  // nu apărea niciodată) ⇒ aici rămân DOAR datele: cine se mișcă cel mai mult azi, fără eticheta de cumpără / urmărește / evită.
+  const misca = (S.pump || []).filter((x) => Math.abs(x.chgDay || 0) >= 1)
+    .sort((a, b) => Math.abs(b.chgDay || 0) - Math.abs(a.chgDay || 0));
+  $('pump').innerHTML = misca.length
+    ? misca.slice(0, 7).map((x) => {
+        const cls = (x.chgDay || 0) < 0 ? 'dn' : 'up';
         return '<div class="rand"><span class="when" style="min-width:52px">' + esc(x.symbol) + '</span>'
-          + '<span class="ce ' + cls + '" style="font-family:var(--tt-mono);font-size:12px">' + esc(ACT[x.act]) + '</span>'
-          + '<span class="dr">' + pct(x.m5) + ' / 5 min · zi ' + pct(x.chgDay) + '</span></div>';
+          + '<span class="ce ' + cls + '" style="font-family:var(--tt-mono);font-size:12px">zi ' + pct(x.chgDay) + '</span>'
+          + '<span class="dr">ultimele 5 min ' + pct(x.m5) + '</span></div>';
       }).join('')
     : '<div class="gol">' + ((S.pump || []).length
-        ? 'Niciunul din cele ' + S.pump.length + ' simboluri nu se mișcă destul cât să merite o privire.'
+        ? 'Niciunul din cele ' + S.pump.length + ' simboluri nu se mișcă azi cu cel puțin 1%.'
         : 'nu știu — scanul nu a răspuns') + '</div>';
   $('pumpAgo').textContent = (S.pump || []).length ? S.pump.length + ' simboluri' : '';
 
@@ -570,13 +569,13 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script src="lib/suite-version.js?v=870"></script>
+<script src="lib/suite-version.js?v=871"></script>
 <script src="nav.js?v=682" data-nav-root="./"></script>
 <!-- tt:sw-guard:start -->
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v870';
+  var PAGE_VER = 'tt-v871';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

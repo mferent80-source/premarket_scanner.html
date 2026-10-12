@@ -185,7 +185,7 @@ header h1{
 </style>
 </head>
 <body class="suite-page">
-<script src="../lib/suite-version.js?v=870"></script>
+<script src="../lib/suite-version.js?v=871"></script>
 
 <header class="suite-cockpit">
   <h1>📖 Ghid Features <span class="ver-badge" id="verBadge">v8</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
@@ -223,155 +223,6 @@ const FEATURES_DB = [
     ]
   },
   {
-    page: 'macro-dashboard', pageLabel: '🌍 Macro Dashboard', pageUrl: '../macro-dashboard/',
-    features: [
-      { name:'Calendar economic 14 zile', icon:'📅', cat:'data', added:'2026-05-12', version:'v137', desc:'Finnhub /calendar/economic + fallback hardcoded US recurente. Filter impact/țară/search, sort sortabil' },
-      { name:'Historical sparkline events recurente', icon:'📊', cat:'charts', added:'2026-05-18', version:'v153', desc:'Mini-sparkline 84×22 sub denumire eveniment cu ultimele 8 rezultate (CPI/NFP/Jobless/etc.). Cache 24h' },
-      { name:'Istoric expand row', icon:'📈', cat:'charts', added:'2026-05-18', version:'v153', desc:'Click rând → sparkline mare 280×60 + 3 stat tiles (beat rate, surprise mediu, trend last3 vs prev3) + tabel 8 publicări' },
-      { name:'Result detection + flash 2.5s', icon:'⚡', cat:'alerts', added:'2026-05-18', version:'v146', desc:'Când actual apare, rând flash verde/roșu + clasa has-result persistentă 72h cu border tinted' },
-      { name:'Fast-poll 60s în release window', icon:'⚡', cat:'data', added:'2026-05-18', version:'v146', desc:'Auto-refresh 60s în T-15min ... T+30min al high-impact events. Pill ⚡ pulsing' },
-      { name:'Auto-suggest watchlist din surprise', icon:'🎯', cat:'alerts', added:'2026-05-18', version:'v154', desc:'La rezultat cu |surprise|≥2.5% sau high-impact + bias clar, panel sus cu cards tickere sugerate per sector. Persist 24h LS' },
-      { name:'Vol Week badge pe rânduri', icon:'⚡', cat:'data', added:'2026-05-18', version:'v157', desc:'Pe events high-impact, badge "⚡ VOL WEEK · N earnings" dacă săptămâna are ≥3 mega-cap earnings' },
-      { name:'Earnings 7z stat tile', icon:'📅', cat:'data', added:'2026-05-18', version:'v157', desc:'Stat tile separat cu count unique mega-caps în următoarele 7z. Click → Earnings Hub' },
-      { name:'Risk Dashboard composite', icon:'🛡', cat:'risk', added:'2026-05-18', version:'v158', desc:'Stat tile cu score composit din VIX (calm/fear/stress) + 10Y Δ30z bp + BTC/SPY corr 30d. Click → modal 3 cards + recomandare acțiune' },
-      { name:'Jurnal alerte istoric', icon:'📜', cat:'alerts', added:'2026-05-18', version:'v160', desc:'Buton 📜 cu badge counter unseen. Listă cronologică pre-event + result alerts. Filter Tip/Bias. Export JSON + Clear' },
-      { name:'Macro News (Finnhub + sentiment heuristic)', icon:'📰', cat:'data', added:'2026-05-12', version:'v138', desc:'News general+forex paralel, sentiment via keywords. AI inline expand cu impact' },
-      { name:'Crypto News (Finnhub + Reddit + Cointelegraph RSS)', icon:'₿', cat:'data', added:'2026-05-12', version:'v141', desc:'CryptoPanic înlocuit cu surse free no-key' },
-      { name:'AI Daily Brief editorial', icon:'🤖', cat:'ai', added:'2026-05-12', version:'v235', desc:'Auto-generat la prima deschidere a zilei (unul singur pe zi, cheie dateET; rerun manual). Format editorial: headline + standfirst + ~500-700 cuvinte în 4 secțiuni pe grid 2 coloane + card verdict (stocks/crypto/risc)' },
-      { name:'Ticker auto-link în brief', icon:'🔗', cat:'ai', added:'2026-05-12', version:'v145', desc:'100+ tickere auto-detectate în text → click deschide modal stock chart + 7 stats' },
-      { name:'AI follow-up per secțiune brief', icon:'🔍', cat:'ai', added:'2026-05-12', version:'v145', desc:'Click pe heading secțiune brief → AI elaborează 400-700 cuvinte cu prompt specific. Cache 12h' },
-      { name:'Drill-down stat tiles (chart 30d)', icon:'📊', cat:'charts', added:'2026-05-12', version:'v145', desc:'Click VIX/DXY/10Y/BTC/ETH → modal cu chart 30d + 6-7 stats + interpretare + corelații' },
-      { name:'Market mood theming auto-detect', icon:'🎨', cat:'ux', added:'2026-05-12', version:'v144', desc:'Background gradient + header tint + h1 gradient + mood-pill auto-shift per VIX/F&G/DXY/10Y' },
-      { name:'Alerte pre-event combo', icon:'🔔', cat:'alerts', added:'2026-05-12', version:'v140', desc:'Toast + beep 2-ton + browser notif + Telegram HTML. Threshold 30min/2h/24h. Dedupe 7z' },
-      { name:'CoinGecko fallback BTC/ETH', icon:'🪙', cat:'integration', added:'2026-05-18', version:'v162', desc:'Sursă directă (no proxy CORS) când Yahoo proxy pică. Plus chart 60d pentru Risk' },
-      { name:'ETF proxy fallback VXX/UUP/IEF', icon:'🔄', cat:'integration', added:'2026-05-18', version:'v163', desc:'Pentru VIX/DXY/10Y când Yahoo pică, folosesc Finnhub /quote pe VXX/UUP/IEF (Δ% direcțional)' },
-      { name:'TwelveData fallback chart indices', icon:'🔄', cat:'integration', added:'2026-05-18', version:'v167', desc:'Free 8/min cu cheia (registration twelvedata.com/free). Cascadă fetch 4 nivele' },
-      { name:'Toast UX persistent warn/error', icon:'🍞', cat:'ux', added:'2026-05-18', version:'v170', desc:'Warn/error nu se închid auto. Info/success 12s cu hover pauză. Buton X pe toate' }
-    ]
-  },
-  {
-    page: 'nasdaq-scanner', pageLabel: '📈 Nasdaq Opportunity Scanner', pageUrl: '../nasdaq-scanner/',
-    features: [
-      { name:'Tab 💡 Oportunit. (Reco)', icon:'💡', cat:'data', added:'2026-05-02', version:'v1', desc:'Top BUY/SELL recomandări cu score 0-100. Combinație RSI + range + trend 7z + fundamentale' },
-      { name:'Multi-Scan tab universe complet', icon:'📊', cat:'data', added:'2026-05-06', version:'v50', desc:'Scan 200+ stocks universal: scoring + sortare după strength' },
-      { name:'Pump Radar inline tab', icon:'⚡', cat:'alerts', added:'2026-05-06', version:'v50', desc:'Live alerts pump/dump/vol/momentum cu 4 alerte 5m. Throttle Finnhub free 60/min' },
-      { name:'Smart Trade Long inline', icon:'🎯', cat:'data', added:'2026-05-09', version:'v82', desc:'Verdict tier + niveluri auto + position sizer pe simbol direct din scanner' },
-      { name:'AI Quick Setup (Opus 5)', icon:'🎯', cat:'ai', added:'2026-05-18', version:'v184', desc:'Buton 🎯 pe carduri opportunity → JSON ready-to-execute cu Entry/SL/TP1/TP2/sizing/timeframe/risc/confidence + raționament detaliat + invalidation + catalysts' },
-      { name:'AI Analiza narativă (Claude opus-5 streaming)', icon:'🤖', cat:'ai', added:'2026-05-13', version:'v116', desc:'Per opportunity, analiză ~600 cuvinte cu context complet. Cache 30min' },
-      { name:'Custom Screener 🎯', icon:'🎯', cat:'data', added:'2026-05-09', version:'v82', desc:'Rule builder max 5 reguli AND combinate (chg/RSI/strength/price + 5 ops). Aplică pe TOATE tab-urile' },
-      { name:'Mini-chart popup (Yahoo)', icon:'📊', cat:'charts', added:'2026-05-09', version:'v82', desc:'Click 📊 pe card → mini-chart 30d candlestick + volume. Yahoo CORS proxy' },
-      { name:'Insider transactions feed', icon:'👔', cat:'data', added:'2026-05-13', version:'v116', desc:'Pre-load top 30 stocks după proximitate. Badge bull/bear/neutru per ticker' },
-      { name:'Earnings calendar inline', icon:'📅', cat:'data', added:'2026-05-13', version:'v116', desc:'Earnings ≤14z badge pe carduri + secțiune dedicată EPS history' },
-      { name:'Trading Journal hook 📓', icon:'📓', cat:'integration', added:'2026-05-09', version:'v82', desc:'Buton 📓 prefill journal cu entry/SL/TP din card' },
-      { name:'Compare mode 2-3 stocks', icon:'⚖', cat:'data', added:'2026-05-09', version:'v82', desc:'Side-by-side cu metrici + sparkline SVG per stock + actions TV/Remove' },
-      { name:'Keyboard shortcuts', icon:'⌨', cat:'ux', added:'2026-05-09', version:'v82', desc:'/ search · 1-9 tabs · r start/stop · t dark/light · Esc clear · ? help modal' },
-      { name:'Pre-market gappers tab Pre/After', icon:'🌅', cat:'data', added:'2026-05-09', version:'v82', desc:'Cache adaptiv 60s PM, auto-refresh 60s, toggle gappers ≥3%' },
-      { name:'Sector heatmap tab', icon:'🔥', cat:'charts', added:'2026-05-06', version:'v50', desc:'11 sectoare ETF cu Δ% color-coded grid' },
-      { name:'Squeeze radar (Bollinger)', icon:'🔍', cat:'data', added:'2026-05-09', version:'v82', desc:'BB squeeze detection cu RSI confirm' },
-      { name:'AI Briefing tab full', icon:'🤖', cat:'ai', added:'2026-05-13', version:'v116', desc:'AI generates daily briefing cu top picks + macro context' }
-    ]
-  },
-  {
-    page: 'smart-trade-long', pageLabel: '🎯 Smart Trade Long', pageUrl: '../smart-trade-long/',
-    features: [
-      { name:'5-filter scoring (100 pts)', icon:'📊', cat:'data', added:'2026-05-09', version:'v82', desc:'MA Structure 25 + Volume 15 + RSI Sweet 20 + ADX Trend 20 + R:R 20' },
-      { name:'Verdict 4-tier', icon:'🎯', cat:'data', added:'2026-05-09', version:'v82', desc:'🚀 READY ≥90 / 🟢 OK ≥70 / 🟡 MIXT ≥50 / 🔴 NU <50' },
-      { name:'Niveluri auto din ATR', icon:'📐', cat:'data', added:'2026-05-09', version:'v82', desc:'Entry=preț · SL=−1.5×ATR · TP1=+1×ATR · TP2=+2×ATR · TP3=+3×ATR' },
-      { name:'Position Sizer', icon:'💰', cat:'risk', added:'2026-05-09', version:'v82', desc:'Input cont + risc% → shares + position $ + % cont + profit așteptat TP2' },
-      { name:'Insider widget 90 zile', icon:'👔', cat:'data', added:'2026-05-09', version:'v82', desc:'P/A buys + S/D sells + net USD + verdict + lista top 8 tranzacții' },
-      { name:'AI Quick Setup (Opus 5)', icon:'🎯', cat:'ai', added:'2026-05-18', version:'v180', desc:'Buton 🎯 după Insider → JSON cu Entry/SL/TP1/TP2/sizing/timeframe/risc/confidence + raționament + invalidation + catalysts' },
-      { name:'Watchlist chips quick scan', icon:'⭐', cat:'integration', added:'2026-05-09', version:'v82', desc:'Citește wl_stocks shared, click chip = scan rapid' },
-      { name:'Auto-scan 5min toggle', icon:'🔄', cat:'data', added:'2026-05-09', version:'v82', desc:'Refresh automat cu countdown live' },
-      { name:'Auto-restore ultimul scan', icon:'💾', cat:'ux', added:'2026-05-09', version:'v82', desc:'Restore symbol + account + risc + auto-scan state' },
-      { name:'Proxy CORS chain 6 fallback', icon:'🔄', cat:'integration', added:'2026-05-18', version:'v181', desc:'codetabs/corsproxy/cors.lol/allorigins/cors.sh cu auto-marker dead pe HTML/Edge response' }
-    ]
-  },
-  {
-    page: 'pump-radar', pageLabel: '⚡ Pump Radar Stocks', pageUrl: '../pump-radar/',
-    features: [
-      { name:'Universe ~24 stocks intraday', icon:'📊', cat:'data', added:'2026-05-12', version:'v100', desc:'Mega-caps + volatile (PLTR/SMCI/COIN/MSTR/etc.). Yahoo /spark BATCH 5m' },
-      { name:'4 tipuri alerte 5m', icon:'⚡', cat:'alerts', added:'2026-05-12', version:'v100', desc:'pump (Δ≥prag) / dump (≤-prag) / vol spike (×medie) / momentum shift (3 consec)' },
-      { name:'Heat score 0-100', icon:'🔥', cat:'data', added:'2026-05-12', version:'v100', desc:'|Δ5m| + exces volum + bonus momentum' },
-      { name:'AI Quick Setup (Opus 5)', icon:'🎯', cat:'ai', added:'2026-05-18', version:'v183', desc:'Buton 🎯 în expand → JSON pump setup cu sizing 1-3% + raționament + invalidation + catalysts. Reguli specifice pump' },
-      { name:'AI Analiza narativă streaming', icon:'🤖', cat:'ai', added:'2026-05-13', version:'v107', desc:'Per alert, raționament tehnic ~600 cuvinte. Cache 1h cheia setup similar' },
-      { name:'Sugestie algoritmică 5 tier', icon:'🎯', cat:'data', added:'2026-05-13', version:'v103', desc:'🚀BUY/🟢WATCH/🟡WAIT/🔴AVOID/⏭SKIP din alerte+RSI+chgDay+heat+insider' },
-      { name:'Expand row 3 box-uri', icon:'📊', cat:'charts', added:'2026-05-13', version:'v106', desc:'Sparkline 60 bare + tabel 8 bare + Statistici scan + Insider list' },
-      { name:'Insider on-alert + pre-load top 20', icon:'👔', cat:'data', added:'2026-05-13', version:'v103', desc:'Finnhub /stock/insider-transactions 60z. Pre-load watchlist + top 20 după heat' },
-      { name:'Sliders praguri reevaluare on-spot', icon:'🎛', cat:'ux', added:'2026-05-12', version:'v100', desc:'pump/dump/vol/preț → recomputeAlerts fără re-fetch' },
-      { name:'Auto-scan 30/60/120s', icon:'🔄', cat:'data', added:'2026-05-12', version:'v100', desc:'Self-reschedule cu countdown + indicator sesiune NYSE DST-aware' },
-      { name:'Notif combo (toast+beep+browser+Telegram)', icon:'🔔', cat:'alerts', added:'2026-05-12', version:'v100', desc:'Dedupe + grupare per scan. Toast persistent, beep 2-ton, browser cu permission, TG HTML' },
-      { name:'Watchlist ⭐ shared', icon:'⭐', cat:'integration', added:'2026-05-12', version:'v100', desc:'Cheie wl_stocks shared cu nasdaq-scanner + watchlist-monitor' }
-    ]
-  },
-  {
-    page: 'earnings-hub', pageLabel: '📊 Earnings Hub', pageUrl: '../earnings-hub/',
-    features: [
-      { name:'Calendar 30 zile filter strict US', icon:'📅', cat:'data', added:'2026-05-13', version:'v119', desc:'Finnhub /calendar/earnings cu regex [A-Z]{1,5} + cerință EPS/revenue' },
-      { name:'EPS history 8 trim + reacție 1z', icon:'📊', cat:'charts', added:'2026-05-13', version:'v119', desc:'Yahoo chart 2y → Δ% close zi tranz vs prev pentru fiecare earning historic' },
-      { name:'AI verdict 5 tier', icon:'🧠', cat:'ai', added:'2026-05-13', version:'v119', desc:'🚀 HIGH BEAT (≥75% + avg ≥3%) / 🟢 LIKELY BEAT (≥60%) / 🟡 MIXT / 🔴 LIKELY MISS / ⚪ N/A' },
-      { name:'Sugestie acțiune 5 tier', icon:'🎯', cat:'data', added:'2026-05-13', version:'v119', desc:'BUY/WATCH/WAIT/AVOID/SKIP derivată algoritmic din EPS + insider + reacție' },
-      { name:'Insider 60z pre-earnings + pre-load 30', icon:'👔', cat:'data', added:'2026-05-13', version:'v119', desc:'Clasificare prin semn change + transactionCode fallback. Pre-load watchlist + top 30' },
-      { name:'AI Analiză narativă (Claude opus streaming)', icon:'🤖', cat:'ai', added:'2026-05-13', version:'v116', desc:'Per ticker în expand, ~600 cuvinte cu context EPS+insider+reacții+tag' },
-      { name:'AI Quick Setup pre/post-earnings', icon:'🎯', cat:'ai', added:'2026-05-18', version:'v185', desc:'Buton 🎯 → JSON pre/post-earnings cu sizing max 3% + reasoning + invalidation + catalysts. Reguli specifice (skip dacă beat<70% + insider bear)' },
-      { name:'Alerte ≤prag (default 48h)', icon:'🔔', cat:'alerts', added:'2026-05-13', version:'v119', desc:'Watchlist ∩ calendar cu zile≤threshold. Dedupe 14z. Combo notify' },
-      { name:'Filter chips counts', icon:'🔍', cat:'ux', added:'2026-05-13', version:'v122', desc:'Chips Toate/⭐/<48h/7d/BMO/AMC cu counts vizibili' },
-      { name:'Hot strip top 6 watchlist ≤7z', icon:'🔥', cat:'charts', added:'2026-05-13', version:'v119', desc:'Cards top 6 cu urgent class la ≤threshold' }
-    ]
-  },
-  {
-    page: 'market-events', pageLabel: '📅 Market Events', pageUrl: '../market-events/',
-    features: [
-      { name:'Earnings calendar 14z + filter Mcap', icon:'⚡', cat:'data', added:'2026-05-06', version:'v50', desc:'Nasdaq API earnings ≤14z cu min Mcap configurabil + BMO/AMC + EPS forecast' },
-      { name:'Top Losers tab', icon:'🔻', cat:'data', added:'2026-05-06', version:'v50', desc:'Stocks oversold cu intraday low% < threshold + Mcap minim' },
-      { name:'Watchlist horizontal grid 10 col', icon:'⭐', cat:'data', added:'2026-05-06', version:'v50', desc:'Tickere monitorizate cu preț live + Δ%, click chip = scan rapid' },
-      { name:'AI Analiză narativă streaming', icon:'🤖', cat:'ai', added:'2026-05-06', version:'v50', desc:'Buton 🤖 per rând → modal cu raționament tehnic Claude streaming' },
-      { name:'AI Quick Setup (Opus 5)', icon:'🎯', cat:'ai', added:'2026-05-18', version:'v188', desc:'Buton 🎯 per rând → modal JSON ready-to-execute (Entry/SL/TP1/TP2/sizing/timeframe/risc/confidence + raționament + invalidation + catalysts). Adaptat per tip: earnings (pre/post-play, sizing max 2%), loser (bounce/reversal setup), watchlist (standard)' },
-      { name:'Position sizer Trade 212', icon:'🧮', cat:'risk', added:'2026-05-06', version:'v50', desc:'Calculează poziție pentru risc fix per trade. Input: account + risc% + entry + SL' },
-      { name:'Smart alerts custom', icon:'🔔', cat:'alerts', added:'2026-05-06', version:'v50', desc:'Notificări custom pe Δ% / low azi / vol/avg / zile-earnings cu badge counter' },
-      { name:'Market session indicator', icon:'⏱', cat:'ux', added:'2026-05-06', version:'v50', desc:'Pre/Open/After/Closed cu transition tracking + sentiment cards' },
-      { name:'Volume Heatmap', icon:'🔥', cat:'charts', added:'2026-05-06', version:'v50', desc:'Stocks cu volum anormal vs medie (gradient color)' },
-      { name:'Sector Heatmap', icon:'🔥', cat:'charts', added:'2026-05-06', version:'v50', desc:'11 sectoare ETF cu Δ% color-coded + fallback industry/exchange' },
-      { name:'Compare AI multi-stock', icon:'⚖', cat:'ai', added:'2026-05-06', version:'v50', desc:'Selectează N earnings → AI le compară side-by-side' }
-    ]
-  },
-  {
-    page: 'sector-rotation', pageLabel: '🔄 Sector Rotation', pageUrl: '../sector-rotation/',
-    features: [
-      { name:'11 sectoare ETFs', icon:'🏭', cat:'data', added:'2026-05-17', version:'v149', desc:'XLF/XLK/XLE/XLV/XLY/XLP/XLU/XLI/XLB/XLRE/XLC live' },
-      { name:'Heatmap rotație 1d/1w/1m/3m', icon:'🔥', cat:'charts', added:'2026-05-17', version:'v149', desc:'Color-coded grid cu Δ% per timeframe' },
-      { name:'Momentum shifts 1d/1w/1m', icon:'⚡', cat:'data', added:'2026-05-17', version:'v149', desc:'Detect schimbări rapide momentum între sectoare' },
-      { name:'Drill-down click sector', icon:'📊', cat:'charts', added:'2026-05-17', version:'v149', desc:'Sparkline 60z + top 5 holdings + stats 52w' },
-      { name:'Holdings range 3mo', icon:'📊', cat:'data', added:'2026-05-17', version:'v150', desc:'Parse chart min 25 bare (range 1mo → 3mo fix)' },
-      { name:'AI bubble Claude pe sector', icon:'🤖', cat:'ai', added:'2026-05-17', version:'v151', desc:'Analiză rotație sector cu context cross-sector' },
-      { name:'Alerte rotație hot↔cold', icon:'🔔', cat:'alerts', added:'2026-05-17', version:'v151', desc:'Telegram + beep când sector cycling agresiv' }
-    ]
-  },
-  {
-    page: 'watchlist-monitor', pageLabel: '⭐ Watchlist Monitor Stocks', pageUrl: '../watchlist-monitor/',
-    features: [
-      { name:'Auto-scan 60/180/300s', icon:'🔄', cat:'data', added:'2026-05-09', version:'v82', desc:'Configurabil cu countdown live. Self-reschedule pe setTimeout' },
-      { name:'Scoring stocks (MA50+MA200+RSI+GC)', icon:'📊', cat:'data', added:'2026-05-09', version:'v82', desc:'5 factori + verdict 5-tier (STRONG BUY/BUY/HOLD/SELL/AVOID)' },
-      { name:'Sparkline 30z SVG', icon:'📊', cat:'charts', added:'2026-05-11', version:'v97', desc:'Mini per rând + col sortabilă "📈 30z"' },
-      { name:'Flash rând Δscore ±2', icon:'⚡', cat:'ux', added:'2026-05-11', version:'v97', desc:'Verde/roșu animation + bară verdict color-coded stânga' },
-      { name:'Hot strip top 3 score≥55', icon:'🔥', cat:'charts', added:'2026-05-11', version:'v97', desc:'Strip top 3 cu click→scroll' },
-      { name:'Panou detalii inline (F4)', icon:'📊', cat:'charts', added:'2026-05-11', version:'v97', desc:'Sparkline 60z mare + dist 52s + ATR≈ + breakdown score + plan long ATR' },
-      { name:'Bara filtre chip-uri + search', icon:'🔍', cat:'ux', added:'2026-05-11', version:'v97', desc:'Verdict chips + ticker search + movers |Δ|≥2% + contor' },
-      { name:'Countdown live + jurnal verdicte', icon:'⏱', cat:'ux', added:'2026-05-11', version:'v97', desc:'Header countdown + 📋 cu badge unseen verdicte change' },
-      { name:'🔊 beep + 📡 Telegram alerte', icon:'🔔', cat:'alerts', added:'2026-05-11', version:'v97', desc:'WebAudio + TG config în modal. STRONG BUY nou → notify combo' },
-      { name:'Quick-add tickere populare', icon:'➕', cat:'ux', added:'2026-05-11', version:'v97', desc:'Empty-state cu tickere populare + 📥 din Scanner (citește nasdaq_last_scan)' },
-      { name:'Perf tracking primul BUY', icon:'🚀', cat:'data', added:'2026-05-11', version:'v97', desc:'Memorează preț primul BUY/STRONG BUY → afișează "🚀 +X% · Nz" pe rând' },
-      { name:'CORS proxy chain 4 fallback', icon:'🔄', cat:'integration', added:'2026-05-11', version:'v98', desc:'codetabs + allorigins + corsproxy + thingproxy cu detecție 429' },
-      { name:'RVOL proiectat intraday', icon:'🔊', cat:'data', added:'2026-06-10', version:'v126', desc:'Volumul parțial al zilei proiectat la sesiunea întreagă (~); primele 45 min fără evaluare — fără penalizare „anemic" falsă dimineața' },
-      { name:'Auto-scan adaptiv', icon:'🌙', cat:'data', added:'2026-06-10', version:'v129', desc:'Piață închisă → interval întins 10 min; tab în background → pauză + scan la revenire dacă termenul a trecut' },
-      { name:'AI verdict în detalii', icon:'🤖', cat:'integration', added:'2026-06-10', version:'v130', desc:'claude-opus-5: LONG/AȘTEAPTĂ/SKIP + plan ancorat pe nivelurile reale (ATR/MA/52s) — anti-halucinare. Cache 1h + Rerun' },
-      { name:'Alerte de preț manuale', icon:'⏰', cat:'alerts', added:'2026-06-10', version:'v131', desc:'„Peste/sub $X" per stock, one-shot sau re-arm (histerezis 0.3%); toast+beep+Telegram+notif; badge ⏰N pe rând' },
-      { name:'Beta vs QQQ + warning concentrare', icon:'β', cat:'data', added:'2026-06-10', version:'v132', desc:'Beta ~120z în detalii + banner când ≥3 stocks au ρ≥0.8 (diversificare falsă). Zero request-uri — calcul local' },
-      { name:'Hook Smart Trade Long', icon:'🎯', cat:'integration', added:'2026-06-10', version:'v133', desc:'Buton în detalii → smart-trade-long cu ?symbol= prefill' },
-      { name:'Sector real per rând', icon:'🏭', cat:'data', added:'2026-06-10', version:'v134', desc:'Industria Finnhub profile2 sub ticker, cache 30z, max 30 fetch/scan; alimentează warning-ul de concentrare' },
-      { name:'Digest zilnic Telegram', icon:'📰', cat:'alerts', added:'2026-06-10', version:'v135', desc:'La intrarea în after-hours: verdicte, top movers, schimbări, STRONG BUY-uri — 1 mesaj/zi, toggle în 📡' }
-    ]
-  },
-  {
     page: 'playbook', pageLabel: '🎯 Today\'s Playbook (secțiune în Hub)', pageUrl: '../',
     features: [
       { name:'Hero 3 cards (Risk + Events + WL)', icon:'🛡', cat:'data', added:'2026-05-18', version:'v1', desc:'Risk Regime live + high-impact events count + watchlist count' },
@@ -385,6 +236,14 @@ const FEATURES_DB = [
     ]
   },
   {
+    page: 'crypto-radar', pageLabel: '📡 Crypto Radar (tot ce s-a mutat)', pageUrl: 'https://mau.tail9144fe.ts.net:8443/',
+    features: [
+      { name:'Macro, sectoare, rezultate, lățimea US', icon:'🧭', cat:'integration', added:'2026-10-12', version:'tt-v871', desc:'Macro Dashboard, Sector Rotation, Earnings Hub, Market Breadth și Weekly s-au mutat în Crypto Radar (Dashboard, pagina Acțiuni, Rezultate, raportul de duminică), 11–12.10.2026.' },
+      { name:'Calculatorul de poziție', icon:'🧮', cat:'integration', added:'2026-10-12', version:'tt-v871', desc:'Sizerul din Market Events e în Crypto Radar → Trading 212 → Vreau să cumpăr… → „am deja un plan în minte” (lei, contul T212, riscul tău).' },
+      { name:'Scanerele oprite', icon:'🛑', cat:'integration', added:'2026-10-12', version:'tt-v871', desc:'Nasdaq Scanner, Watchlist, Smart Trade Long, Pump Radar, Candidate Engine, Factor Lab, Markov, MFX și Post-Mortem s-au oprit după auditul din 12.10.2026: niciun semnal n-a bătut intrările la întâmplare.' },
+    ]
+  },
+  {
     page: 'alerts', pageLabel: '🔔 Price Alerts', pageUrl: '../alerts/',
     features: [
       { name:'Custom price alerts stocks+crypto', icon:'🔔', cat:'alerts', added:'2026-05-18', version:'v1', desc:'Add Ticker + Prag $ + Direcție ▲/▼ + Note opțional. LS pa_alerts_v1' },
@@ -393,19 +252,6 @@ const FEATURES_DB = [
       { name:'Surse no-proxy', icon:'🔄', cat:'integration', added:'2026-05-18', version:'v1', desc:'Finnhub /quote pentru stocks/ETF + CoinGecko direct pentru BTC/ETH/SOL' },
       { name:'Δ% close to trigger warn', icon:'⚡', cat:'ux', added:'2026-05-18', version:'v1', desc:'Coloana Δ% devine galben când <1.5% de prag' },
       { name:'Triggered history (max 50)', icon:'✅', cat:'data', added:'2026-05-18', version:'v1', desc:'Border-left verde (above) sau roșu (below) + age in min/h + reactivate ↻' }
-    ]
-  },
-  {
-    page: 'markov-lab', pageLabel: '🔗 Markov Lab', pageUrl: '../markov-lab/',
-    features: [
-      { name:'HMM gaussian regim de volatilitate', icon:'📊', cat:'data', added:'2026-06-14', version:'v3.9', desc:'Hidden Markov Model gaussian cu K stări (calm/normal/volatil) pe randamente + ATR. Estimare via Baum-Welch + decodare Viterbi pe bare ÎNCHISE (drop bara curentă parțială)' },
-      { name:'Lanț Markov direcție', icon:'🔗', cat:'data', added:'2026-06-14', version:'v3.9', desc:'Matrice de tranziție N-stări pe direcția randamentelor → probabilități condiționate de starea curentă + prognoza pasului următor' },
-      { name:'Teste statistice (chi² / log-loss)', icon:'🧪', cat:'data', added:'2026-06-14', version:'v3.9', desc:'Chi² pentru independența tranzițiilor (lanțul aduce informație vs random) + log-loss pe predicții pentru calibrare onestă' },
-      { name:'First-passage time', icon:'⏱', cat:'data', added:'2026-06-14', version:'v3.9', desc:'Timpul mediu așteptat până la atingerea unei stări țintă din starea curentă — cât durează tipic ieșirea dintr-un regim' },
-      { name:'Backtest fade în regim volatil (OOS)', icon:'🎯', cat:'data', added:'2026-06-14', version:'v3.9', desc:'Strategia „fade în regim volatil" validată walk-forward, cu t-statistic onest (semnificativ doar |t|>2). Motor MK.* din lib/markov.js' },
-      { name:'Banda istoric regimuri pe chart', icon:'📈', cat:'charts', added:'2026-06-14', version:'v3.9', desc:'Vizualizare retrospectivă a stărilor decodate de-a lungul istoricului (descriptiv), separat de regimul curent + prognoza de vol (cauzale, live)' },
-      { name:'AI bubble (Opus 5)', icon:'🤖', cat:'ai', added:'2026-06-14', version:'v3.9', desc:'Interpretare narativă a regimului + matricei + prognozei via claude-opus-5. Afișare deodată cu fade-in (fără streaming token-cu-token)' },
-      { name:'Multi-sursă crypto + stocks', icon:'🔄', cat:'integration', added:'2026-06-14', version:'v3.9', desc:'OHLC via lib/data.js (D.*): Binance pentru crypto + Yahoo pentru stocks, TF 1h/4h/1d/1wk. Proxy health-scoring + cache TTL. Persistă ultimul simbol+setări în LS' }
     ]
   },
   {
@@ -669,7 +515,7 @@ if (focusPage) {
 }
 
 if ('serviceWorker' in navigator) {
-  const swVer = 'tt-v870';
+  const swVer = 'tt-v871';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
@@ -678,7 +524,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v870';
+  var PAGE_VER = 'tt-v871';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
