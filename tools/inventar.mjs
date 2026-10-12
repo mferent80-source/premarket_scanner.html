@@ -23,9 +23,8 @@ const GAZDA = (process.argv[2] ?? 'http://127.0.0.1:8777').replace(/\/$/, '');
 const LAT = +(process.argv[3] ?? 1440);
 
 const PAGINI = [
-  'markov-lab/',
   'alerts/', 'journal/', 'portfolio/', 'health/', 
-  'equity/', 'shadow-book/', 'postmortem/', 'governor/', 'guide/', 'mfx-screener/', '',
+  'equity/', 'shadow-book/', 'governor/', 'guide/', '',
 ];
 
 // Tintele. Sunt ale mele, declarate, nu universale - dar macar sunt scrise.
