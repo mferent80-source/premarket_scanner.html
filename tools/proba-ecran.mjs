@@ -31,7 +31,6 @@ const PAGINI = [
   // etichetate DOAR cu emoji (📜 📖 ⚙). Un fals pozitiv intr-o garda e mai rau decat
   // lipsa ei, asa ca aici stau semnele care exista pe ecran.
   { cale: '/macro-dashboard/', nume: 'macro-dashboard', apasa: ['📜', '📖', '⚙', '👁', '🇺🇸 US', '🟢 Bull'] },
-  { cale: '/sector-rotation/', nume: 'sector-rotation', apasa: [] },
   { cale: '/', nume: 'hub', apasa: ['Watchlist', 'deschide', 'rotație', 'scanner', 'reîmprospătează', 'hub clasic'] },
   { cale: '/hub-clasic/', nume: 'hub-clasic', apasa: ['🌅 Pre', '🔬 Review'] },
   { cale: '/pump-radar/', nume: 'pump-radar', apasa: ['scanează', 'varianta veche'] },

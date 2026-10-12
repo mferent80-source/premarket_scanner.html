@@ -8,7 +8,7 @@
 
   var SEGS = [
     'nasdaq-scanner/', 'watchlist-monitor/', 'market-events/', 'smart-trade-long/', 'pump-radar/',
-    'sector-rotation/', 'macro-dashboard/', 'alerts/', 'guide/', 'health/', 'europe-stocks/'
+    'macro-dashboard/', 'alerts/', 'guide/', 'health/', 'europe-stocks/'
   ];
 
   // ── iframe: fără dock, link-uri interne → shell ──
@@ -59,8 +59,7 @@
       title: 'Hub & plan',
       items: [
         { u: '', n: 'Hub', e: '🏠' },
-        { u: 'macro-dashboard/', n: 'Macro', e: '🌍' },
-        { u: 'sector-rotation/', n: 'Sector', e: '🔄' }
+        { u: 'macro-dashboard/', n: 'Macro', e: '🌍' }
       ]
     },
     {

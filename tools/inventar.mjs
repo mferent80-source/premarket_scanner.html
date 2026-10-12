@@ -23,7 +23,7 @@ const GAZDA = (process.argv[2] ?? 'http://127.0.0.1:8777').replace(/\/$/, '');
 const LAT = +(process.argv[3] ?? 1440);
 
 const PAGINI = [
-  'macro-dashboard/', 'sector-rotation/', 'nasdaq-scanner/', 'watchlist-monitor/',
+  'macro-dashboard/', 'nasdaq-scanner/', 'watchlist-monitor/',
   'market-events/', 'smart-trade-long/', 'pump-radar/', 'markov-lab/',
   'factor-lab/', 'alerts/', 'journal/', 'portfolio/', 'health/', 
   'equity/', 'shadow-book/', 'postmortem/', 'governor/', 'guide/', 'mfx-screener/', '',
