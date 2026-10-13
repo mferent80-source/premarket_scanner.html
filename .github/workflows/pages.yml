@@ -1,9 +1,10 @@
 name: Trading Tools publication and Breadth
-run-name: "${{ github.event_name == 'push' && 'App publication' || 'Breadth' }} ${{ inputs.request_id || github.event_name }}"
+run-name: "Breadth ${{ inputs.request_id || github.event_name }}"
 
+# 13.10.2026 (curățenia GitHub): site-ul îl publică GitHub Pages din ramura main (build_type „legacy”), și după commiturile
+# robotului - verificat. Jobul de publicare de aici (deploy-pages la fiecare push) era o dublură care rămânea blocată ore întregi
+# (30 de rulări anulate pe săptămână) ⇒ scos, împreună cu declanșarea la push. Rămâne doar scanarea Breadth programată.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       request_id:
@@ -16,8 +17,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   scan:
@@ -68,36 +67,3 @@ jobs:
             git pull --rebase origin main
             git push origin HEAD:main
           fi
-
-  deploy:
-    needs: scan
-    if: always() && (needs.scan.result == 'success' || needs.scan.result == 'skipped')
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    concurrency:
-      group: trading-tools-pages-deploy-v2
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      # Read main again after the scan's data commit and any concurrent app update.
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: App regression checks before publishing
-        run: node --test tools/*.test.mjs tools/*.test.cjs
-      # GITHUB_TOKEN commits do not trigger another push; deploy this snapshot here.
-      - name: Remove Python runtime files from published site
-        run: |
-          rm -rf tools/breadth-suite/market-breadth-analyzer/dashboard tools/breadth-suite/market-breadth-analyzer/reports tools/breadth-suite/uptrend-analyzer/reports tools/breadth-suite/market-breadth-analyzer/nasdaq100/reports tools/breadth-suite/market-breadth-analyzer/russell2000/reports
-          find tools/breadth-suite -type d -name __pycache__ -prune -exec rm -rf {} +
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-      - id: deployment
-        uses: actions/deploy-pages@v4
