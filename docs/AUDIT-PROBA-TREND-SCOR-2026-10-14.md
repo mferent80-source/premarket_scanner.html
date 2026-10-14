@@ -1,7 +1,7 @@
 # Audit „probă statistică” și „probă în timp” — Trend 12 luni + Scorul zilei (14.10.2026, seara)
 
 Cerut de Marius („da, poți face nr. 1”) după refacerea pachetelor de skill-uri: Trend 12 luni și Scorul zilei trecute prin pachetele
-10 (probă statistică) și 11 (probă în timp). **Doar citire: niciun cod schimbat.** Script și rezultate:
+10 (probă statistică) și 11 (probă în timp). **Auditul a fost doar citire; reparațiile, cerute de el („REPARA TOATE”), sunt la sfârșit.** Script și rezultate:
 `E:\Backup-Claude\premarket-suite\audit-candidate-engine-2026-10-14\audit_proba_1410.mjs` / `.txt`
 (aceleași date ca `mom12_audit.mjs`: cache Yahoo 5 ani, 590 de acțiuni, 941 de zile, universul de azi ⇒ supraviețuitori).
 
@@ -101,3 +101,36 @@ Scorul rămâne util ca **rezumat al faptelor de azi**, nu ca semnal. Cartela po
 2. Bilanțul: t / permutare în loc de marginea bootstrap pe 12 ferestre + nota cinstită „după 1 an, probabil tot în probă” + pragurile de abatere din §3.
 3. Jurnalul verdictelor din Radar: unitatea = ziua semnalului pentru coșuri.
 4. Cartela Scorului zilei: când poate fi judecat.
+
+## Reparat (14.10.2026 seara, el: „REPARA TOATE”)
+
+| # | Ce | Unde | Commit |
+|---|---|---|---|
+| 1 | „probat față de alte acțiuni” ⇒ „indiciu (t ≈ 1,5 pe ferestre independente)” | eticheta robotului, Candidate Engine (eticheta de rezervă + motivul din detalii), fișierul publicat de azi, Radar (Sugestii, tura colectorului) | `c9df34a9` tt-v887 · Radar `ac4dc1f` v100.195 |
+| 2 | Bilanțul: ferestrele de 20 de zile **nesuprapuse** pe calendarul SPY + **t > 3,2** (≥ 12 ferestre) | `bilant()` + `ferestreNesuprapuse()` + `T_PRAG` în `tools/trend-12-1-lib.mjs` | `c9df34a9` |
+| 3 | Abaterea live: pragurile din §3, scrise înainte (`pragAbatere`), în fișierul bilanțului, pe pagină și pe Discord (o singură dată) | lib + robotul bilanțului + Candidate Engine + Radar (Sugestii, cardul din „Piața azi”) | `c9df34a9` · `ac4dc1f` |
+| 4 | Jurnalul verdictelor: coșurile (Trend 12 luni, topul pe sectoare, **și ideile zilei**, același defect) se judecă pe **zi**; cel puțin 12 zile independente | `crypto/public/lib/verdicte.js` (`cos`, `nesuprapuse`, unitatea `u`), `cont-ecran.js` | `ac4dc1f` |
+| 5 | Cartela Scorului zilei: „la 5 zile abia după ~1 an, la 20 de zile după ~5 ani; până atunci e un rezumat, nu un semnal” | `crypto/public/lib/scor-zi.js` | `ac4dc1f` |
+
+### Corecție la §2 (calibrarea de dinainte de cod)
+
+Simularea din §2 folosise deja un t pe ferestre, nu criteriul real. Criteriul **real** de dinainte (marginea bootstrap pe blocuri de
+20, pe 240 de zile consecutive) e mai slab decât scria §2: în lumea **fără** avantaj dădea **„probat” în 13,2 %** și **„picat” în 9,2 %**
+(`calibrare_bilant_1410.txt` pe E:). Pragul nou e ales în lumea fără avantaj (seria reală cu media scoasă, asimetria și cozile păstrate),
+cu privirile săptămânale de la 12 la 63 de ferestre (≈ 5 ani), înainte de orice rezultat live (`calibrare_secventa_1410`):
+
+| Prag t | „probat” fals în 3 ani | în 5 ani | „probat” cu avantajul din istorie, în 3 ani | în 5 ani |
+|---|---|---|---|---|
+| 2,5 | 9,3 % | 11,3 % | 41,6 % | 54,9 % |
+| 2,8 | 6,3 % | 7,7 % | 34,0 % | 46,2 % |
+| 3,0 | 5,0 % | 6,0 % | 29,0 % | 40,2 % |
+| **3,2 (ales)** | **3,5 %** | **4,3 %** | **24,5 %** | **34,3 %** |
+
+Prețul e spus cinstit și în criteriile din fișier: după un an, cel mai probabil tot „în probă”.
+
+### Probe
+
+- premarket_scanner: 4 teste noi în `tools/trend-12-1-robot.test.mjs` (zgomotul fără avantaj rămâne „în probă”, ferestrele, pragurile,
+  abaterea + mesajul); 101/101 pe testele care ating schimbarea. Cele 50 de teste `cloud-sync-*` pică și pe main fără aceste schimbări
+  (`81e81574`, altă sesiune) — neatinse.
+- Radar: `scripts/proba-v100195.mjs` 11/11 (un șoc comun pe zi: pe simbol p < 0,01, pe zi p mare), `npm test` întreg, proba de telefon 55/55.
