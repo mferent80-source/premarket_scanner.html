@@ -150,7 +150,7 @@
 
   function procente(v) { return signed(v, 1).replace('%', ' %'); }
   function fapteCandidat(item, f, earn, aligned, blocked, garda) {
-    var out = [{ k: 'EOD', v: item.sourceDate || '', rol: 'support' }];
+    var out = [{ k: 'EOD', v: item.sourceDate || '', rol: 'info' }];
     out.push({ k: 'trend', v: aligned ? 'aliniat EMA21/EMA50' : 'neconfirmat', rol: aligned ? 'support' : 'attention' });
     out.push({ k: 'RS', v: f.rs20 == null ? 'fără indice' : procente(f.rs20), rol: f.rs20 == null ? 'attention' : f.rs20 >= 0 ? 'support' : 'attention' });
     out.push({ k: 'RVOL', v: fmt(f.rvol, 2) + '×', rol: f.rvol >= 1 ? 'support' : 'attention' });
@@ -416,7 +416,7 @@
       x.fapte = x.fapte || [];
       if (!cal || !cal.ok) { x.earnings = 'earnings neverificat (fără cheia Finnhub)'; x.fapte.push({ k: 'earnings', v: 'neverificat', rol: 'attention' }); return; }
       var e = harta[x.symbol];
-      if (!e) { x.earnings = 'fără raportare în 14z'; x.fapte.push({ k: 'earnings', v: 'fără raportare în 14z', rol: 'support' }); return; }
+      if (!e) { x.earnings = 'fără raportare în 14z'; x.fapte.push({ k: 'earnings', v: 'fără raportare în 14z', rol: 'info' }); return; }
       var z = Math.max(0, zileNY(e.date));
       x.earnings = 'raportează în ' + z + 'z' + (e.hour === 'amc' ? ' (după închidere)' : e.hour === 'bmo' ? ' (înainte de deschidere)' : '');
       if (!vechi) x.state = 'RAPORTEAZĂ';
@@ -426,13 +426,18 @@
   }
   // „fă tot” 14.10.2026 — I-618: faptele unui candidat ca cipuri (rol: support / attention / block / info); șirul `reason` rămâne
   // pentru Desk și pentru detaliu. I-621/I-615/I-616/I-614: ce vine de la robot (raportări, ieșiri, sectoare) și bilanțul probei.
-  function fapteHtml(x) {
+  // In rand incap cel mult 4 cipuri (randul e pe o singura linie): intai ce blocheaza, apoi ce cere atentie, apoi sprijinul; restul in detaliu.
+  var CIP_PRIO = { block: 0, attention: 1, support: 2, info: 3 };
+  function fapteHtml(x, max) {
     if (!Array.isArray(x.fapte) || !x.fapte.length) return escapeHtml(x.reason);
-    return x.fapte.map(function (p) { return '<span class="ce-chip ' + escapeHtml(p.rol || 'info') + '"' + (p.nota ? ' title="' + escapeHtml(p.nota) + '"' : '') + '>' + escapeHtml(p.k) + ' ' + escapeHtml(p.v) + '</span>'; }).join('');
+    max = max || 4;
+    var ord = x.fapte.map(function (p, i) { return { p: p, i: i }; }).sort(function (a, b) { return (CIP_PRIO[a.p.rol] ?? 3) - (CIP_PRIO[b.p.rol] ?? 3) || a.i - b.i; }).map(function (o) { return o.p; });
+    var html = ord.slice(0, max).map(function (p) { return '<span class="ce-chip ' + escapeHtml(p.rol || 'info') + '"' + (p.nota ? ' title="' + escapeHtml(p.nota) + '"' : '') + '>' + escapeHtml(p.k) + ' ' + escapeHtml(p.v) + '</span>'; }).join('');
+    return html + (ord.length > max ? '<span class="ce-chip info" title="' + escapeHtml(ord.slice(max).map(function (p) { return p.k + ' ' + p.v; }).join(' · ')) + '">+' + (ord.length - max) + '</span>' : '');
   }
   function faptePentruTrend(x, m) {
     var peste = !!(m && m.regim && m.regim.peste);
-    return [{ k: 'EOD', v: m ? m.dataUltimei : '', rol: 'support' }, { k: '12-1', v: procente(x.metricA), rol: 'support' }, { k: '6-1', v: procente(x.metricB), rol: x.metricB >= 0 ? 'support' : 'attention' },
+    return [{ k: 'EOD', v: m ? m.dataUltimei : '', rol: 'info' }, { k: '12-1', v: procente(x.metricA), rol: 'support' }, { k: '6-1', v: procente(x.metricB), rol: x.metricB >= 0 ? 'support' : 'attention' },
       { k: 'rang', v: x.rang == null ? '—' : 'top ' + fmt(x.rang * 100, 1) + ' %', rol: 'support' }, { k: 'regim', v: peste ? 'pornit' : 'oprit', rol: peste ? 'support' : 'attention' }];
   }
   function imbogatesteTrend(j, vechi) {
@@ -451,7 +456,7 @@
         x.earningsDinRobot = true; if (!vechi) x.state = 'RAPORTEAZĂ'; x.reason += ' · ' + x.earnings;
         x.fapte.push({ k: 'raportează', v: 'în ' + z + 'z', rol: 'block' });
       } else if (m.raportari && m.raportari.sursa === 'finnhub') {
-        x.earnings = 'fără raportare în 14z'; x.earningsDinRobot = true; x.fapte.push({ k: 'earnings', v: 'fără raportare în 14z', rol: 'support' });
+        x.earnings = 'fără raportare în 14z'; x.earningsDinRobot = true; x.fapte.push({ k: 'earnings', v: 'fără raportare în 14z', rol: 'info' });
       }
       if (m.concentrare && x.sector === m.concentrare.sector) x.fapte.push({ k: 'sector', v: m.concentrare.n + '/20 ' + m.concentrare.sector, rol: 'attention' });
     });

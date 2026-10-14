@@ -156,7 +156,7 @@ for (const file of htmlFiles(ROOT)) {
 
 // ── 4. modulele Radar din alerts (I-603, 14.10.2026): alerts/index.html leagă radar-ui.css / radar-poza.js / radar-ecran.js /
 // tema-paznic-suita.css cu ?v=NNN și tools/alerts-radar.test.mjs cere NNN = numărul din CACHE_VERSION. Se băteau de mână la fiecare bump.
-const RADAR_ALERTS_RE = /(src|href)=(["'])([^"']*(?:lib\/radar-ui\.css|lib\/radar-poza\.js|lib\/radar-ecran\.js|tema-paznic-suita\.css))(\?v=\d+)?/g;
+const RADAR_ALERTS_RE = /(src|href)=(["'])([^"']*(?:lib\/radar-ui\.css|lib\/radar-poza\.js|lib\/radar-ecran\.js|tema-paznic-suita\.css))(\?v=\d+)?\2/g;
 {
   const file = join(ROOT, 'alerts', 'index.html');
   let html = read(file);
