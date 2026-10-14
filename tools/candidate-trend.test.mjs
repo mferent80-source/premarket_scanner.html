@@ -11,14 +11,15 @@ function bars(symbol) {
   const out = stamps.map((t, i) => { const c = 100 + i * .1; return { t, o: c - .1, h: c + .8, l: c - .8, c, v: 1000000 }; });
   out.meta = { symbol, currency: 'USD', timezone: 'America/New_York', regularEnd: Date.parse('2026-10-14T20:00:00Z') }; return out;
 }
-function json(dataUltimei, peste = true) {
+function json(dataUltimei, peste = true, extra = {}) {
   return {
     versiune: 1, la: '2026-10-14T06:30:00Z', dataUltimei, regim: { inchidere: 650, sma200: 600, peste }, univers: { n: 480, minCap: 2e9, sursa: 'screener' },
     metoda: 'top 20 % după randamentul pe lunile 2–12', eticheta: 'selecție probată față de acțiunile din aceeași zi; neprobată pe listă istorică; în probă',
     clasament: Array.from({ length: 25 }, (_, i) => ({ s: 'T' + i, nume: 'Nume ' + i, sector: i % 2 ? 'Technology' : 'Energy', cap: 1e10 - i, pret: 50 + i, m12: 1.5 - i / 20, m6: 0.4 - i / 50, rang: i / 480, dolari20: 5e7 })),
+    ...extra,
   };
 }
-function setup({ trend = json('2026-10-13'), fetchOk = true } = {}) {
+function setup({ trend = json('2026-10-13'), bilant = null, fetchOk = true } = {}) {
   const nodes = {}, store = new Map(), reports = [], calls = [];
   const node = (id) => nodes[id] || (nodes[id] = { value: '', checked: false, innerHTML: '', textContent: '', disabled: false, hidden: false, dataset: {}, style: {}, title: '', className: '', classList: { toggle() {}, add() {}, remove() {} }, scrollIntoView() {} });
   class Clock extends Date { constructor(...a) { super(...(a.length ? a : [now])); } static now() { return now; } }
@@ -26,21 +27,21 @@ function setup({ trend = json('2026-10-13'), fetchOk = true } = {}) {
     Date: Clock, Intl, console, URLSearchParams, location: { search: '', origin: 'https://example.test' },
     document: { getElementById: node, querySelectorAll: () => [], addEventListener() {}, hidden: false },
     localStorage: { getItem: (k) => store.get(k) || null, setItem(k, v) { store.set(k, v); } }, setTimeout: () => 0, clearTimeout() {}, addEventListener() {},
-    fetch: async (url) => { calls.push(String(url)); if (!fetchOk) throw Error('offline'); return { ok: true, json: async () => trend }; },
+    fetch: async (url) => { calls.push(String(url)); if (/bilant/.test(String(url))) return bilant ? { ok: true, json: async () => bilant } : { ok: false, status: 404 }; if (!fetchOk) throw Error('offline'); return { ok: true, json: async () => trend }; },
     D: { fetchStock: async (sym) => bars(sym) }, MEB: { computeEarlyBird: () => ({ isConfirmed: false, signals: {} }) }, WL: { get: () => ['TEST'] },
     GV: { status: () => ({ verdict: 'TRADE', reasons: [] }) }, TTDecisionPanel: { set: (r) => reports.push(r) }, EL: { sectorOf: () => 'Technology', loadSectorMap: () => ({}) }, matchMedia: () => ({ matches: false }),
   };
   ctx.window = ctx; ctx.parent = ctx; vm.createContext(ctx);
   for (const f of ['lib/indicators.js', 'lib/daily-series.js', 'lib/decision-verdict.js', 'lib/candidate-plan-handoff.js']) vm.runInContext(readFileSync(f, 'utf8'), ctx);
   const source = readFileSync('candidate-engine/engine.js', 'utf8');
-  vm.runInContext(source.slice(0, source.lastIndexOf('  validateDeps(); bind();')) + 'bind();window.hooks={state,render,loadTrend,currentItems,renderDetail,coverage};})();', ctx);
+  vm.runInContext(source.slice(0, source.lastIndexOf('  validateDeps(); bind();')) + 'bind();window.hooks={state,render,loadTrend,currentItems,renderDetail,coverage,peadPesteTrend};})();', ctx);
   node('universe').value = 'watchlist';
   return { ctx, node, store, reports, calls, hooks: ctx.hooks };
 }
 
 test('modul trend se incarca din generated/trend-12-1.json, cu cache-bust, si arata cel mult 20 de randuri', async () => {
   const f = setup(); await f.hooks.loadTrend();
-  assert.equal(f.calls.length, 1); assert.match(f.calls[0], /^generated\/trend-12-1\.json\?x=\d+$/);
+  assert.equal(f.calls.length, 2); assert.match(f.calls[0], /^generated\/trend-12-1\.json\?x=\d+$/); assert.match(f.calls[1], /^generated\/trend-12-1-bilant\.json\?x=\d+$/);
   const s = f.hooks.state; assert.equal(s.trend.length, 20); assert.equal(String(f.node('countTrend').textContent), '20');
   assert.equal(s.trendMeta.dataUltimei, '2026-10-13'); assert.equal(s.trendMeta.regim.peste, true);
   s.mode = 'trend'; f.hooks.render();
@@ -77,6 +78,64 @@ test('earnings peste clasamentul trend: cu cheia, cine raporteaza in 14 zile pri
   s.mode = 'trend'; f.hooks.render(); assert.match(f.node('rows').innerHTML, /RAPORTEAZĂ/);
   const g = setup(); g.ctx.EARN = { calendar: async () => ({ ok: false, items: [], motiv: 'fără cheie' }) };
   await g.hooks.loadTrend(); assert.ok(g.hooks.state.trend.every((x) => x.state === 'ÎN PROBĂ' && /neverificat/.test(x.earnings)));
+});
+
+test('I-621: raportarile din JSON-ul robotului dau RAPORTEAZĂ fara cheie in browser; cand robotul a avut calendar, cine n-are raportare spune „fără raportare în 14z”', async () => {
+  const t = json('2026-10-13', true, { raportari: { sursa: 'finnhub', la: '2026-10-14T06:30:00Z', fereastraZile: 14, n: 800 } });
+  t.clasament[2].raporteaza = { d: '2026-10-18', ora: 'amc', zile: 5 };
+  const f = setup({ trend: t }); await f.hooks.loadTrend(); const s = f.hooks.state;
+  const t2 = s.trend.find((x) => x.symbol === 'T2'), t0 = s.trend.find((x) => x.symbol === 'T0');
+  assert.equal(t2.state, 'RAPORTEAZĂ'); assert.match(t2.earnings, /raportează în 5z/); assert.match(t2.earnings, /după închidere/);
+  assert.equal(t0.state, 'ÎN PROBĂ'); assert.match(t0.earnings, /fără raportare în 14z/);
+  assert.ok(t2.fapte.some((p) => p.k === 'raportează' && p.rol === 'block'), 'faptul „raportează” e blocant');
+});
+
+test('I-615: iesirile din JSON se arata sub clasament ca IEȘIT, fara buton, fara sa intre in contor', async () => {
+  const t = json('2026-10-13', true, { iesiri: [{ s: 'X9', nume: 'Fost favorit', sector: 'Energy', motiv: 'a căzut la top 35,0 %', rangAzi: 0.35, m12: 0.4 }] });
+  const f = setup({ trend: t }); await f.hooks.loadTrend(); const s = f.hooks.state;
+  assert.equal(s.trendIesiri.length, 1); assert.equal(s.trend.length, 20); assert.equal(String(f.node('countTrend').textContent), '20');
+  s.mode = 'trend'; f.hooks.render();
+  assert.match(f.node('rows').innerHTML, /X9/); assert.match(f.node('rows').innerHTML, /IEȘIT/); assert.match(f.node('rows').innerHTML, /ce-row-iesit/); assert.match(f.node('rows').innerHTML, /a căzut la top 35,0 %/);
+  assert.equal(f.hooks.currentItems().length, 20, 'ieșiții nu sunt candidați');
+});
+
+test('I-616 + I-614: nota modului spune concentrarea pe sector si bilantul probei; fara bilant spune ca nu e inca', async () => {
+  const t = json('2026-10-13', true, { sectoare: { Technology: 11, Energy: 5, 'Health Care': 4 } });
+  const b = { versiune: 1, zile: 37, n20: 17, n60: 0, exces20: 0.8, exces60: null, nulB20: -0.1, diferenta20: { medie: 0.9, interval: [0.2, 1.6] }, verdict: 'în probă' };
+  const f = setup({ trend: t, bilant: b }); await f.hooks.loadTrend(); const s = f.hooks.state;
+  assert.equal(JSON.stringify(s.trendMeta.concentrare), JSON.stringify({ sector: 'Technology', n: 11, din: 20 }));
+  assert.equal(s.trendMeta.bilant.n20, 17);
+  s.mode = 'trend'; f.hooks.render();
+  const nota = f.node('trendNota').innerHTML;
+  assert.match(nota, /11 din 20 Technology/); assert.match(nota, /un singur pariu/); assert.match(nota, /17 zile cu rezultat/); assert.match(nota, /\+0,8 %/); assert.match(nota, /în probă/);
+  assert.equal(f.node('trendNota').hidden, false);
+  assert.ok(s.trend.find((x) => x.symbol === 'T1').fapte.some((p) => p.k === 'sector' && /11\/20/.test(p.v)), 'cei din sectorul concentrat primesc faptul');
+  assert.ok(!s.trend.find((x) => x.symbol === 'T0').fapte.some((p) => p.k === 'sector'));
+  const g = setup({ trend: t }); await g.hooks.loadTrend(); g.hooks.state.mode = 'trend'; g.hooks.render();
+  assert.match(g.node('trendNota').innerHTML, /fără bilanț încă/);
+  g.hooks.state.mode = 'momentum'; g.hooks.render(); assert.equal(g.node('trendNota').hidden, true, 'nota se ascunde in celelalte moduri');
+});
+
+test('I-618: randul arata faptele ca cipuri (EOD, 12-1, rang, regim), nu sirul lipit', async () => {
+  const f = setup(); await f.hooks.loadTrend(); const s = f.hooks.state; s.mode = 'trend'; f.hooks.render();
+  const t0 = s.trend[0];
+  assert.equal(t0.fapte.slice(0, 4).map((p) => p.k).join(','), 'EOD,12-1,6-1,rang');
+  assert.match(f.node('rows').innerHTML, /ce-chip/); assert.match(f.node('rows').innerHTML, /12-1/);
+  assert.ok(!f.node('rows').innerHTML.includes(t0.reason), 'șirul întreg rămâne în detaliu, nu în rând');
+});
+
+test('I-620 (ipoteza): dupa raportare cu reactie pozitiva in ultimele 7 zile, candidatul Trend primeste faptul „după raportare”', async () => {
+  const ziNY = (plus) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(now + plus * 86400000));
+  const f = setup(); const cereri = [];
+  f.ctx.EARN = { cheie: () => 'cheie', calendar: async () => ({ ok: true, items: [] }), istoric: async (s) => { cereri.push(s); return s === 'T1' ? { ok: true, items: [{ date: ziNY(-2), hour: 'amc', reactie: 4.2, surpriza: 10.5 }] } : s === 'T2' ? { ok: true, items: [{ date: ziNY(-20), hour: 'bmo', reactie: 6, surpriza: 3 }] } : { ok: true, items: [] }; } };
+  await f.hooks.loadTrend(); f.hooks.state.mode = 'trend'; await f.hooks.peadPesteTrend();
+  const t1 = f.hooks.state.trend.find((x) => x.symbol === 'T1'), t2 = f.hooks.state.trend.find((x) => x.symbol === 'T2');
+  assert.equal(t1.pead.reactie, 4.2); assert.ok(t1.fapte.some((p) => p.k === 'după raportare' && /\+4,2 %/.test(p.v) && /ipotez/.test(p.nota || '')));
+  assert.equal(t2.pead, undefined, 'raportarea de acum 20 de zile nu conteaza');
+  assert.equal(cereri.length, 20, 'doar primele 20, o cerere pe simbol');
+  await f.hooks.peadPesteTrend(); assert.equal(cereri.length, 20, 'nu se repeta pentru aceeasi zi de date');
+  const g = setup(); g.ctx.EARN = { cheie: () => '', istoric: async () => { throw Error('nu trebuia chemat'); } }; await g.hooks.loadTrend(); await g.hooks.peadPesteTrend();
+  assert.ok(g.hooks.state.trend.every((x) => !x.pead), 'fara cheie nu se cere nimic');
 });
 
 test('cautarea si filtrele merg pe trend; copia locala a scanarii (ce_results_v2) nu primeste trend', async () => {

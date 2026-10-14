@@ -21,7 +21,7 @@
   var state = {
     mode: requested?requestedMode:'momentum', analyses: [], scanning: false, shellVisible: true,
     momentum: [], reversal: [], selected: null, updatedAt: 0,
-    trend: [], trendMeta: null, trendEroare: '',
+    trend: [], trendMeta: null, trendEroare: '', trendIesiri: [], peadPentru: null,
     failures: [], earningsOk: false, earningsMap: {}, timer: null,
     verified: 0, scanned: 0, hasScan: false, benchmarks: [], sectorPending: false, generation: 0, scanKey: null
   };
@@ -148,6 +148,17 @@
     return Math.round(clamp(s - earn.penalty, 0, 100));
   }
 
+  function procente(v) { return signed(v, 1).replace('%', ' %'); }
+  function fapteCandidat(item, f, earn, aligned, blocked, garda) {
+    var out = [{ k: 'EOD', v: item.sourceDate || '', rol: 'support' }];
+    out.push({ k: 'trend', v: aligned ? 'aliniat EMA21/EMA50' : 'neconfirmat', rol: aligned ? 'support' : 'attention' });
+    out.push({ k: 'RS', v: f.rs20 == null ? 'fără indice' : procente(f.rs20), rol: f.rs20 == null ? 'attention' : f.rs20 >= 0 ? 'support' : 'attention' });
+    out.push({ k: 'RVOL', v: fmt(f.rvol, 2) + '×', rol: f.rvol >= 1 ? 'support' : 'attention' });
+    out.push({ k: 'earnings', v: String(earn.text || '').replace(/^earnings /, ''), rol: earn.blocked || garda ? 'block' : earn.inFereastra || earn.unverified ? 'attention' : 'support' });
+    if (item.mode === 'reversal') out.push({ k: 'scădere', v: procente(f.drawdown), rol: 'info' }, { k: 'revenire', v: procente(f.bounce60), rol: 'info' });
+    if (blocked) out.push({ k: 'plan', v: 'blocat', rol: 'block' }); else if (!item.actionable) out.push({ k: 'confirmare', v: 'incompletă', rol: 'attention' });
+    return out;
+  }
   async function analyze(sym, benchmark, govScan) {
     var source=DailySeries.read(await D.fetchStock(sym, { range: '1y', interval: '1d', ttl: 1800 }),sym);
     var bars=source.bars,benchmarkRet20=benchmark&&benchmark.asOf===source.asOf?benchmark.ret20:null;
@@ -214,6 +225,7 @@
     if (garda && !blocked) { for (const item of [momentum, reversal]) { if (item.actionable) { item.actionable = false; item.state = 'WATCH'; } item.reason += ' · ' + garda; } }
     if(blocked){for(const item of [momentum,reversal])item.reason+=' · Plan blocat: '+(earn.blocked?earn.text:gov.reasons?.[0]||'Governor '+gov.verdict);}
     if(window.TTDecisionVerdict){for(const item of [momentum,reversal]){const verdict=TTDecisionVerdict.build({purpose:'entry',candidate:item,risk:gov});if(!verdict.canPlan){item.actionable=false;item.state=blocked||verdict.code==='BLOCKED'?'BLOCKED':'WATCH';item.reason+=' · '+(verdict.blockers[0]?.text||verdict.cautions[0]?.text||verdict.title);}}}
+    momentum.fapte = fapteCandidat(momentum, f, earn, trendAligned, blocked, garda); reversal.fapte = fapteCandidat(reversal, f, earn, trendAligned, blocked, garda);
     return { momentum: momentum, reversal: reversal };
   }
 
@@ -349,7 +361,7 @@
     var clsB = state.mode === 'momentum' ? '' : 'ce-up';
     return '<button class="ce-row' + (state.selected && state.selected.symbol === x.symbol && state.selected.mode === x.mode ? ' selected' : '') + '" data-mode="' + escapeHtml(x.mode) + '" data-symbol="' + escapeHtml(x.symbol) + '">'
       + '<span class="ce-rank">' + String(i + 1).padStart(2, '0') + '</span>'
-      + '<div class="ce-symbol"><b>' + escapeHtml(x.symbol) + ' <em>' + escapeHtml(x.region) + '</em></b><small>' + escapeHtml(x.reason) + '</small>' + (window.T212C ? T212C.badge(x.symbol) : '') + '</div>'
+      + '<div class="ce-symbol"><b>' + escapeHtml(x.symbol) + ' <em>' + escapeHtml(x.region) + '</em></b><small>' + fapteHtml(x) + '</small>' + (window.T212C ? T212C.badge(x.symbol) : '') + '</div>'
       + '<span class="ce-cell" data-label="Sector">' + escapeHtml(x.sector) + '</span><b class="ce-cell ' + clsA + '" data-label="'+(state.mode==='momentum'?'Δ zi':'De la maxim')+'">' + a + '</b>'
       + '<span class="ce-cell ' + clsB + '" data-label="'+(state.mode==='momentum'?'RVOL':'Din minim')+'">' + b + '</span><span class="ce-cell" data-label="'+(state.mode==='momentum'?'RS 20z':'Bază')+'">' + c + '</span><span class="ce-cell" data-label="'+(state.mode==='momentum'?'Ret. 20z':'RVOL')+'">' + d + '</span>'
       + '<strong class="ce-score">' + x.score + '</strong><i class="ce-state ' + stateClass(x) + '">' + x.state + '</i></button>';
@@ -383,12 +395,14 @@
           governor: gov, earnings: 'neverificat în modul trend', ts: Date.parse(j.la) || Date.now(), sourceDate: j.dataUltimei
         };
       });
+      imbogatesteTrend(j, vechi);
       await earningsPesteTrend(vechi);
+      await incarcaBilant();
     } catch (e) {
       state.trend = []; state.trendMeta = null; state.trendEroare = (e && e.message) || 'eroare';
     }
     $('countTrend').textContent = state.trend.length;
-    if (state.mode === 'trend') render(); else coverage();
+    if (state.mode === 'trend') { render(); peadPesteTrend(); } else coverage();
   }
   // Audit 14.10.2026: 10 din cele 40 din clasament raportau în 14 zile și pagina nu spunea nimic. Cu cheia Finnhub, cine raportează
   // primește starea RAPORTEAZĂ și ziua; fără cheie, rândul spune „neverificat” — nu tace.
@@ -398,19 +412,109 @@
     var harta = {};
     if (cal && cal.ok) (cal.items || []).forEach(function (e) { if (e && e.symbol && e.date && !harta[e.symbol]) harta[e.symbol] = e; });
     state.trend.forEach(function (x) {
-      if (!cal || !cal.ok) { x.earnings = 'earnings neverificat (fără cheia Finnhub)'; return; }
+      if (x.earningsDinRobot) return;   // I-621: robotul a spus deja (din secretul Actions)
+      x.fapte = x.fapte || [];
+      if (!cal || !cal.ok) { x.earnings = 'earnings neverificat (fără cheia Finnhub)'; x.fapte.push({ k: 'earnings', v: 'neverificat', rol: 'attention' }); return; }
       var e = harta[x.symbol];
-      if (!e) { x.earnings = 'fără raportare în 14z'; return; }
+      if (!e) { x.earnings = 'fără raportare în 14z'; x.fapte.push({ k: 'earnings', v: 'fără raportare în 14z', rol: 'support' }); return; }
       var z = Math.max(0, zileNY(e.date));
       x.earnings = 'raportează în ' + z + 'z' + (e.hour === 'amc' ? ' (după închidere)' : e.hour === 'bmo' ? ' (înainte de deschidere)' : '');
       if (!vechi) x.state = 'RAPORTEAZĂ';
       x.reason += ' · ' + x.earnings;
+      x.fapte.push({ k: 'raportează', v: 'în ' + z + 'z', rol: 'block' });
     });
+  }
+  // „fă tot” 14.10.2026 — I-618: faptele unui candidat ca cipuri (rol: support / attention / block / info); șirul `reason` rămâne
+  // pentru Desk și pentru detaliu. I-621/I-615/I-616/I-614: ce vine de la robot (raportări, ieșiri, sectoare) și bilanțul probei.
+  function fapteHtml(x) {
+    if (!Array.isArray(x.fapte) || !x.fapte.length) return escapeHtml(x.reason);
+    return x.fapte.map(function (p) { return '<span class="ce-chip ' + escapeHtml(p.rol || 'info') + '"' + (p.nota ? ' title="' + escapeHtml(p.nota) + '"' : '') + '>' + escapeHtml(p.k) + ' ' + escapeHtml(p.v) + '</span>'; }).join('');
+  }
+  function faptePentruTrend(x, m) {
+    var peste = !!(m && m.regim && m.regim.peste);
+    return [{ k: 'EOD', v: m ? m.dataUltimei : '', rol: 'support' }, { k: '12-1', v: procente(x.metricA), rol: 'support' }, { k: '6-1', v: procente(x.metricB), rol: x.metricB >= 0 ? 'support' : 'attention' },
+      { k: 'rang', v: x.rang == null ? '—' : 'top ' + fmt(x.rang * 100, 1) + ' %', rol: 'support' }, { k: 'regim', v: peste ? 'pornit' : 'oprit', rol: peste ? 'support' : 'attention' }];
+  }
+  function imbogatesteTrend(j, vechi) {
+    var m = state.trendMeta, sect = j.sectoare && typeof j.sectoare === 'object' ? j.sectoare : null, conc = null;
+    if (sect) Object.keys(sect).forEach(function (s) { var n = Number(sect[s]) || 0; if (!conc || n > conc.n) conc = { sector: s, n: n, din: 20 }; });
+    m.concentrare = conc && conc.n / 20 >= 0.4 ? conc : null;
+    m.raportari = j.raportari && typeof j.raportari === 'object' ? j.raportari : null;
+    m.ziuaDinainte = j.ziuaDinainte || null;
+    state.trendIesiri = (Array.isArray(j.iesiri) ? j.iesiri : []).slice(0, 20).map(function (e) { return { symbol: String(e.s || '').toUpperCase(), name: e.nume || e.s, sector: e.sector || 'Necunoscut', motiv: e.motiv || '', rangAzi: safeNum(e.rangAzi), m12: safeNum(e.m12) }; });
+    state.trend.forEach(function (x, i) {
+      var c = j.clasament[i] || {};
+      x.fapte = faptePentruTrend(x, m);
+      if (c.raporteaza && c.raporteaza.d) {
+        var z = Math.max(0, safeNum(c.raporteaza.zile) || 0), ora = c.raporteaza.ora;
+        x.earnings = 'raportează în ' + z + 'z' + (ora === 'amc' ? ' (după închidere)' : ora === 'bmo' ? ' (înainte de deschidere)' : '');
+        x.earningsDinRobot = true; if (!vechi) x.state = 'RAPORTEAZĂ'; x.reason += ' · ' + x.earnings;
+        x.fapte.push({ k: 'raportează', v: 'în ' + z + 'z', rol: 'block' });
+      } else if (m.raportari && m.raportari.sursa === 'finnhub') {
+        x.earnings = 'fără raportare în 14z'; x.earningsDinRobot = true; x.fapte.push({ k: 'earnings', v: 'fără raportare în 14z', rol: 'support' });
+      }
+      if (m.concentrare && x.sector === m.concentrare.sector) x.fapte.push({ k: 'sector', v: m.concentrare.n + '/20 ' + m.concentrare.sector, rol: 'attention' });
+    });
+  }
+  async function incarcaBilant() {
+    if (!state.trendMeta) return;
+    state.trendMeta.bilant = null;
+    try {
+      var r = await fetch('generated/trend-12-1-bilant.json?x=' + Date.now(), { cache: 'no-store' });
+      if (!r || !r.ok) return;
+      var b = await r.json();
+      if (!b || typeof b !== 'object') return;
+      state.trendMeta.bilant = { zile: safeNum(b.zile) || 0, n20: safeNum(b.n20) || 0, n60: safeNum(b.n60) || 0, exces20: safeNum(b.exces20), exces60: safeNum(b.exces60), nulB20: safeNum(b.nulB20), diferenta20: b.diferenta20 || null, verdict: String(b.verdict || 'în probă') };
+    } catch (_) { state.trendMeta.bilant = null; }
+  }
+  function notaTrend() {
+    var el = $('trendNota'); if (!el) return;
+    el.hidden = state.mode !== 'trend'; if (el.hidden) return;
+    var m = state.trendMeta;
+    if (!m) { el.innerHTML = state.trendEroare ? 'Clasamentul robotului nu s-a putut citi (' + escapeHtml(state.trendEroare) + ').' : 'Clasamentul se încarcă…'; return; }
+    var parti = ['EOD ' + escapeHtml(m.dataUltimei) + (m.vechime > 7 ? ' (VECHI, ' + m.vechime + ' zile)' : ''), 'regim ' + (m.regim && m.regim.peste ? 'pornit' : 'oprit')];
+    if (m.concentrare) parti.push('<b>' + m.concentrare.n + ' din ' + m.concentrare.din + ' ' + escapeHtml(m.concentrare.sector) + '</b> — un singur pariu');
+    if (m.raportari && m.raportari.sursa !== 'finnhub') parti.push('raportările: ' + escapeHtml(m.raportari.sursa === 'lipsă' ? 'robotul fără cheie' : 'eroare la robot'));
+    var b = m.bilant;
+    if (b) parti.push('proba: ' + b.n20 + ' zile cu rezultat' + (b.exces20 != null ? ', ' + procente(b.exces20) + ' vs SPY' : '') + (b.diferenta20 && safeNum(b.diferenta20.medie) != null ? ', ' + procente(b.diferenta20.medie) + ' vs alte acțiuni' : '') + ' · ' + escapeHtml(b.verdict));
+    else parti.push('proba: fără bilanț încă');
+    if (state.trendIesiri.length) parti.push('au ieșit ' + state.trendIesiri.length + (m.ziuaDinainte ? ' față de ' + escapeHtml(m.ziuaDinainte) : ''));
+    el.innerHTML = parti.join(' · ');
+  }
+  function rowHtmlIesit(x) {
+    return '<div class="ce-row ce-row-iesit"><span class="ce-rank">—</span><div class="ce-symbol"><b>' + escapeHtml(x.symbol) + ' <em>US</em></b><small>' + escapeHtml(x.name) + ' · ' + escapeHtml(x.motiv) + '</small></div>'
+      + '<span class="ce-cell" data-label="Sector">' + escapeHtml(x.sector) + '</span><b class="ce-cell ce-down" data-label="Mom 12-1">' + (x.m12 == null ? '—' : procente(x.m12 * 100)) + '</b><span class="ce-cell"></span>'
+      + '<span class="ce-cell" data-label="Rang">' + (x.rangAzi == null ? 'afară' : 'top ' + fmt(x.rangAzi * 100, 1) + ' %') + '</span><span class="ce-cell"></span><strong class="ce-score">—</strong><i class="ce-state vechi">IEȘIT</i></div>';
+  }
+  // I-620, IPOTEZĂ (drift după raportare): candidații Trend care au raportat în ultimele 7 zile cu reacție pozitivă primesc un fapt
+  // informativ. Doar cu cheia Finnhub, doar primele 20, o dată pe zi de date, două cereri deodată. Nu schimbă nicio stare.
+  async function peadPesteTrend() {
+    var m = state.trendMeta;
+    if (!m || !state.trend.length || !window.EARN || !EARN.istoric) return;
+    var cheie = ''; try { cheie = EARN.cheie ? EARN.cheie() : ''; } catch (_) { cheie = ''; }
+    if (!cheie || state.peadPentru === m.dataUltimei) return;
+    state.peadPentru = m.dataUltimei;
+    var coada = state.trend.slice(0, 20);
+    async function lucrator() {
+      while (coada.length) {
+        var x = coada.shift();
+        try {
+          var r = await EARN.istoric(x.symbol, { ani: 1 }), e = r && r.ok && r.items && r.items[0];
+          if (!e || !e.date) continue;
+          var z = zileNY(e.date);
+          if (z < -7 || z > 0 || !(safeNum(e.reactie) > 0)) continue;
+          x.pead = { date: e.date, reactie: e.reactie, surpriza: safeNum(e.surpriza) };
+          x.fapte = (x.fapte || []).concat([{ k: 'după raportare', v: procente(e.reactie) + (x.pead.surpriza != null ? ' (surpriză ' + procente(x.pead.surpriza) + ')' : ''), rol: 'info', nota: 'ipoteză (drift după raportare), neprobată pe ambele nuluri' }]);
+        } catch (_) {}
+      }
+    }
+    await Promise.all([lucrator(), lucrator()]);
+    if (state.mode === 'trend') render();
   }
   function rowHtmlTrend(x, i) {
     return '<button class="ce-row' + (state.selected && state.selected.symbol === x.symbol && state.selected.mode === x.mode ? ' selected' : '') + '" data-mode="trend" data-symbol="' + escapeHtml(x.symbol) + '">'
       + '<span class="ce-rank">' + String(i + 1).padStart(2, '0') + '</span>'
-      + '<div class="ce-symbol"><b>' + escapeHtml(x.symbol) + ' <em>' + escapeHtml(x.region) + '</em></b><small>' + escapeHtml(x.name) + ' · ' + escapeHtml(x.reason) + '</small>' + (window.T212C ? T212C.badge(x.symbol) : '') + '</div>'
+      + '<div class="ce-symbol"><b>' + escapeHtml(x.symbol) + ' <em>' + escapeHtml(x.region) + '</em></b><small>' + escapeHtml(x.name) + ' ' + fapteHtml(x) + '</small>' + (window.T212C ? T212C.badge(x.symbol) : '') + '</div>'
       + '<span class="ce-cell" data-label="Sector">' + escapeHtml(x.sector) + '</span><b class="ce-cell ' + (x.metricA >= 0 ? 'ce-up' : 'ce-down') + '" data-label="Mom 12-1">' + signed(x.metricA, 1) + '</b>'
       + '<span class="ce-cell ' + (x.metricB >= 0 ? 'ce-up' : 'ce-down') + '" data-label="Mom 6-1">' + signed(x.metricB, 1) + '</span><span class="ce-cell" data-label="Rang">' + (x.rang == null ? '—' : 'top ' + fmt(x.rang * 100, 1) + '%') + '</span><span class="ce-cell" data-label="Preț">' + fmt(x.price, 2) + '</span>'
       + '<strong class="ce-score">' + x.score + '</strong><i class="ce-state ' + stateClass(x) + '">' + escapeHtml(x.state) + '</i></button>';
@@ -433,6 +537,7 @@
   function render() {
     tableHead();
     coverage();
+    notaTrend();
     var items = currentItems();
     if (!items.length && state.mode === 'trend') {
       var qT=$('search').value.trim(),oT=$('onlyActionable').checked;
@@ -447,7 +552,7 @@
       state.selected = null; renderDetail(null); return;
     }
     state.selected=items.find(function(x){return x.symbol===state.selected?.symbol&&x.mode===state.selected?.mode;})||items[0];
-    $('rows').innerHTML = items.map(rowHtml).join('');
+    $('rows').innerHTML = items.map(rowHtml).join('') + (state.mode === 'trend' && state.trendIesiri.length ? state.trendIesiri.map(rowHtmlIesit).join('') : '');
     Array.prototype.forEach.call(document.querySelectorAll('.ce-row'), function (btn) {
       btn.onclick = function () {
         state.selected = state[btn.dataset.mode].concat(state.analyses).find(function (x) { return x.symbol === btn.dataset.symbol&&x.mode===btn.dataset.mode; }); render();
@@ -525,6 +630,7 @@
       btn.onclick = function () {
         document.querySelectorAll('.ce-mode').forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active'); state.mode = btn.dataset.mode; state.selected = null; render();
+        if (state.mode === 'trend') peadPesteTrend();
       };
     });
     window.addEventListener('message', function (e) {

@@ -52,6 +52,15 @@ test('raportare in 5 zile: vizibil, dar NU actionable, stare WATCH, motivul spun
   assert.equal(f.ctx.CandidatePlanHandoff.read(x).ok, false, 'Desk-ul nu primește plan pentru el');
 });
 
+test('I-618: candidatii momentum/reversal poarta faptele (EOD, trend, RS, RVOL, earnings) si randul le arata ca cipuri', async () => {
+  const f = setup({ items: [{ symbol: 'TEST', date: ziNY(5), hour: 'amc', epsEstimate: 1 }] }); await f.hooks.scan();
+  const x = f.hooks.state.analyses.find((a) => a.mode === 'momentum');
+  assert.equal(x.fapte.map((p) => p.k).slice(0, 5).join(','), 'EOD,trend,RS,RVOL,earnings');
+  assert.equal(x.fapte.find((p) => p.k === 'earnings').rol, 'block'); assert.match(x.fapte.find((p) => p.k === 'earnings').v, /5z/);
+  assert.equal(x.fapte.find((p) => p.k === 'trend').rol, 'support');
+  f.hooks.render(); assert.match(f.node('rows').innerHTML, /ce-chip/);
+});
+
 test('raportare maine / azi: blocat (BLOCKED), ca inainte', async () => {
   const f = setup({ items: [{ symbol: 'TEST', date: ziNY(1), hour: 'bmo', epsEstimate: 1 }] }); await f.hooks.scan();
   const x = f.hooks.state.analyses.find((a) => a.mode === 'momentum');
