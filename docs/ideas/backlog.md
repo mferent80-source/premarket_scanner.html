@@ -3307,6 +3307,15 @@ pe un singur chart.
 | I-599 | Tablou pe 1920: coloana din stânga cu boții și pozițiile (T212, Salt) sortați după distanța la stop / lichidare, cu % și rezultatul, ca „aproape de rupere” din PAZNIC; un clic schimbă botul din Tablou | crypto/public/app.js (renderTabloBot, alegerea botului), public/index.html, public/app.css (≥1280) | M | P3 | propus | ideation | 2026-10-11 |
 | I-600 | Early Bird în Radar: scannerul de momentum pe instrumentele Salt Bank (Yahoo, US+EU) din `salt-instrumente`, arhivat 11.10 — ca filtru în pagina Salt, peste `data/salt-univers.json` | crypto/public/lib/salt-ecran.js, crypto/public/index.html | M | P3 | propus | mutare | 2026-10-11 |
 | I-601 | Mișcările zilei pe capitalizare + heatmap pe categorii (narrative tracker) din `scanner/crypto-events.html`, arhivat 11.10 — ca bloc în Sugestii, lângă pândă | crypto/public/lib/sugestii-ecran.js, crypto/scripts/colector.mjs | M | P3 | propus | mutare | 2026-10-11 |
+| I-602 | Câmp pentru cheia Finnhub în Health (fără ea, blocarea la earnings din scanner e oprită) | health/ + lib/finnhub-key.js | S | P1 | propus | ideation | 2026-10-14 |
+| I-603 | sync-suite-version.mjs bate și `?v=NNN` ale modulelor Radar din alerts (azi de mână) | tools/sync-suite-version.mjs + alerts/ | S | P2 | propus | ideation | 2026-10-14 |
+| I-604 | proba-retrase.mjs: ținta pe o pagină cu nav.js și lista RETRASE citită din nav.js, nu copiată | tools/proba-retrase.mjs + nav.js | S | P2 | propus | ideation | 2026-10-14 |
+| I-605 | proba-ecran.mjs: etichetele hubului de azi (Watchlist / scanner nu mai există) | tools/proba-ecran.mjs | S | P3 | propus | ideation | 2026-10-14 |
+| I-606 | backlog.md: partea veche e dublu-codată (mojibake) — reparare o dată + gardă în teste | docs/ideas/backlog.md + tools/ | S | P3 | propus | ideation | 2026-10-14 |
+| I-607 | Hub: fereastra „Se mișcă acum” vine din Pump Radar oprit — scoasă sau etichetată „mișcări, nu semnal” | index.html + lib/pump.js | S | P3 | propus | ideation | 2026-10-14 |
+| I-608 | Eticheta adevărului pe ARMED / FIRE: „semnal neprobat (audit 14.10) — listă de urmărit, nu intrare” în scanner și Desk (Decision App — doar cu acordul lui) | candidate-engine/engine.js + desk/ | S | P2 | propus | ideation | 2026-10-14 |
+| I-609 | Semnal pe orizontul documentat: momentum 6–12 luni cu luna din urmă sărită + regimul lățimii US — IPOTEZĂ, probată pe ambele nuluri și ambele jumătăți înainte de orice buton (Decision App) | candidate-engine/engine.js + scripturile de audit | L | P2 | propus | ideation | 2026-10-14 |
+| I-610 | Universul scannerului datat, din screenerul Nasdaq ținut de Radar (KV univers:sua), nu US_CORE de mână (67 câștigătorii de azi) (Decision App) | candidate-engine/engine.js + crypto/scripts/lib/tura-sectoare.mjs | M | P3 | propus | ideation | 2026-10-14 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6058,4 +6067,69 @@ Context: EL a văzut demo-ul „tema PAZNIC” (127.0.0.1:8799: culori, colțuri
 - **Impact:** context de piață într-un singur loc.
 - **Fișiere:** crypto/public/lib/sugestii-ecran.js, crypto/scripts/colector.mjs.
 
+
+
+## 14.10.2026 — ideation după restaurarea și auditul Candidate Engine (scannerul Decision Desk)
+Context: pagina repornită în `0fa541ea` (tt-v872); auditul în `docs/AUDIT-CANDIDATE-ENGINE-2026-10-14.md` — fără avantaj pe ambele nuluri + oglindă. Lentile: Trader — fără cheia Finnhub, blocarea la earnings e oprită și etichetele ARMED/FIRE promit un avantaj care nu există; Designer — badge-urile de stare strigă, hubul arată încă un semnal oprit; Inginer — probele au liste copiate din nav.js și sync-ul versiunii nu acoperă alerts; Automator — calendarul de earnings ar putea veni din Radar (cheia pe server), nu din browser.
+
+#### I-602 · Câmp pentru cheia Finnhub în Health · [S] · P1 · propus
+- **Problema/golul:** `lib/earnings.js` citește cheia din `localStorage` (`finnhub_api_key` / `fh_key`); fără ea scannerul scade 5 puncte la toate scorurile și blocarea „earnings ≤ 1 zi” nu există (rândul scrie „earnings neverificat”). Pagina Nasdaq Scanner, unde se punea cheia, e oprită din 12.10; Health doar o arată. Azi se pune din consolă cu `FH_KEY.set(...)`.
+- **Soluția:** în blocul 🔑 Finnhub din Health, un câmp + „Salvează” care cheamă `FH_KEY.set`, apoi „Testează” existent; starea „cheie prezentă …XXXX”. Alternativă (Automator): `earnings.js` să ia calendarul din Radar, care ține cheia pe server (pagina Rezultate), ca browserul să nu mai aibă nevoie de cheie.
+- **Impact:** previne intrarea în ziua raportării — singura gardă de eveniment a scannerului.
+- **Riscuri/dependențe:** cheia stă în browser (ca până acum); pe telefon trebuie pusă separat.
+- **Fișiere:** health/index.html, lib/finnhub-key.js (există, are `set`).
+
+#### I-603 · sync-suite-version.mjs bate și modulele Radar din alerts · [S] · P2 · propus
+- **Problema/golul:** `alerts/index.html` leagă `lib/radar-ui.css`, `radar-poza.js`, `radar-ecran.js`, `tema-paznic-suita.css` cu `?v=NNN` = numărul din `CACHE_VERSION`, iar `tools/alerts-radar.test.mjs` o cere; scriptul de sincronizare nu le atinge ⇒ la fiecare bump se bat de mână (14.10: testul a picat după bump).
+- **Soluția:** scriptul rescrie și aceste patru `?v=` din numărul versiunii; `--check` le verifică.
+- **Impact:** un pas manual mai puțin la fiecare livrare; testul nu mai pică „din neatenție”.
+- **Riscuri/dependențe:** nimic; regex strict pe cele patru fișiere.
+- **Fișiere:** tools/sync-suite-version.mjs, alerts/index.html.
+
+#### I-604 · proba-retrase.mjs: ținta și lista din nav.js · [S] · P2 · propus
+- **Problema/golul:** proba deschide `/nasdaq-scanner/` și așteaptă bara `#tt-dock`, dar pagina e din 12.10 un anunț fără nav.js ⇒ proba pică mereu; lista `RET` e o copie a `RETRASE` din nav.js, fără cele 4 pagini oprite pe 12.10.
+- **Soluția:** ținta pe o pagină care încarcă nav.js (alerts sau health); lista citită din `nav.js` (regex pe `var RETRASE = [...]`) ca să nu mai existe două adevăruri.
+- **Impact:** garda paginilor retrase redevine o gardă.
+- **Riscuri/dependențe:** serverul local pe 8777 (`PORNESTE-SUITA.bat`).
+- **Fișiere:** tools/proba-retrase.mjs, nav.js.
+
+#### I-605 · proba-ecran.mjs: etichetele hubului de azi · [S] · P3 · propus
+- **Problema/golul:** pentru hub proba apasă „Watchlist” și „scanner”, care nu mai există din 12.10 ⇒ raportează butoane lipsă (fals pozitiv — exact ce comentariul ei spune că e mai rău decât lipsa gărzii).
+- **Soluția:** etichetele curente ale hubului („acțiuni în Radar ↗”, „ghid →”, „hub clasic”); verificare că fiecare etichetă există înainte să fie „apăsată”.
+- **Impact:** proba de ecran spune adevărul.
+- **Fișiere:** tools/proba-ecran.mjs, index.html.
+
+#### I-606 · backlog.md: repararea mojibake-ului vechi + gardă · [S] · P3 · propus
+- **Problema/golul:** partea veche a fișierului (iulie–august) e dublu-codată („â€””, „fĂ„Âcut”), partea nouă e UTF-8 corect; căutarea pe diacritice și regula „nu repropune” nu mai prind ideile vechi.
+- **Soluția:** o trecere pe linie (decodare inversă acolo unde reușește), apoi un test mic care pică dacă apar secvențele de mojibake în `docs/`.
+- **Impact:** backlog-ul redevine căutabil; istoria respingerilor e citibilă.
+- **Riscuri/dependențe:** liniile cu amestec (corecte + stricate pe același rând) se repară de mână.
+- **Fișiere:** docs/ideas/backlog.md, tools/ (test nou).
+
+#### I-607 · Hub: „Se mișcă acum” din Pump Radar oprit · [S] · P3 · propus
+- **Problema/golul:** pagina Pump Radar s-a oprit pe 12.10 (semnalul „watch” ≈ întâmplare), dar hubul mai arată fereastra „Se mișcă acum” din `lib/pump.js`, cu linkul spre Radar — arată ca un semnal viu.
+- **Soluția:** EL alege: scoasă, sau păstrată ca date brute cu eticheta „mișcări de preț, nu semnal” și fără verb de acțiune.
+- **Impact:** hubul nu mai sugerează o intrare pe un semnal pe care auditul l-a închis.
+- **Fișiere:** index.html, lib/pump.js.
+
+#### I-608 · Eticheta adevărului pe ARMED / FIRE (Decision App — doar cu acordul lui) · [S] · P2 · propus
+- **Problema/golul:** scannerul și Desk-ul arată stări „ARMED”, „FIRE”, „actionable” — auditul din 14.10 a găsit că zilele lor sunt mai proaste decât întâmplarea (momentum) sau egale cu orice acțiune bătută (reversal). Eticheta promite ce nu există.
+- **Soluția:** în motivul candidatului și în „Semnale prioritare” din Desk, o notă scurtă: „semnal neprobat (audit 14.10) — listă de urmărit, nu intrare”; butonul „Construiește planul” rămâne, dar fără culoarea de alarmă pe FIRE.
+- **Impact:** decizia de cumpărare nu mai pleacă dintr-un badge.
+- **Riscuri/dependențe:** Decision App e aplicație separată — se face numai dacă EL spune.
+- **Fișiere:** candidate-engine/engine.js (textul `reason`, starea), desk/index.html.
+
+#### I-609 · Semnal pe orizontul documentat (Decision App) · [L] · P2 · propus
+- **Problema/golul:** scorul de momentum răsplătește forța pe 5–20 de zile — orizontul la care acțiunile volatile se întorc; auditul: FIRE e cel mai prost. Efectul de momentum documentat e pe 6–12 luni, cu luna din urmă sărită.
+- **Soluția:** IPOTEZĂ, nu promisiune: scor pe randamentul 6–12 luni fără ultima lună + filtru de regim (lățimea US din `market-breadth`), probat cu scripturile din `E:\Backup-Claude\premarket-suite\audit-candidate-engine-2026-10-14` pe ambele nuluri și pe ambele jumătăți (2022–23 / 2024–26); intră în pagină doar dacă trece.
+- **Impact:** singura cale ca scannerul să devină semnal, nu listă.
+- **Riscuri/dependențe:** universul de azi e supraviețuitor (vezi I-610); costuri 0,3 %; earnings necunoscut în trecut.
+- **Fișiere:** candidate-engine/engine.js, lib/indicators.js, scripturile de audit.
+
+#### I-610 · Universul datat din screenerul Nasdaq (Decision App) · [M] · P3 · propus
+- **Problema/golul:** `US_CORE` = 67 de nume alese de mână (câștigătorii de azi: NVDA, PLTR, SMCI…) ⇒ pe viu scanează doar ce e faimos acum, iar orice backtest pe lista asta e umflat de supraviețuitori.
+- **Soluția:** universul din screenerul Nasdaq pe care Radarul îl trage zilnic (KV `univers:sua`, ~7.000 de acțiuni, top pe lichiditate), cu data listei salvată, ca backtestul să poată folosi lista de atunci.
+- **Impact:** candidați pe care nu-i știe toată lumea; audit cinstit.
+- **Riscuri/dependențe:** Decision App citește din Radar (alt origin) — prin Tailscale sau un fișier publicat; volum de scanare mai mare (limitează la top 200).
+- **Fișiere:** candidate-engine/engine.js, crypto/scripts/lib/tura-sectoare.mjs (există).
 
