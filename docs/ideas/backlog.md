@@ -3319,6 +3319,14 @@ pe un singur chart.
 | I-611 | Scorul de momentum premiază volumul pe zi roșie (rvol ≥ 1,1 dă 7 puncte fără direcția zilei) — de probat pe scripturile de pe E: înainte de orice schimbare | candidate-engine/engine.js | S | P3 | propus | ideation | 2026-10-14 |
 | I-612 | Governor „TRADE” fără jurnal și fără T212 = confort fals ⇒ „NEVERIFICAT” când n-are din ce judeca (Decision App, cu acordul lui) | lib/governor.js | S | P2 | propus | ideation | 2026-10-14 |
 | I-613 | Coloana SCOR din modul Trend (100 − rang) seamănă cu scorul celorlalte moduri, dar înseamnă altceva — de scos sau etichetat | candidate-engine/engine.js + index.html | S | P3 | propus | ideation | 2026-10-14 |
+| I-614 | Bilanțul probei Trend, automat: robotul săptămânal măsoară istoricul (primele 20 pe zi) la 20/60 z față de SPY și față de restul universului și scrie `trend-12-1-bilant.json`; pagina arată „proba: N zile, +x % vs alte acțiuni” | tools/trend-12-1-bilant.mjs + workflow + candidate-engine/ | M | P1 | propus | ideation | 2026-10-14 |
+| I-615 | Ieșirile din Trend: robotul compară cu ziua dinainte și publică `iesiri` (cine a căzut din top 20 % sau regimul s-a oprit); pagina le arată — regula de ieșire din cercetare, nu doar intrarea | tools/trend-12-1.mjs + engine.js | S | P2 | propus | ideation | 2026-10-14 |
+| I-621 | Datele de raportare direct din robot: secretul `FINNHUB_API_KEY` există deja în Actions (price-alerts) ⇒ JSON-ul Trend poartă `raporteaza` pe fiecare nume și starea RAPORTEAZĂ nu mai depinde de cheia din browser | tools/trend-12-1.mjs + .github/workflows/trend-12-1.yml + engine.js | S | P1 | propus | ideation | 2026-10-14 |
+| I-616 | Concentrarea pe sector în Trend: azi 10 din 20 sunt semiconductori/optică/stocare — un singur pariu; plafon pe sector (ca `capSectors`, 3) SAU măcar un rând „X din 20 în același sector” (plafonul schimbă semnalul probat ⇒ se probează întâi) | candidate-engine/engine.js | S | P2 | propus | ideation | 2026-10-14 |
+| I-617 | Intrări/ieșiri din Trend pe Discord: robotul trimite seara cine a intrat și cine a ieșit din top 20 + regimul (același webhook ca `price-alerts.yml`) — el nu stă cu pagina deschisă | tools/trend-12-1.mjs + .github/workflows/trend-12-1.yml | M | P2 | propus | ideation | 2026-10-14 |
+| I-618 | Motivul candidatului ca fapte, nu ca șir lipit: `reason` crește cu „·” (EOD · Trend · RS · RVOL · earnings · confirmare · raportează) și pe telefon nu se mai citește — cipuri de fapte + o linie de verdict | candidate-engine/engine.js + index.html (+ desk/ citește reason) | M | P3 | propus | ideation | 2026-10-14 |
+| I-619 | Garda de formă pentru fișierele robotului: testul verifică JSON-ul publicat (versiune, dataUltimei, clasament cu câmpurile cerute, regim) ⇒ un robot stricat pică CI, nu pagina | tools/trend-12-1.test.mjs | S | P3 | propus | ideation | 2026-10-14 |
+| I-620 | Drift după raportare în Trend (PEAD): pentru candidații care au raportat în ultimele 5 zile cu reacție pozitivă, eticheta „după raportare +x %” din `EARN.istoric` — IPOTEZă documentată în literatură, de probat pe ambele nuluri înainte să conteze | candidate-engine/engine.js + lib/earnings.js | M | P3 | propus | ideation | 2026-10-14 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6157,4 +6165,60 @@ Context: pagina repornită în `0fa541ea` (tt-v872); auditul în `docs/AUDIT-CAN
 - **Soluția:** coloana devine „—” sau „60 z” (randamentul pe 60 de zile din clasament), cu antetul schimbat doar pentru Trend.
 - **Impact:** nu se mai citesc două scoruri ca unul.
 - **Fișiere:** candidate-engine/engine.js (rowHtmlTrend, tableHead), index.html.
+
+
+## 14.10.2026 — „îmbunătățiri și idei mai ai?” (după auditul sever): scanner + Trend + Desk
+Lentile: Trader — Trend are intrare, dar n-are ieșire și nici bilanț măsurat; lista de azi e un singur pariu pe semiconductori. Designer — motivul candidatului e un șir care crește. Inginer — fișierele robotului n-au gardă de formă. Automator — ce se întâmplă în clasament se află doar deschizând pagina.
+
+#### I-614 · Bilanțul probei Trend, automat · [M] · P1 · propus
+- **Problema/golul:** Trend e „în probă”, dar proba o face cineva de mână peste 6–12 luni. Istoricul zilnic (`trend-12-1-istoric.jsonl`) e punct-în-timp, deci bilanțul se poate măsura automat pe măsură ce trec zilele.
+- **Soluția:** robot săptămânal: pentru fiecare zi din istoric cu ≥ 20 (≥ 60) de zile de bursă în urmă, randamentul primelor 20 la 20/60 z față de SPY și față de media universului din acea zi (nulul B, de pe disc — lista universului se salvează și ea zilnic); interval pe zile; scrie `trend-12-1-bilant.json`; pagina arată „proba: 37 de zile, +0,8 % vs alte acțiuni (interval …)” și trece singură din „în probă” în „probat” / „picat” după criteriile pre-înregistrate din 14.10.
+- **Impact:** semnalul își spune singur dacă merită; nu depinde de memoria nimănui.
+- **Riscuri/dependențe:** universul zilnic trebuie salvat în istoric (azi doar primele 20); Yahoo pentru prețurile de după.
+- **Fișiere:** tools/trend-12-1.mjs (istoric cu universul), tools/trend-12-1-bilant.mjs (nou), .github/workflows/trend-12-1.yml, candidate-engine/engine.js.
+
+#### I-615 · Ieșirile din Trend · [S] · P2 · propus
+- **Problema/golul:** cercetarea spune „ieși când iese din top 20 % sau regimul se oprește”, dar pagina arată doar cine e în top azi; cine a căzut ieri nu apare nicăieri.
+- **Soluția:** robotul citește ultima linie din istoric și scrie în JSON `iesiri: [{s, rangAzi, motiv}]` (căzut sub 20 %, lichiditate, regim oprit ⇒ toate); pagina: bloc „Au ieșit” sub clasament, cu starea IEȘIT.
+- **Impact:** regula de ieșire devine vizibilă; fără ea, lista e doar jumătate de semnal.
+- **Fișiere:** tools/trend-12-1.mjs, tools/trend-12-1-lib.mjs, candidate-engine/engine.js, index.html.
+
+#### I-616 · Concentrarea pe sector în Trend · [S] · P2 · propus
+- **Problema/golul:** clasamentul de azi: 10 din 20 sunt semiconductori/optică/stocare (SNDK, LITE, MU, WDC, DELL, INTC, MRVL, TER, COHR, AMD) — un singur pariu pe un sector; Radarul are deja garda „sector > 40 %” pe cont.
+- **Soluția:** (a) rând de avertizare „9 din 20 în același sector” (fără să schimbe lista) — imediat; (b) plafon pe sector ca `capSectors` (3) — DOAR după ce se probează pe scripturile de pe E: că nu strică efectul.
+- **Impact:** nu se cumpără același risc de cinci ori fără să știe.
+- **Fișiere:** candidate-engine/engine.js (loadTrend, coverage), tools/trend-12-1-lib.mjs (plafonul).
+
+#### I-617 · Intrări/ieșiri din Trend pe Discord · [M] · P2 · propus
+- **Problema/golul:** clasamentul se schimbă seara, dar el află doar dacă deschide pagina; suita trimite deja alerte pe Discord din `price-alerts.yml`.
+- **Soluția:** la finalul robotului, un mesaj: regimul, cine a intrat, cine a ieșit din top 20 (din istoric), cine raportează în 14 zile (dacă I-614 aduce calendarul) — același webhook din secretele Actions.
+- **Impact:** semnalul vine la el, nu el la semnal.
+- **Riscuri/dependențe:** webhook-ul în secretele depozitului (există pentru price-alerts); mesaj doar la schimbare, nu zilnic.
+- **Fișiere:** tools/trend-12-1.mjs, .github/workflows/trend-12-1.yml.
+
+#### I-618 · Motivul candidatului ca fapte, nu ca șir lipit · [M] · P3 · propus
+- **Problema/golul:** `reason` se construiește prin concatenare („EOD … · Trend … · RS … · RVOL … · earnings … · confirmarea … · raportează …”) și după reparațiile de azi are 8–10 bucăți; pe telefon e un bloc gri ilizibil, iar Desk-ul îl copiază în `basis.reason`.
+- **Soluția:** `fapte: [{k, v, rol}]` pe candidat (EOD, trend, RS, RVOL, earnings, gardă) + `verdict` (o linie); rândul arată cipuri (rol = support/attention/block), `reason` rămâne pentru compatibilitate (Desk, handoff).
+- **Impact:** se vede dintr-o privire DE CE n-are plan; design.md: ierarhie, nu zgomot uniform.
+- **Fișiere:** candidate-engine/engine.js, index.html; desk/index.html doar dacă vrea și el cipurile.
+
+#### I-619 · Garda de formă pentru fișierele robotului · [S] · P3 · propus
+- **Problema/golul:** dacă robotul publică un JSON stricat (câmp lipsă, dată greșită), pagina spune doar „nu s-a putut citi”; nimic nu oprește commit-ul.
+- **Soluția:** testul `trend-12-1.test.mjs` verifică și fișierul publicat (versiune 1, `dataUltimei` zi de bursă, clasament ≤ 40 cu `s, pret, m12, m6, rang, spark`, regim cu `peste` boolean, istoric cu linii JSON valide, ultima zi = `dataUltimei`); workflow-ul rulează testul DUPĂ robot, înainte de commit.
+- **Impact:** un robot stricat pică CI, nu pagina lui.
+- **Fișiere:** tools/trend-12-1.test.mjs, .github/workflows/trend-12-1.yml.
+
+#### I-621 · Datele de raportare direct din robot · [S] · P1 · propus
+- **Problema/golul:** starea RAPORTEAZĂ din Trend (reparația 🔴 2 din audit) trăiește doar cu cheia Finnhub în browserul respectiv; pe un telefon fără cheie rândul spune „neverificat”. Secretul `FINNHUB_API_KEY` e deja în Actions (`price-alerts.yml`).
+- **Soluția:** robotul cere calendarul pe 14 zile (toate raportările) și pune `raporteaza: {d, ora}` pe fiecare nume din clasament; pagina folosește întâi ce vine din JSON, apoi cheia din browser (dacă e); pe Desk la fel, când va citi Trend.
+- **Impact:** avertismentul de raportare e pe toate aparatele, fără nicio cheie pusă de mână.
+- **Riscuri/dependențe:** secretul trebuie pus și pe workflow-ul trend (același nume); Finnhub free = 60 cereri/min, o cerere pe zi aici.
+- **Fișiere:** tools/trend-12-1.mjs, .github/workflows/trend-12-1.yml, candidate-engine/engine.js.
+
+#### I-620 · Drift după raportare (PEAD) în Trend · [M] · P3 · propus
+- **Problema/golul:** efectul documentat „drift după anunțul de rezultate” (surpriză pozitivă + reacție pozitivă ⇒ continuare săptămâni) nu e nicăieri; `EARN.istoric` dă deja surpriza și reacția pe ultimele raportări.
+- **Soluția:** IPOTEZĂ: eticheta „după raportare +x % (surpriză +y %)” pe candidații Trend care au raportat în ultimele 5 zile; probată pe ambele nuluri înainte să schimbe vreo stare.
+- **Impact:** o a doua dovadă independentă pe același candidat, dacă trece proba.
+- **Riscuri/dependențe:** cheia Finnhub în browser; 8 raportări/simbol înseamnă cereri multe ⇒ doar pentru primele 20.
+- **Fișiere:** candidate-engine/engine.js, lib/earnings.js (istoric există).
 
