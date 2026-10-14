@@ -23,7 +23,8 @@
     momentum: [], reversal: [], selected: null, updatedAt: 0,
     trend: [], trendMeta: null, trendEroare: '', trendIesiri: [], peadPentru: null,
     failures: [], earningsOk: false, earningsMap: {}, timer: null,
-    verified: 0, scanned: 0, hasScan: false, benchmarks: [], sectorPending: false, generation: 0, scanKey: null
+    verified: 0, scanned: 0, hasScan: false, benchmarks: [], sectorPending: false, generation: 0, scanKey: null,
+    screener: null, screenerLa: null
   };
 
   function $(id) { return document.getElementById(id); }
@@ -48,10 +49,23 @@
     if(requested)wl=wl.concat([requested]);
     if (kind === 'watchlist') return unique(wl);
     if (kind === 'us') return unique(US_CORE.concat(wl.filter(function (s) { return regionOf(s) === 'US'; })));
+    // I-610 (14.10.2026): primele 200 din lista datata a robotului (screenerul Nasdaq, SUA >= 2 mld.), nu cele 67 de nume de mana
+    if (kind === 'screener') return unique((state.screener || US_CORE).slice(0, 200).concat(wl.filter(function (s) { return regionOf(s) === 'US'; })));
     if (kind === 'eu') return unique(EU_CORE.concat(wl.filter(function (s) { return regionOf(s) === 'EU'; })));
     return unique(US_CORE.concat(EU_CORE, wl));
   }
 
+  async function loadScreenerUnivers() {
+    if (state.screener || typeof fetch !== 'function') return !!state.screener;
+    try {
+      var r = await fetch('generated/univers-sua.json?x=' + Date.now(), { cache: 'no-store' });
+      if (!r || !r.ok) return false;
+      var j = await r.json();
+      if (!j || !Array.isArray(j.l) || j.l.length < 50) return false;
+      state.screener = unique(j.l.map(function (x) { return x && x.s; })); state.screenerLa = j.la || null;
+      return true;
+    } catch (_) { return false; }
+  }
   function validateDeps() {
     var deps = {
       sData: !!(window.D && D.fetchStock), sTi: !!(window.TI && TI.calcEMA && TI.calcATR),
@@ -121,8 +135,10 @@
     if (f.ret5 > 0) s += clamp(f.ret5 * 1.4, 0, 9);
     if (f.ret20 > 0) s += clamp(f.ret20 * .55, 0, 8);
     if (f.rs20 > 0) s += clamp(5 + f.rs20, 0, 12);
-    if (f.rvol >= 1.1) s += 7;
-    if (f.rvol >= 1.5) s += 4;
+    // 14.10.2026 (I-611): volumul conteaza doar pe zi verde — volum mare pe zi rosie e distributie, nu cerere (trader.md);
+    // probat pe 5 ani: nu aduce avantaj (ramane fara), dar scoate ~600 de FIRE false din 1.872.
+    if (f.rvol >= 1.1 && f.dayChg > 0) s += 7;
+    if (f.rvol >= 1.5 && f.dayChg > 0) s += 4;
     if (f.rsi >= 50 && f.rsi <= 68) s += 10; else if (f.rsi >= 44 && f.rsi <= 74) s += 5;
     if (f.ext21 >= -1 && f.ext21 <= 4) s += 9; else if (f.ext21 <= 7) s += 3;
     if (f.avgDollarVol >= 20000000) s += 7; else if (f.avgDollarVol >= 5000000) s += 4;
@@ -184,8 +200,8 @@
     var eb = MEB.computeEarlyBird(hist, 4, null);
     var mScore = momentumScore(f, earn);
     var rScore = reversalScore(f, eb, earn);
-    var gov = govScan || (window.GV && GV.status ? GV.status() : { verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] });
-    var knownGovernor = ['TRADE','CAUTION','HALTED'].includes(gov.verdict);
+    var gov = govScan || (window.GV && GV.status ? GV.status() : { verdict: 'INDISPONIBIL', reasons: ['Governor indisponibil'] });   // lipsa Governor-ului ramane verdict NEcunoscut (nu eligible); NEVERIFICAT (I-612) e cunoscut
+    var knownGovernor = ['TRADE','CAUTION','HALTED','NEVERIFICAT'].includes(gov.verdict);   // NEVERIFICAT (I-612): vizibil, dar fara plan
     var blocked = earn.blocked || !['TRADE','CAUTION'].includes(gov.verdict);
     var sector = window.EL && EL.sectorOf ? EL.sectorOf(sym) : 'Necunoscut';
     var trend=window.TTDecisionVerdict?.trend(bars);
@@ -295,6 +311,7 @@
     loadTrend();
     setScanning(true); showAlert(''); progress(0, 1); state.failures = [];state.verified=0;state.sectorPending=false;
     try {
+      if ($('universe').value === 'screener' && !(await loadScreenerUnivers())) showAlert('Lista screenerului (generated/univers-sua.json) nu s-a putut citi — scanez lista de mână (Core SUA) până revine robotul.');
       var list = universe(); state.scanKey=JSON.stringify([$('universe').value,list]);state.scanned=list.length;$('ctxUniverse').textContent = list.length + ' simboluri';
       var initial=await Promise.all([earningsGate(),benchmarkReturns()]),bench=initial[1];
       var govScan = window.GV && GV.status ? GV.status() : null;   // o singură citire a jurnalului pe scanare
@@ -348,7 +365,7 @@
     $('tableHead').innerHTML = state.mode === 'momentum'
       ? '<span>#</span><span>SIMBOL / MOTIV</span><span>SECTOR</span><span>Δ ZI</span><span>RVOL</span><span>RS 20Z</span><span>RET. 20Z</span><span>SCOR</span><span>STARE</span>'
       : state.mode === 'trend'
-      ? '<span>#</span><span>SIMBOL / MOTIV</span><span>SECTOR</span><span>MOM 12-1</span><span>MOM 6-1</span><span>RANG</span><span>PREȚ</span><span>SCOR</span><span>STARE</span>'
+      ? '<span>#</span><span>SIMBOL / MOTIV</span><span>SECTOR</span><span>MOM 12-1</span><span>MOM 6-1</span><span>RANG</span><span>PREȚ</span><span>60 Z</span><span>STARE</span>'
       : '<span>#</span><span>SIMBOL / MOTIV</span><span>SECTOR</span><span>DE LA MAX.</span><span>DIN MINIM</span><span>BAZĂ</span><span>RVOL</span><span>SCOR</span><span>STARE</span>';
   }
   function rowHtml(x, i) {
@@ -388,7 +405,7 @@
         return {
           symbol: String(c.s || '').toUpperCase(), name: c.nume || c.s, mode: 'trend', kind: 'trend', region: 'US', currency: 'USD', sector: c.sector || 'Necunoscut',
           score: Math.round(clamp(100 - (safeNum(c.rang) || 0) * 100, 0, 100)), state: stare, price: safeNum(c.pret), dayChg: null, rvol: null, rs: null,
-          metricA: (safeNum(c.m12) || 0) * 100, metricB: (safeNum(c.m6) || 0) * 100, rang: safeNum(c.rang), cap: safeNum(c.cap), dolari20: safeNum(c.dolari20),
+          metricA: (safeNum(c.m12) || 0) * 100, metricB: (safeNum(c.m6) || 0) * 100, rang: safeNum(c.rang), cap: safeNum(c.cap), dolari20: safeNum(c.dolari20), r60: safeNum(c.r60),
           eligible: true, actionable: false,
           reason: 'EOD ' + j.dataUltimei + ' · ' + eticheta + ' · regim ' + (regimPornit ? 'pornit (SPY peste media pe 200 de zile)' : 'oprit (SPY sub media pe 200 de zile)') + (vechi ? ' · clasament VECHI de ' + vechime + ' zile' : ''),
           entryLow: safeNum(c.pret), entryHigh: safeNum(c.pret), stop: null, target: null, spark: Array.isArray(c.spark) ? c.spark : [],
@@ -522,14 +539,14 @@
       + '<div class="ce-symbol"><b>' + escapeHtml(x.symbol) + ' <em>' + escapeHtml(x.region) + '</em></b><small>' + fapteHtml(x) + ' ' + escapeHtml(x.name) + '</small>' + (window.T212C ? T212C.badge(x.symbol) : '') + '</div>'
       + '<span class="ce-cell" data-label="Sector">' + escapeHtml(x.sector) + '</span><b class="ce-cell ' + (x.metricA >= 0 ? 'ce-up' : 'ce-down') + '" data-label="Mom 12-1">' + signed(x.metricA, 1) + '</b>'
       + '<span class="ce-cell ' + (x.metricB >= 0 ? 'ce-up' : 'ce-down') + '" data-label="Mom 6-1">' + signed(x.metricB, 1) + '</span><span class="ce-cell" data-label="Rang">' + (x.rang == null ? '—' : 'top ' + fmt(x.rang * 100, 1) + '%') + '</span><span class="ce-cell" data-label="Preț">' + fmt(x.price, 2) + '</span>'
-      + '<strong class="ce-score">' + x.score + '</strong><i class="ce-state ' + stateClass(x) + '">' + escapeHtml(x.state) + '</i></button>';
+      + '<strong class="ce-score">' + (x.r60 == null ? '—' : procente(x.r60 * 100)) + '</strong><i class="ce-state ' + stateClass(x) + '">' + escapeHtml(x.state) + '</i></button>';
   }
   function renderDetailTrend(x) {
     var m = state.trendMeta || {}, g = window.GV?.status?.() || x.governor || { verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] };
     var motiv = (m.eticheta || TREND_ETICHETA) + ' Se ține 20–60 de zile, fără stop strâns (planul cu 1,25 ATR anulează efectul); ieșire când iese din top 20 % sau când regimul se oprește.';
     window.TTDecisionPanel?.set({ purpose: 'entry', simulation: false, candidate: null, risk: g, empty: { title: 'Trend 12 luni · ' + x.symbol + ' · în probă', reason: 'În probă: selecție probată față de acțiunile din aceeași zi, neprobată pe listă istorică. Fără plan; se ține 20–60 de zile, fără stop strâns.' } });
     $('dSymbol').textContent = x.symbol; $('dName').textContent = 'Trend 12 luni · ' + (x.name || '') + ' · ' + x.currency;
-    $('dScore').textContent = x.score; $('dSector').textContent = x.sector; $('dState').textContent = x.state;
+    $('dScore').textContent = x.r60 == null ? '—' : '60 z ' + procente(x.r60 * 100); $('dSector').textContent = x.sector; $('dState').textContent = x.state;
     $('dFresh').textContent = 'EOD ' + (m.dataUltimei || '—'); $('dReason').textContent = x.reason + ' · ' + motiv;
     $('dEntry').textContent = fmt(x.price, 2) + ' (închiderea)'; $('dStop').textContent = '—'; $('dTarget').textContent = '—';
     $('spark').innerHTML = sparkSvg(x.spark);

@@ -15,7 +15,7 @@ function json(dataUltimei, peste = true, extra = {}) {
   return {
     versiune: 1, la: '2026-10-14T06:30:00Z', dataUltimei, regim: { inchidere: 650, sma200: 600, peste }, univers: { n: 480, minCap: 2e9, sursa: 'screener' },
     metoda: 'top 20 % după randamentul pe lunile 2–12', eticheta: 'selecție probată față de acțiunile din aceeași zi; neprobată pe listă istorică; în probă',
-    clasament: Array.from({ length: 25 }, (_, i) => ({ s: 'T' + i, nume: 'Nume ' + i, sector: i % 2 ? 'Technology' : 'Energy', cap: 1e10 - i, pret: 50 + i, m12: 1.5 - i / 20, m6: 0.4 - i / 50, rang: i / 480, dolari20: 5e7 })),
+    clasament: Array.from({ length: 25 }, (_, i) => ({ s: 'T' + i, nume: 'Nume ' + i, sector: i % 2 ? 'Technology' : 'Energy', cap: 1e10 - i, pret: 50 + i, m12: 1.5 - i / 20, m6: 0.4 - i / 50, r60: 0.3 - i / 100, rang: i / 480, dolari20: 5e7 })),
     ...extra,
   };
 }
@@ -136,6 +136,15 @@ test('I-620 (ipoteza): dupa raportare cu reactie pozitiva in ultimele 7 zile, ca
   await f.hooks.peadPesteTrend(); assert.equal(cereri.length, 20, 'nu se repeta pentru aceeasi zi de date');
   const g = setup(); g.ctx.EARN = { cheie: () => '', istoric: async () => { throw Error('nu trebuia chemat'); } }; await g.hooks.loadTrend(); await g.hooks.peadPesteTrend();
   assert.ok(g.hooks.state.trend.every((x) => !x.pead), 'fara cheie nu se cere nimic');
+});
+
+test('I-613: la Trend, coloana SCOR devine randamentul pe 60 de zile (antet „60 Z”), in rand si in detaliu', async () => {
+  const f = setup(); await f.hooks.loadTrend(); const s = f.hooks.state; s.mode = 'trend'; f.hooks.render();
+  assert.match(f.node('tableHead').innerHTML, /60 Z/); assert.ok(!/SCOR/.test(f.node('tableHead').innerHTML));
+  assert.equal(s.trend[0].r60, 0.3); assert.match(f.node('rows').innerHTML, /\+30,0 %/);
+  assert.match(f.node('dScore').textContent, /\+30,0 %/);
+  const t = json('2026-10-13'); delete t.clasament[0].r60; const g = setup({ trend: t }); await g.hooks.loadTrend(); g.hooks.state.mode = 'trend'; g.hooks.render();
+  assert.match(g.node('rows').innerHTML, /ce-score">—</, 'fără r60 în JSON (robot vechi) ⇒ liniuță, nu scor inventat');
 });
 
 test('cautarea si filtrele merg pe trend; copia locala a scanarii (ce_results_v2) nu primeste trend', async () => {

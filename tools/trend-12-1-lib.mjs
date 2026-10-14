@@ -36,7 +36,7 @@ export function clasament(serii, spy, o = {}) {
     if (!(pret >= minPret)) { excluse.pret++; continue; }
     const dolari20 = b.slice(-20).reduce((a, x) => a + x.c * x.v, 0) / 20;
     if (!(dolari20 >= minDolari)) { excluse.bani++; continue; }
-    l.push({ s, pret, m12: b[n - 22].c / b[n - 253].c - 1, m6: b[n - 22].c / b[n - 127].c - 1, dolari20, ultima: zi(b[n - 1].t) });
+    l.push({ s, pret, m12: b[n - 22].c / b[n - 253].c - 1, m6: b[n - 22].c / b[n - 127].c - 1, r60: n > 61 ? b[n - 1].c / b[n - 61].c - 1 : null, dolari20, ultima: zi(b[n - 1].t) });
   }
   l.sort((a, b) => b.m12 - a.m12);
   const n = l.length;

@@ -42,6 +42,7 @@ test('clasament: ordonat dupa mom 12-1 (ultima luna sarita), rang = pozitia / nu
   assert.ok(Math.abs(r.clasament[0].m12 - asteptat) < 1e-12, 'm12 = C[t-21] / C[t-252] - 1');
   assert.ok(Math.abs(r.clasament[0].m6 - (b[n - 22].c / b[n - 127].c - 1)) < 1e-12, 'm6 = C[t-21] / C[t-126] - 1');
   assert.equal(r.clasament[0].rang, 0); assert.ok(Math.abs(r.clasament[1].rang - 1 / 3) < 1e-12);
+  assert.ok(Math.abs(r.clasament[0].r60 - (b[n - 1].c / b[n - 61].c - 1)) < 1e-12, 'I-613: randamentul pe 60 de zile, pentru coloana din pagină');
   assert.equal(r.clasament[0].pret, b[n - 1].c);
 });
 
