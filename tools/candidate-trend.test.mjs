@@ -175,3 +175,14 @@ test('cautarea si filtrele merg pe trend; copia locala a scanarii (ce_results_v2
   f.node('search').value = ''; f.node('onlyActionable').checked = true; assert.equal(f.hooks.currentItems().length, 0);
   assert.equal(f.store.get('ce_results_v2'), undefined);
 });
+
+test('tt-v882: saltul intr-o zi din JSON-ul robotului e fapt „salt” (atentie) cu o zecimala si ziua; sub 50 % nu apare; fara camp nu crapa', async () => {
+  const j = json('2026-10-13'); j.clasament[2].salt = { pct: 1.77, d: '2026-05-12' }; j.clasament[3].salt = { pct: 0.2, d: '2026-03-03' };
+  const f = setup({ trend: j }); await f.hooks.loadTrend(); const s = f.hooks.state; s.mode = 'trend'; f.hooks.render();
+  const t2 = s.trend[2], t3 = s.trend[3], t0 = s.trend[0];
+  const salt = t2.fapte.find((p) => p.k === 'salt'); assert.ok(salt, 'T2 are faptul salt'); assert.equal(salt.rol, 'attention'); assert.equal(salt.v, '+177,0 % într-o zi (2026-05-12) — verifică seria');
+  const rows = f.node('rows').innerHTML, i2 = rows.indexOf('<b>T2 <em>'), i3 = rows.indexOf('<b>T3 <em>'); assert.ok(i2 > 0 && i3 > i2, 'randurile T2 si T3 exista');
+  const rand2 = rows.slice(i2, i3); assert.ok(rand2.indexOf('verifică seria') > 0 && rand2.indexOf('verifică seria') < rand2.indexOf('12-1'), 'in rand, cipul de atentie vine inaintea suportului (fapteHtml ordoneaza pe prioritate)');
+  assert.ok(!t3.fapte.some((p) => p.k === 'salt'), '20 % nu e salt'); assert.ok(!t0.fapte.some((p) => p.k === 'salt')); assert.equal(t0.salt, null);
+  assert.match(f.node('rows').innerHTML, /verifică seria/);
+});

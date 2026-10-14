@@ -2,7 +2,7 @@
 // Semnalul probat pe 14.10: top 20 % după randamentul pe lunile 2–12 (ultima lună sărită), față de ALTE acțiuni în aceeași zi.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { curataUnivers, clasament, regim, liniaIstoric, adaugaIstoric, taieBaraPartiala } from './trend-12-1-lib.mjs';
+import { curataUnivers, clasament, regim, liniaIstoric, adaugaIstoric, taieBaraPartiala, saltMaxim } from './trend-12-1-lib.mjs';
 
 // o serie de bare zilnice doar în zile lucrătoare, preț cu creștere constantă pe zi
 function serie(n, pantaZi, { vol = 1e6, pret0 = 100, taie = 0 } = {}) {
@@ -83,4 +83,14 @@ test('istoricul: o linie pe zi de date, nu se dubleaza', () => {
   const t2 = adaugaIstoric(t1, { ...l, d: '2026-10-15' });
   assert.equal(t2.trim().split('\n').length, 2);
   assert.equal(JSON.parse(t2.trim().split('\n')[1]).d, '2026-10-15');
+});
+
+test('salt: cel mai mare salt close-to-close intr-o zi din fereastra 12-1, cu ziua lui; o serie lina da un salt mic; se publica, nu se taie', () => {
+  const lina = serie(300, 0.001), spy = serie(300, 0.0005);
+  const rupta = lina.map((b, i) => (i >= 150 ? { ...b, o: b.o * 2, h: b.h * 2, l: b.l * 2, c: b.c * 2 } : b));   // de la bara 150 totul e dublu (split neajustat / glitch)
+  const s = saltMaxim(rupta); assert.ok(Math.abs(s.pct - 1.002) < 0.01, 'saltul ~ 100 %: ' + s.pct); assert.equal(s.d, new Date(rupta[150].t).toISOString().slice(0, 10));
+  assert.ok(saltMaxim(lina).pct < 0.01); assert.equal(saltMaxim([]), null); assert.equal(saltMaxim([lina[0]]), null);
+  const r = clasament({ RUPTA: rupta, LINA: lina }, spy, { top: 10 });
+  const x = r.clasament.find((c) => c.s === 'RUPTA'); assert.ok(x, 'ramane in clasament'); assert.ok(x.salt.pct > 0.99 && x.salt.pct < 1.01);
+  assert.ok(r.clasament.find((c) => c.s === 'LINA').salt.pct < 0.01);
 });

@@ -109,8 +109,11 @@ fs.writeFileSync(F_IST, istNou);
 console.log('clasament ' + rez.dataUltimei + ': ' + rez.clasament.length + ' din ' + rez.n + ' clasate (excluse ' + JSON.stringify(rez.excluse) + ') · regim ' + (rg.peste ? 'PORNIT' : 'OPRIT') + ' (SPY ' + rg.inchidere.toFixed(2) + ' vs SMA200 ' + (rg.sma200 || 0).toFixed(2) + ') · primele 5: ' + rez.clasament.slice(0, 5).map((x) => x.s + ' ' + (x.m12 * 100).toFixed(0) + '%').join(', '));
 console.log('raportări: ' + raportari.sursa + (raportari.n != null ? ' (' + raportari.n + ' în 14 zile, ' + top20.filter((x) => harta[x.s]).length + ' din primele 20)' : '') + ' · ieșiri ' + ies.length + ' · intrări ' + intr.length + ' · sectoare ' + JSON.stringify(sectoare));
 
+const salturi = top20.filter((x) => x.salt && x.salt.pct >= 0.5).map((x) => ({ s: x.s, ...x.salt }));
+console.log('salt ≥ 50 % într-o zi în primele 20 (verifică seria): ' + (salturi.length ? salturi.map((x) => x.s + ' ' + Math.round(x.pct * 100) + ' % ' + x.d).join(', ') : 'niciunul'));
+
 // 7. Discord — doar la schimbare
-const mesaj = mesajDiscord({ dataUltimei: rez.dataUltimei, regim: rg, regimPrev: prev ? prev.regim : null, intrari: intr, iesiri: ies, raporteaza: top20.filter((x) => harta[x.s]).map((x) => ({ s: x.s, ...harta[x.s] })) });
+const mesaj = mesajDiscord({ dataUltimei: rez.dataUltimei, regim: rg, regimPrev: prev ? prev.regim : null, intrari: intr, iesiri: ies, raporteaza: top20.filter((x) => harta[x.s]).map((x) => ({ s: x.s, ...harta[x.s] })), salturi });
 if (mesaj && rerulare) console.log('Discord: aceeași zi de date ca ultima linie (re-rulare / sărbătoare) ⇒ nu retrimit');
 else if (mesaj && process.env.DISCORD_WEBHOOK) {
   try {

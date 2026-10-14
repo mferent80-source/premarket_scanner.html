@@ -36,12 +36,21 @@ export function clasament(serii, spy, o = {}) {
     if (!(pret >= minPret)) { excluse.pret++; continue; }
     const dolari20 = b.slice(-20).reduce((a, x) => a + x.c * x.v, 0) / 20;
     if (!(dolari20 >= minDolari)) { excluse.bani++; continue; }
-    l.push({ s, pret, m12: b[n - 22].c / b[n - 253].c - 1, m6: b[n - 22].c / b[n - 127].c - 1, r60: n > 61 ? b[n - 1].c / b[n - 61].c - 1 : null, dolari20, ultima: zi(b[n - 1].t) });
+    // 14.10 („fă toate”): cel mai mare salt close-to-close într-o zi din fereastra 12-1 — split neajustat / reverse split / glitch / știre (MRNA +177 %
+    // într-un pas pe 14.10). Se PUBLICĂ, nu se taie: robotul măsoară, omul verifică seria înainte să creadă cifra 12-1.
+    l.push({ s, pret, m12: b[n - 22].c / b[n - 253].c - 1, m6: b[n - 22].c / b[n - 127].c - 1, r60: n > 61 ? b[n - 1].c / b[n - 61].c - 1 : null, dolari20, ultima: zi(b[n - 1].t), salt: saltMaxim(b.slice(n - 253)) });
   }
   l.sort((a, b) => b.m12 - a.m12);
   const n = l.length;
   l.forEach((x, i) => { x.rang = i / n; });
   return { dataUltimei, n, excluse, clasament: l.filter((x) => x.m12 > 0).slice(0, top), toate: l, clasate: l.map((x) => x.s) };
+}
+
+/** Cel mai mare salt close-to-close într-o zi (fracție, cu ziua lui); null sub 2 bare. Nu judecă: un split neajustat și o știre arată la fel. */
+export function saltMaxim(b) {
+  let pct = 0, d = null;
+  for (let i = 1; i < (b || []).length; i++) { const p = b[i - 1].c; if (!(p > 0) || !(b[i].c > 0)) continue; const v = Math.abs(b[i].c / p - 1); if (v > pct) { pct = v; d = zi(b[i].t); } }
+  return d ? { pct: +pct.toFixed(4), d } : null;
 }
 
 /** Calendarul Finnhub (14 zile, toate raportările) ⇒ { simbol: {d, ora, zile} } — prima raportare a simbolului, zilele de la data clasamentului. */
@@ -86,6 +95,8 @@ export function mesajDiscord(o) {
   if (intr.length) L.push('intrat: ' + intr.map((x) => x.s + (Number.isFinite(x.m12) ? ' (' + (x.m12 >= 0 ? '+' : '') + (x.m12 * 100).toFixed(1).replace('.', ',') + ' %)' : '')).join(', '));
   if (ies.length) L.push('ieșit: ' + ies.map((x) => x.s + ' — ' + x.motiv).join('; '));
   if (rap.length) L.push('raportează: ' + rap.map((r) => r.s + ' în ' + r.zile + 'z' + (r.ora ? ' ' + r.ora : '')).join(', '));
+  const sal = (o.salturi || []).filter((x) => x && Number.isFinite(x.pct) && x.pct >= 0.5);
+  if (sal.length) L.push('salt într-o zi, verifică seria: ' + sal.map((x) => x.s + ' ' + Math.round(x.pct * 100) + ' %' + (x.d ? ' (' + x.d + ')' : '')).join(', '));
   L.push('_în probă; nu e un buton de cumpărat — detalii în Candidate Engine → Trend 12 luni_');
   let m = L.join('\n'); if (m.length > 1900) m = m.slice(0, 1880) + '…';
   return m;

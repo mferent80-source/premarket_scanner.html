@@ -411,6 +411,7 @@
           symbol: String(c.s || '').toUpperCase(), name: c.nume || c.s, mode: 'trend', kind: 'trend', region: 'US', currency: 'USD', sector: c.sector || 'Necunoscut',
           score: Math.round(clamp(100 - (safeNum(c.rang) || 0) * 100, 0, 100)), state: stare, price: safeNum(c.pret), dayChg: null, rvol: null, rs: null,
           metricA: (safeNum(c.m12) || 0) * 100, metricB: (safeNum(c.m6) || 0) * 100, rang: safeNum(c.rang), cap: safeNum(c.cap), dolari20: safeNum(c.dolari20), r60: safeNum(c.r60),
+          salt: c.salt && safeNum(c.salt.pct) != null ? { pct: safeNum(c.salt.pct), d: String(c.salt.d || '') } : null,   // tt-v882: cel mai mare salt într-o zi din fereastra 12-1 (robotul)
           eligible: true, actionable: false,
           reason: 'EOD ' + j.dataUltimei + ' · ' + eticheta + ' · regim ' + (regimPornit ? 'pornit (SPY peste media pe 200 de zile)' : 'oprit (SPY sub media pe 200 de zile)') + (vechi ? ' · clasament VECHI de ' + vechime + ' zile' : ''),
           entryLow: safeNum(c.pret), entryHigh: safeNum(c.pret), stop: null, target: null, spark: Array.isArray(c.spark) ? c.spark : [],
@@ -462,8 +463,11 @@
   }
   function faptePentruTrend(x, m) {
     var peste = !!(m && m.regim && m.regim.peste);
-    return [{ k: 'EOD', v: m ? m.dataUltimei : '', rol: 'info' }, { k: '12-1', v: procente(x.metricA), rol: 'support' }, { k: '6-1', v: procente(x.metricB), rol: x.metricB >= 0 ? 'support' : 'attention' },
+    var f = [{ k: 'EOD', v: m ? m.dataUltimei : '', rol: 'info' }, { k: '12-1', v: procente(x.metricA), rol: 'support' }, { k: '6-1', v: procente(x.metricB), rol: x.metricB >= 0 ? 'support' : 'attention' },
       { k: 'rang', v: x.rang == null ? '—' : 'top ' + fmt(x.rang * 100, 1) + ' %', rol: 'support' }, { k: 'regim', v: peste ? 'pornit' : 'oprit', rol: peste ? 'support' : 'attention' }];
+    // tt-v882: un salt ≥ 50 % într-o zi în fereastra 12-1 e split neajustat / reverse split / glitch / știre — cifra 12-1 se verifică înainte de a fi crezută
+    if (x.salt && x.salt.pct >= 0.5) f.push({ k: 'salt', v: procente(x.salt.pct * 100) + ' într-o zi' + (x.salt.d ? ' (' + x.salt.d + ')' : '') + ' — verifică seria', rol: 'attention' });
+    return f;
   }
   function imbogatesteTrend(j, vechi, lista, m) {
     var sect = j.sectoare && typeof j.sectoare === 'object' ? j.sectoare : null, conc = null;

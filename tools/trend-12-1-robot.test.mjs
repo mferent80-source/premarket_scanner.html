@@ -87,3 +87,8 @@ test('liniaIstoric poarta si universul zilei (pentru nulul B de mai tarziu)', ()
   const l = liniaIstoric(rez, { peste: true });
   assert.deepEqual(l.univers, ['A', 'B', 'C']); assert.equal(l.top.length, 1);
 });
+
+test('mesajDiscord: salturile >= 50 % intr-o zi apar ca „verifica seria”; sub 50 % nu', () => {
+  const m = mesajDiscord({ dataUltimei: '2026-10-14', regim: { peste: true }, regimPrev: true, intrari: [{ s: 'ATI', m12: 1.35 }], iesiri: [], raporteaza: [], salturi: [{ s: 'MRNA', pct: 1.77, d: '2026-05-12' }, { s: 'MU', pct: 0.07, d: '2026-09-01' }] });
+  assert.match(m, /salt într-o zi, verifică seria: MRNA 177 % \(2026-05-12\)/); assert.ok(!/MU/.test(m));
+});
