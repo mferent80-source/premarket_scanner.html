@@ -389,8 +389,9 @@
   }
   function stateClass(x) { return x.mode === 'trend' ? (x.state === 'VECHI' ? 'vechi' : x.state === 'RAPORTEAZĂ' ? 'raporteaza' : x.state === 'FĂRĂ REGIM' ? 'regim' : 'proba') : String(x.state || '').toLowerCase(); }
   // Modul „Trend 12 luni” (14.10.2026): clasamentul vine de la robotul zilnic (tools/trend-12-1.mjs ⇒ generated/trend-12-1.json).
-  // Semnal de SELECȚIE probat față de alte acțiuni în aceeași zi; neprobat pe listă istorică ⇒ fără plan, în probă.
-  var TREND_ETICHETA = 'selecție probată față de acțiunile din aceeași zi; neprobată pe listă istorică; în probă — nu e un buton de cumpărat';
+  // Semnal de SELECȚIE: doar INDICIU față de alte acțiuni în aceeași zi (auditul de seară 14.10: t ≈ 1,5 pe ferestre independente);
+  // neprobat pe listă istorică ⇒ fără plan, în probă.
+  var TREND_ETICHETA = 'indiciu față de acțiunile din aceeași zi (t ≈ 1,5, sub pragul de „probat”); neprobat pe listă istorică; în probă — nu e un buton de cumpărat';
   async function loadTrend() {
     var gen = ++state.trendGen;   // revizie 14.10: două încărcări în paralel (pornire + scan) dublau cipurile — câștigă ultima pornită
     var lista = [], meta = null, eroare = '', iesiri = [];
@@ -501,7 +502,8 @@
       if (!r || !r.ok) return null;
       var b = await r.json();
       if (!b || typeof b !== 'object') return null;
-      return { zile: safeNum(b.zile) || 0, n20: safeNum(b.n20) || 0, n60: safeNum(b.n60) || 0, ferestre20: safeNum(b.ferestre20), exces20: safeNum(b.exces20), exces60: safeNum(b.exces60), nulB20: safeNum(b.nulB20), diferenta20: b.diferenta20 || null, verdict: String(b.verdict || 'în probă') };
+      return { zile: safeNum(b.zile) || 0, n20: safeNum(b.n20) || 0, n60: safeNum(b.n60) || 0, ferestre20: safeNum(b.ferestre20), exces20: safeNum(b.exces20), exces60: safeNum(b.exces60), nulB20: safeNum(b.nulB20), diferenta20: b.diferenta20 || null, verdict: String(b.verdict || 'în probă'), t20: safeNum(b.t20),
+        abatere: b.abatere && typeof b.abatere === 'object' ? { k: safeNum(b.abatere.k), medie: safeNum(b.abatere.medie), prag: safeNum(b.abatere.prag), atinsa: b.abatere.atinsa === true } : null };   /* 14.10 seara */
     } catch (_) { return null; }
   }
   function notaTrend() {
@@ -513,7 +515,8 @@
     if (m.concentrare) parti.push('<b>' + m.concentrare.n + ' din ' + m.concentrare.din + ' ' + escapeHtml(m.concentrare.sector) + '</b> — un singur pariu');
     if (m.raportari && m.raportari.sursa !== 'finnhub') parti.push('raportările: ' + escapeHtml(m.raportari.sursa === 'lipsă' ? 'robotul fără cheie' : 'eroare la robot'));
     var b = m.bilant;
-    if (b) parti.push('proba: ' + b.n20 + ' zile cu rezultat' + (b.ferestre20 != null ? ' (' + b.ferestre20 + ' ferestre de 20 z)' : '') + (b.exces20 != null ? ', ' + procente(b.exces20) + ' vs SPY' : '') + (b.diferenta20 && safeNum(b.diferenta20.medie) != null ? ', ' + procente(b.diferenta20.medie) + ' vs alte acțiuni' : '') + ' · ' + escapeHtml(b.verdict));
+    if (b) parti.push('proba: ' + b.n20 + ' zile cu rezultat' + (b.ferestre20 != null ? ' (' + b.ferestre20 + ' ferestre de 20 z)' : '') + (b.exces20 != null ? ', ' + procente(b.exces20) + ' vs SPY' : '') + (b.diferenta20 && safeNum(b.diferenta20.medie) != null ? ', ' + procente(b.diferenta20.medie) + ' vs alte acțiuni' : '') + (b.t20 != null ? ', t ' + fmt(b.t20, 1) + ' („probat” cere t > 3,2 pe ≥ 12 ferestre)' : '') + ' · ' + escapeHtml(b.verdict));
+    if (b && b.abatere && b.abatere.atinsa && b.abatere.medie != null && b.abatere.prag != null) parti.push('<b>ABATERE</b>: media pe ' + b.abatere.k + ' ferestre ' + procente(b.abatere.medie) + ', sub pragul scris înainte ' + procente(b.abatere.prag));
     else parti.push('proba: fără bilanț încă');
     if (state.trendIesiri.length) parti.push('au ieșit ' + state.trendIesiri.length + (m.ziuaDinainte ? ' față de ' + escapeHtml(m.ziuaDinainte) : ''));
     el.innerHTML = parti.join(' · ');
@@ -559,7 +562,7 @@
   function renderDetailTrend(x) {
     var m = state.trendMeta || {}, g = window.GV?.status?.() || x.governor || { verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] };
     var motiv = (m.eticheta || TREND_ETICHETA) + ' Se ține 20–60 de zile, fără stop strâns (planul cu 1,25 ATR anulează efectul); ieșire când iese din top 20 % sau când regimul se oprește.';
-    window.TTDecisionPanel?.set({ purpose: 'entry', simulation: false, candidate: null, risk: g, empty: { title: 'Trend 12 luni · ' + x.symbol + ' · în probă', reason: 'În probă: selecție probată față de acțiunile din aceeași zi, neprobată pe listă istorică. Fără plan; se ține 20–60 de zile, fără stop strâns.' } });
+    window.TTDecisionPanel?.set({ purpose: 'entry', simulation: false, candidate: null, risk: g, empty: { title: 'Trend 12 luni · ' + x.symbol + ' · în probă', reason: 'În probă: doar un indiciu față de acțiunile din aceeași zi (t ≈ 1,5), neprobat pe listă istorică. Fără plan; se ține 20–60 de zile, fără stop strâns.' } });
     $('dSymbol').textContent = x.symbol; $('dName').textContent = 'Trend 12 luni · ' + (x.name || '') + ' · ' + x.currency;
     $('dScore').textContent = x.r60 == null ? '—' : '60 z ' + procente(x.r60 * 100); $('dSector').textContent = x.sector; $('dState').textContent = x.state;
     $('dFresh').textContent = 'EOD ' + (m.dataUltimei || '—'); $('dReason').textContent = x.reason + ' · ' + motiv;

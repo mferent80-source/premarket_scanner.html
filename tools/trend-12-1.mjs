@@ -95,7 +95,7 @@ const out = {
   versiune: 1, la: new Date().toISOString(), dataUltimei: rez.dataUltimei, regim: rg,
   univers: { n: rez.n, cerute: univers.length, aduse, minCap: MIN_CAP, sursa, screenerLa, excluse: rez.excluse },
   metoda: 'primele 20 % după randamentul pe lunile 2–12 (ultima lună sărită), momentum pozitiv, acțiuni SUA ≥ 2 mld. $, preț ≥ 5 $, ≥ 10 mil. $/zi; regim = SPY peste media pe 200 de zile',
-  eticheta: 'selecție probată față de acțiunile din aceeași zi (14.10.2026: +0,9 % pe 20 de zile, +3,4 % pe 60, în ambele jumătăți); neprobată pe listă istorică; în probă — nu e un buton de cumpărat',
+  eticheta: 'indiciu față de acțiunile din aceeași zi (5 ani: +0,8 % pe 20 de zile, t ≈ 1,5 pe ferestre independente — sub pragul de „probat”); neprobat pe listă istorică; în probă — nu e un buton de cumpărat',
   raportari, sectoare, ziuaDinainte: prev ? prev.d : null,
   iesiri: ies.map((x) => ({ ...x, nume: info[x.s] ? info[x.s].nume : x.s, sector: info[x.s] && info[x.s].sector || 'Necunoscut' })),
   intrari: intr.map((x) => x.s),

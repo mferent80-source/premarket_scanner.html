@@ -44,7 +44,8 @@ const out = {
   versiune: 1, la: new Date().toISOString(), de: istoric[0].d, pana: istoric[istoric.length - 1].d, zile: b.zile, n20: b.n20, n60: b.n60,
   exces20: pc(b.exces20), exces60: pc(b.exces60), nulB20: pc(b.nulB20), nulB60: pc(b.nulB60),
   interval20: b.interval20.map(pc), diferenta20: { medie: pc(b.diferenta20.medie), interval: b.diferenta20.interval.map(pc) }, diferenta60: { medie: pc(b.diferenta60.medie), interval: b.diferenta60.interval.map(pc) },
-  ferestre20: b.ferestre20,
+  ferestre20: b.ferestre20, t20: b.t20 == null ? null : +b.t20.toFixed(2), pragT: 3.2,   /* 14.10 seara: criteriul pe ferestre nesuprapuse */
+  abatere: b.abatere ? { k: b.abatere.k, medie: pc(b.abatere.medie), prag: pc(b.abatere.prag), atinsa: b.abatere.atinsa } : null,
   verdict: b.verdict, criterii: b.criterii, cost: 0.3, nota: 'randamente în %, față de SPY, intrare la deschiderea zilei următoare; „alte acțiuni” = universul clasat în aceeași zi',
 };
 fs.writeFileSync(F_OUT, JSON.stringify(out));

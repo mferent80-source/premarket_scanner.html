@@ -14,7 +14,7 @@ function bars(symbol) {
 function json(dataUltimei, peste = true, extra = {}) {
   return {
     versiune: 1, la: '2026-10-14T06:30:00Z', dataUltimei, regim: { inchidere: 650, sma200: 600, peste }, univers: { n: 480, minCap: 2e9, sursa: 'screener' },
-    metoda: 'top 20 % după randamentul pe lunile 2–12', eticheta: 'selecție probată față de acțiunile din aceeași zi; neprobată pe listă istorică; în probă',
+    metoda: 'top 20 % după randamentul pe lunile 2–12', eticheta: 'indiciu față de acțiunile din aceeași zi (t ≈ 1,5); neprobat pe listă istorică; în probă',
     clasament: Array.from({ length: 25 }, (_, i) => ({ s: 'T' + i, nume: 'Nume ' + i, sector: i % 2 ? 'Technology' : 'Energy', cap: 1e10 - i, pret: 50 + i, m12: 1.5 - i / 20, m6: 0.4 - i / 50, r60: 0.3 - i / 100, rang: i / 480, dolari20: 5e7 })),
     ...extra,
   };
@@ -54,8 +54,8 @@ test('candidatii trend nu primesc plan: actionable false, butonul de plan oprit,
   assert.ok(s.trend.every((x) => x.actionable === false && x.mode === 'trend' && x.eligible === true));
   assert.equal(f.node('setupBtn').disabled, true); assert.match(f.node('setupBtn').title, /Trend/);
   assert.equal(f.node('dStop').textContent, '—'); assert.equal(f.node('dTarget').textContent, '—');
-  const ultimul = f.reports[f.reports.length - 1]; assert.equal(ultimul.candidate, null); assert.match(ultimul.empty.title, /Trend 12 luni/); assert.match(ultimul.empty.reason, /neprobată/);
-  assert.match(f.node('dReason').textContent, /probată față de acțiunile din aceeași zi/);
+  const ultimul = f.reports[f.reports.length - 1]; assert.equal(ultimul.candidate, null); assert.match(ultimul.empty.title, /Trend 12 luni/); assert.match(ultimul.empty.reason, /indiciu.*neprobat pe listă/); assert.ok(!/probată/.test(ultimul.empty.reason), 'auditul de seară 14.10: nu mai e „probată”');
+  assert.match(f.node('dReason').textContent, /indiciu față de acțiunile din aceeași zi/);
 });
 
 test('fara regim si date vechi: starile FĂRĂ REGIM si VECHI; cand fisierul nu vine, modul ramane gol si spune de ce', async () => {

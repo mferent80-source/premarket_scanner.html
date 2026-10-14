@@ -101,3 +101,47 @@ test('I-631: mesajul bilantului apare DOAR cand verdictul s-a schimbat; prima ru
   assert.match(m, /verdictul s-a schimbat: „în probă” → „probat față de alte acțiuni” \(260 zile cu rezultat, 13 ferestre de 20 z, \+0,9 % față de univers la 20 z\)/);
   assert.equal(mesajBilant({ verdict: 'în probă' }, { verdict: 'picat față de alte acțiuni', n20: 0, ferestre20: 0, diferenta20: { medie: null } }).includes('% față de univers'), false, 'nemăsurat nu e +0,0 %');
 });
+
+// 14.10 seara (auditul „probă statistică”, el: „REPARA TOATE”): verdictul pe ferestre NESUPRAPUSE + t > 3,2, abaterea scrisă înainte
+test('bilant (14.10 seara): ferestrele nesuprapuse pe calendarul SPY, t > 3,2 cere ≥ 12 ferestre; zgomotul fără avantaj NU iese „probat”', async () => {
+  const { ferestreNesuprapuse, T_PRAG } = await import('./trend-12-1-lib.mjs');
+  assert.equal(T_PRAG, 3.2);
+  assert.deepEqual(ferestreNesuprapuse([[0, 1], [5, 2], [20, 3], [39, 4], [40, 5], [61, 6]], 20), [1, 3, 5, 6], 'câte una la ≥ 20 de zile de bursă');
+  assert.deepEqual(ferestreNesuprapuse([[40, 5], [0, 1], [20, 3]], 20), [1, 3, 5], 'ordinea din istoric nu contează');
+  // zgomot fără avantaj (mulberry32): BUN și SLAB cu aceeași medie, zgomot zilnic mare ⇒ diferența oscilează în jurul lui 0
+  const rnd = (seed) => () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const zgomot = (n, seed) => { const R = rnd(seed), s = serie(n, 0.0005); let c = 100; return s.map((b) => { c *= 1 + 0.0005 + (R() - 0.5) * 0.06; return { ...b, o: c, h: c * 1.01, l: c * 0.99, c }; }); };
+  const spy = serie(700, 0.0005), preturi = { SPY: spy, A: zgomot(700, 1), B: zgomot(700, 2), C: zgomot(700, 3) };
+  const ist = []; for (let k = 250; k < 250 + 300; k++) ist.push({ d: zi(spy[k].t), regim: true, n: 3, top: [['A', 1]], univers: ['A', 'B', 'C'] });
+  const r = bilant(ist, preturi, { h: [20, 60] });
+  assert.equal(r.ferestre20, 15, '300 de zile cu 20 de zile după ele ⇒ 15 ferestre nesuprapuse (nu 300 de „observații”)');
+  assert.ok(Number.isFinite(r.t20) && Math.abs(r.t20) < T_PRAG, 'fără avantaj ⇒ t sub prag (t = ' + r.t20 + ')');
+  assert.equal(r.verdict, 'în probă');
+  assert.ok(r.diferenta20.interval[0] < r.diferenta20.medie && r.diferenta20.medie < r.diferenta20.interval[1], 'intervalul ± 2 erori standard pe ferestre');
+  assert.match(r.criterii, /t > 3,2/); assert.match(r.criterii, /după un an, cel mai probabil tot „în probă”/);
+});
+
+test('pragAbatere: pragurile scrise ÎNAINTE de date (14.10.2026) — sub 3 ferestre nimic, apoi −3,0 / −1,8 / −1,2 / −0,9 %, peste 12 se strânge', async () => {
+  const { pragAbatere } = await import('./trend-12-1-lib.mjs');
+  assert.equal(pragAbatere(0), null); assert.equal(pragAbatere(2), null);
+  assert.equal(pragAbatere(3), -0.0295); assert.equal(pragAbatere(5), -0.0295); assert.equal(pragAbatere(6), -0.018);
+  assert.equal(pragAbatere(9), -0.0124); assert.equal(pragAbatere(12), -0.009);
+  assert.ok(Math.abs(pragAbatere(13) - (0.0078 - 1.645 * 0.0351 / Math.sqrt(13))) < 1e-12);
+  assert.ok(pragAbatere(48) > pragAbatere(13), 'mai multe ferestre ⇒ prag mai aproape de media din istorie');
+});
+
+test('bilant: ABATEREA se aprinde când media ferestrelor coboară sub prag; mesajul Discord o anunță o singură dată', () => {
+  const spy = serie(700, 0.0005), preturi = { SPY: spy, BUN: serie(700, 0.003), SLAB: serie(700, -0.001), MEDIU: serie(700, 0.0005) };
+  const prost = []; for (let k = 250; k < 250 + 120; k++) prost.push({ d: zi(spy[k].t), regim: true, n: 3, top: [['SLAB', 1.5]], univers: ['BUN', 'SLAB', 'MEDIU'] });
+  const r = bilant(prost, preturi, { h: [20, 60] });
+  assert.equal(r.ferestre20, 6); assert.ok(r.abatere && r.abatere.k === 6 && r.abatere.prag === -0.018);
+  assert.equal(r.abatere.atinsa, true, 'SLAB e cu mult sub univers ⇒ abatere');
+  const out = { verdict: 'în probă', n20: 120, ferestre20: 6, diferenta20: { medie: -4.2 }, abatere: { k: 6, medie: -4.21, prag: -1.8, atinsa: true } };
+  const m = mesajBilant({ verdict: 'în probă', abatere: { atinsa: false } }, out);
+  assert.match(m, /ABATERE\*\* · media pe 6 ferestre de 20 z, −4,2 % față de univers, a coborât sub pragul scris înainte \(−1,8 %\)/);
+  assert.equal(mesajBilant({ verdict: 'în probă', abatere: { atinsa: true } }, out), '', 'deja anunțată ⇒ tace');
+  const bun = []; for (let k = 250; k < 250 + 120; k++) bun.push({ d: zi(spy[k].t), regim: true, n: 3, top: [['BUN', 1.5]], univers: ['BUN', 'SLAB', 'MEDIU'] });
+  assert.equal(bilant(bun, preturi, { h: [20, 60] }).abatere.atinsa, false);
+  const doua = mesajBilant({ verdict: 'în probă', abatere: { atinsa: false } }, { ...out, verdict: 'picat față de alte acțiuni' });
+  assert.equal(doua.split('\n').filter((l) => l.startsWith('**')).length, 2, 'verdict schimbat + abatere nouă ⇒ amândouă');
+});

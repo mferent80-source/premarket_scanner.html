@@ -1,9 +1,10 @@
 // trend-12-1-lib.mjs — funcțiile pure ale robotului „Trend 12 luni” (14.10.2026).
 //
 // Semnalul: primele 20 % dintre acțiunile SUA lichide după randamentul pe lunile 2–12 (ultima lună de bursă SĂRITĂ),
-// cu momentum pozitiv. Probat pe 14.10.2026 (E:\Backup-Claude\premarket-suite\audit-candidate-engine-2026-10-14,
-// mom12_audit.txt): +0,9 % pe 20 de zile și +3,4 % pe 60 față de ALTE acțiuni în aceleași zile (p 0,000, interval pe zile
-// +0,7…+1,1 %), în ambele jumătăți; NEPROBAT față de aceleași acțiuni în alte zile (lista e a supraviețuitorilor de azi).
+// cu momentum pozitiv. Auditul de dimineață (14.10.2026, mom12_audit.txt) a dat +0,9 % pe 20 de zile față de ALTE acțiuni în aceleași
+// zile cu „p 0,000” — numărat pe ZILE care se suprapun. Auditul de seară (docs/AUDIT-PROBA-TREND-SCOR-2026-10-14.md, audit_proba_1410.txt),
+// pe ferestre de 20 de zile NESUPRAPUSE (48): +0,8 %, t ≈ 1,5, Sharpe deflat 75 % cu 7 variante încercate ⇒ INDICIU, nu probat.
+// NEPROBAT nici față de aceleași acțiuni în alte zile (lista e a supraviețuitorilor de azi).
 // Planul Desk-ului (stop 1,25 ATR / țintă 2R) anulează efectul ⇒ modul nu construiește plan.
 //
 //   mom12 = C[t−21] / C[t−252] − 1 · mom6 = C[t−21] / C[t−126] − 1 · rang = poziția / numărul de acțiuni clasate
@@ -125,6 +126,26 @@ export function validareFisiere(j, jsonl) {
 function rnd(seed) { return () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 // revizie 14.10: ferestrele de 20 de zile luate zi de zi se SUPRAPUN (regula din 06.10 despre puține observații independente) ⇒
 // bootstrap pe BLOCURI de `bloc` observații consecutive (circular), nu pe observații una câte una
+// 14.10 seara (audit „probă statistică”, calibrare_bilant_1410 / calibrare_secventa_1410 pe E:): criteriul vechi (marginea bootstrap pe
+// zile suprapuse) dădea „probat” în 13 % și „picat” în 9 % din lumile FĂRĂ avantaj. Noul criteriu: t pe ferestrele de 20 de zile care NU se
+// suprapun, prag 3,2 — ales în lumea fără avantaj, ca „probat” fals să rămână sub 5 % în 5 ani de priviri săptămânale (4,3 %). Prețul,
+// spus cinstit: cu avantajul din istorie trece în ~25 % din cazuri în 3 ani și ~34 % în 5 ani.
+export const T_PRAG = 3.2;
+// pragurile de ABATERE live, scrise ÎNAINTE de date (14.10.2026): percentila 5 a mediei pe k ferestre dacă avantajul ar fi cel din istorie
+// (+0,78 % pe fereastră, abatere 3,51 %, bootstrap pe ferestrele reale); peste 12 ferestre: 0,78 % − 1,645 × 3,51 % / √k
+export const PRAG_ABATERE = [[12, -0.0090], [9, -0.0124], [6, -0.0180], [3, -0.0295]];
+export function pragAbatere(k) {
+  if (!(k >= 3)) return null;
+  if (k > 12) return 0.0078 - 1.645 * 0.0351 / Math.sqrt(k);
+  for (const [n, p] of PRAG_ABATERE) if (k >= n) return p;
+  return null;
+}
+/** Ferestrele care nu se suprapun: din (indexul zilei în calendarul SPY, valoare), câte una la cel puțin h zile de bursă de precedenta. */
+export function ferestreNesuprapuse(perechi, h) {
+  const out = []; let ult = -Infinity;
+  perechi.slice().sort((a, b) => a[0] - b[0]).forEach(([i, v]) => { if (i >= ult + h) { out.push(v); ult = i; } });
+  return out;
+}
 function interval(v, extr = 1000, bloc = 20) { if (!v.length) return [null, null]; const R = rnd(7), bs = [], n = v.length, b = Math.min(bloc, n); for (let k = 0; k < extr; k++) { let s = 0, c = 0; while (c < n) { const st = Math.floor(R() * n); for (let j = 0; j < b && c < n; j++, c++) s += v[(st + j) % n]; } bs.push(s / n); } bs.sort((a, b2) => a - b2); return [bs[Math.floor(extr * 0.05)], bs[Math.floor(extr * 0.95)]]; }
 
 /**
@@ -136,7 +157,7 @@ function interval(v, extr = 1000, bloc = 20) { if (!v.length) return [null, null
 export function bilant(istoric, preturi, o = {}) {
   const H = o.h || [20, 60], COST = 0.003, spy = preturi.SPY || [];
   const idx = {}; for (const [s, b] of Object.entries(preturi)) { const m = new Map(); (b || []).forEach((x, i) => m.set(zi(x.t), i)); idx[s] = m; }
-  const rez = {}; for (const h of H) rez[h] = { top: [], nul: [], dif: [] };
+  const rez = {}; for (const h of H) rez[h] = { top: [], nul: [], dif: [], si: [] };
   let zile = 0;
   for (const l of istoric || []) {
     if (!l || !Array.isArray(l.top) || !l.d) continue; zile++;
@@ -149,29 +170,38 @@ export function bilant(istoric, preturi, o = {}) {
       const top = l.top.map(([s]) => rand(s)).filter((v) => v !== null); if (!top.length) continue;
       const univ = (l.univers || []).map(rand).filter((v) => v !== null);
       const mTop = top.reduce((a, b) => a + b, 0) / top.length, mUniv = univ.length ? univ.reduce((a, b) => a + b, 0) / univ.length : null;
-      rez[h].top.push(mTop); if (mUniv !== null) { rez[h].nul.push(mUniv); rez[h].dif.push(mTop - mUniv); }
+      rez[h].top.push(mTop); if (mUniv !== null) { rez[h].nul.push(mUniv); rez[h].dif.push(mTop - mUniv); rez[h].si.push(si); }
     }
   }
   const medie = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
   const r20 = rez[H[0]], r60 = rez[H[1]] || { top: [], nul: [], dif: [] }, dif20 = interval(r20.dif, 1000, H[0]);
-  const ferestre20 = Math.floor(r20.dif.length / H[0]);   // ferestre de 20 de zile care NU se suprapun = observațiile independente
+  // 14.10 seara: observațiile independente = ferestrele de 20 de zile care NU se suprapun (pe calendarul SPY); testul t pe ele
+  const w = ferestreNesuprapuse(r20.si.map((s, i) => [s, r20.dif[i]]), H[0]), ferestre20 = w.length, mW = medie(w);
+  const sW = ferestre20 > 1 ? Math.sqrt(w.reduce((a, x) => a + (x - mW) ** 2, 0) / (ferestre20 - 1)) : null;
+  const t20 = ferestre20 > 1 ? Math.max(-99, Math.min(99, sW > 0 ? mW / (sW / Math.sqrt(ferestre20)) : mW > 0 ? 99 : mW < 0 ? -99 : 0)) : null;
+  const se20 = ferestre20 > 1 ? sW / Math.sqrt(ferestre20) : null, mDif = medie(r20.dif);
+  const difInterval = se20 != null && mDif != null ? [mDif - 2 * se20, mDif + 2 * se20] : dif20;   // ± 2 erori standard măsurate pe ferestre
   let verdict = 'în probă';
-  if (ferestre20 >= 12 && dif20[0] !== null && dif20[0] > 0) verdict = 'probat față de alte acțiuni';
-  else if (ferestre20 >= 12 && dif20[1] !== null && dif20[1] < 0) verdict = 'picat față de alte acțiuni';
+  if (ferestre20 >= 12 && t20 > T_PRAG) verdict = 'probat față de alte acțiuni';
+  else if (ferestre20 >= 12 && t20 < -T_PRAG) verdict = 'picat față de alte acțiuni';
+  const prag = pragAbatere(ferestre20), abatere = prag == null ? null : { k: ferestre20, medie: mW, prag, atinsa: mW < prag };
   return {
     zile, n20: r20.top.length, n60: r60.top.length, ferestre20,
     exces20: medie(r20.top), exces60: medie(r60.top), nulB20: medie(r20.nul), nulB60: medie(r60.nul),
-    interval20: interval(r20.top, 1000, H[0]), diferenta20: { medie: medie(r20.dif), interval: dif20 }, diferenta60: { medie: medie(r60.dif), interval: interval(r60.dif, 1000, H[1] || 60) },
-    verdict, criterii: 'cel puțin 12 ferestre de 20 de zile care nu se suprapun (≈ 1 an) și marginea de 5 % a diferenței față de universul zilei > 0 (bootstrap pe blocuri de 20) ⇒ probat; 12 ferestre și marginea de 95 % < 0 ⇒ picat; nulul „aceleași acțiuni, alte zile” se face separat, la 6–12 luni',
+    interval20: interval(r20.top, 1000, H[0]), diferenta20: { medie: mDif, interval: difInterval, ferestre: mW }, t20, abatere, diferenta60: { medie: medie(r60.dif), interval: interval(r60.dif, 1000, H[1] || 60) },
+    verdict, criterii: 'cel puțin 12 ferestre de 20 de zile care nu se suprapun și t > 3,2 pe diferența față de universul zilei ⇒ probat; t < −3,2 ⇒ picat; altfel în probă. Pragul e ales (14.10.2026) ca „probat” fals să rămână sub 5 % în 5 ani de priviri săptămânale; cu avantajul din istorie trece în ~25 % din cazuri în 3 ani — după un an, cel mai probabil tot „în probă”. Abatere: media ferestrelor sub pragul scris înainte (−3,0 % după 3, −1,8 % după 6, −1,2 % după 9, −0,9 % după 12)',
   };
 }
 
 /** I-631: mesajul Discord al bilanțului — DOAR când verdictul s-a schimbat față de bilanțul dinainte (altfel ''). */
 export function mesajBilant(prev, out) {
+  // 14.10 seara: și ABATEREA (media live sub pragul scris înainte) se anunță o singură dată, când apare
+  const a0 = !!(prev && prev.abatere && prev.abatere.atinsa), a = out && out.abatere, ab = a && a.atinsa && !a0 && Number.isFinite(a.medie) && Number.isFinite(a.prag)
+    ? '**Trend 12 luni · ABATERE** · media pe ' + a.k + ' ferestre de 20 z, ' + (a.medie >= 0 ? '+' : '−') + Math.abs(a.medie).toFixed(1).replace('.', ',') + ' % față de univers, a coborât sub pragul scris înainte (' + (a.prag >= 0 ? '+' : '−') + Math.abs(a.prag).toFixed(1).replace('.', ',') + ' %) ⇒ avantajul din istorie devine improbabil; de revăzut, nu de cumpărat' : '';
   const v0 = prev && prev.verdict, v1 = out && out.verdict;
-  if (!v1 || !v0 || v0 === v1) return '';
+  if (!v1 || !v0 || v0 === v1) return ab;
   const d = out.diferenta20 && Number.isFinite(out.diferenta20.medie) && out.n20 > 0 ? ', ' + (out.diferenta20.medie >= 0 ? '+' : '−') + Math.abs(out.diferenta20.medie).toFixed(1).replace('.', ',') + ' % față de univers la 20 z' : '';
-  return '**Trend 12 luni · bilanțul probei** · verdictul s-a schimbat: „' + v0 + '” → „' + v1 + '” (' + (out.n20 || 0) + ' zile cu rezultat, ' + (out.ferestre20 ?? 0) + ' ferestre de 20 z' + d + ')\n_în probă sau nu, nu e un buton de cumpărat — detalii în Candidate Engine → Trend 12 luni_';
+  return ['**Trend 12 luni · bilanțul probei** · verdictul s-a schimbat: „' + v0 + '” → „' + v1 + '” (' + (out.n20 || 0) + ' zile cu rezultat, ' + (out.ferestre20 ?? 0) + ' ferestre de 20 z' + d + ')\n_în probă sau nu, nu e un buton de cumpărat — detalii în Candidate Engine → Trend 12 luni_', ab].filter(Boolean).join('\n');
 }
 
 /** Regimul pieței: SPY închis peste media simplă pe 200 de zile. Sub 200 de bare ⇒ necunoscut (null). */
