@@ -12,6 +12,10 @@ The app opens on `today/` for a concise account, risk and results overview. The 
 
 Run Reguli V1 separately with the shared ticker universe or an explicit list. Expand a result to inspect its eight checks, native-currency EOD close and data date. The fictional DEMO is opt-in, uses the real evaluator on synthetic data and is never saved. Cancelling preserves the preceding completed report.
 
+The shared universe is scanned in full, including original screener universes enlarged by watchlist additions. Manual entry is limited to 200 validated, deduplicated symbols. The results view rechecks freshness every minute while visible and when returning to the page; filters, expanded result cards and focus are preserved. This recheck reads the reports and does not start another market scan.
+
+If storage is full, a completed independent report stays available in memory on this page with an explicit unsaved warning, including after manual rereads and freshness checks. It does not replace the original cache. Reloading or leaving the page loses an unsaved report; a newer valid saved independent report can replace it.
+
 Comparison requires fresh reports, verified current EOD data, the same symbol, session and currency. Old rule versions and unavailable evidence remain visible with explicit status but do not count as comparable. Complete coverage with no top candidates, partial coverage, total fetch failure and unknown coverage are distinct states. Absence from the original top list is not a negative verdict. The experimental technical result does not bypass the original scanner's account, earnings or risk gates.
 
 ## Eight gates

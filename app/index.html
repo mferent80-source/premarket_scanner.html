@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ro" data-app-version="26.10.14.1208">
+<html lang="ro" data-app-version="26.10.14.1243">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="../lib/plex.css?v=825">
 <script src="../lib/theme.js?v=825"></script>
-<link rel="stylesheet" href="layout.css?v=26.10.14.1208">
+<link rel="stylesheet" href="layout.css?v=26.10.14.1243">
 </head>
 <body>
 <div class="app">
@@ -22,7 +22,7 @@
   </aside>
   <section class="workspace">
     <header class="topbar">
-      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.14.1208</span></small><b id="pageName">Astăzi</b></div>
+      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.14.1243</span></small><b id="pageName">Astăzi</b></div>
       <div class="account-state"><button class="google-account" id="googleAccount" data-state="checking" title="Deschide Cont & sincronizare"><i aria-hidden="true"></i><span id="googleAccountLabel" aria-live="polite">Verific Google…</span></button><button class="sync-state" id="syncStatus" data-state="checking" aria-live="polite">Verific sincronizarea</button></div>
       <div class="spacer"></div><button class="app-update" data-update hidden>Actualizează</button>
       <input class="search" id="search" aria-label="Caută module, tickere, dețineri și jurnal" aria-controls="palette" aria-expanded="false" placeholder="Caută · Ctrl K" autocomplete="off">
@@ -53,7 +53,7 @@
 <script src="../lib/trade-evidence.js?v=26.10.09.2330"></script>
 <script src="../lib/trade-evidence-auto.js?v=26.10.08.1527"></script>
 <script src="../lib/holding-handoff.js"></script>
-<script src="../lib/app-search.js?v=26.10.14.1208"></script>
+<script src="../lib/app-search.js?v=26.10.14.1243"></script>
 <script>
 (function(){
   'use strict';
@@ -146,9 +146,19 @@
     var loaded=this;loaded._ttLoaded=true;if(loaded===frame)loading.hidden=true;if(window.TTBreadthDaily&&TTBreadthDaily.state)loaded.contentWindow.postMessage({ttBreadthDaily:TTBreadthDaily.state},location.origin);
     try{
       var doc=loaded.contentDocument,css=doc.createElement('style');css.textContent='#btnWsRevert{display:none!important}@media(max-width:760px){#ttThemeBtn{display:none!important}}';doc.head.appendChild(css);
-      var loadedURL=loaded.contentWindow.location?.href||loaded._ttTarget||loaded.src;
-      function route(href){var x=new URL(href,new URL(loadedURL,location.href)),base=new URL('../',location.href).pathname;if(x.origin!==location.origin)return null;var u=x.pathname.replace(base,'').replace(/index\.html$/,'');if(!u||u==='shell/'||u==='hub-clasic/'||u==='command-center/')return 'today/';if(x.hash&&known(u+x.hash))u+=x.hash;return known(u)?u:null;}
-      doc.querySelectorAll('a[href]').forEach(function(a){var href=a.getAttribute('href');if(!href||href[0]==='#'||a.hasAttribute?.('download'))return;var u=route(href);if(u!==null){var linkQuery=new URL(href,new URL(loadedURL,location.href)).search.slice(1);a.href=new URL('../app/?module='+encodeURIComponent(u),location.href).href;a.addEventListener('click',function(e){if(e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();openModule(u,linkQuery);});if(/Hub|Shell|Clasic/i.test(a.textContent))a.textContent='← Astăzi';}});
+      function childURL(){return new URL(loaded.contentWindow.location?.href||loaded._ttTarget||loaded.src,location.href);}
+      function route(href){var x=new URL(href,childURL()),base=new URL('../',location.href).pathname;if(x.origin!==location.origin)return null;var u=x.pathname.replace(base,'').replace(/index\.html$/,'');if(!u||u==='shell/'||u==='hub-clasic/'||u==='command-center/')return 'today/';if(x.hash&&known(u+x.hash))u+=x.hash;return known(u)?u:null;}
+      if(!doc._ttShellNavigation){
+        doc._ttShellNavigation=true;
+        doc.addEventListener('click',function(e){
+          if(loaded!==frame||e.defaultPrevented||e.button&&e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
+          var a=e.target?.closest?.('a[href]');if(!a||a.hasAttribute?.('download'))return;
+          var target=a.getAttribute('target');if(target&&target.toLowerCase()!=='_self')return;
+          var href=a.getAttribute('href');if(!href||href[0]==='#')return;var u=route(href);if(u===null)return;
+          var linkQuery=new URL(href,childURL()).search.slice(1);e.preventDefault();openModule(u,linkQuery);
+        });
+      }
+      doc.querySelectorAll('a[href]').forEach(function(a){var href=a.getAttribute('href');if(href&&href[0]!=='#'&&route(href)!==null&&/Hub|Shell|Clasic/i.test(a.textContent))a.textContent='← Astăzi';});
       loaded.contentWindow.postMessage({ttShellVisible:true},location.origin);
     }catch(_){if(loaded===frame)loading.hidden=true;}
   }
@@ -172,8 +182,8 @@
 <script src="../lib/breadth-daily.js?v=daily-scan-20261003"></script>
 <script>document.addEventListener('tt-breadth-daily',function(e){var s=e.detail,n=document.getElementById('breadthDailyState');n.hidden=s.status==='disabled';n.textContent=TTBreadthDaily.message(s);});TTBreadthDaily.start();</script>
 <script src="install.js?v=phone-20261003"></script>
-<script src="version.js?v=26.10.14.1208"></script>
-<script src="../lib/trading212-vault.js?v=26.10.05.2201"></script><script src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=26.10.14.1208"></script>
+<script src="version.js?v=26.10.14.1243"></script>
+<script src="../lib/trading212-vault.js?v=26.10.05.2201"></script><script src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=26.10.14.1243"></script>
 </body>
 </html>
 

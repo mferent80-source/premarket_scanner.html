@@ -16,6 +16,15 @@ function boot(search='',savedModule=null){
  vm.runInNewContext(script,ctx);
  return {elements,storage,send:data=>events.message({origin:ctx.location.origin,source:elements.brokerFrame.hidden===false?brokerChild:child,data}),events,ctx};
 }
+function link(href,attributes={}){
+ const values={href,...attributes};
+ return {href,textContent:'Vezi exemplul',getAttribute:k=>values[k]??null,hasAttribute:k=>Object.hasOwn(values,k)};
+}
+function loadChildDocument(b,anchors=[]){
+ const clicks=[],doc={createElement:()=>({}),head:{appendChild(){}},querySelectorAll:()=>anchors,addEventListener(type,fn){if(type==='click')clicks.push(fn);}};
+ b.elements.frame.contentDocument=doc;b.elements.frame.onload.call(b.elements.frame);
+ return {doc,clicks,click(anchor,options={}){let prevented=false;const event={target:{closest:()=>anchor},button:0,preventDefault(){prevented=true;this.defaultPrevented=true;},...options};for(const fn of clicks)fn(event);return prevented;}};
+}
 test('a fresh profile opens Astăzi and keeps both scanners accessible',()=>{const b=boot();assert.match(b.elements.frame.src,/today\/\?app=/);assert.equal(b.elements.pageName.textContent,'Astăzi');assert.match(b.elements.nav.innerHTML,/Long &amp; Reversal/);assert.match(b.elements.nav.innerHTML,/Două verdicte/);assert.match(b.elements.nav.innerHTML,/Instrumente &amp; suport/);});
 test('selected ticker and strategy reach the new plan ticket',()=>{const b=boot();b.send({ttOpenModule:'smart-trade-long/',ttQuery:'symbol=CAT&mode=reversal'});assert.equal(b.elements.frame.src,'../desk/?app=decision-mobile-v2&v=release-test&symbol=CAT&mode=reversal&ticket=1');});
 test('legacy hash message resolves portfolio within this app',()=>{const b=boot();b.send({ttOpen:'journal/',ttHash:'portfolio'});assert.equal(b.elements.frame.src,'../journal/?app=decision-mobile-v2&v=release-test#portfolio');});
@@ -48,12 +57,43 @@ test('unrecognized routes never replace the current URL and handoff details stay
 });
 
 test('an internal example link keeps its demo query when opened through the shell',()=>{
- const b=boot(),anchor={textContent:'Vezi exemplul',style:{},getAttribute:()=> '../shadow-book/?demo=ai-strategy',addEventListener(_,fn){this.click=fn;}};
+ const b=boot(),anchor=link('../shadow-book/?demo=ai-strategy');
  b.elements.frame.src='https://example.test/project/desk/?app=decision-mobile-v2';
- b.elements.frame.contentDocument={createElement:()=>({}),head:{appendChild(){}},querySelectorAll:()=>[anchor]};
- b.elements.frame.onload.call(b.elements.frame);assert.equal(typeof anchor.click,'function');
- anchor.click({preventDefault(){}});assert.match(b.elements.frame.src,/shadow-book\/\?app=.*&demo=ai-strategy$/);
+ const child=loadChildDocument(b,[anchor]);assert.equal(child.click(anchor),true);assert.match(b.elements.frame.src,/shadow-book\/\?app=.*&demo=ai-strategy$/);
  assert.doesNotMatch(b.ctx.location.href,/demo=ai-strategy/);
+});
+
+test('links regenerated after journal rendering still update the shell and retain the execution id',()=>{
+ const b=boot('?module=journal%2F%23exec'),child=loadChildDocument(b);
+ const regenerated=link('../postmortem/?id=closed-execution-42');
+ assert.equal(child.click(regenerated),true);
+ assert.equal(b.elements.pageName.textContent,'Revizuirea tranzacțiilor');
+ assert.match(b.elements.frame.src,/postmortem\/\?app=.*&id=closed-execution-42$/);
+ assert.equal(new URL(b.ctx.location.href).searchParams.get('module'),'postmortem/');
+ assert.doesNotMatch(b.ctx.location.href,/closed-execution-42/);
+});
+
+test('modifier, middle-click, target and download links retain their original destination and query',()=>{
+ for(const options of [{ctrlKey:true},{metaKey:true},{shiftKey:true},{altKey:true},{button:1},{defaultPrevented:true}]){
+  const b=boot('?module=journal%2F%23exec'),anchor=link('../postmortem/?id=selected-execution'),child=loadChildDocument(b,[anchor]),before=b.elements.frame.src;
+  assert.equal(anchor.href,'../postmortem/?id=selected-execution');
+  assert.equal(child.click(anchor,options),false);assert.equal(b.elements.frame.src,before);
+ }
+ for(const attributes of [{target:'_blank'},{target:'_top'},{download:'execution.json'}]){
+  const b=boot('?module=journal%2F%23exec'),anchor=link('../postmortem/?id=selected-execution',attributes),child=loadChildDocument(b,[anchor]),before=b.elements.frame.src;
+  assert.equal(anchor.href,'../postmortem/?id=selected-execution');
+  assert.equal(child.click(anchor),false);assert.equal(b.elements.frame.src,before);
+ }
+});
+
+test('each child document receives one delegated navigation handler and excludes external or fragment links',()=>{
+ const b=boot('?module=journal%2F%23exec'),child=loadChildDocument(b);
+ b.elements.frame.onload.call(b.elements.frame);assert.equal(child.clicks.length,1);
+ const before=b.elements.frame.src;
+ for(const href of ['https://foreign.test/project/postmortem/?id=1','#portfolio','../unrecognized/?id=1'])assert.equal(child.click(link(href)),false);
+ assert.equal(b.elements.frame.src,before);
+ assert.equal(child.click(link('../postmortem/?id=1',{target:'_self'})),true);
+ assert.equal(b.ctx.history.pushed.length,1);
 });
 
 test('remembered modules are respected and explicit valid queries take precedence',()=>{

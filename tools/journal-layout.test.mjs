@@ -134,7 +134,7 @@ function makeDocument(markup) {
   return document;
 }
 
-function workspace({classic = false, search = ''} = {}) {
+function workspace({classic = false, search = '', initialEntries = []} = {}) {
   const body = journalPage.match(/<body\b[^>]*>([\s\S]*?)<script\b/i)?.[1] || '';
   const document = makeDocument(body);
   const store = new Map();
@@ -147,10 +147,11 @@ function workspace({classic = false, search = ''} = {}) {
   vm.createContext(context);
   vm.runInContext(journalSource,context);
   if (classic) context.JR.saveSettings({workspaceV2:false});
+  initialEntries.forEach(entry => fixture(context.JR,entry));
   vm.runInContext(workspaceSource,context);
   const $ = id => document.getElementById(id);
   context.JWS.init({$,esc,fmt$:money,TAGS:['FOMO','Plan respectat'],
-    isOpenE:e => e.exit == null, fillForm:e => edits.push(e.id),
+    isOpenE:context.JR.isOpen, fillForm:e => edits.push(e.id),
     renderAll:() => renders.push(true),openPriceCache:{AAPL:105,MSFT:190}});
   return {context,document,$,edits,renders,alerts};
 }
@@ -418,6 +419,71 @@ test('ticker search filters both representations and labels the sum for the visi
   $('jrExecSearch').dispatchEvent({type:'input'});
   assert.equal($('tblWrap').querySelector('.exec-mobile-cards'),null);
   assert.equal($('openUnrealSum').textContent,'');
+});
+
+test('a closed-only journal symbol link selects the closed ledger and its truthful controls', () => {
+  const {context,$} = workspace({search:'?symbol=aapl',initialEntries:[
+    {sym:'AAPL',exit:110,closeTs:Date.now(),source:'stl'},
+    {sym:'MSFT',entry:200,slAtEntry:190}
+  ]});
+  const before = JSON.stringify(context.JR.all());
+  context.JWS.renderExecTable();
+  const {rows,cards} = ledgerParts($('tblWrap'));
+  assert.equal(context.JWS.execView(),'closed');
+  assert.equal(rows.length,1);
+  assert.equal(rows[0].children[0].textContent,'AAPL');
+  assert.equal(cards[0].dataset.executionId,context.JR.all().find(e => e.sym === 'AAPL').id);
+  assert.equal($('openPanelTitle').textContent,'Execuții închise');
+  assert.equal($('execSubtabs').querySelector('[data-exec-view="closed"]').getAttribute('aria-pressed'),'true');
+  assert.equal($('execSubtabs').querySelector('[data-exec-view="open"]').getAttribute('aria-pressed'),'false');
+  assert.equal($('execClosedFilters').style.display,'');
+  assert.equal($('execClosedFilters').querySelector('[data-exec-filter="all"]').getAttribute('aria-pressed'),'true');
+  assert.equal(JSON.stringify(context.JR.all()),before);
+});
+
+test('a mixed symbol link retains open executions and lets the user select its closed history', () => {
+  const {context,$} = workspace({search:'?symbol=AAPL',initialEntries:[
+    {sym:'AAPL',exit:110,closeTs:Date.now()},
+    {sym:'AAPL',entry:101,slAtEntry:95},
+    {sym:'MSFT',entry:200,slAtEntry:190}
+  ]});
+  context.JWS.renderExecTable();
+  assert.equal(context.JWS.execView(),'open');
+  const open = context.JR.all().find(e => e.sym === 'AAPL' && context.JR.isOpen(e));
+  const cards = ledgerParts($('tblWrap')).cards;
+  assert.equal(cards.length,1);assert.equal(cards[0].dataset.executionId,open.id);
+  assert.equal($('execSubtabs').querySelector('[data-exec-view="open"]').getAttribute('aria-pressed'),'true');
+  assert.equal($('execClosedFilters').style.display,'none');
+  $('execSubtabs').querySelector('[data-exec-view="closed"]').click();
+  assert.equal(context.JWS.execView(),'closed');
+  assert.equal(ledgerParts($('tblWrap')).cards[0].dataset.executionId,context.JR.all().find(e => e.exit != null).id);
+});
+
+test('direct Journal and freeform query links preserve the open default even with only closed entries', () => {
+  for (const search of ['', '?q=AAPL','?symbol=MSFT']) {
+    const {context,$} = workspace({search,initialEntries:[{sym:'AAPL',exit:110,closeTs:Date.now()}]});
+    context.JWS.renderExecTable();
+    assert.equal(context.JWS.execView(),'open');
+    assert.equal($('openPanelTitle').textContent,'Execuții în curs');
+    assert.equal($('execSubtabs').querySelector('[data-exec-view="open"]').getAttribute('aria-pressed'),'true');
+    assert.equal($('execClosedFilters').style.display,'none');
+  }
+});
+
+test('closed-only links also reveal the selected execution when classic journal was saved', () => {
+  const {context,$} = workspace({classic:true,search:'?symbol=AAPL',initialEntries:[{sym:'AAPL',exit:110,closeTs:Date.now()}]});
+  const before = JSON.stringify(context.JR.all());
+  assert.equal(context.JWS.renderExecTable(),false);
+  assert.equal(context.JWS.renderLegacyOpen(),true);
+  assert.equal(context.JWS.execView(),'closed');
+  assert.equal(ledgerParts($('tblWrap')).cards.length,1);
+  assert.equal($('execSubtabs').style.display,'');
+  assert.equal($('execSubtabs').querySelector('[data-exec-view="closed"]').getAttribute('aria-pressed'),'true');
+  $('execSubtabs').querySelector('[data-exec-view="open"]').click();
+  assert.equal(context.JWS.execView(),'open');
+  assert.equal($('openPanelTitle').textContent,'Execuții în curs');
+  assert.equal(context.JR.getSettings().workspaceV2,false);
+  assert.equal(JSON.stringify(context.JR.all()),before);
 });
 
 test('capital details use labelled buttons, preserve disclosure after refresh and leave totals unchanged', () => {

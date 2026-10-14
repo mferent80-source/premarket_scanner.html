@@ -15,6 +15,16 @@ test('stored URLs and invalid ticker shapes cannot become result destinations',(
  const rows=api.search(storage(bad),modules,'AAPL');assert.equal(rows.length,2);for(const row of rows){assert.ok(['candidate-engine/','scanner-verdicts/'].includes(row.u));assert.match(row.query,/symbol=AAPL/);assert.doesNotMatch(row.query,/evil|onclick|javascript/);}
 });
 test('malformed registries fail independently without preventing module search',()=>{const s={getItem:()=>'{broken'};assert.equal(api.search(s,modules,'jurnal')[0].u,'journal/#exec');});
+test('journal ticker hits describe both execution states and retain distinct sources',()=>{
+ const s=storage({tt_journal_v1:[{sym:'AAPL',source:'manual',exit:null},{sym:'AAPL',source:'stl',exit:110,status:'closed'},{sym:'AAPL',source:'stl',exit:112,status:'closed'},{sym:'MSFT',source:'macro',exit:210,status:'closed'}]});
+ const hits=api.search(s,modules,'AAPL'),row=hits.find(r=>r.group==='Jurnal');assert.equal(hits.length,1);assert.equal(row.u,'journal/#exec');assert.equal(row.query,'symbol=AAPL');
+ assert.match(row.detail,/În curs: 1/);assert.match(row.detail,/Închise: 2/);assert.match(row.detail,/Surse: stl, manual/);
+ const closed=api.search(s,modules,'MSFT')[0];assert.match(closed.detail,/În curs: 0 · Închise: 1/);assert.match(closed.detail,/macro/);
+});
+test('journal search discloses when counts cover only the most recent 5,000 executions',()=>{
+ const journal=Array.from({length:5001},()=>({sym:'AAPL',source:'manual',exit:110,status:'closed'}));
+ const row=api.search(storage({tt_journal_v1:journal}),modules,'AAPL')[0];assert.match(row.detail,/În ultimele 5\.000 execuții/);assert.match(row.detail,/Închise: 5000/);
+});
 test('sync never infers a current successful reconciliation from authentication alone',()=>{
  assert.equal(api.cloudStatus({connected:true,ready:true}).kind,'pending');assert.equal(api.cloudStatus({connected:true,ready:true,conflicts:['a'],lastSync:Date.now()}).kind,'conflict');assert.equal(api.cloudStatus({connected:true,ready:true,error:'failed',lastSync:Date.now()}).kind,'error');assert.equal(api.cloudStatus({connected:true,ready:true,lastSync:Date.now()},false).kind,'offline');assert.equal(api.cloudStatus({connected:true,ready:true,lastSync:Date.now(),pending:true}).kind,'pending');assert.match(api.cloudStatus({connected:true,ready:true,lastSync:Date.now()}).label,/^Sincronizat la /);
 });
