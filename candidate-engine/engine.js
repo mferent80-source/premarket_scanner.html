@@ -113,7 +113,8 @@
   function earningsInfo(sym) {
     var e = state.earningsMap[sym];
     if (!state.earningsOk) return { penalty: 5, blocked: false, unverified: true, text: 'earnings neverificat' };
-    if (regionOf(sym) === 'EU') return { penalty: 5, blocked: false, unverified: true, text: 'earnings EU neverificat' };
+    // EL, 14.10 („lasă și Europa”): Finnhub nu acoperă raportările EU ⇒ rămâne neverificat, dar NU blochează planul — avertismentul rămâne la vedere
+    if (regionOf(sym) === 'EU') return { penalty: 5, blocked: false, unverified: true, eu: true, text: 'earnings EU neverificat — verifică singur calendarul' };
     // revizie 14.10: calendarul vede doar tickere US de forma AAAA sau AAAA-B (BRK-B) — orice altceva NU e „verificat curat”
     if (!/^[A-Z][A-Z0-9]{0,4}(-[A-Z])?$/.test(sym)) return { penalty: 5, blocked: false, unverified: true, text: 'earnings neverificat (simbolul nu e în calendar)' };
     if (!e || !e.date) return { penalty: 0, blocked: false, text: 'fără earnings în 14z' };
@@ -124,6 +125,7 @@
   }
   function gardaEarnings(earn) {
     if (!earn) return '';
+    if (earn.unverified && earn.eu) return '';   // Europa: excepție hotărâtă de EL pe 14.10 — avertisment, nu blocaj
     if (earn.unverified) return 'earnings neverificat — fără cheia Finnhub nu se construiește plan';
     if (earn.inFereastra) return 'raportează în ' + earn.days + ' zile — planul (zile, nu ore) ar traversa raportarea';
     return '';
@@ -172,7 +174,7 @@
     out.push({ k: 'trend', v: aligned ? 'aliniat EMA21/EMA50' : 'neconfirmat', rol: aligned ? 'support' : 'attention' });
     out.push({ k: 'RS', v: f.rs20 == null ? 'fără indice' : procente(f.rs20), rol: f.rs20 == null ? 'attention' : f.rs20 >= 0 ? 'support' : 'attention' });
     out.push({ k: 'RVOL', v: fmt(f.rvol, 2) + '×', rol: f.rvol >= 1 ? 'support' : 'attention' });
-    out.push({ k: 'earnings', v: String(earn.text || '').replace(/^earnings /, ''), rol: earn.blocked || garda ? 'block' : earn.inFereastra || earn.unverified ? 'attention' : 'support' });
+    out.push({ k: 'earnings', v: String(earn.text || '').replace(/^earnings /, '').replace(/ — verifică singur calendarul$/, ''), rol: earn.blocked || garda ? 'block' : earn.inFereastra || earn.unverified ? 'attention' : 'support' });
     if (item.mode === 'reversal') out.push({ k: 'scădere', v: procente(f.drawdown), rol: 'info' }, { k: 'revenire', v: procente(f.bounce60), rol: 'info' });
     if (blocked) out.push({ k: 'plan', v: 'blocat', rol: 'block' }); else if (!item.actionable) out.push({ k: 'confirmare', v: 'incompletă', rol: 'attention' });
     return out;

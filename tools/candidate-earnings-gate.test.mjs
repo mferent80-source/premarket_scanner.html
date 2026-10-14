@@ -67,6 +67,14 @@ test('revizie 14.10: un simbol pe care calendarul nu-l poate verifica (nu are fo
   assert.ok(x); assert.equal(x.actionable, false); assert.match(x.reason, /earnings neverificat/);
 });
 
+test('EL, 14.10: Europa ramane actionable desi Finnhub nu-i acopera raportarile — exceptie explicita, cu avertisment in fapte si motiv', async () => {
+  const f = setup({ items: [] }); f.ctx.WL = { get: () => ['SAP.DE'] }; await f.hooks.scan();
+  const x = f.hooks.state.analyses.find((a) => a.mode === 'momentum' && a.symbol === 'SAP.DE');
+  assert.ok(x, 'candidatul EU există'); assert.equal(x.region, 'EU'); assert.equal(x.actionable, true);
+  assert.match(x.reason, /earnings EU neverificat/); assert.match(x.reason, /verifică singur calendarul/);
+  const p = x.fapte.find((q) => q.k === 'earnings'); assert.equal(p.rol, 'attention'); assert.match(p.v, /EU neverificat/);
+});
+
 test('raportare maine / azi: blocat (BLOCKED), ca inainte', async () => {
   const f = setup({ items: [{ symbol: 'TEST', date: ziNY(1), hour: 'bmo', epsEstimate: 1 }] }); await f.hooks.scan();
   const x = f.hooks.state.analyses.find((a) => a.mode === 'momentum');
