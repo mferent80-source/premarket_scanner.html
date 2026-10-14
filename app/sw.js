@@ -11,7 +11,11 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-  const allowed = SHELL.some(path => new URL(path, self.registration.scope).href === url.href);
+  // Module links and updates add queries to the same shell document.
+  // Only document navigation ignores those queries; asset versions remain exact.
+  const shellNavigation = request.mode === 'navigate' && ['./', './index.html'].some(path =>
+    new URL(path, self.registration.scope).pathname === url.pathname);
+  const allowed = shellNavigation || SHELL.some(path => new URL(path, self.registration.scope).href === url.href);
   if (!allowed) return;
   event.respondWith(fetch(request, { cache: 'no-cache' }).then(response => {
     if (response.ok) {
@@ -30,3 +34,4 @@ self.addEventListener('fetch', event => {
 async function receipt(data,phase){try{const url=new URL(data.receiptUrl);if(url.origin!=='https://premarket-scanner-html.mferent80.workers.dev'||url.pathname!=='/api/cloud/push/receipt'||typeof data.receipt!=='string')return;await fetch(url.href,{method:'POST',credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:data.receipt,phase})});}catch{}}
 self.addEventListener('push',event=>{event.waitUntil((async()=>{let data={};try{data=event.data?.json()||{};}catch{}await self.registration.showNotification('Trading Tools',{body:typeof data.body==='string'?data.body.slice(0,200):'Ai o alertă nouă în inbox.',icon:new URL('./icons/icon-192.png',self.registration.scope).href,tag:'trading-tools-monitor',data:{receipt:data.receipt,receiptUrl:data.receiptUrl}});await receipt(data,'received');})());});
 self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil((async()=>{await receipt(event.notification.data||{},'opened');const target=new URL('./?module=app%2Fsync%2F',self.registration.scope).href,windows=await self.clients.matchAll({type:'window',includeUncontrolled:true}),client=windows.find(c=>c.url.startsWith(self.registration.scope));if(client){await client.navigate(target);await client.focus();}else await self.clients.openWindow(target);})());});
+

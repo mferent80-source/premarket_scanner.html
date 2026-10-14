@@ -288,7 +288,7 @@ function sesiune() {
   try {
     const i = window.SES && SES.info && SES.info();
     if (!i) return null;
-    return { stare: i.label || i.state || i.phase || '—', pana: i.nextLabel || i.next || i.until || '' };
+    return { state: i.state || null, stare: i.label || i.state || i.phase || '—', pana: i.nextLabel || i.next || i.until || '' };
   } catch (e) { return null; }
 }
 function regim() {
@@ -412,14 +412,16 @@ function deseneaza() {
 
   // ── verdictul ──
   const j = judeca();
-  const inchis = ses && /închis|inchis|closed|overnight|pre|after/i.test(String(ses.stare));
+  const necunoscuta = !ses || !ses.state;
+  const inchis = !necunoscuta && ses.state !== 'rth';
   $('laOra').textContent = new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  $('kick').textContent = inchis ? 'piața nu e în ședință · ' + j.act : j.act;
-  $('verdict').textContent = inchis ? 'Piața e închisă' : j.stare;
-  $('dece').textContent = inchis
+  $('kick').textContent = necunoscuta ? 'sesiunea pieței nu poate fi verificată' : inchis ? 'piața nu e în ședință' : j.act;
+  $('verdict').textContent = necunoscuta ? 'Sesiune necunoscută' : inchis ? 'Piața e închisă' : j.stare;
+  $('dece').textContent = necunoscuta
+    ? j.why + ' Sesiunea nu poate fi verificată, deci nu pot confirma execuția acum.' : inchis
     ? j.why + ' Dar piața nu e în ședință, deci nu e nimic de executat acum.'
     : j.why;
-  $('go').textContent = inchis ? 'Vezi rotația' : 'Vezi ce se mișcă';
+  $('go').textContent = necunoscuta ? 'Vezi datele' : inchis ? 'Vezi rotația' : 'Vezi ce se mișcă';
   $('go').href = 'https://mau.tail9144fe.ts.net:8443/';
   $('dovezi').innerHTML = j.dovezi.map((d) =>
     '<span class="pf ' + d.k + '"><b>' + esc(d.t) + '</b> ' + esc(d.v) + '</span>').join('');
@@ -605,3 +607,4 @@ if ('serviceWorker' in navigator) {
 <!-- tt:sw-guard:end -->
 </body>
 </html>
+

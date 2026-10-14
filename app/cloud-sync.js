@@ -1,4 +1,4 @@
-import {KEYS,mergeRecord,validateValue,EvidenceCloud} from '../lib/cloud-sync-model.mjs?v=26.10.09.1548';
+import {KEYS,mergeRecord,validateValue,EvidenceCloud} from '../lib/cloud-sync-model.mjs?v=26.10.14.0650';
 const EvidenceStore=EvidenceCloud.createStore(localStorage);
 const PlanStore=window.TTPlanStore?.create(localStorage);
 const Store=window.TTCloudStore,LOCAL_KEYS=KEYS.filter(k=>k!=='cloud_credentials'&&!EvidenceCloud.isBucket(k)),rawKeys=['tt_theme','tt_pf_account','tt_ticket_capital'];
@@ -37,7 +37,9 @@ async function performSync(){if(!ready||!session||busy||checking||navigator.onLi
   }
   if(JSON.stringify(next)!==JSON.stringify(current)){
    if(!backedUp&&key!=='cloud_credentials'){await backup();backedUp=true;}
-   if(!await apply(key,next,current)){baseline[key]=remote[key]||{value:undefined,revision:0};continue;}
+   // A concurrent local edit still descends from the snapshot read above,
+   // not from the merged cloud value that this device has not accepted.
+   if(!await apply(key,next,current)){baseline[key]={...(remote[key]||{revision:0}),value:current};continue;}
   }
   baseline[key]=remote[key]||{value:undefined,revision:0};if(key==='cloud_credentials')connectionState(await value(key),remote[key]);
  }
@@ -78,3 +80,4 @@ async function initialize(){let available=false;checking=true;error='';setup=nul
  }catch(e){ready=available;error=e.message;}finally{checking=false;broadcast();}if(ready&&session&&!error)await sync();}
 function recheck(){if(busy)return Promise.resolve();if(initialization)return initialization;initialization=initialize().finally(()=>{initialization=null;});return initialization;}
 recheck();
+

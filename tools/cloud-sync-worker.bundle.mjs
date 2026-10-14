@@ -18,6 +18,7 @@ function historyItem(item, kind) {
   return {id:text(item.reference),ticker:text(item.instrument?.ticker||item.ticker),date:text(kind==='dividends'?item.paidOn:item.dateTime),type:text(item.type),amount:number(item.amount),currency:text(item.currency)};
 }
 
+
 return {number,summary,position,historyItem};
 })();
 const TTBrokerRelay=(()=>{
@@ -89,6 +90,7 @@ async function handle(request,env,upstream=fetch) {
   }finally{clearTimeout(timer);}
 }
 
+
 return {ROUTES,nextCursor,handle};
 })();
 const TTEvidenceSchema=(()=>{
@@ -105,6 +107,7 @@ function valid(r,now=Date.now()){
 function ledger(value,{simulation=false,now=Date.now()}={}){return exact(value,['version','entries'])&&value.version===VERSION&&Array.isArray(value.entries)&&value.entries.length<=20000&&value.entries.every(r=>valid(r,now)&&r.simulation===simulation)&&new Set(value.entries.map(r=>r.id)).size===value.entries.length;}
 return {KEY,VERSION,IDS,valid,ledger};
 });
+
 
 return globalThis.TradeEvidenceSchema;
 })();
@@ -215,7 +218,11 @@ function mergeRecord(key,base,local,remote){
  }
  if(key==='tt_trading212_cash_v1'&&object(local)&&object(remote)){
   const value={...remote,...local},conflicts=[];
-  for(const scope of Object.keys(remote)){const l=local[scope],r=remote[scope];if(!l)continue;if(l.environment!==r.environment){conflicts.push(key+'/'+scope);continue;}value[scope]={environment:l.environment};const valuations=new Map();for(const x of [...(r.flowValuations||[]),...(l.flowValuations||[])]){const id=Date.parse(x.at),old=valuations.get(id);if(old&&!equal(old,x))conflicts.push(key+'/'+scope+'/flowValuations/'+x.at);valuations.set(id,x);}if(valuations.size)value[scope].flowValuations=[...valuations.values()].sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));for(const kind of ['transactions','dividends']){if(!l[kind]||!r[kind]){value[scope][kind]=l[kind]||r[kind];continue;}const byId=new Map(r[kind].items.map(x=>[String(x.id),x]));for(const x of l[kind].items){const old=byId.get(String(x.id));if(old&&!equal(old,x))conflicts.push(key+'/'+scope+'/'+kind+'/'+x.id);byId.set(String(x.id),x);}const latest=Date.parse(r[kind].fetchedAt)>Date.parse(l[kind].fetchedAt)?r[kind]:l[kind];value[scope][kind]={...latest,items:[...byId.values()].sort((a,b)=>Date.parse(b.date)-Date.parse(a.date))};}}
+  for(const scope of Object.keys(remote)){const l=local[scope],r=remote[scope];if(!l)continue;if(l.environment!==r.environment){conflicts.push(key+'/'+scope);continue;}value[scope]={environment:l.environment};const valuations=new Map();for(const x of [...(r.flowValuations||[]),...(l.flowValuations||[])]){const id=Date.parse(x.at),old=valuations.get(id);if(old&&!equal(old,x))conflicts.push(key+'/'+scope+'/flowValuations/'+x.at);valuations.set(id,x);}if(valuations.size)value[scope].flowValuations=[...valuations.values()].sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
+   // Financial evaluations have no safe automatic retention policy. Keep
+   // both originals and require an explicit choice if their union is too large.
+   if(valuations.size>500)conflicts.push(key+'/'+scope+'/flowValuations/limit');
+   for(const kind of ['transactions','dividends']){if(!l[kind]||!r[kind]){value[scope][kind]=l[kind]||r[kind];continue;}const byId=new Map(r[kind].items.map(x=>[String(x.id),x]));for(const x of l[kind].items){const old=byId.get(String(x.id));if(old&&!equal(old,x))conflicts.push(key+'/'+scope+'/'+kind+'/'+x.id);byId.set(String(x.id),x);}const latest=Date.parse(r[kind].fetchedAt)>Date.parse(l[kind].fetchedAt)?r[kind]:l[kind];value[scope][kind]={...latest,items:[...byId.values()].sort((a,b)=>Date.parse(b.date)-Date.parse(a.date))};}}
   return {value,conflicts};
  }
  // Broker snapshots are observations: newer broker timestamp wins, not the syncing device's clock.
@@ -248,6 +255,7 @@ function validateValue(key,value){
  JSON.parse(text,(k,v)=>{if(['__proto__','constructor','prototype'].includes(k))throw Error('invalid_value');return v;});return true;
 }
 
+
 return {KEYS,merge,mergeRecord,validateValue,EvidenceCloud};
 })();
 const TTPrivateStore=(()=>{
@@ -255,6 +263,7 @@ const TTPrivateStore=(()=>{
 // Server-internal encrypted registers, excluded from the browser sync allowlist.
 async function readPrivate(subject,key,env,deps){const row=await env.CLOUD_DB.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=? AND key=?').bind(subject,key).first();return row?{...row,value:await deps.unseal(row.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+key+'|'+row.revision)}:null;}
 async function writePrivate(subject,key,value,revision,env,deps,now=Date.now()){const next=revision+1,packet=await deps.seal(value,env.CLOUD_ENCRYPTION_KEY,subject+'|'+key+'|'+next),seconds=Math.floor(now/1000),result=revision?await env.CLOUD_DB.prepare('UPDATE cloud_records SET revision=?,packet=?,updated=? WHERE subject=? AND key=? AND revision=?').bind(next,packet,seconds,subject,key,revision).run():await env.CLOUD_DB.prepare('INSERT OR IGNORE INTO cloud_records(subject,key,revision,packet,updated) VALUES(?,?,?,?,?)').bind(subject,key,next,packet,seconds).run();return result.meta.changes===1?next:null;}
+
 
 return {readPrivate,writePrivate};
 })();
@@ -269,6 +278,7 @@ async function hkdf(secret,salt,info,length){const key=await crypto.subtle.impor
 async function encryptPush(subscription,payload){if(!validSubscription(subscription))throw Error('invalid_push');const plain=E.encode(JSON.stringify(payload));if(plain.length>3000)throw Error('push_payload_too_large');const ua=decode64(subscription.keys.p256dh),auth=decode64(subscription.keys.auth),pair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']),as=new Uint8Array(await crypto.subtle.exportKey('raw',pair.publicKey)),publicKey=await crypto.subtle.importKey('raw',ua,{name:'ECDH',namedCurve:'P-256'},false,[]),shared=new Uint8Array(await crypto.subtle.deriveBits({name:'ECDH',public:publicKey},pair.privateKey,256)),salt=crypto.getRandomValues(new Uint8Array(16)),ikm=await hkdf(shared,auth,join(E.encode('WebPush: info\0'),ua,as),32),cek=await hkdf(ikm,salt,E.encode('Content-Encoding: aes128gcm\0'),16),nonce=await hkdf(ikm,salt,E.encode('Content-Encoding: nonce\0'),12),key=await crypto.subtle.importKey('raw',cek,'AES-GCM',false,['encrypt']),cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv:nonce},key,join(plain,new Uint8Array([2])))),recordSize=new Uint8Array(4);new DataView(recordSize.buffer).setUint32(0,4096);return join(salt,recordSize,new Uint8Array([65]),as,cipher);}
 async function createPushKeys(){const pair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);const privateKey=await crypto.subtle.exportKey('jwk',pair.privateKey),publicKey=await crypto.subtle.exportKey('jwk',pair.publicKey);return {privateKey,publicKey:base64url(join(new Uint8Array([4]),decode64(publicKey.x),decode64(publicKey.y)))};}
 async function sendPush(subscription,payload,keys,upstream=fetch,now=Date.now()){if(!validSubscription(subscription))throw Error('invalid_push');const header=base64url(E.encode(JSON.stringify({typ:'JWT',alg:'ES256'}))),claims=base64url(E.encode(JSON.stringify({aud:new URL(subscription.endpoint).origin,exp:Math.floor(now/1000)+3600,sub:'https://mferent80-source.github.io/premarket_scanner.html/app/'}))),signing=header+'.'+claims,key=await crypto.subtle.importKey('jwk',keys.privateKey,{name:'ECDSA',namedCurve:'P-256'},false,['sign']),signature=base64url(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},key,E.encode(signing))),body=await encryptPush(subscription,payload),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);try{const r=await upstream(subscription.endpoint,{method:'POST',redirect:'manual',signal:controller.signal,headers:{Authorization:'vapid t='+signing+'.'+signature+', k='+keys.publicKey,'Content-Encoding':'aes128gcm','Content-Type':'application/octet-stream',TTL:'300',Urgency:'normal'},body});return {state:r.status===404||r.status===410?'expired':r.status>=200&&r.status<300?'accepted':'failed',status:r.status,at:now};}catch{return {state:'failed',status:null,at:now};}finally{clearTimeout(timer);}}
+
 
 return {base64url,decode64,validSubscription,encryptPush,createPushKeys,sendPush};
 })();
@@ -300,6 +310,7 @@ async function deliverPush(subject,event,env,deps,upstream=fetch,now=Date.now(),
 }
 async function pushReceipt(request,env,deps,parseBody){const b=await parseBody(request,5000);if(!['received','opened'].includes(b.phase)||typeof b.token!=='string')return {body:{error:'invalid_push_receipt'},status:400};let claim;try{claim=await deps.unseal(b.token,env.CLOUD_ENCRYPTION_KEY,'push-receipt-v1');}catch{return {body:{error:'invalid_push_receipt'},status:401};}const now=Date.now();if(!Number.isFinite(claim.expires)||claim.expires<now||claim.expires>now+3600000)return {body:{error:'push_receipt_expired'},status:401};for(let i=0;i<3;i++){const row=await readPrivate(claim.subject,PUSH_KEY,env,deps),device=row?.value.devices.find(d=>d.id===claim.id);if(!device||device.last?.eventId!==claim.eventId)return {body:{ignored:true},status:200};const field=b.phase==='opened'?'openedAt':'receivedAt',devices=row.value.devices.map(d=>d.id===claim.id?{...d,last:{...d.last,[field]:d.last[field]||now}}:d);if(await writePrivate(claim.subject,PUSH_KEY,{devices},row.revision,env,deps))return {body:{confirmed:b.phase},status:200};}return {body:{error:'revision_conflict'},status:409};}
 
+
 return {PUSH_KEY,handlePush,deliverPush,pushReceipt};
 })();
 const TTCloudAudit=(()=>{
@@ -316,6 +327,7 @@ async function handleAudit({request,subject,env,deps,parseBody}){
  }
  return reply({error:'revision_conflict'},409);
 }
+
 
 return {AUDIT_KEY,handleAudit};
 })();
@@ -378,6 +390,7 @@ async function runMonitors(env,deps,upstream=fetch,now=Date.now()){
  for(const row of rows){if(checked+failed>=5)break;if(env.GOOGLE_ALLOWED_SUB&&row.subject!==env.GOOGLE_ALLOWED_SUB)continue;try{const current=await read(db,row.subject,MONITOR_KEY,env,deps.unseal);if(!current?.value.enabled)continue;await runOne(row.subject,env,deps,upstream,now);checked++;}catch{failed++;}}
  const heartbeat=await read(db,'__monitor_service__',HEARTBEAT_KEY,env,deps.unseal);await write(db,'__monitor_service__',HEARTBEAT_KEY,{at:now,checked,failed},heartbeat?.revision||0,env,deps.seal,now);return {checked,failed};
 }
+
 
 return {MONITOR_KEY,HEARTBEAT_KEY,monitorScope,monitorRules,schedulerStatus,handleMonitor,runMonitors};
 })();
@@ -454,6 +467,7 @@ async function handleCloud(request,env,upstream=fetch){
  }catch(error){const safe=['invalid_google_token','google_unavailable','invalid_encoding','invalid_key','invalid_value','invalid_credentials','record_too_large','body_too_large','json_required','invalid_body'];const code=safe.includes(error.message)?error.message:'cloud_unavailable';const stage=code==='google_unavailable'&&['keys_fetch','keys_decode','key_import','signature_verify'].includes(error.stage)?error.stage:null;return reply({error:code,...(stage?{stage}:{})},code==='invalid_google_token'?401:code==='google_unavailable'||code==='cloud_unavailable'?503:400);}
 }
 async function runScheduled(env,upstream=fetch,now=Date.now()){return runMonitors(env,{seal,unseal,brokerHandle},upstream,now);}
+
 
 return {PROTOCOL,readiness,seal,unseal,verifyGoogle,handleCloud,runScheduled};
 })();
