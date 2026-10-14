@@ -40,6 +40,15 @@ test('bounded credential publishing verifies the updated cloud value through a n
  const connection={key:'fixture-key',secret:'fixture-secret',environment:'live'},s=await setup({status:boundedStatus,vault:connection});await s.api.publishCredentials();
  assert.equal(s.api.state().trading212.synced,true);assert.ok(s.calls.some(c=>c.url.endsWith('key=cloud_credentials')));assert.equal(s.calls.some(c=>c.url.endsWith('/records')),false);
 });
+test('inactive legacy analyses and unsupported registers cannot block active cloud synchronization',async()=>{
+ const unsupported=['tt_europe_signals_v1','tt_europe_risk_settings_v1','tt_trading212_account_history_v1','tt_trading212_cash_v1'],status={...boundedStatus,supportedKeys:KEYS.filter(k=>!unsupported.includes(k))};
+ const remote={tt_journal_v1:{revision:1,updated:9,value:[{id:'current-trade'}]},[EvidenceCloud.KEY]:{revision:1,updated:8,value:'legacy packet fixture'}};
+ for(const key of unsupported)remote[key]={revision:1,updated:8,value:'unsupported packet fixture'};
+ const s=await setup({status,remote,onKey:(_,key)=>{if(key===EvidenceCloud.KEY||unsupported.includes(key))throw Error('inactive packet cannot be decoded');}});
+ assert.equal(s.api.state().connected,true);assert.equal(s.api.state().error,'');assert.ok(s.api.state().lastSync);assert.equal(JSON.parse(s.storage.get('tt_journal_v1'))[0].id,'current-trade');
+ assert.deepEqual(s.calls.filter(c=>c.url.includes('/records?key=')).map(c=>new URL(c.url).searchParams.get('key')),['tt_journal_v1']);assert.equal(s.calls.some(c=>c.opts.method==='PUT'),false);
+ assert.equal(s.records[EvidenceCloud.KEY].value,'legacy packet fixture');for(const key of unsupported)assert.equal(s.records[key].value,'unsupported packet fixture');
+});
 test('offline mode config disabled does not transmit saved credentials',async()=>{const s=await setup({enabled:false,vault:{key:'key',secret:'secret',environment:'live'}});assert.equal(s.calls.length,1);assert.equal(s.api.state().ready,false);assert.equal(s.api.state().error,'cloud_not_configured');});
 test('remote tombstone cannot be republished by an old local credential',async()=>{const s=await setup({vault:{key:'key',secret:'secret',environment:'live'},remote:{cloud_credentials:{revision:2,value:null,updated:9}}});assert.equal(s.calls.filter(c=>c.opts?.method==='PUT').length,0);assert.equal(s.records.cloud_credentials.value,null);});
 test('edit made during network write is kept locally for next sync',async()=>{let fired=false;const s=await setup({local:{tt_journal_v1:JSON.stringify([{id:'a'}])},onPut:(storage,b)=>{if(b.key==='tt_journal_v1'&&!fired){fired=true;storage.set('tt_journal_v1',JSON.stringify([{id:'a'},{id:'b'}]));}}});assert.equal(JSON.parse(s.storage.get('tt_journal_v1')).length,2);await s.api.sync();assert.equal(s.records.tt_journal_v1.value.length,2);});

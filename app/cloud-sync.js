@@ -25,8 +25,9 @@ async function readRecords(){
  if(index?.protocol!=='tt-cloud-records-v2'||!object(index.records)||Object.keys(index.records).some(k=>!KEYS.includes(k)||!validMeta(index.records[k])))throw Error('cloud_response_invalid');
  // A successful complete index is required before treating a record as absent.
  // This cache contains exact server values, never merge baselines or local edits.
- for(const key of recordCache.keys())if(!Object.hasOwn(index.records,key))recordCache.delete(key);
+ for(const key of recordCache.keys())if(!activeKeys.includes(key)||!Object.hasOwn(index.records,key))recordCache.delete(key);
  for(const [key,meta] of Object.entries(index.records)){
+  if(!activeKeys.includes(key))continue;
   let record=recordCache.get(key);
   if(!record||record.revision!==meta.revision||record.updated!==meta.updated){
    const response=await api('records?key='+encodeURIComponent(key));
