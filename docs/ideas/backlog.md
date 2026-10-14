@@ -3327,16 +3327,16 @@ pe un singur chart.
 | I-618 | Motivul candidatului ca fapte, nu ca șir lipit: `reason` crește cu „·” (EOD · Trend · RS · RVOL · earnings · confirmare · raportează) și pe telefon nu se mai citește — cipuri de fapte + o linie de verdict | candidate-engine/engine.js + index.html (+ desk/ citește reason) | M | P3 | făcut 2026-10-14 | ideation | 2026-10-14 |
 | I-619 | Garda de formă pentru fișierele robotului: testul verifică JSON-ul publicat (versiune, dataUltimei, clasament cu câmpurile cerute, regim) ⇒ un robot stricat pică CI, nu pagina | tools/trend-12-1.test.mjs | S | P3 | făcut 2026-10-14 | ideation | 2026-10-14 |
 | I-620 | Drift după raportare în Trend (PEAD): pentru candidații care au raportat în ultimele 5 zile cu reacție pozitivă, eticheta „după raportare +x %” din `EARN.istoric` — IPOTEZă documentată în literatură, de probat pe ambele nuluri înainte să conteze | candidate-engine/engine.js + lib/earnings.js | M | P3 | făcut 2026-10-14 | ideation | 2026-10-14 |
-| I-622 | Jurnalul verdictelor judecă Trend 12 luni la 20 și 60 de zile, nu la 5 și 20: orizontul probat al semnalului e 20–60 z (+3,4 % la 60 z în audit); 5 zile e zgomot pentru un semnal pe 12 luni | crypto/public/lib/verdicte.js (+ proba) | S | P2 | propus | ideation | 2026-10-14 |
-| I-623 | Aceeași riglă pentru Trend în Radar și în robot: Radarul judecă „peste QQQ” (QQQ = pariu pe tehnologie, cu 11 din 20 Technology e aproape același pariu), robotul și auditul judecă „peste SPY” și „peste universul zilei” ⇒ măsura `pesteSpy` pentru sursa trend-12-1 | crypto/public/lib/verdicte.js + functions/api (seria SPY ca QQQ) | S | P2 | propus | ideation | 2026-10-14 |
-| I-624 | Regimul cu confirmare — IPOTEZĂ pre-înregistrată: azi o singură închidere sub SMA200 oprește regimul (20 de ieșiri + Discord), una peste îl pornește (20 de intrări); varianta „3 închideri la rând” se probează pe cache-ul de 5 ani cu criteriul scris înainte: flipuri cu ≥ 50 % mai puține FĂRĂ randament mai mic la 20/60 z; altfel rămâne cum e | E:\…\mom12_audit.mjs (variantă) + tools/trend-12-1-lib.mjs regim() | M | P2 | propus | ideation | 2026-10-14 |
-| I-625 | Plafonul pe sector ca a doua listă — proba pe care I-616 a lăsat-o nefăcută: „cel mult 5 pe sector” pe cache-ul de 5 ani, față de lista fără plafon, cu criteriul pre-înregistrat (randament la 60 z pe unitate de cădere maximă nu mai mic); nu intră în pagină decât dacă trece | E:\…\mom12_audit.mjs + tools/trend-12-1-lib.mjs | M | P3 | propus | ideation | 2026-10-14 |
-| I-626 | Sugestii pe telefon: lista Trend pliată la primele 10 + „arată toate 20 ›” (modelul „arată cele 150 ›”) — azi 20 de rânduri a 64 px = 1.280 px de derulat ca să ajungi la secțiunea următoare | crypto/public/lib/sugestii-ecran.js (+ proba de telefon) | S | P2 | propus | ideation | 2026-10-14 |
-| I-627 | Sugestii: „au intrat: …” (KV-ul are `intrari`, pagina arată doar „au ieșit”) și eticheta VECHI (n zile) când clasamentul robotului e mai vechi decât ultima zi de bursă NY + 1 — Candidate Engine o are, Radarul tace și arată „EOD <zi veche>” | crypto/scripts/lib/tura-trend.mjs + public/lib/sugestii-ecran.js | S | P2 | propus | ideation | 2026-10-14 |
-| I-628 | Proba de telefon din hook-ul de push derulează fiecare pagină și verifică grupurile nelegabile: azi pozează doar capul paginii ⇒ cifrele rupte din Trend au trecut 55/55; pe fiecare pagină poză pe toată înălțimea + orice element `white-space:nowrap` are un singur dreptunghi + nicio secțiune mai lată decât ecranul | crypto/scripts/proba-ecran-telefon.mjs | M | P2 | propus | ideation | 2026-10-14 |
-| I-629 | Discord când robotul Trend PICĂ în Actions (SPY lipsă, sub 70 % serii, garda de formă): azi eșecul e mut, JSON-ul rămâne vechi și nimeni nu știe; pas `if: failure()` cu `DISCORD_WEBHOOK` în trend-12-1.yml și trend-12-1-bilant.yml | .github/workflows/trend-12-1.yml + trend-12-1-bilant.yml | S | P2 | propus | ideation | 2026-10-14 |
-| I-630 | Proba PAZNIC–lățime zilnic automat până la oprirea PAZNIC (18–19.10): 13.10 a fost ratată (manuală); o tură la 12:00 RO în colector (sau sarcină planificată) rulează `proba-latime-vs-paznic.mjs` și scrie rândul în jurnal | crypto/scripts/colector.mjs + proba-latime-vs-paznic.mjs | S | P2 | propus | ideation | 2026-10-14 |
-| I-631 | Bilanțul Trend de sâmbătă anunță pe Discord DOAR când verdictul se schimbă (în probă → probat / picat) și intră în raportul de duminică al Radarului ca un rând | tools/trend-12-1-bilant.mjs + .github/workflows/trend-12-1-bilant.yml + crypto (raportul de duminică) | S | P3 | propus | ideation | 2026-10-14 |
+| I-622 | Jurnalul verdictelor judecă Trend 12 luni la 20 și 60 de zile, nu la 5 și 20: orizontul probat al semnalului e 20–60 z (+3,4 % la 60 z în audit); 5 zile e zgomot pentru un semnal pe 12 luni | crypto/public/lib/verdicte.js (+ proba) | S | P2 | făcut 2026-10-14 | ideation | 2026-10-14 |
+| I-623 | Aceeași riglă pentru Trend în Radar și în robot: Radarul judecă „peste QQQ” (QQQ = pariu pe tehnologie, cu 11 din 20 Technology e aproape același pariu), robotul și auditul judecă „peste SPY” și „peste universul zilei” ⇒ măsura `pesteSpy` pentru sursa trend-12-1 | crypto/public/lib/verdicte.js + functions/api (seria SPY ca QQQ) | S | P2 | făcut 2026-10-14 | ideation | 2026-10-14 |
+| I-624 | Regimul cu confirmare — IPOTEZĂ pre-înregistrată: azi o singură închidere sub SMA200 oprește regimul (20 de ieșiri + Discord), una peste îl pornește (20 de intrări); varianta „3 închideri la rând” se probează pe cache-ul de 5 ani cu criteriul scris înainte: flipuri cu ≥ 50 % mai puține FĂRĂ randament mai mic la 20/60 z; altfel rămâne cum e | E:\…\mom12_audit.mjs (variantă) + tools/trend-12-1-lib.mjs regim() | M | P2 | făcut 2026-10-14 (PROBAT pe cache-ul de 5 ani: NU TRECE — flipuri −48 % față de −50 % cerut, randamentul nu scade; nimic în cod, raportul E:\…\mom12_ipoteze_1410.txt) | ideation | 2026-10-14 |
+| I-625 | Plafonul pe sector ca a doua listă — proba pe care I-616 a lăsat-o nefăcută: „cel mult 5 pe sector” pe cache-ul de 5 ani, față de lista fără plafon, cu criteriul pre-înregistrat (randament la 60 z pe unitate de cădere maximă nu mai mic); nu intră în pagină decât dacă trece | E:\…\mom12_audit.mjs + tools/trend-12-1-lib.mjs | M | P3 | făcut 2026-10-14 (PROBAT: NU TRECE — CAGR/cădere 1,99 față de 2,00 al listei fără plafon; 60 z egal; nimic în cod, același raport) | ideation | 2026-10-14 |
+| I-626 | Sugestii pe telefon: lista Trend pliată la primele 10 + „arată toate 20 ›” (modelul „arată cele 150 ›”) — azi 20 de rânduri a 64 px = 1.280 px de derulat ca să ajungi la secțiunea următoare | crypto/public/lib/sugestii-ecran.js (+ proba de telefon) | S | P2 | făcut 2026-10-14 | ideation | 2026-10-14 |
+| I-627 | Sugestii: „au intrat: …” (KV-ul are `intrari`, pagina arată doar „au ieșit”) și eticheta VECHI (n zile) când clasamentul robotului e mai vechi decât ultima zi de bursă NY + 1 — Candidate Engine o are, Radarul tace și arată „EOD <zi veche>” | crypto/scripts/lib/tura-trend.mjs + public/lib/sugestii-ecran.js | S | P2 | făcut 2026-10-14 | ideation | 2026-10-14 |
+| I-628 | Proba de telefon din hook-ul de push derulează fiecare pagină și verifică grupurile nelegabile: azi pozează doar capul paginii ⇒ cifrele rupte din Trend au trecut 55/55; pe fiecare pagină poză pe toată înălțimea + orice element `white-space:nowrap` are un singur dreptunghi + nicio secțiune mai lată decât ecranul | crypto/scripts/proba-ecran-telefon.mjs | M | P2 | făcut 2026-10-14 | ideation | 2026-10-14 |
+| I-629 | Discord când robotul Trend PICĂ în Actions (SPY lipsă, sub 70 % serii, garda de formă): azi eșecul e mut, JSON-ul rămâne vechi și nimeni nu știe; pas `if: failure()` cu `DISCORD_WEBHOOK` în trend-12-1.yml și trend-12-1-bilant.yml | .github/workflows/trend-12-1.yml + trend-12-1-bilant.yml | S | P2 | făcut 2026-10-14 | ideation | 2026-10-14 |
+| I-630 | Proba PAZNIC–lățime zilnic automat până la oprirea PAZNIC (18–19.10): 13.10 a fost ratată (manuală); o tură la 12:00 RO în colector (sau sarcină planificată) rulează `proba-latime-vs-paznic.mjs` și scrie rândul în jurnal | crypto/scripts/colector.mjs + proba-latime-vs-paznic.mjs | S | P2 | făcut 2026-10-14 | ideation | 2026-10-14 |
+| I-631 | Bilanțul Trend de sâmbătă anunță pe Discord DOAR când verdictul se schimbă (în probă → probat / picat) și intră în raportul de duminică al Radarului ca un rând | tools/trend-12-1-bilant.mjs + .github/workflows/trend-12-1-bilant.yml + crypto (raportul de duminică) | S | P3 | făcut 2026-10-14 | ideation | 2026-10-14 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6232,70 +6232,70 @@ Lentile: Trader — Trend are intrare, dar n-are ieșire și nici bilanț măsur
 - **Riscuri/dependențe:** cheia Finnhub în browser; 8 raportări/simbol înseamnă cereri multe ⇒ doar pentru primele 20.
 - **Fișiere:** candidate-engine/engine.js, lib/earnings.js (istoric există).
 
-#### I-622 · Trend judecat la 20 și 60 de zile · [S] · P2 · propus
+#### I-622 · Trend judecat la 20 și 60 de zile · [S] · P2 · făcut 2026-10-14
 - **Problema/golul:** sursa `trend-12-1` din jurnalul verdictelor (Radar v100.190) a moștenit orizonturile topului pe sectoare, 5 și 20 de zile de bursă; semnalul 12-1 a fost probat pe 20–60 de zile (+0,9 % / +3,4 %), iar 5 zile pe un semnal de 12 luni e zgomot care va arăta „nedovedit” ani de zile.
 - **Soluția:** în `SURSE["trend-12-1"]` orizonturile `[20, 60]` (mașinăria e generică, `S.h.forEach`); ferestrele de 60 z care nu se suprapun = mai puține observații independente, deci „puține” se afișează cinstit, ca acum.
 - **Impact:** verdictul Radarului măsoară ce a promis semnalul, nu altceva.
 - **Riscuri/dependențe:** verdictele deja scrise (14.10) rămân valabile — orizontul e aplicat la citire; proba `proba-v100190` verifică `h` prin `join` ⇒ se actualizează.
 - **Fișiere:** crypto/public/lib/verdicte.js, crypto/scripts/proba-v100190.mjs.
 
-#### I-623 · Aceeași riglă: peste SPY, nu peste QQQ · [S] · P2 · propus
+#### I-623 · Aceeași riglă: peste SPY, nu peste QQQ · [S] · P2 · făcut 2026-10-14
 - **Problema/golul:** Radarul judecă Trend „peste QQQ”; auditul și bilanțul robotului judecă „peste SPY” și „peste universul zilei”. Cu 11 din 20 Technology, „peste QQQ” compară un pariu pe tehnologie cu un indice de tehnologie ⇒ cele două verdicte nu se pot pune unul lângă altul.
 - **Soluția:** măsura `pesteSpy` în `verdicte.js` (seria SPY pe același drum ca QQQ, `/api/t212?action=preturi&interval=1d&yahoo=SPY`), folosită de `trend-12-1`; nota din Sugestii spune cu ce se compară fiecare judecător.
 - **Impact:** când bilanțul robotului și jurnalul Radarului vor spune același lucru, va fi pentru că măsoară același lucru.
 - **Riscuri/dependențe:** o cerere de serie în plus pe zi; `pesteQqq` rămâne pentru idei și topul pe sectoare.
 - **Fișiere:** crypto/public/lib/verdicte.js, crypto/functions/api/t212.js (dacă SPY nu e deja permis), crypto/public/lib/sugestii-ecran.js.
 
-#### I-624 · Regimul cu confirmare (ipoteză pre-înregistrată) · [M] · P2 · propus
+#### I-624 · Regimul cu confirmare (ipoteză pre-înregistrată) · [M] · P2 · făcut 2026-10-14 (PROBAT pe cache-ul de 5 ani: NU TRECE — flipuri −48 % față de −50 % cerut, randamentul nu scade; nimic în cod, raportul E:\…\mom12_ipoteze_1410.txt)
 - **Problema/golul:** `regim()` = o singură închidere a SPY sub media pe 200 ⇒ „regimul s-a oprit” pentru toți 20 (I-615) + Discord; a doua zi peste ⇒ 20 de intrări. În 2022 ar fi bâțâit de multe ori; în 2026, SPY la 778 cu SMA200 la 724, e departe, dar nu va fi mereu.
 - **Soluția:** IPOTEZĂ, nu schimbare: varianta „regim oprit după 3 închideri la rând sub SMA200, pornit după 3 peste” se rulează în `mom12_audit.mjs` (cache-ul de 5 ani de pe E:) lângă varianta R, cu criteriul scris ÎNAINTE: numărul de flipuri scade cu ≥ 50 % ȘI randamentul la 20 și 60 z nu e mai mic (interval pe zile). Dacă trece, `regim()` primește confirmarea; dacă nu, raportul rămâne ca dovadă.
 - **Impact:** mai puține ieșiri/intrări false pe toată lista, fără să schimb semnalul pe care l-am probat.
 - **Riscuri/dependențe:** „nu se aleg variante după rezultat” — un singur candidat, o singură rulare; bilanțul istoric are linii cu `regim` boolean, deci trecerea nu strică istoricul.
 - **Fișiere:** E:\Backup-Claude\premarket-suite\audit-candidate-engine-2026-10-14\mom12_audit.mjs, tools/trend-12-1-lib.mjs, tools/trend-12-1.test.mjs.
 
-#### I-625 · Plafonul pe sector, probat (continuarea lui I-616) · [M] · P3 · propus
+#### I-625 · Plafonul pe sector, probat (continuarea lui I-616) · [M] · P3 · făcut 2026-10-14 (PROBAT: NU TRECE — CAGR/cădere 1,99 față de 2,00 al listei fără plafon; 60 z egal; nimic în cod, același raport)
 - **Problema/golul:** I-616 a pus rândul „11 din 20 Technology — un singur pariu”, dar plafonul nu s-a probat; lista rămâne un pariu pe un sector.
 - **Soluția:** varianta „cel mult 5 pe sector, restul din următorii” în `mom12_audit.mjs`, față de lista fără plafon, criteriu pre-înregistrat: randamentul la 60 z pe unitate de cădere maximă a listei nu e mai mic; doar dacă trece devine a doua listă în JSON (`clasamentPlafonat`) și în pagină un comutator.
 - **Impact:** o listă care nu moare toată într-o zi de „rotație din tehnologie”.
 - **Riscuri/dependențe:** sectorul vine din screener (azi), nu istoric ⇒ proba e aproximativă; se spune în raport.
 - **Fișiere:** E:\…\mom12_audit.mjs, tools/trend-12-1-lib.mjs, tools/trend-12-1.mjs, candidate-engine/engine.js.
 
-#### I-626 · Lista Trend pliată pe telefon · [S] · P2 · propus
+#### I-626 · Lista Trend pliată pe telefon · [S] · P2 · făcut 2026-10-14
 - **Problema/golul:** în Sugestii, 20 de rânduri a 64 px (butonul de 44 px + linia de cifre) = 1.280 px de derulat până la secțiunea următoare; pe desktop e bine.
 - **Soluția:** sub 640 px primele 10 + butonul „arată toate 20 ›” (modelul `arată cele 150 ›`); starea se ține în pagină, nu în KV.
 - **Impact:** secțiunea se citește dintr-o privire pe telefon, lista întreagă rămâne la un deget.
 - **Riscuri/dependențe:** proba de telefon trebuie să verifice și starea desfăcută.
 - **Fișiere:** crypto/public/lib/sugestii-ecran.js, crypto/public/app.css, crypto/scripts/proba-v100190.mjs.
 
-#### I-627 · „au intrat” + VECHI în Sugestii · [S] · P2 · propus
+#### I-627 · „au intrat” + VECHI în Sugestii · [S] · P2 · făcut 2026-10-14
 - **Problema/golul:** KV-ul `sugestii:trend12` are `intrari`, dar nota arată doar „au ieșit”; când robotul nu publică (eșec în Actions, sărbătoare), Radarul arată „EOD 2026-10-13” la nesfârșit, fără să spună că e vechi — Candidate Engine spune VECHI de la 5 zile.
 - **Soluția:** tura calculează `vechime` (zile de bursă NY de la `dataUltimei`), nota scrie „VECHI de n zile” de la 2 și „au intrat: …” când există.
 - **Impact:** nu te uiți la o listă moartă crezând că e de azi.
 - **Riscuri/dependențe:** calendarul de bursă NY e aproximat (zile lucrătoare); sărbătorile dau o zi de VECHI fals, acceptabil.
 - **Fișiere:** crypto/scripts/lib/tura-trend.mjs, crypto/public/lib/sugestii-ecran.js.
 
-#### I-628 · Proba de telefon derulează și verifică grupurile nelegabile · [M] · P2 · propus
+#### I-628 · Proba de telefon derulează și verifică grupurile nelegabile · [M] · P2 · făcut 2026-10-14
 - **Problema/golul:** `proba-ecran-telefon.mjs` face `scrollTo(0,0)` și pozează doar capul fiecărei pagini; cifrele rupte din secțiunea Trend au trecut 55/55 pe 14.10 și le-a prins doar o poză făcută de mână.
 - **Soluția:** pe fiecare pagină poză pe toată înălțimea (`captureBeyondViewport`), plus două verificări pe DOM: orice element cu `white-space:nowrap` are un singur `getClientRects()`, și nicio secțiune (`.rlSec`, `.panel`) nu e mai lată decât ecranul; rândurile picate numesc elementul.
 - **Impact:** garda vede ce vede omul, nu doar banda de sus.
 - **Riscuri/dependențe:** pozele pe toată înălțimea sunt mari (53 de pagini) ⇒ doar la pagini cu diferențe sau cu `--poze`.
 - **Fișiere:** crypto/scripts/proba-ecran-telefon.mjs.
 
-#### I-629 · Discord când robotul pică în Actions · [S] · P2 · propus
+#### I-629 · Discord când robotul pică în Actions · [S] · P2 · făcut 2026-10-14
 - **Problema/golul:** robotul iese cu 1 când SPY lipsește, când vin sub 70 % din serii sau când garda de formă pică; nimeni nu află, JSON-ul rămâne vechi, Radarul îl arată ca atare (vezi I-627).
 - **Soluția:** în `trend-12-1.yml` și `trend-12-1-bilant.yml` un pas `if: failure()` care trimite pe `DISCORD_WEBHOOK` „robotul Trend a picat: <pasul>, <linkul rulării>”.
 - **Impact:** o rulare picată e un mesaj, nu o descoperire peste o săptămână.
 - **Riscuri/dependențe:** 429 de la Yahoo poate da eșecuri repetate ⇒ mesajul spune și „a câta zi la rând”.
 - **Fișiere:** .github/workflows/trend-12-1.yml, .github/workflows/trend-12-1-bilant.yml.
 
-#### I-630 · Proba PAZNIC–lățime zilnic automat · [S] · P2 · propus
+#### I-630 · Proba PAZNIC–lățime zilnic automat · [S] · P2 · făcut 2026-10-14
 - **Problema/golul:** proba zilnică de dinaintea opririi PAZNIC (18–19.10) e manuală: 13.10 n-a rulat-o nimeni; criteriul cere zile la rând.
 - **Soluția:** o tură în colector la 12:00 RO (sau o sarcină planificată Windows) rulează `proba-latime-vs-paznic.mjs` și scrie rândul în `data/latime-vs-paznic.jsonl` + o linie în `colector.log`; se scoate odată cu PAZNIC.
 - **Impact:** proba se face singură în zilele care au mai rămas.
 - **Riscuri/dependențe:** proba cere PAZNIC pornit și pozele Radarului la ≤ 15 min; dacă lipsesc, rândul spune „fără pereche”, nu pică.
 - **Fișiere:** crypto/scripts/colector.mjs, crypto/scripts/proba-latime-vs-paznic.mjs.
 
-#### I-631 · Bilanțul anunță doar schimbarea verdictului · [S] · P3 · propus
+#### I-631 · Bilanțul anunță doar schimbarea verdictului · [S] · P3 · făcut 2026-10-14
 - **Problema/golul:** bilanțul de sâmbătă scrie JSON-ul și atât; ziua în care verdictul trece din „în probă” în „probat” sau „picat” e exact ziua în care trebuie să știi, iar raportul de duminică al Radarului nu-l pomenește.
 - **Soluția:** `trend-12-1-bilant.mjs` compară verdictul cu cel din JSON-ul dinainte și trimite Discord doar la schimbare; raportul de duminică al Radarului primește un rând „Trend 12 luni: <verdict>, n ferestre, diferența față de univers”.
 - **Impact:** verdictul ajunge la tine fără să-l cauți.

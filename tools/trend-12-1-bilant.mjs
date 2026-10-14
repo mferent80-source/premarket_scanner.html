@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { bilant } from './trend-12-1-lib.mjs';
+import { bilant, mesajBilant } from './trend-12-1-lib.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GEN = path.join(ROOT, 'candidate-engine', 'generated');
@@ -37,13 +37,20 @@ await Promise.all(Array.from({ length: 5 }, async () => { while (coada.length) a
 if (!preturi.SPY) { console.error('SPY lipsește ⇒ nu pot măsura'); process.exit(1); }
 console.log('prețuri: ' + Object.keys(preturi).length + ' serii · picate ' + picate.length);
 
+let prev = null; try { prev = JSON.parse(fs.readFileSync(F_OUT, 'utf8')); } catch { prev = null; }   // I-631: verdictul dinainte
 const b = bilant(istoric, preturi, { h: [20, 60] });
 const pc = (v) => v == null ? null : +(v * 100).toFixed(2);
 const out = {
   versiune: 1, la: new Date().toISOString(), de: istoric[0].d, pana: istoric[istoric.length - 1].d, zile: b.zile, n20: b.n20, n60: b.n60,
   exces20: pc(b.exces20), exces60: pc(b.exces60), nulB20: pc(b.nulB20), nulB60: pc(b.nulB60),
   interval20: b.interval20.map(pc), diferenta20: { medie: pc(b.diferenta20.medie), interval: b.diferenta20.interval.map(pc) }, diferenta60: { medie: pc(b.diferenta60.medie), interval: b.diferenta60.interval.map(pc) },
+  ferestre20: b.ferestre20,
   verdict: b.verdict, criterii: b.criterii, cost: 0.3, nota: 'randamente în %, față de SPY, intrare la deschiderea zilei următoare; „alte acțiuni” = universul clasat în aceeași zi',
 };
 fs.writeFileSync(F_OUT, JSON.stringify(out));
+// I-631: Discord DOAR când verdictul s-a schimbat (în probă → probat / picat); fără webhook, doar în jurnal
+const mesaj = mesajBilant(prev, out);
+if (mesaj && process.env.DISCORD_WEBHOOK) {
+  try { const r = await fetch(process.env.DISCORD_WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: mesaj }), signal: AbortSignal.timeout(20000) }); console.log('Discord (verdict schimbat): ' + (r.ok ? 'trimis' : 'HTTP ' + r.status)); } catch (e) { console.error('Discord: ' + (e.message || e)); }
+} else console.log('Discord: ' + (mesaj ? 'verdict schimbat, dar fără webhook' : 'verdictul neschimbat, nu trimit'));
 console.log('bilanț: ' + b.zile + ' zile în istoric · cu rezultat la 20 z: ' + b.n20 + ', la 60 z: ' + b.n60 + ' · exces 20 z ' + (out.exces20 ?? '—') + ' % vs univers ' + (out.nulB20 ?? '—') + ' % · verdict: ' + b.verdict);

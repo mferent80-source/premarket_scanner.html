@@ -26,6 +26,8 @@ jobs:
           node-version: '20'
       - run: node --test tools/trend-12-1.test.mjs tools/trend-12-1-robot.test.mjs
       - name: Bilanțul probei
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}   # I-631: DOAR când verdictul se schimbă
         run: node tools/trend-12-1-bilant.mjs
       - name: Salvează bilanțul
         run: |
@@ -37,3 +39,11 @@ jobs:
             git pull --rebase origin main
             git push origin HEAD:main
           fi
+      - name: Discord la eșec (I-629)
+        if: failure()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          [ -n "$DISCORD_WEBHOOK" ] || exit 0
+          VECHI=$(node -e "try{const j=require('./candidate-engine/generated/trend-12-1.json');console.log(j.dataUltimei+', acum '+Math.round((Date.now()-Date.parse(j.dataUltimei+'T21:00:00Z'))/864e5)+' zile')}catch{console.log('necunoscut')}")
+          node -e "const m={content:'**Robotul Trend 12 luni a PICAT** · '+process.argv[1]+' · rularea '+process.argv[2]+'\\n'+process.argv[3]+'\\nultimul clasament bun: '+process.argv[4]+' — JSON-ul rămâne cel vechi până la o rulare bună; Radarul îl va arăta VECHI.'};fetch(process.env.DISCORD_WEBHOOK,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(m)}).then(r=>console.log('Discord: '+r.status)).catch(e=>console.log('Discord: '+e.message))" "${{ github.workflow }}" "${{ github.run_number }}" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "$VECHI"

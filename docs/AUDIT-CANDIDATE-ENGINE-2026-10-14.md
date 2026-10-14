@@ -86,3 +86,11 @@ Convenții: cod al Decision App (versiune în `app/version.js`, fără badge al 
 - `E:\Backup-Claude\premarket-suite\audit-candidate-engine-2026-10-14\` — `ce_audit_1410.mjs` (auditul extins) + rezultatul,
   `ce_backtest_1210.mjs` (auditul din 12.10, aceleași cifre re-rulate azi), `poza_ce.mjs` (proba în Edge) + pozele.
 - Datele: cache-ul Yahoo de 5 ani al sesiunii din 12.10 (`yahoo-zilnic.json`, 20 MB, în scratchpad-ul acelei sesiuni).
+
+## Anexă 14.10, seara — ipoteze probate pe același cache de 5 ani (I-624, I-625), criterii scrise ÎNAINTE de rulare
+
+Scriptul `E:\Backup-Claude\premarket-suite\audit-candidate-engine-2026-10-14\mom12_ipoteze_1410.mjs`, raportul `mom12_ipoteze_1410.txt`. O singură rulare, un singur candidat pe ipoteză, nicio alegere după rezultat. Ambele PICĂ, la limită — „nu s-a dovedit”, nu „s-a dovedit că nu”; nimic nu intră în cod.
+
+- **I-624, regimul cu confirmare de 3 închideri:** flipuri 21 → 11 (−48 %, criteriul cerea −50 %); candidatul cu regimul confirmat dă 0,94 % la 20 z și 3,52 % la 60 z peste SPY, față de 0,92 % / 3,44 % al regulii de azi (nu mai mic). Pică doar (a). Regula rămâne „o închidere sub SMA200”.
+- **I-625, plafon de 5 pe sector pe lista primelor 20 (sectorul de azi din screener — aproximație):** 751 din 809 zile aveau peste 5 într-un sector (maxim 13). Fără plafon: CAGR 61,1 %, cădere maximă 30,5 %, raport 2,00, 60 z peste SPY 9,69 %. Cu plafon: 58,0 %, 29,2 %, raport 1,99, 60 z 9,73 %. Pică (a) cu 0,01. Lista rămâne fără plafon; rândul „N din 20 în același sector — un singur pariu” rămâne avertismentul.
+- Notă: cifrele listei primelor 20 (CAGR 61 %) sunt pe universul de azi (supraviețuitori) și fără cost; servesc DOAR comparației între variante, nu ca așteptare.

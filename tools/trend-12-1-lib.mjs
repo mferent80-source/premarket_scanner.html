@@ -166,6 +166,14 @@ export function bilant(istoric, preturi, o = {}) {
   };
 }
 
+/** I-631: mesajul Discord al bilanțului — DOAR când verdictul s-a schimbat față de bilanțul dinainte (altfel ''). */
+export function mesajBilant(prev, out) {
+  const v0 = prev && prev.verdict, v1 = out && out.verdict;
+  if (!v1 || !v0 || v0 === v1) return '';
+  const d = out.diferenta20 && Number.isFinite(out.diferenta20.medie) && out.n20 > 0 ? ', ' + (out.diferenta20.medie >= 0 ? '+' : '−') + Math.abs(out.diferenta20.medie).toFixed(1).replace('.', ',') + ' % față de univers la 20 z' : '';
+  return '**Trend 12 luni · bilanțul probei** · verdictul s-a schimbat: „' + v0 + '” → „' + v1 + '” (' + (out.n20 || 0) + ' zile cu rezultat, ' + (out.ferestre20 ?? 0) + ' ferestre de 20 z' + d + ')\n_în probă sau nu, nu e un buton de cumpărat — detalii în Candidate Engine → Trend 12 luni_';
+}
+
 /** Regimul pieței: SPY închis peste media simplă pe 200 de zile. Sub 200 de bare ⇒ necunoscut (null). */
 export function regim(spy) {
   const n = spy.length, inchidere = spy[n - 1].c;

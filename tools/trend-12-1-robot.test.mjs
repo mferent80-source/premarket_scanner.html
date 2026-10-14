@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { raporteazaDinCalendar, iesiri, intrari, mesajDiscord, validareFisiere, bilant, liniaIstoric } from './trend-12-1-lib.mjs';
+import { mesajBilant } from './trend-12-1-lib.mjs';
 
 function serie(n, pantaZi, { pret0 = 100, start = Date.UTC(2025, 0, 1) } = {}) {
   const out = []; let t = start, c = pret0;
@@ -91,4 +92,12 @@ test('liniaIstoric poarta si universul zilei (pentru nulul B de mai tarziu)', ()
 test('mesajDiscord: salturile >= 50 % intr-o zi apar ca „verifica seria”; sub 50 % nu', () => {
   const m = mesajDiscord({ dataUltimei: '2026-10-14', regim: { peste: true }, regimPrev: true, intrari: [{ s: 'ATI', m12: 1.35 }], iesiri: [], raporteaza: [], salturi: [{ s: 'MRNA', pct: 1.77, d: '2026-05-12' }, { s: 'MU', pct: 0.07, d: '2026-09-01' }] });
   assert.match(m, /salt într-o zi, verifică seria: MRNA 177 % \(2026-05-12\)/); assert.ok(!/MU/.test(m));
+});
+
+test('I-631: mesajul bilantului apare DOAR cand verdictul s-a schimbat; prima rulare (fara bilant dinainte) tace', () => {
+  const out = { verdict: 'probat față de alte acțiuni', n20: 260, ferestre20: 13, diferenta20: { medie: 0.86 } };
+  assert.equal(mesajBilant(null, out), ''); assert.equal(mesajBilant({ verdict: 'probat față de alte acțiuni' }, out), '');
+  const m = mesajBilant({ verdict: 'în probă' }, out);
+  assert.match(m, /verdictul s-a schimbat: „în probă” → „probat față de alte acțiuni” \(260 zile cu rezultat, 13 ferestre de 20 z, \+0,9 % față de univers la 20 z\)/);
+  assert.equal(mesajBilant({ verdict: 'în probă' }, { verdict: 'picat față de alte acțiuni', n20: 0, ferestre20: 0, diferenta20: { medie: null } }).includes('% față de univers'), false, 'nemăsurat nu e +0,0 %');
 });
