@@ -12,6 +12,7 @@ function boot(search='',savedModule=null){
  const route=(state,url)=>{location.href=url;location.search=new URL(url).search;};
  const ctx={document,location,history:{state:null,pushed:[],replaceState(state,_,url){this.state=state;route(state,url);},pushState(state,_,url){this.state=state;this.pushed.push({state,url});route(state,url);}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},navigator:{onLine:true},addEventListener:(n,f)=>events[n]=f,Intl,Date,URLSearchParams,URL};
  ctx.window=ctx;
+ vm.runInNewContext(fs.readFileSync(new URL('../lib/app-routes.js',import.meta.url),'utf8'),ctx);
  vm.runInNewContext(fs.readFileSync(new URL('../lib/app-search.js',import.meta.url),'utf8'),ctx);
  vm.runInNewContext(script,ctx);
  return {elements,storage,send:data=>events.message({origin:ctx.location.origin,source:elements.brokerFrame.hidden===false?brokerChild:child,data}),events,ctx};
@@ -25,15 +26,16 @@ function loadChildDocument(b,anchors=[]){
  b.elements.frame.contentDocument=doc;b.elements.frame.onload.call(b.elements.frame);
  return {doc,clicks,click(anchor,options={}){let prevented=false;const event={target:{closest:()=>anchor},button:0,preventDefault(){prevented=true;this.defaultPrevented=true;},...options};for(const fn of clicks)fn(event);return prevented;}};
 }
-test('a fresh profile opens Astăzi and keeps both scanners accessible',()=>{const b=boot();assert.match(b.elements.frame.src,/today\/\?app=/);assert.equal(b.elements.pageName.textContent,'Astăzi');assert.match(b.elements.nav.innerHTML,/Long &amp; Reversal/);assert.match(b.elements.nav.innerHTML,/Două verdicte/);assert.match(b.elements.nav.innerHTML,/Instrumente &amp; suport/);});
+test('a fresh profile opens Astăzi with the approved five tasks and active tools',()=>{const b=boot();assert.match(b.elements.frame.src,/today\/\?app=/);assert.equal(b.elements.pageName.textContent,'Astăzi');for(const name of ['Astăzi','Piață','Portofoliu','Jurnal','Risc &amp; capital','Instrumente','Setări'])assert.ok(b.elements.nav.innerHTML.includes(name));assert.equal((b.elements.nav.innerHTML.match(/<button/g)||[]).length,7);assert.doesNotMatch(b.elements.nav.innerHTML,/Macro|Postmortem|Nasdaq|MFX/);});
 test('selected ticker and strategy reach the new plan ticket',()=>{const b=boot();b.send({ttOpenModule:'smart-trade-long/',ttQuery:'symbol=CAT&mode=reversal'});assert.equal(b.elements.frame.src,'../desk/?app=decision-mobile-v2&v=release-test&symbol=CAT&mode=reversal&ticket=1');});
 test('legacy hash message resolves portfolio within this app',()=>{const b=boot();b.send({ttOpen:'journal/',ttHash:'portfolio'});assert.equal(b.elements.frame.src,'../journal/?app=decision-mobile-v2&v=release-test#portfolio');});
 test('unrecognized module and other message senders cannot change route',()=>{const b=boot();const initial=b.elements.frame.src;b.send({ttOpenModule:'hub-clasic/'});assert.equal(b.elements.frame.src,initial);b.events.message({origin:b.ctx.location.origin,source:{},data:{ttOpenModule:'journal/'}});assert.equal(b.elements.frame.src,initial);});
 test('reload targets the active module',()=>{const b=boot();b.send({ttOpenModule:'shadow-book/'});b.elements.reloadModule.onclick();assert.match(b.elements.frame.src,/^\.\.\/shadow-book\/\?app=decision-mobile-v2&v=release-test&reload=\d+$/);});
 test('search only offers new app modules',()=>{const b=boot();b.elements.search.value='Long';b.elements.search.oninput();assert.match(b.elements.palette.innerHTML,/Long &amp; Reversal/);assert.doesNotMatch(b.elements.palette.innerHTML,/Macro|Hub|Smart Trade/);});
-test('all module routes exist and inline app scripts compile',()=>{for(const m of html.matchAll(/\{u:'([^']+)'/g)){assert.ok(fs.existsSync(new URL('../'+m[1].split('#')[0]+'index.html',import.meta.url)));}for(const p of ['../app/index.html','../desk/index.html','../candidate-engine/index.html','../command-center/index.html','../app/coach/index.html','../app/status/index.html']){const s=fs.readFileSync(new URL(p,import.meta.url),'utf8');for(const m of s.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi))if(!/src=/.test(m[1]))new vm.Script(m[2]);}});
+test('all module routes exist and inline app scripts compile',()=>{const b=boot();assert.ok(b.ctx.TTAppRoutes.all.length>=19);for(const route of b.ctx.TTAppRoutes.all){assert.ok(fs.existsSync(new URL('../'+route.u.split('#')[0]+'index.html',import.meta.url)),route.u);}for(const p of ['../app/index.html','../desk/index.html','../candidate-engine/index.html','../command-center/index.html','../app/coach/index.html','../app/status/index.html']){const s=fs.readFileSync(new URL(p,import.meta.url),'utf8');for(const m of s.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi))if(!/src=/.test(m[1]))new vm.Script(m[2]);}});
 
 test('journal opens execution tab and support routes use app pages',()=>{const b=boot();b.send({ttOpenModule:'journal/'});assert.equal(b.elements.frame.src,'../journal/?app=decision-mobile-v2&v=release-test#exec');b.send({ttOpenModule:'guide/'});assert.equal(b.elements.frame.src,'../app/coach/?app=decision-mobile-v2&v=release-test');b.send({ttOpenModule:'health/'});assert.equal(b.elements.frame.src,'../app/status/?app=decision-mobile-v2&v=release-test');});
+test('Europe home link returns to Today in the existing workspace',()=>{const b=boot('?module=europe-stocks%2F'),child=loadChildDocument(b);assert.equal(child.click(link('../app/')),true);assert.match(b.elements.frame.src,/^\.\.\/today\/\?app=/);assert.equal(b.elements.pageName.textContent,'Astăzi');});
 
 test('broker frame persists across module navigation without restarting connection',()=>{const b=boot();const initial=b.elements.brokerFrame.src;b.send({ttOpenModule:'broker/'});assert.equal(b.elements.brokerFrame.src,initial);assert.equal(b.elements.brokerFrame.hidden,false);assert.equal(b.elements.frame.hidden,true);b.send({ttOpenModule:'journal/'});assert.equal(b.elements.brokerFrame.hidden,true);assert.equal(b.elements.brokerFrame.src,initial);b.send({ttOpenModule:'broker/'});assert.equal(b.elements.brokerFrame.src,initial);});
 
@@ -63,25 +65,25 @@ test('an internal example link keeps its demo query when opened through the shel
  assert.doesNotMatch(b.ctx.location.href,/demo=ai-strategy/);
 });
 
-test('links regenerated after journal rendering still update the shell and retain the execution id',()=>{
+test('links regenerated after rendering still update the shell and retain selected scanner context',()=>{
  const b=boot('?module=journal%2F%23exec'),child=loadChildDocument(b);
- const regenerated=link('../postmortem/?id=closed-execution-42');
+ const regenerated=link('../candidate-engine/?symbol=CAT&mode=reversal');
  assert.equal(child.click(regenerated),true);
- assert.equal(b.elements.pageName.textContent,'Revizuirea tranzacțiilor');
- assert.match(b.elements.frame.src,/postmortem\/\?app=.*&id=closed-execution-42$/);
- assert.equal(new URL(b.ctx.location.href).searchParams.get('module'),'postmortem/');
- assert.doesNotMatch(b.ctx.location.href,/closed-execution-42/);
+ assert.equal(b.elements.pageName.textContent,'Long & Reversal');
+ assert.match(b.elements.frame.src,/candidate-engine\/\?app=.*&symbol=CAT&mode=reversal$/);
+ assert.equal(new URL(b.ctx.location.href).searchParams.get('module'),'candidate-engine/');
+ assert.doesNotMatch(b.ctx.location.href,/symbol=CAT/);
 });
 
 test('modifier, middle-click, target and download links retain their original destination and query',()=>{
  for(const options of [{ctrlKey:true},{metaKey:true},{shiftKey:true},{altKey:true},{button:1},{defaultPrevented:true}]){
-  const b=boot('?module=journal%2F%23exec'),anchor=link('../postmortem/?id=selected-execution'),child=loadChildDocument(b,[anchor]),before=b.elements.frame.src;
-  assert.equal(anchor.href,'../postmortem/?id=selected-execution');
+  const b=boot('?module=journal%2F%23exec'),anchor=link('../candidate-engine/?symbol=CAT&mode=reversal'),child=loadChildDocument(b,[anchor]),before=b.elements.frame.src;
+  assert.equal(anchor.href,'../candidate-engine/?symbol=CAT&mode=reversal');
   assert.equal(child.click(anchor,options),false);assert.equal(b.elements.frame.src,before);
  }
  for(const attributes of [{target:'_blank'},{target:'_top'},{download:'execution.json'}]){
-  const b=boot('?module=journal%2F%23exec'),anchor=link('../postmortem/?id=selected-execution',attributes),child=loadChildDocument(b,[anchor]),before=b.elements.frame.src;
-  assert.equal(anchor.href,'../postmortem/?id=selected-execution');
+  const b=boot('?module=journal%2F%23exec'),anchor=link('../candidate-engine/?symbol=CAT&mode=reversal',attributes),child=loadChildDocument(b,[anchor]),before=b.elements.frame.src;
+  assert.equal(anchor.href,'../candidate-engine/?symbol=CAT&mode=reversal');
   assert.equal(child.click(anchor),false);assert.equal(b.elements.frame.src,before);
  }
 });
@@ -90,9 +92,9 @@ test('each child document receives one delegated navigation handler and excludes
  const b=boot('?module=journal%2F%23exec'),child=loadChildDocument(b);
  b.elements.frame.onload.call(b.elements.frame);assert.equal(child.clicks.length,1);
  const before=b.elements.frame.src;
- for(const href of ['https://foreign.test/project/postmortem/?id=1','#portfolio','../unrecognized/?id=1'])assert.equal(child.click(link(href)),false);
+ for(const href of ['https://foreign.test/project/candidate-engine/?symbol=CAT','#portfolio','../unrecognized/?id=1'])assert.equal(child.click(link(href)),false);
  assert.equal(b.elements.frame.src,before);
- assert.equal(child.click(link('../postmortem/?id=1',{target:'_self'})),true);
+ assert.equal(child.click(link('../candidate-engine/?symbol=CAT',{target:'_self'})),true);
  assert.equal(b.ctx.history.pushed.length,1);
 });
 
@@ -141,3 +143,9 @@ test('the mobile bar contains all four useful actions and grouped menu headings 
  const css=fs.readFileSync(new URL('../app/layout.css',import.meta.url),'utf8');assert.match(css,/\.mobile-menu \.group\{display:block/);assert.doesNotMatch(css,/\.group[^}]*display:none/);
 });
 
+
+test('saved unavailable modules recover to Today with an explicit status instead of opening a retired page',()=>{const b=boot('?module=macro-dashboard%2F');assert.equal(b.elements.pageName.textContent,'Astăzi');assert.equal(b.elements.routeNotice.hidden,false);assert.match(b.elements.routeNotice.textContent,/nu mai este disponibilă/);});
+
+test('primary risk navigation canonicalizes old Governor and capital aliases',()=>{const b=boot();b.send({ttOpen:'governor/'});assert.equal(b.elements.pageName.textContent,'Risc & capital');assert.match(b.elements.frame.src,/#desk$/);b.send({ttOpen:'equity/'});assert.equal(b.elements.pageName.textContent,'Mișcări de capital');assert.match(b.elements.frame.src,/#capital$/);});
+
+test('retired modules never replace the active frame or expose a search destination',()=>{const b=boot();for(const route of b.ctx.TTAppRoutes.retired){const before=b.elements.frame.src;b.send({ttOpenModule:route});assert.equal(b.elements.frame.src,before);}b.elements.search.value='MFX';b.elements.search.oninput();assert.match(b.elements.palette.innerHTML,/Niciun rezultat/);});

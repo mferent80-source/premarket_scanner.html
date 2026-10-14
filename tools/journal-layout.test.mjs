@@ -11,8 +11,8 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;',
 const money = value => '$' + Number(value).toFixed(2);
 
 // The UI uses browser-provided dialog focus containment. This DOM records native
-// dialog calls and dispatches their close/cancel events; the browser smoke test
-// verifies the browser's own containment and responsive visibility.
+// dialog calls and dispatches their close/cancel events. These checks cover the
+// application handlers; browser focus containment and layout require a browser.
 class Element {
   constructor(tag, document, attrs = {}) {
     this.tagName = tag.toUpperCase();
@@ -309,13 +309,168 @@ test('closed cards retain net FX-aware PnL, R, fees and financial values from JR
     assert.ok(card.textContent.includes(context.JR.quotePrice(entry,entry.exit)));
     assert.ok(card.textContent.includes(money(entry.fees)));
     for (const root of [row,card]) {
-      const review = root.querySelector('a.act');
-      assert.equal(review.getAttribute('href'),'../postmortem/?id=' + encodeURIComponent(entry.id));
+      const review = root.querySelector('[data-details]');
+      assert.equal(review.tagName,'BUTTON');
+      assert.equal(review.dataset.details,entry.id);
+      assert.equal(review.getAttribute('aria-controls'),'jrDetailsSheet');
       assert.ok(review.getAttribute('aria-label').includes(entry.sym));
     }
   }
   assert.equal($('openUnrealSum').textContent,'');
   assert.equal(JSON.stringify(context.JR.all()),before);
+});
+
+function fields(element) {
+  return Object.fromEntries(element.children.map(row => [row.querySelector('dt').textContent,row.querySelector('dd').textContent]));
+}
+
+test('closed desktop and mobile actions open real FX-aware execution details and restore focus', () => {
+  const {context,$,document} = workspace();
+  const entry = fixture(context.JR,{sym:'SU.PA',dir:'short',entry:120,exit:100,
+    quoteCurrency:'EUR',fxEntryUsd:1.1,fxExitUsd:1.2,fees:7,slAtEntry:125,
+    tpAtEntry:90,closeTs:Date.now(),source:'stl',srcId:'source-42',regime:'Risk off',
+    tags:['Plan respectat','<img src=x onerror=alert(1)>'],
+    notes:'<script>alert("execution")</script> & lesson',ruleOk:true,wouldRepeat:'yes'});
+  context.JR.update(entry.id,{ruleOk:true,wouldRepeat:'yes'});
+  const before = JSON.stringify(context.JR.all());
+  $('execSubtabs').querySelector('[data-exec-view="closed"]').click();
+  const {rows,cards} = ledgerParts($('tblWrap'));
+  const dialog = $('jrDetailsSheet');
+  assert.equal(dialog.tagName,'DIALOG');
+  assert.equal(dialog.getAttribute('aria-labelledby'),'jrDetailsTitle');
+  for (const [root,closeVia] of [[rows[0],'cancel'],[cards[0],'button']]) {
+    const trigger = root.querySelector('[data-details]');
+    trigger.focus();trigger.click();
+    assert.equal(dialog.open,true);
+    assert.equal(document.activeElement,$('jrDetailsTitle'));
+    assert.equal($('jrDetailsTitle').textContent,'Execuția SU.PA');
+    assert.equal($('jrDetailsIdentity').textContent,'Închisă · SHORT · stl');
+    assert.equal($('jrDetailsResult').textContent,'+' + money(context.JR.pnl(entry)));
+    assert.match($('jrDetailsValuation').textContent,/Prețuri în EUR.*PnL convertit în USD/);
+    const execution = fields($('jrDetailsExecution'));
+    assert.equal(execution['ID execuție'],entry.id);
+    assert.equal(execution['Intrare · moneda instrumentului'],context.JR.quotePrice(entry,entry.entry));
+    assert.equal(execution['Ieșire · moneda instrumentului'],context.JR.quotePrice(entry,entry.exit));
+    assert.equal(execution['Comisioane totale · USD'],money(entry.fees));
+    assert.equal(execution['Valoare intrare · USD'],money(context.JR.initialNotionalUsd(entry)));
+    assert.equal(execution['R-multiple · net'],'+' + context.JR.rMult(entry).toFixed(2) + 'R');
+    assert.equal(execution['FX istoric la intrare'],'1,1 USD / 1 EUR');
+    assert.equal(execution['FX istoric la ieșire'],'1,2 USD / 1 EUR');
+    const detail = fields($('jrDetailsContext'));
+    assert.equal(detail['Note'],entry.notes);
+    assert.equal(detail['ID sursă'],'source-42');
+    assert.equal(detail['Plan respectat'],'Da');
+    assert.ok(detail['Taguri'].includes('<img src=x onerror=alert(1)>'));
+    assert.equal(dialog.querySelector('script'),null,'execution text cannot create executable markup');
+    assert.equal(dialog.querySelector('img'),null,'tags cannot create HTML elements');
+    if (closeVia === 'cancel') {
+      const event = {type:'cancel'};dialog.dispatchEvent(event);
+      assert.equal(event.defaultPrevented,true);
+    } else $('jrDetailsClose').click();
+    assert.equal(dialog.open,false);
+    assert.equal(document.activeElement,trigger);
+  }
+  assert.equal(dialog.showModalCalls,2);
+  assert.equal(JSON.stringify(context.JR.all()),before,'opening and dismissing details cannot write to JR');
+});
+
+test('details show unavailable USD valuation and unknown fields without inventing a native net amount', () => {
+  const {context,$} = workspace({initialEntries:[{sym:'SHOP.L',quoteCurrency:'UNKNOWN',exit:110,closeTs:Date.now(),fees:0}]});
+  const entry = context.JR.all()[0];
+  // Existing local records may predate validation; presenting them must be safe.
+  context.JR.save([{...entry,fees:null,notes:null,source:null,regime:null,slAtEntry:null,tpAtEntry:null,closeTs:'invalid',wouldRepeat:'toString'}]);
+  const before = JSON.stringify(context.JR.all());
+  $('execSubtabs').querySelector('[data-exec-view="closed"]').click();
+  $('tblWrap').querySelector('[data-details]').click();
+  assert.equal($('jrDetailsResult').textContent,'—');
+  assert.match($('jrDetailsValuation').textContent,/PnL USD indisponibil/);
+  const execution = fields($('jrDetailsExecution'));
+  assert.equal(execution['Moneda instrumentului'],'Necunoscută');
+  assert.equal(execution['Comisioane totale · USD'],'—');
+  assert.equal(execution['Stop la intrare'],'—');
+  assert.equal(execution['Închisă la'],'—');
+  assert.equal(execution['FX istoric la intrare'],'Indisponibil');
+  assert.equal(execution['Valoare intrare · USD'],'—');
+  assert.ok(execution['Intrare · moneda instrumentului'].includes('monedă necunoscută'));
+  assert.equal(fields($('jrDetailsContext'))['Note'],'—');
+  assert.equal(fields($('jrDetailsContext'))['Aș repeta setup-ul'],'—');
+  assert.doesNotMatch($('jrDetailsSheet').textContent,/NaN|undefined|Invalid Date/);
+  assert.equal(JSON.stringify(context.JR.all()),before);
+});
+
+test('details reread changed executions, reject stale actions and close safely after deletion or reopening', () => {
+  const {context,$,document} = workspace();
+  const entry = fixture(context.JR,{exit:110,closeTs:Date.now(),notes:'Original'});
+  $('execSubtabs').querySelector('[data-exec-view="closed"]').click();
+  const oldTrigger = $('tblWrap').querySelector('[data-details]');
+  context.JR.update(entry.id,{exit:115,notes:'Updated before click'});
+  oldTrigger.click();
+  assert.equal(fields($('jrDetailsContext'))['Note'],'Updated before click');
+  assert.equal($('jrDetailsResult').textContent,'+' + money(context.JR.pnl(context.JR.all()[0])));
+  context.JR.update(entry.id,{exit:112,notes:'Updated while open'});
+  context.JWS.renderExecTable();
+  assert.equal(fields($('jrDetailsContext'))['Note'],'Updated while open');
+  const event = {type:'keydown',key:'Escape'};
+  $('jrDetailsSheet').dispatchEvent(event);
+  assert.equal(event.defaultPrevented,true);
+  assert.equal($('jrDetailsSheet').open,false);
+  assert.equal(document.activeElement,$('openPanelTitle'),'rerendered rows use a stable focus fallback');
+  $('tblWrap').querySelector('[data-details]').click();
+  context.JR.update(entry.id,{exit:null,status:'open',closeTs:null});
+  context.JWS.renderExecTable();
+  assert.equal($('jrDetailsSheet').open,false,'reopened entries no longer show closed details');
+  assert.match($('jrExecActionStatus').textContent,/nu mai este în lista închisă/);
+  context.JR.update(entry.id,{exit:116,status:'closed',closeTs:Date.now()});
+  context.JWS.renderExecTable();
+  const deletedTrigger = $('tblWrap').querySelector('[data-details]');
+  deletedTrigger.click();
+  context.JR.remove(entry.id);
+  context.JWS.renderExecTable();
+  assert.equal($('jrDetailsSheet').open,false);
+  const calls = $('jrDetailsSheet').showModalCalls;
+  deletedTrigger.click();
+  assert.equal($('jrDetailsSheet').showModalCalls,calls,'a stale ID cannot reopen removed data');
+  assert.equal(context.JR.all().length,0,'details never recreate a deleted entry');
+});
+
+test('classic Scorecard drilldown uses the same readonly dialog and keeps editing and deletion scoped', () => {
+  const {context,$,document,edits,renders} = workspace({classic:true});
+  const closed = fixture(context.JR,{exit:110,closeTs:Date.now(),notes:'Classic review'});
+  const other = fixture(context.JR,{sym:'MSFT',entry:200,slAtEntry:195});
+  const before = JSON.stringify(context.JR.all());
+  context.$ = $;context.esc = esc;context.fmt$ = money;
+  context.fillForm = e => edits.push(e.id);
+  context.renderAll = () => { renders.push(true); context.JWS.syncExecutionDetails(); context.renderSeg(); };
+  context.resetForm = () => {};
+  vm.runInContext('let seg = "source", editId = null;\n' + region(journalPage,'function segGroups(', '// ── Grafic procentual'),context);
+  context.renderSeg();
+  $('segBody').querySelector('[data-grp]').click();
+  const trigger = $('segBody').querySelector('[data-details]');
+  assert.equal(trigger.tagName,'BUTTON');
+  trigger.focus();trigger.click();
+  assert.equal($('jrDetailsSheet').open,true);
+  assert.equal(fields($('jrDetailsContext'))['Note'],'Classic review');
+  $('jrDetailsSheet').close();
+  assert.equal(document.activeElement,trigger);
+  assert.equal(JSON.stringify(context.JR.all()),before);
+  $('segBody').querySelector('[data-edit]').click();
+  assert.equal(edits.at(-1),closed.id);
+  trigger.click();
+  $('segBody').querySelector('[data-del]').click();
+  assert.equal($('jrDetailsSheet').open,false);
+  assert.equal(document.activeElement === $('jrTabDesk'),true);
+  assert.equal(context.JR.all().length,1);
+  assert.equal(context.JR.all()[0].id,other.id);
+  assert.equal(context.JR.getSettings().workspaceV2,false);
+  assert.equal(renders.length,1);
+});
+
+test('Journal overview stays local and all closed review actions have replaced retired destinations', () => {
+  assert.doesNotMatch(journalPage,/\.\.\/(?:postmortem|router)\//);
+  assert.doesNotMatch(workspaceSource,/\.\.\/postmortem\//);
+  const {document} = workspace();
+  const overview = document.getElementById('jrTools').querySelector('[data-jtab-link="exec"]');
+  assert.equal(overview.getAttribute('href'),'#exec');
 });
 
 test('both responsive ledgers bind labelled edit and delete to the correct execution', () => {

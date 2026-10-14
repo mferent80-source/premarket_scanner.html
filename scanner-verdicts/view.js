@@ -7,7 +7,7 @@
  function filter(items){const q=$('resultSearch').value.trim().toUpperCase();return q?items.filter(i=>i.symbol.includes(q)):items;}
  function rows(id,items,own){
   const host=$(id),cards=[...host.querySelectorAll('details[data-result-key]')],open=new Set(cards.filter(card=>card.open).map(card=>card.dataset.resultKey)),active=document.activeElement,focused=cards.find(card=>card===active||card.contains(active)),focusTarget=focused?(active===focused?'details':active.tagName==='SUMMARY'?'summary':active.matches('[data-route]')?'[data-route]':null):null;
-  const r=own?independent:primary,empty=R.emptyResult(r,own);host.innerHTML=items.length?items.map(i=>R.itemMarkup(i,own)).join(''):'<div class="empty"><strong>'+R.esc(empty.title)+'</strong>'+R.esc(empty.text)+'</div>';
+  const r=own?independent:primary,empty=R.emptyResult(r,own);host.innerHTML=items.length?'<div class="result-columns" aria-hidden="true"><span>Simbol / '+(own?'verificări':'strategie')+'</span><span>Preț EOD</span><span>Verdict</span></div>'+items.map(i=>R.itemMarkup(i,own)).join(''):'<div class="empty"><strong>'+R.esc(empty.title)+'</strong>'+R.esc(empty.text)+'</div>';
   const updated=[...host.querySelectorAll('details[data-result-key]')];updated.forEach(card=>{if(open.has(card.dataset.resultKey))card.open=true;});
   if(focused&&focusTarget){const card=updated.find(card=>card.dataset.resultKey===focused.dataset.resultKey),target=focusTarget==='details'?card:card?.querySelector(focusTarget);(target||$('resultSearch')).focus({preventScroll:true});}
  }

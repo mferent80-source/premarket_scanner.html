@@ -1,95 +1,264 @@
-/* Local layout rules follow the shared mobile stylesheet. */
-:root{--muted:#a4b3bf;--faint:#91a3b1}
-:root[data-theme=light]{--muted:#50616e;--faint:#516373}
-.desk{width:min(100% - 48px,1760px);margin:24px auto 40px;font-size:14px;line-height:1.6;font-variant-numeric:tabular-nums}
-.desk button,.desk input,.desk select{font-family:inherit}
-.desk button:focus-visible,.desk input:focus-visible,.desk select:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
-.desk .panel,.desk .brief{border-radius:12px}
-.desk .brief{padding:20px 24px;gap:24px;grid-template-columns:minmax(0,1fr) minmax(240px,.6fr) 190px}
-.desk .brief h1{font-size:28px;line-height:1.25;margin:8px 0}
+/* Approved workspace styling, after the shared mobile and module styles. */
+:root{
+ --bg:#0b1017;--panel:#111923;--panel2:#151f2b;--line:#24313f;--line2:#35495b;
+ --text:#edf2f6;--muted:#94a6b8;--faint:#94a6b8;--green:#8ce5c3;--amber:#ecc586;--blue:#a7bfef;--red:#ed9f9b;
+ --bg3:var(--panel2);--b1:var(--line);--t2:var(--muted);--t3:var(--faint);--accent:var(--green);--warn:var(--amber);color-scheme:dark;
+}
+:root[data-theme=light]{
+ --bg:#f3f6f8;--panel:#fff;--panel2:#edf2f6;--line:#ccd7df;--line2:#bac9d4;
+ --text:#172531;--muted:#536675;--faint:#536675;--green:#08785c;--amber:#896016;--blue:#3b5d9a;--red:#a74743;color-scheme:light;
+}
+body{-webkit-font-smoothing:antialiased}
+.desk{width:min(100% - 64px,1600px);margin:32px auto 40px;font-size:14px;line-height:1.6;font-variant-numeric:tabular-nums}
+.desk :is(button,input,select),.ticket :is(button,input,select){font-family:inherit;font-size:14px;touch-action:manipulation}
+.desk :is(input,select),.ticket input{min-width:0;border-radius:7px}
+.desk :is(button,a,input,select,summary,[tabindex]):focus-visible,.ticket :is(button,a,input,select):focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.desk a{color:var(--green);text-underline-offset:3px}
+.desk .panel{border-color:var(--line);border-radius:12px;box-shadow:none}
+.desk>.panel{margin-top:24px}
+.desk .eyebrow,.ticket .eyebrow{color:var(--faint);font-size:12px;font-weight:400;letter-spacing:.08em;line-height:1.5}
+.desk .brief{padding:0 0 28px;gap:28px;grid-template-columns:minmax(0,1fr) minmax(250px,.55fr) 210px;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0}
+.desk .brief h1{font-family:var(--tt-sans,system-ui,sans-serif);font-size:30px;font-weight:600;letter-spacing:-.7px;line-height:1.25;margin:9px 0 12px}
+.desk .brief h1 em{color:var(--muted)}
 .desk .brief p,.desk .narrative p,.desk .guard p,.desk .coach-card p{font-size:14px;line-height:1.65}
-.desk .eyebrow,.desk .confidence,.desk .proof div,.desk .proof b,.desk .head button,.desk .link{font-size:12px}
-.desk .primary{min-height:44px;height:auto;padding:12px 16px;font-size:13px;line-height:1.4;border-radius:8px}
-.desk .grid{grid-template-columns:minmax(280px,.85fr) minmax(390px,1.35fr) minmax(280px,.8fr);grid-template-rows:auto;gap:16px;margin-top:16px}
+.desk .confidence{font-size:12px;gap:10px;margin-top:14px;flex-wrap:wrap}
+.desk .confidence i{height:4px;border-radius:4px;overflow:hidden}
+.desk .proof{gap:12px}
+.desk .proof div{font-size:12px;grid-template-columns:7px minmax(0,1fr) auto;gap:9px}
+.desk .proof b{font-size:12px;font-weight:600;text-align:right}
+.desk .primary,.ticket .primary{min-height:44px;height:auto;padding:12px 16px;border:1px solid var(--green);border-radius:7px;background:var(--green);color:#092a20;font-size:14px;font-weight:600;line-height:1.4;letter-spacing:0}
+:root[data-theme=light] :is(.desk,.ticket) .primary{color:#fff}
+.desk .primary:hover:enabled,.ticket .primary:hover:enabled{filter:brightness(1.08)}
+.desk .primary:disabled,.ticket .primary:disabled{opacity:.5}
+.desk .grid{grid-template-columns:minmax(280px,.9fr) minmax(390px,1.35fr) minmax(280px,.85fr);grid-template-rows:auto;gap:24px;margin-top:28px;align-items:start}
 .desk .signals{grid-column:1;grid-row:1}.desk .focus{grid-column:2;grid-row:1}.desk .story{grid-column:3;grid-row:1}
 .desk .guard{grid-column:1/3;grid-row:2}.desk .coach{grid-column:3;grid-row:2}.desk .toplists{grid-column:1/-1;grid-row:3;display:block}
-.desk .head{min-height:64px;height:auto;padding:14px 16px;gap:12px}
-.desk .head h2{font-size:18px;line-height:1.3}
-.desk .head button{min-height:44px;line-height:1.4}
-.desk .story-body{display:block;height:auto}.desk .narrative{padding:20px}
-.desk .narrative h3{font-size:24px;line-height:1.25}
-.desk .story-points{gap:10px;margin-top:16px}.desk .story-points div{padding:12px;gap:12px;align-items:start}
-.desk .story-points small,.desk .ring small,.desk .pulse>small{font-size:12px}
-.desk .story-points b{font-size:14px;overflow-wrap:anywhere}
-.desk .pulse{display:flex;justify-content:center;gap:18px;border-left:0;border-top:1px solid var(--line);padding:16px}
-.desk .pulse>small{max-width:150px;text-align:left}.desk .ring{flex-shrink:0}
-.desk .tabs{height:auto;padding:8px;gap:8px}.desk .tabs button{height:auto;min-height:44px;font-size:13px;padding:10px 14px;border-radius:6px}
-.desk .signal-search{padding:12px;gap:12px}.desk .signal-search input{min-height:44px;font-size:14px;padding:10px 12px}
-.desk .signal-search span{font-size:12px}.desk .rows{padding:8px;max-height:560px}
-.desk .row{height:auto;min-height:82px;grid-template-columns:54px minmax(0,1fr) 44px 30px;gap:6px;padding:12px 8px;border-radius:7px}
-.desk .state{font-size:12px}.desk .row strong{font-size:16px}.desk .row small{font-size:12px;line-height:1.5;white-space:normal}
-.desk .row em{font-size:12px}.desk .row>b{font-size:18px}
-.desk .focus{padding:20px;display:flex;flex-direction:column;scroll-margin-top:16px}
-.desk .focus h2{font-size:32px;line-height:1.2}.desk .focus p,.desk .focus-state{font-size:14px}
-.desk .score small,.desk .levels small{font-size:12px}.desk .score b{font-size:30px}
-.desk .levels{gap:12px;margin:16px 0}.desk .levels div{padding:12px}.desk .levels b{font-size:16px;line-height:1.45}
-.desk .focus-tabs{flex-wrap:wrap;gap:4px}.desk .focus-tabs button{flex:1 1 85px;min-height:44px;font-size:13px;padding:8px}
-.desk .focus-detail{height:auto;max-height:440px;overflow:auto;padding-top:12px}
+.desk .head{min-height:78px;height:auto;padding:18px 22px;gap:14px;border-bottom-color:var(--line);align-items:center}
+.desk .head>div{min-width:0}
+.desk .head h2{font-size:18px;font-weight:600;letter-spacing:-.25px;line-height:1.3;margin:5px 0 0}
+.desk .head button,.desk .link{font-size:12px;min-height:44px;line-height:1.4;color:var(--muted)}
+.desk .head button{flex-shrink:0;text-align:right;padding:8px 0 8px 8px}
+.desk .head button:hover,.desk .link:hover{color:var(--green)}
+.desk .story-body{display:block;height:auto}.desk .narrative{padding:22px}
+.desk .narrative h3{font-family:var(--tt-sans,system-ui,sans-serif);font-size:22px;font-weight:600;letter-spacing:-.4px;line-height:1.3;margin:9px 0 12px}
+.desk .story-points{grid-template-columns:1fr;gap:0;margin-top:22px}
+.desk .story-points div{display:flex;justify-content:space-between;align-items:start;gap:16px;padding:12px 0;background:transparent;border:0;border-top:1px solid var(--line)}
+.desk .story-points small{font-size:12px;letter-spacing:.02em}
+.desk .story-points b{font-size:14px;line-height:1.5;margin:0;text-align:right;overflow-wrap:anywhere}
+.desk .pulse{display:flex;justify-content:center;align-items:center;gap:18px;border-left:0;border-top:1px solid var(--line);padding:20px 22px}
+.desk .pulse>small{max-width:150px;text-align:left;font-size:12px}.desk .ring{flex-shrink:0}
+.desk .ring b{font-family:var(--tt-mono,monospace);font-size:26px}.desk .ring small{font-size:12px}
+.desk .tabs{height:auto;padding:8px 14px;gap:6px;background:transparent}
+.desk .tabs button{height:auto;min-height:44px;font-size:14px;padding:9px 14px;border-radius:7px;cursor:pointer}
+.desk .tabs button.active{background:color-mix(in srgb,var(--green) 12%,var(--panel));color:var(--green)}
+.desk .signal-search{padding:14px 16px;gap:12px}
+.desk .signal-search input{min-height:44px;font-size:14px;padding:10px 12px;border-color:var(--line2);background:var(--bg)}
+.desk .signal-search span{font-size:12px;color:var(--muted)}
+.desk .rows{padding:0;max-height:560px;overflow:auto;scrollbar-gutter:stable}
+.desk .row{height:auto;min-height:86px;grid-template-columns:65px minmax(0,1fr) 42px 30px;gap:8px;padding:14px 16px;border:0;border-bottom:1px solid var(--line);border-radius:0}
+.desk .row:last-child{border-bottom:0}.desk .row:hover{background:var(--panel2)}
+.desk .row.selected{background:color-mix(in srgb,var(--green) 10%,var(--panel));box-shadow:inset 3px 0 var(--green)}
+.desk .state{font-size:12px;font-weight:600;overflow-wrap:anywhere}
+.desk .row strong{font-size:16px;letter-spacing:.2px}
+.desk .row small{font-size:12px;line-height:1.5;white-space:normal;overflow-wrap:anywhere}
+.desk .row em{font-size:12px;font-family:var(--tt-mono,monospace)}.desk .row>b{font:400 18px var(--tt-mono,monospace)}
+.desk .empty,.desk .queue-empty{padding:36px 24px;font-size:14px;line-height:1.65}
+.desk .focus{padding:24px;display:flex;flex-direction:column;scroll-margin-top:20px;border-color:color-mix(in srgb,var(--green) 30%,var(--line))}
+.desk .focus-top{gap:20px}
+.desk .focus h2{font-family:var(--tt-sans,system-ui,sans-serif);font-size:32px;font-weight:600;letter-spacing:-.6px;line-height:1.2;margin:9px 0 5px}
+.desk .focus p,.desk .focus-state{font-size:14px;line-height:1.6}.desk .focus-state{margin-top:16px}
+.desk .score small{font-size:12px}.desk .score b{font:400 30px/1.4 var(--tt-mono,monospace);margin-top:4px}
+.desk .levels{grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:22px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.desk .levels div{padding:16px 12px;background:transparent;min-width:0}.desk .levels div:first-child{padding-left:0}
+.desk .levels div+div{border-left:1px solid var(--line)}.desk .levels small{font-size:12px}
+.desk .levels b{font:400 16px/1.5 var(--tt-mono,monospace);margin-top:5px;overflow-wrap:anywhere}
+.desk .focus-tabs{flex-wrap:wrap;gap:4px}
+.desk .focus-tabs button{flex:1 1 85px;min-height:44px;font-size:14px;padding:8px 5px}
+.desk .focus-tabs button[aria-selected=true]{color:var(--green)}
+.desk .focus-detail{height:auto;max-height:460px;overflow:auto;padding-top:16px;scrollbar-gutter:stable}
 .desk .why,.desk .detail-scenario dd,.desk .detail-metrics>div,.desk .detail-issues,.desk .focus .detail-note{font-size:14px;line-height:1.65}
+.desk .why{padding:12px 14px;border-radius:0 7px 7px 0}
+.desk .detail-scenario>div,.desk .detail-metrics>div{padding:12px 0}
 .desk .detail-scenario dt,.desk .detail-metrics small,.desk .focus .focus-source{font-size:12px;line-height:1.55}
-.desk .detail-link{min-height:44px;font-size:13px;padding:10px 12px}
-.desk .focus-tools{gap:12px;margin-top:16px}.desk .focus-tools .primary,.desk .focus-tools .link{font-size:13px;min-height:44px;height:auto;margin-top:0}
-.desk .metric small,.desk .guard-foot,.desk .checklist div,.desk .mini-title{font-size:12px}
-.desk .guard-body{padding:20px;gap:20px}.desk .metric{padding-left:0}.desk .metric b{font-size:24px;line-height:1.3}
-.desk .guard p{margin:16px 20px}.desk .guard-foot{padding:14px 20px;gap:12px;flex-wrap:wrap}
-.desk .coach-body{padding:20px}.desk .coach-card{padding:16px}.desk .coach-card strong{font-size:22px;line-height:1.3}
-.desk .checklist{gap:12px}.desk .checklist i{width:20px;height:20px}.desk .checklist div{grid-template-columns:20px 1fr;font-size:14px}
-.desk .dual-list{max-height:320px}.desk .mini-col{padding:16px}.desk .mini-title{height:auto;padding-bottom:10px}
-.desk .mini{min-height:44px;height:auto;font-size:12px;grid-template-columns:26px 1fr 42px;padding:8px}
-.desk .mini b{font-size:14px}.desk .mini strong{font-size:16px}
-.desk .statusbar{min-height:44px;height:auto;gap:16px;flex-wrap:wrap;padding:12px 16px;font-size:12px;white-space:normal}
+.desk .detail-metrics dd{font-variant-numeric:tabular-nums}
+.desk .detail-link{min-height:44px;font-size:14px;padding:10px 14px;border-radius:7px}
+.desk .focus-tools{gap:12px;margin-top:20px;align-items:stretch}
+.desk .focus-tools .primary,.desk .focus-tools .link{font-size:14px;min-height:44px;height:auto;margin-top:0}
+.desk .focus-tools .link{padding:10px 14px;border:1px solid var(--line2);border-radius:7px}
+.desk .metric small,.desk .guard-foot,.desk .mini-title{font-size:12px}
+.desk .guard-body{padding:24px;gap:24px}.desk .metric{padding:0 18px 0 0;min-width:0}
+.desk .metric b{font:400 24px/1.4 var(--tt-mono,monospace);margin-top:10px;overflow-wrap:anywhere}
+.desk .riskbar{height:5px;border-radius:6px;margin:0 24px;overflow:hidden}.desk .guard p{margin:18px 24px}
+.desk details.guard-source{padding:0 24px 18px;font-size:14px}
+.desk details.guard-source>summary{min-height:44px;padding:10px 0;color:var(--muted);cursor:pointer}
+.desk details.guard-source>button{min-height:44px;padding:10px 14px;background:var(--panel2);color:var(--text);border:1px solid var(--line2);border-radius:7px}
+.desk .guard-foot{padding:16px 24px;gap:12px;flex-wrap:wrap}.desk .coach-body{padding:22px}
+.desk .coach-card{padding:0 0 18px;background:transparent;border:0;border-bottom:1px solid var(--line)}
+.desk .coach-card strong{font-family:var(--tt-sans,system-ui,sans-serif);font-size:20px;font-weight:600;line-height:1.4;letter-spacing:-.3px}
+.desk .coach-card p{margin:10px 0 0}.desk .checklist{gap:14px;margin-top:18px}
+.desk .checklist i{width:20px;height:20px;border-radius:5px}
+.desk .checklist div{grid-template-columns:20px 1fr;gap:10px;font-size:14px;line-height:1.6}
+.desk .dual-list{max-height:340px}.desk .mini-col{padding:18px 22px}
+.desk .mini-title{height:auto;padding-bottom:12px;font-weight:400}
+.desk .mini{min-height:52px;height:auto;font-size:12px;grid-template-columns:30px minmax(0,1fr) 56px;gap:12px;padding:10px 0}
+.desk .mini b{font-size:14px}.desk .mini strong{font:400 16px var(--tt-mono,monospace)}
+.desk .statusbar{min-height:44px;height:auto;gap:16px;flex-wrap:wrap;padding:18px 0;margin-top:24px;font-size:12px;white-space:normal;background:transparent;border:0;border-top:1px solid var(--line)}
 .desk .statusbar button{font-size:12px;min-height:44px}
-.desk .breadth-ideas,.desk .shadow-performance,.desk .plan-queue{margin-top:16px}
+.desk .idea-block{padding:16px 22px 22px;overflow-x:auto}
 .desk .idea-title,.desk .idea-title b,.desk .idea-head,.desk .idea-note,.desk .queue-head,.desk .qstatus,.desk .queue-count{font-size:12px}
-.desk .idea-title{min-height:44px;height:auto;gap:8px;flex-wrap:wrap}
-.desk .idea-head{min-height:36px;height:auto}.desk .idea-row{min-height:56px;height:auto;font-size:14px}
-.desk .idea-row b{font-size:14px}.desk .idea-row>button{min-height:44px}
-.desk .breadth-ideas-body{grid-template-columns:1fr}.desk .idea-block+div{border-left:0;border-top:1px solid var(--line)}
-.desk .idea-head,.desk .idea-row{grid-template-columns:38px 90px minmax(100px,1fr) 110px 110px minmax(100px,1fr);gap:12px}
-.desk .queue-row,.desk .queue-row span,.desk .queue-row b{font-size:14px}.desk .queue-row{min-height:64px}
-.desk .queue-row button{height:auto;min-height:44px;font-size:12px;padding:8px 12px}.desk .qactions input{min-height:44px;font-size:14px;width:88px}
-.desk .perf-card small,.desk .perf-sample,.desk .strategy-name small,.desk .strategy-stat small,.desk .broker-performance-summary small,.desk #performanceFilters label,.desk .broker-performance-table th,.desk .broker-performance-details summary span{font-size:12px}
-.desk .perf-card b{font-size:26px}.desk .perf-read,.desk .performance-status,.desk .performance-sources button,.desk .performance-sync,.desk .broker-performance-table,.desk .strategy-stat b{font-size:14px;line-height:1.6}
-.desk .performance-sources button,.desk .performance-sync,.desk #performanceFilters select{min-height:44px}.desk .broker-performance-details summary{font-size:14px;min-height:44px}
-.desk .perf-body{grid-template-columns:repeat(3,minmax(0,1fr));padding:16px;gap:12px}.desk .perf-read{grid-column:1/-1}
-.desk .perf-split{grid-template-columns:1fr;padding:0 16px 16px;gap:12px}.desk .strategy-card{grid-template-columns:minmax(150px,1.3fr) repeat(4,minmax(80px,1fr));padding:16px}
-.desk .desk-back{display:none}
-.ticket-inputs label,.ticket-metric small,.ticket-actions small{font-size:12px}.ticket-risk,.ticket-symbol span,.ticket-verdict{font-size:14px}
-.ticket-inputs input,.ticket-close,.ticket-actions button{min-height:44px}.ticket-close{min-width:44px}.ticket-metric b{font-size:20px}
+.desk .idea-title{min-height:44px;height:auto;gap:12px;flex-wrap:wrap;font-weight:400}
+.desk .idea-head{min-height:40px;height:auto;background:var(--bg);font-weight:400;letter-spacing:.03em}
+.desk .idea-row{min-height:64px;height:auto;font-size:14px}.desk .idea-row b{font-size:14px}
+.desk .idea-row>button{min-height:44px;font-size:14px;background:transparent;border-color:var(--line);border-radius:7px}
+.desk .idea-note{line-height:1.65;padding-top:16px}.desk .breadth-ideas-body{grid-template-columns:1fr}
+.desk .idea-block+div{border-left:0;border-top:1px solid var(--line)}
+.desk .idea-head,.desk .idea-row{grid-template-columns:38px 90px minmax(100px,1fr) 110px 110px minmax(130px,.8fr);gap:16px;padding-left:10px;padding-right:10px}
+.desk .idea-head>:nth-child(n+4),.desk .idea-row>:nth-child(n+4){text-align:right}
+.desk .idea-row>em:nth-child(4),.desk .idea-row>em:nth-child(5){font-family:var(--tt-mono,monospace)}
+.desk .queue-table{padding:0 16px;overflow-x:auto;overscroll-behavior-x:contain}
+.desk .queue-head,.desk .queue-row{min-width:1320px;grid-template-columns:110px 80px 120px repeat(3,90px) 134px 110px 124px minmax(220px,1fr);gap:12px;padding:12px}
+.desk .queue-head{height:auto;min-height:52px;background:var(--bg);letter-spacing:.03em}
+.desk .queue-row,.desk .queue-row span,.desk .queue-row b{font-size:14px}.desk .queue-row{min-height:80px}
+.desk .queue-head>:nth-child(n+4):nth-child(-n+8),.desk .queue-row>:nth-child(n+4):nth-child(-n+8){text-align:right}
+.desk .queue-row>:nth-child(n+4):nth-child(-n+8){font-family:var(--tt-mono,monospace)}
+.desk .queue-row .qstatus{font-size:12px;font-weight:400}.desk .queue-row>:nth-child(9){font-size:12px}
+.desk .queue-row button{height:auto;min-height:44px;font-size:12px;padding:8px 12px;border-radius:7px}
+.desk .queue-row .qprimary{background:var(--green);border-color:var(--green);color:var(--bg)}
+:root[data-theme=light] .desk .queue-row .qprimary{color:#fff}
+.desk .qactions{gap:8px}.desk .qactions input{min-height:44px;font-size:14px;width:88px;font-weight:400;border-radius:7px}
+.desk .queue-toolbar{padding:16px 22px;gap:12px}.desk .queue-toolbar p{font-size:12px;line-height:1.65}
+.desk .queue-toolbar button{min-height:44px;font-size:14px;border-radius:7px}
+.desk .performance-toolbar{padding:20px 22px;gap:16px}
+.desk .performance-sources{gap:5px;padding:4px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.desk .performance-sources button{border:1px solid transparent;background:transparent;border-radius:5px;min-height:44px;padding:9px 13px}
+.desk .performance-sources [aria-pressed=true]{background:color-mix(in srgb,var(--green) 12%,var(--panel));border-color:transparent;color:var(--green)}
+.desk .performance-sync{font-size:14px;line-height:1.5;min-height:44px;padding:10px 14px;background:transparent;border-color:var(--line2);border-radius:7px}
+.desk #performanceFilters{flex-wrap:wrap;gap:12px}.desk #performanceFilters label{font-size:12px;gap:8px}
+.desk #performanceFilters select{min-height:44px;padding:10px;font-size:14px;background:var(--bg);border-color:var(--line2)}
+.desk .perf-card small,.desk .perf-sample,.desk .strategy-name small,.desk .strategy-stat small,.desk .broker-performance-summary small,.desk .broker-performance-table th,.desk .broker-performance-details summary span{font-size:12px}
+.desk .perf-body{grid-template-columns:repeat(3,minmax(0,1fr));padding:0 22px 22px;gap:0}
+.desk .perf-card{padding:20px 16px;background:transparent;border:0;border-bottom:1px solid var(--line)}
+.desk .perf-card b{font:400 26px/1.4 var(--tt-mono,monospace);margin-top:10px}
+.desk .perf-read{grid-column:1/-1;font-size:14px;line-height:1.65;padding:16px 18px;margin-top:20px;border-radius:0 7px 7px 0}
+.desk .perf-read b{font-family:var(--tt-sans,system-ui,sans-serif);font-size:18px;font-weight:600;line-height:1.4}
+.desk .performance-status{font-size:14px;line-height:1.65;padding:0 22px 16px}
+.desk .perf-split{grid-template-columns:1fr;padding:0 22px 22px;gap:0}
+.desk .strategy-card{grid-template-columns:minmax(150px,1.3fr) repeat(4,minmax(80px,1fr));padding:20px 0;gap:16px;background:transparent;border:0;border-top:1px solid var(--line)}
+.desk .strategy-name b{font-family:var(--tt-sans,system-ui,sans-serif);font-size:16px;font-weight:600;line-height:1.5}
+.desk .strategy-stat b{font:400 14px/1.6 var(--tt-mono,monospace)}
+.desk .broker-performance-summary{padding:22px;gap:22px}
+.desk .broker-performance-summary>div{padding:0 16px 0 0;background:transparent;border-right:1px solid var(--line)}
+.desk .broker-performance-summary>div:last-child{border:0}
+.desk .broker-performance-summary b{font:400 24px/1.5 var(--tt-mono,monospace);margin-top:10px}
+.desk .broker-performance-details{padding:0 22px 22px}
+.desk .broker-performance-details summary{font-size:14px;min-height:44px;padding:12px 0;line-height:1.6}
+.desk .broker-performance-details summary span{display:inline-block}
+.desk .broker-performance-table{font-size:14px;line-height:1.6;border-radius:7px;overscroll-behavior-x:contain}
+.desk .broker-performance-table table{font-size:14px}.desk .broker-performance-table th{background:var(--bg);font-weight:400;letter-spacing:.02em}
+.desk .broker-performance-table td,.desk .broker-performance-table th{padding:14px 16px}
+.desk .broker-performance-table td{vertical-align:top}.desk .broker-performance-table td small{font-size:12px;line-height:1.5}
+.desk .broker-performance-table tbody tr:hover{background:var(--panel2)}
+.desk .broker-performance-details>.broker-performance-table th:nth-child(n+4):nth-child(-n+6),.desk #brokerPerformanceRows td:nth-child(n+4):nth-child(-n+6){text-align:right;font-variant-numeric:tabular-nums}
+.desk #brokerPerformanceRows td:nth-child(n+4):nth-child(-n+6){font-family:var(--tt-mono,monospace);white-space:nowrap}
+.desk .pnl-analytics{margin:0 22px;padding:22px 0;font-size:14px;line-height:1.65}
+.desk .pnl-analytics h3{font-size:18px;font-weight:600;letter-spacing:-.25px;margin-bottom:16px}
+.desk .pnl-highlights{gap:0 24px}.desk .pnl-highlights>div{padding:18px 0;background:transparent;border-bottom:1px solid var(--line)}
+.desk .pnl-highlights small{font-size:12px}.desk .pnl-highlights b{font:400 22px/1.5 var(--tt-mono,monospace);margin-top:8px;overflow-wrap:anywhere}
+.desk .pnl-analytics svg{font-size:12px;color:var(--muted)}.desk .pnl-slider,.desk #pnlPoint{font-size:12px}
+.desk .pnl-analytics .performance-status{padding:12px 0}
+.desk .pnl-analytics :is(button,select){min-height:44px;padding:8px 12px;border:1px solid var(--line2);border-radius:7px;background:var(--panel2);color:var(--text)}
+.desk .pnl-analytics td button{background:transparent;border:0;color:var(--green);padding:8px 0}
+.desk .pnl-analytics input[type=file]{max-width:100%;padding:10px 0}
+.desk .entry-capture{padding:20px 22px;background:transparent;border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0}
+.desk .entry-capture button{min-height:44px;font-size:14px;padding:10px 14px;border:1px solid var(--line2);border-radius:7px;background:var(--panel);color:var(--text)}
+.desk #entryTrackingStatus,.desk #entryAutoStatus{font-size:12px;line-height:1.65}
+.desk .entry-evidence{margin:0 22px;padding:16px 0;font-size:14px;line-height:1.65}
+.desk details>summary{min-height:44px;padding-top:10px;padding-bottom:10px;cursor:pointer;font-size:14px;line-height:1.6}
+.desk .entry-evidence details[data-evidence-models]>summary{font-size:12px}
+.desk .validation-evidence{font-size:14px;line-height:1.65}
+.desk .validation-evidence button,.desk .trade-review button,.desk .desk-alert button{min-height:44px;padding:10px 14px;font-size:14px;border-radius:7px}
+.desk .desk-alert-list{padding:0 22px 22px;gap:0}
+.desk .desk-alert{font-size:14px;line-height:1.6;padding:18px 16px;background:transparent;border-top:1px solid var(--line);margin-top:12px}
+.desk .desk-alert-list details summary{font-size:12px}.desk .desk-alerts>.detail-note{font-size:14px;padding:0 22px 18px}
+.desk .t212-capital{font-size:14px}.desk .t212-capital p{margin:12px 0}.desk .t212-capital-grid{gap:0 16px}
+.desk .t212-capital-grid>div{padding:14px 0;background:transparent;border:0;border-bottom:1px solid var(--line)}
+.desk .t212-capital-grid small{font-size:12px}.desk .t212-capital-grid b{font:400 18px/1.5 var(--tt-mono,monospace);margin-top:6px}
+.desk .t212-capital th{font-size:12px;color:var(--muted);font-weight:400}
+.desk .decision-insight{padding:12px 0;border:0;border-top:1px solid var(--line);border-radius:0}
+.desk .decision-insight summary{font-family:inherit;font-size:14px;min-height:44px}.desk .decision-insight h4{font-family:inherit;font-size:14px}
+.desk .decision-insight p,.desk .decision-probability-empty{font-family:inherit!important;font-size:14px!important;line-height:1.65!important}
+.desk .decision-insight-metrics,.desk .decision-probability-bars>div{font-family:inherit;font-size:14px;line-height:1.6}
+.desk .decision-insight-metrics dt{font-size:12px}.desk .decision-probability-bars>div{grid-template-columns:55px minmax(0,1fr) 62px}
+.desk .probability-audit{font-size:12px;line-height:1.6}.desk .desk-back{display:none}
+.ticket{border-radius:12px;font-size:14px;line-height:1.6;box-shadow:0 20px 80px #0007}
+.ticket-head{height:auto;min-height:84px;padding:18px 22px;gap:16px}
+.ticket-head h2{font-family:var(--tt-sans,system-ui,sans-serif);font-size:22px;font-weight:600;line-height:1.3;margin-top:6px}
+.ticket-close{min-width:44px;min-height:44px;font-size:22px;border-radius:7px}.ticket-inputs,.ticket-results{padding:22px}
+.ticket-inputs label,.ticket-metric small,.ticket-actions small{font-size:12px;line-height:1.6;letter-spacing:.02em}
+.ticket-inputs input{min-height:44px;font-size:14px;font-weight:400;padding:10px 12px}
+.ticket-risk,.ticket-symbol span,.ticket-verdict{font-size:14px;line-height:1.65}
+.ticket-symbol strong{font-family:var(--tt-sans,system-ui,sans-serif);font-weight:600}
+.ticket-grid{gap:0 16px}.ticket-metric{padding:16px 0;background:transparent;border:0;border-bottom:1px solid var(--line)}
+.ticket-metric b{font:400 20px/1.5 var(--tt-mono,monospace);overflow-wrap:anywhere}
+.ticket-verdict{padding:14px;border-radius:7px;margin-top:18px}.ticket-actions{gap:16px;flex-wrap:wrap;align-items:start}
+.ticket-actions .primary{width:auto;min-height:44px}.ticket-buttons{gap:8px}
+.ticket-buttons .link{min-height:44px;padding:10px 14px;font-size:14px;border-radius:7px}
 @media(max-width:1180px) and (min-width:761px){
- .desk .grid{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
+ .desk{width:calc(100% - 48px);margin-top:28px}.desk .grid{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
  .desk .signals{grid-column:1;grid-row:1}.desk .focus{grid-column:2;grid-row:1}
  .desk .guard{grid-column:1/-1;grid-row:2}.desk .story{grid-column:1;grid-row:3}.desk .coach{grid-column:2;grid-row:3}.desk .toplists{grid-column:1/-1;grid-row:4}
- .desk .brief{grid-template-columns:minmax(0,1fr) 240px}.desk .brief>.primary{grid-column:1/-1}
- .desk .focus-tabs button{flex-basis:110px}
+ .desk .brief{grid-template-columns:minmax(0,1fr) 250px;gap:22px}.desk .brief>.primary{grid-column:1/-1;justify-self:start}
+ .desk .focus-tabs button{flex-basis:110px}.desk .focus-tools{grid-template-columns:1fr}
 }
 @media(max-width:760px){
- .desk{width:calc(100% - 24px);margin:12px auto 28px}.desk .brief{grid-template-columns:1fr;padding:16px;gap:16px}.desk .brief h1{font-size:26px}
- .desk .brief>.primary{display:block;width:100%}.desk .proof{display:grid}
- .desk .grid{display:flex;flex-direction:column;gap:16px}.desk .signals{order:0}.desk .focus{order:1}.desk .guard{order:2}.desk .story{order:3}.desk .coach{order:4}.desk .toplists{order:5}
- .desk .panel{margin-top:0}.desk .head{padding:12px 16px}.desk .head button{max-width:120px}
- .desk .focus{padding:16px}.desk .focus-detail,.desk .rows,.desk .dual-list{height:auto;max-height:none;overflow:visible}
- .desk .signal-search input{font-size:16px}.desk .row{min-height:88px}
+ .desk{width:calc(100% - 32px);margin:22px auto 28px}.desk .brief{grid-template-columns:1fr;padding:0 0 24px;gap:22px;border-radius:0}
+ .desk .brief h1{font-size:27px}.desk .brief>.primary{display:block;width:100%}.desk .proof{display:grid;gap:12px}
+ .desk .grid{display:flex;flex-direction:column;gap:20px;margin-top:24px;align-items:stretch}
+ .desk .signals{order:0}.desk .focus{order:1}.desk .guard{order:2}.desk .story{order:3}.desk .coach{order:4}.desk .toplists{order:5}
+ .desk .panel{margin-top:0;min-height:0}.desk>.panel{margin-top:20px}.desk .entry-capture{border-radius:0}
+ .desk .head{padding:18px;gap:12px}.desk .head button{max-width:120px}.desk .head h2{font-size:18px}.desk .focus{padding:20px}
+ .desk .focus-detail,.desk .rows,.desk .dual-list{height:auto;max-height:none;overflow:visible;scrollbar-gutter:auto}
+ .desk .signal-search input{font-size:16px}.desk .row{min-height:90px;grid-template-columns:62px minmax(0,1fr) 38px 30px;gap:6px;padding:14px 12px}
  .desk[data-mobile-view=list] .focus{display:none}.desk[data-mobile-view=detail] .signals{display:none}
- .desk .desk-back{display:block;min-height:44px;padding:10px 12px;margin:0 0 16px;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;font-size:14px;text-align:left;cursor:pointer}
- .desk .levels{gap:8px}.desk .levels div{padding:10px 8px}.desk .levels b{font-size:14px}
+ .desk .desk-back{display:block;min-height:44px;padding:10px 12px;margin:0 0 20px;background:transparent;border:1px solid var(--line2);border-radius:7px;font-size:14px;text-align:left;cursor:pointer}
+ .desk .levels{margin:20px 0}.desk .levels div{padding:14px 8px}.desk .levels b{font-size:14px}
  .desk .focus-tabs button{flex-basis:110px}.desk .focus-tools{grid-template-columns:1fr}.desk .focus-tools .link{padding:12px}
- .desk .guard-body{grid-template-columns:1fr;gap:16px}.desk .metric{border-right:0;border-bottom:1px solid var(--line);padding-bottom:16px}.desk .metric:last-child{border:0;padding-bottom:0}
- .desk .pulse{display:none}.desk .dual-list{grid-template-columns:1fr}.desk .mini-col+div{border-left:0;border-top:1px solid var(--line)}
- .desk .idea-head{display:none}.desk .idea-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px 0}.desk .idea-row>*{display:block}.desk .idea-row>em{white-space:normal}
- .desk .idea-row>span:first-child,.desk .idea-row>em:before{font-size:12px}.desk .idea-row>em:nth-child(3),.desk .idea-row>em:last-child{grid-column:1/-1}
- .desk .perf-body{grid-template-columns:1fr 1fr}.desk .perf-read{grid-column:1/-1}.desk .strategy-card{grid-template-columns:1fr 1fr;gap:16px}.desk .strategy-name{grid-column:1/-1}
- .desk .queue-table{overflow:visible}.desk .queue-head{display:none}.desk .queue-row{min-width:0;grid-template-columns:1fr 1fr;gap:16px;padding:16px 0}.desk .queue-row>span:before{font-size:12px}.desk .qactions{grid-column:1/-1;gap:8px;flex-wrap:wrap}
- .desk .queue-row .qstatus{font-size:12px}.desk .queue-row>*,.desk .strategy-card>*{min-width:0;overflow-wrap:anywhere}
- .desk .statusbar button{font-size:12px!important}.desk #performanceFilters{flex-direction:column}.desk #performanceFilters label{justify-content:space-between}.desk #performanceFilters select{font-size:16px}
+ .desk .guard-body{grid-template-columns:1fr;gap:18px;padding:20px}.desk .metric{border-right:0;border-bottom:1px solid var(--line);padding:0 0 18px}
+ .desk .metric:last-child{border:0;padding-bottom:0}.desk .guard p{margin:18px 20px}.desk .riskbar{margin:0 20px}
+ .desk details.guard-source{padding:0 20px 18px}.desk .guard-foot{padding:16px 20px}.desk .narrative,.desk .coach-body{padding:20px}
+ .desk .pulse{display:none}.desk .dual-list{grid-template-columns:1fr}.desk .mini-col{padding:18px 20px}
+ .desk .mini-col+div{border-left:0;border-top:1px solid var(--line)}.desk .idea-block{padding:16px 20px 20px}
+ .desk .idea-head{display:none}.desk .idea-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:18px 0}
+ .desk .idea-row>*{display:block;min-width:0}.desk .idea-row>em{white-space:normal;text-align:left;overflow-wrap:anywhere}
+ .desk .idea-row>span:first-child,.desk .idea-row>em:before{font-size:12px}
+ .desk .idea-row>em:nth-child(3),.desk .idea-row>em:last-child{grid-column:1/-1}
+ .desk .perf-body{grid-template-columns:1fr 1fr;padding:0 20px 20px}.desk .perf-card{padding:16px 10px}.desk .perf-card b{font-size:24px}
+ .desk .perf-read{grid-column:1/-1}.desk .perf-split{padding:0 20px 20px}.desk .strategy-card{grid-template-columns:1fr 1fr;gap:16px}
+ .desk .strategy-name{grid-column:1/-1}.desk .strategy-stat{border-left:0;padding-left:0}
+ .desk .queue-table{overflow:visible;padding:0 20px}.desk .queue-head{display:none}
+ .desk .queue-row{min-width:0;grid-template-columns:1fr 1fr;gap:16px;padding:20px 0}.desk .queue-row>span:before{font-size:12px}
+ .desk .queue-row>:nth-child(n+4):nth-child(-n+8){text-align:left}.desk .queue-row>.queue-actions,.desk .qactions{grid-column:1/-1}
+ .desk .qactions{gap:8px;flex-wrap:wrap}.desk .queue-row .qstatus{font-size:12px}.desk .queue-row>*,.desk .strategy-card>*{min-width:0;overflow-wrap:anywhere}
+ .desk .queue-row>div[data-label]:not(.queue-actions):before{content:attr(data-label);display:block;font:12px var(--tt-sans,system-ui,sans-serif);color:var(--muted);margin-bottom:3px}
+ .desk .queue-toolbar{padding:16px 20px}.desk .queue-toolbar p{min-width:0;flex-basis:100%}
+ .desk .statusbar{padding:18px 0;overflow:visible}.desk .statusbar button{font-size:12px!important;margin-left:0}
+ .desk .performance-toolbar{padding:20px;align-items:stretch}.desk .performance-sources{width:100%}.desk .performance-sources button{flex:1;padding:9px 10px}
+ .desk #performanceFilters{flex-direction:column;flex-wrap:nowrap;margin:0;width:100%;gap:12px}.desk #performanceFilters label{justify-content:space-between;gap:12px}
+ .desk #performanceFilters select{font-size:16px;max-width:70%;min-width:0}.desk .performance-status{padding:0 20px 16px}
+ .desk .broker-performance-summary{grid-template-columns:1fr 1fr;padding:20px;gap:20px}.desk .broker-performance-summary>div:nth-child(2){border:0}
+ .desk .broker-performance-summary>div:last-child{grid-column:1/-1;border-top:1px solid var(--line);padding-top:18px}
+ .desk .broker-performance-details{padding:0 20px 20px}.desk .broker-performance-details summary span{margin-left:0;margin-right:8px}
+ .desk .pnl-analytics,.desk .entry-evidence{margin-left:20px;margin-right:20px}.desk .pnl-highlights{grid-template-columns:1fr}
+ .desk .pnl-analytics .performance-status{padding:12px 0}.desk .desk-alert-list{padding:0 20px 20px}
+ .desk .desk-alert{align-items:flex-start;flex-direction:column;gap:12px}.desk .entry-capture{padding:20px 0}.desk .entry-capture button{width:100%}
+ .ticket{max-height:calc(100dvh - 16px);border-radius:12px;padding-bottom:env(safe-area-inset-bottom,0px)}
+ .ticket-head{padding:16px 18px}.ticket-head h2{font-size:22px}.ticket-inputs,.ticket-results{padding:18px}
+ .ticket-inputs{grid-template-columns:1fr}.ticket-inputs input{font-size:16px}.ticket-risk{grid-column:1}
+ .ticket-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ticket-actions{flex-direction:column}.ticket-actions small{max-width:none}
+ .ticket-buttons{width:100%;flex-direction:column}.ticket-actions .primary,.ticket-buttons .link{width:100%;min-height:48px}
 }
+@media(max-width:380px){
+ .desk{width:calc(100% - 24px)}.desk .head{flex-wrap:wrap}.desk .head button{max-width:none;padding-left:0;text-align:left}
+ .desk .focus{padding:16px}.desk .score small{max-width:80px}.desk .performance-sources{flex-wrap:wrap}.desk .performance-sources button{flex-basis:100%}
+}
+@media(prefers-reduced-motion:reduce){.desk .confidence i b{transition:none}}

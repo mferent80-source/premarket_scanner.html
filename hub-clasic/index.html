@@ -2,39 +2,12 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="../lib/suite-version.js?v=884"></script>
+<script src="../lib/suite-version.js?v=885"></script>
+<script src="../lib/app-routes.js?v=26.10.14.1739"></script>
 <script>
-  /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
-  (function(){
-    if (window.self === window.top) return;
-    var SEGS = ['cockpit/','nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/','mfx-screener/','factor-lab/','earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/','journal/','portfolio/','weekly/','health/','router/','equity/','shadow-book/','postmortem/'];
-    function seg(href){
-      try {
-        var p = new URL(href, location.href).pathname;
-        for (var i = 0; i < SEGS.length; i++) if (p.indexOf('/' + SEGS[i]) >= 0) return SEGS[i];
-        if (/\/premarket_scanner\.html\/?$/.test(p)) return '';
-      } catch(e){}
-      return null;
-    }
-    document.addEventListener('click', function(e){
-      var a = e.target.closest && e.target.closest('a[href]');
-      if (!a) return;
-      var h = a.getAttribute('href') || '';
-      if (/^(https?:|mailto:|tel:|javascript:)/i.test(h) || h.charAt(0) === '#') return;
-      var s = seg(h);
-      if (s === null) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      var hash = '';
-      try { hash = (new URL(h, location.href).hash || '').replace(/^#/, ''); } catch(e2){}
-      parent.postMessage({ ttOpen: s, ttHash: hash }, location.origin);
-    }, true);
-  })();
-</script>
-<script>
-  /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
+  /* Aplicație instalată (standalone) → spațiul de lucru canonic. */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + ('tt-v782'));
+    location.replace(window.TTAppRoutes.home);
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -837,7 +810,7 @@ body.hub-page .hub-na.prio-ok{
       <div class="hub-pre5-acts">
         <button type="button" class="hub-pre5-btn" id="hubPre5Refresh">🔄 Actualizează status</button>
         <button type="button" class="hub-pre5-btn ghost" id="hubPre5Reset">Reset bifări azi</button>
-        <a class="hub-pre5-btn pri" href="../nasdaq-scanner/">📡 Nasdaq Pre/After</a>
+
         <a class="hub-pre5-btn" href="../journal/#desk">🛑 Desk</a>
       </div>
     </div>
@@ -848,18 +821,15 @@ body.hub-page .hub-na.prio-ok{
   <!-- Launch pad — tool-uri cheie; I-215 reordonează chips pe sesiune -->
   <nav class="hub-launch" id="hubLaunch" data-hub-slot="launch" aria-label="Launch rapid">
     <a class="hub-launch-chip pri" data-launch="desk" href="../journal/#desk">🛑 Desk</a>
-    <a class="hub-launch-chip pri" data-launch="router" href="../router/">🧭 Router</a>
-    <a class="hub-launch-chip pri" data-launch="macro" href="../macro-dashboard/">🌍 Macro</a>
-    <a class="hub-launch-chip pri" data-launch="nasdaq" href="../nasdaq-scanner/">📡 Nasdaq</a>
+
+
     <a class="hub-launch-chip" data-launch="portfolio" href="../journal/#portfolio">🛡️ Portfolio</a>
     <a class="hub-launch-chip" data-launch="journal" href="../journal/">📓 Journal</a>
-    <a class="hub-launch-chip" data-launch="wl" href="../watchlist-monitor/">👁 WL</a>
-    <a class="hub-launch-chip" data-launch="stl" href="../smart-trade-long/">🎯 STL</a>
-    <a class="hub-launch-chip" data-launch="events" href="../market-events/">📅 Events</a>
+
+
     <a class="hub-launch-chip" data-launch="alerts" href="../alerts/">🔔 Alerts</a>
-    <a class="hub-launch-chip" data-launch="cockpit" href="../cockpit/">🧭 Cockpit</a>
-    <a class="hub-launch-chip" data-launch="sector" href="../sector-rotation/">🔄 Sector</a>
-    <a class="hub-launch-chip" data-launch="weekly" href="../weekly/">📅 Weekly</a>
+
+
     <a class="hub-launch-chip" data-launch="health" href="../health/">💚 Health</a>
     <button type="button" class="hub-launch-more" id="hubLaunchMoreBtn" aria-expanded="false" title="Restul tool-urilor">⋯</button>
     <div class="hub-launch-menu" id="hubLaunchMore" hidden></div>
@@ -869,7 +839,7 @@ body.hub-page .hub-na.prio-ok{
     <summary class="hub-search-sum">🔍 Caută tool-uri</summary>
     <div class="hub-search-body">
       <div class="hub-search" id="hubSearchWrap">
-        <input type="text" id="hubSearch" placeholder="nasdaq, watchlist, journal, macro, scanner…" autocomplete="off">
+        <input type="text" id="hubSearch" placeholder="journal, portfolio, capital, alerts…" autocomplete="off">
         <button class="hub-search-clear" id="hubSearchClear" type="button">×</button>
       </div>
       <div class="hub-no-results" id="hubNoResults">
@@ -899,7 +869,7 @@ body.hub-page .hub-na.prio-ok{
       <div class="hub-go-track"><div class="hub-go-fill" id="hubGoFill" style="width:0"></div></div>
     </div>
     <div class="hub-cockpit-actions">
-      <a class="primary" href="../router/">🧭 Router Deep →</a>
+
       <a href="../journal/#desk">🛑 Risk Desk</a>
       <a href="../journal/#portfolio">🛡️ Portfolio</a>
       <a href="../journal/">📓 Journal</a>
@@ -935,14 +905,14 @@ body.hub-page .hub-na.prio-ok{
       <div class="pb-tab-panel on" data-pb-panel="desk" role="tabpanel">
         <div class="pb-section" id="pbProDesk" style="margin-top:0">
           <div class="pb-section-head"><h3>🎯 Pro Desk — azi tradez?</h3>
-            <a class="pb-go" href="../router/">Router →</a>
+
             <a class="pb-go" href="../journal/#desk" style="margin-left:6px">Risk Desk →</a>
           </div>
           <div class="pb-risk-row"><span class="pb-risk-val" id="pbRouteVal">⏳ …</span><span class="pb-risk-sub" id="pbRouteSub">Regime Router</span></div>
           <div class="pb-risk-row"><span class="pb-risk-val" id="pbGovVal">⏳ …</span><span class="pb-risk-sub" id="pbGovSub">Risk Governor</span></div>
         </div>
         <div class="pb-section">
-          <div class="pb-section-head"><h3>🛡 Regim + Danger</h3><a class="pb-go" href="../macro-dashboard/">Macro →</a></div>
+          <div class="pb-section-head"><h3>🛡 Regim + Danger</h3></div>
           <div class="pb-risk-row"><span class="pb-risk-val" id="pbRiskVal">⏳ …</span><span class="pb-risk-sub" id="pbRiskSub">se calculează…</span></div>
           <div class="pb-risk-row"><span class="pb-risk-val" id="pbDangerVal">⏳ …</span><span class="pb-risk-sub" id="pbDangerSub">se încarcă…</span></div>
         </div>
@@ -951,11 +921,11 @@ body.hub-page .hub-na.prio-ok{
       <!-- Tab Piață: quotes + calendar -->
       <div class="pb-tab-panel" data-pb-panel="piata" role="tabpanel" hidden>
         <div class="pb-section" style="margin-top:0">
-          <div class="pb-section-head"><h3>📈 Piața acum</h3><span class="pb-count" id="pbMktSess">—</span><a class="pb-go" href="../nasdaq-scanner/">Scanner →</a></div>
+          <div class="pb-section-head"><h3>📈 Piața acum</h3><span class="pb-count" id="pbMktSess">—</span></div>
           <div class="pb-section-body"><div class="pb-mkt" id="pbBodyMkt"><div class="pb-loading">SPY · QQQ · VIX…</div></div></div>
         </div>
         <div class="pb-section">
-          <div class="pb-section-head"><h3>📅 Evenimente azi</h3><span class="pb-count" id="pbCntEvents">—</span><a class="pb-go" href="../macro-dashboard/">Macro →</a></div>
+          <div class="pb-section-head"><h3>📅 Evenimente azi</h3><span class="pb-count" id="pbCntEvents">—</span></div>
           <div class="pb-section-body" id="pbBodyEvents"><div class="pb-loading">calendar economic…</div></div>
         </div>
       </div>
@@ -963,23 +933,23 @@ body.hub-page .hub-na.prio-ok{
       <!-- Tab Scan: earnings · sector · picks · STL · sugestii · WL -->
       <div class="pb-tab-panel" data-pb-panel="scan" role="tabpanel" hidden>
         <div class="pb-section" style="margin-top:0">
-          <div class="pb-section-head"><h3>📊 Earnings 7z</h3><span class="pb-count" id="pbCntEarnings">—</span><a class="pb-go" href="../earnings-hub/">Earnings →</a></div>
+          <div class="pb-section-head"><h3>📊 Earnings 7z</h3><span class="pb-count" id="pbCntEarnings">—</span></div>
           <div class="pb-section-body" id="pbBodyEarnings"><div class="pb-loading">calendar earnings…</div></div>
         </div>
         <div class="pb-section">
-          <div class="pb-section-head"><h3>🔄 Sector</h3><span class="pb-count" id="pbCntSector">—</span><a class="pb-go" href="../sector-rotation/">Sector →</a></div>
+          <div class="pb-section-head"><h3>🔄 Sector</h3><span class="pb-count" id="pbCntSector">—</span></div>
           <div class="pb-section-body" id="pbBodySector"><div class="pb-loading">scan sectorial…</div></div>
         </div>
         <div class="pb-section">
-          <div class="pb-section-head"><h3>🚀 Top picks</h3><span class="pb-count" id="pbCntNasdaq">—</span><a class="pb-go" href="../nasdaq-scanner/">Scanner →</a></div>
+          <div class="pb-section-head"><h3>🚀 Top picks</h3><span class="pb-count" id="pbCntNasdaq">—</span></div>
           <div class="pb-section-body" id="pbBodyNasdaq"><div class="pb-loading">semnale…</div></div>
         </div>
         <div class="pb-section">
-          <div class="pb-section-head"><h3>🎯 STL READY/OK</h3><span class="pb-count" id="pbCntSTL">—</span><a class="pb-go" href="../smart-trade-long/">STL →</a></div>
+          <div class="pb-section-head"><h3>🎯 STL READY/OK</h3><span class="pb-count" id="pbCntSTL">—</span></div>
           <div class="pb-section-body" id="pbBodySTL"><div class="pb-loading">scan listă…</div></div>
         </div>
         <div class="pb-section">
-          <div class="pb-section-head"><h3>🎯 Sugestii WL</h3><span class="pb-count" id="pbCntSuggestions">—</span><a class="pb-go" href="../macro-dashboard/">Macro →</a></div>
+          <div class="pb-section-head"><h3>🎯 Sugestii WL</h3><span class="pb-count" id="pbCntSuggestions">—</span></div>
           <div class="pb-section-body" id="pbBodySuggestions"><div class="pb-loading">sugestii…</div></div>
         </div>
         <div class="pb-section">
@@ -1074,241 +1044,10 @@ body.hub-page .hub-na.prio-ok{
     </div>
   </section>
 
-  <section class="wf-section" data-wf="plan">
-    <div class="wf-head">📋 Plan — gate & context</div>
-    <div class="wf-grid">
-<a href="../router/" data-phase="plan" target="ttools-router" rel="noopener" class="card" id="hubCardRouter" style="--accent:linear-gradient(90deg,#5bb0ff,#ffd86b); --glow:rgba(91,176,255,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#5bb0ff,#ffd86b);box-shadow:0 4px 14px rgba(91,176,255,.3);color:#0a0a0a">🧭</div>
-      <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Pro · v6</span>
-      <h2 class="card-title">Regime Router</h2>
-      <div class="hub-card-live lvl-neut" id="hubLiveRouter" aria-live="polite"></div>
-      <p class="card-desc">Pro Desk: Morning/Deep mode, blockers, timeline sesiune, action rail, counterfactual guards, danger sparkline, playbook sticky.</p>
-      <div class="features">
-        <span class="feat ai">📋 Playbook</span>
-        <span class="feat risk">🎯 GO Score</span>
-        <span class="feat data">📡 Context</span>
-      </div>
-      <div class="card-cta" style="color:#5bb0ff"><span>Deschide Router</span><span class="arrow">→</span></div>
-    </a>
-
-<a href="../macro-dashboard/" data-phase="plan" target="ttools-macro" rel="noopener" class="card" id="hubCardMacro" style="--accent:linear-gradient(90deg,var(--crypto-2),#5bb0ff); --glow:rgba(255,216,107,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,var(--crypto-2),#5bb0ff);box-shadow:0 4px 14px rgba(255,216,107,.3);color:#1a1a1a">🌍</div>
-      <span class="card-tag" style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.4)">Macro · v239</span>
-      <h2 class="card-title">Macro Dashboard</h2>
-      <div class="hub-card-live lvl-neut" id="hubLiveMacro" aria-live="polite"></div>
-      <p class="card-desc">Calendar economic 14 zile (FOMC/CPI/NFP) + știri macro &amp; crypto + AI Daily Brief —
-        context decizional pentru Nasdaq și piața crypto.</p>
-      <div class="features">
-        <span class="feat data">📅 Calendar economic</span>
-        <span class="feat data">📊 VIX + DXY + BTC live</span>
-        <span class="feat ai">🤖 AI Daily Brief</span>
-        <span class="feat viz">⏰ Alerte pre-event</span>
-      </div>
-      <div class="card-cta" style="color:var(--crypto-2)">
-        <span>Deschide Macro</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="../sector-rotation/" data-phase="plan" target="ttools-sector" rel="noopener" class="card" id="hubCardSector" style="--accent:linear-gradient(90deg,#0891b2,#22d66b); --glow:rgba(8,145,178,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#0891b2,#22d66b);box-shadow:0 4px 14px rgba(8,145,178,.3);color:#fff">🌐</div>
-      <span class="card-tag" style="background:rgba(8,145,178,.12);color:#0891b2;border:1px solid rgba(8,145,178,.3)">Sector · v173</span>
-      <h2 class="card-title">Sector Rotation</h2>
-      <div class="hub-card-live lvl-neut" id="hubLiveSector" aria-live="polite"></div>
-      <p class="card-desc">11 ETFs sectoare (XLK/XLF/XLE/XLV/XLY etc.) cu heatmap rotație, momentum
-        1z/1săpt/1lună/3luni/YTD și risk-on vs risk-off auto-detect.</p>
-      <div class="features">
-        <span class="feat data">📊 11 ETFs sectoare</span>
-        <span class="feat viz">🗺️ Heatmap rotație</span>
-        <span class="feat tool">🔄 Momentum shifts</span>
-        <span class="feat alert">⚡ Alert rotație</span>
-      </div>
-      <div class="card-cta" style="color:#0891b2">
-        <span>Deschide Sector Rotation</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-        </div>
-  </section>
-  <section class="wf-section" data-wf="scan">
+<section class="wf-section" data-wf="scan">
     <div class="wf-head">🔍 Scan — setup & watchlist</div>
     <div class="wf-grid">
-<a href="../nasdaq-scanner/" data-phase="scan" target="ttools-nasdaq" rel="noopener" class="card nasdaq">
-      <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('nasdaq')" title="Vezi toate funcționalitățile">ℹ</button>
-      <div class="card-icon">📈</div>
-      <span class="card-tag">Stocks · v134</span>
-      <h2 class="card-title">Nasdaq Opportunity Scanner</h2>
-      <p class="card-desc">Scaner top Nasdaq + ETF-uri cu AI Briefing, Early Buy,
-        Multi-TF, Earnings Calendar, signal log + auto-scan.</p>
-      <div class="features">
-        <span class="feat data">📡 Yahoo + Finnhub</span>
-        <span class="feat tool">🎯 Custom Screener</span>
-        <span class="feat tool">⚖️ Compare 3 stocks</span>
-        <span class="feat ai">🧠 AI inline + Briefing</span>
-        <span class="feat alert">📱 Telegram smart batch</span>
-        <span class="feat viz">📊 Mini-chart 30d</span>
-        <span class="feat auto">🌅 PM gappers ≥3%</span>
-      </div>
-      <div class="card-cta">
-        <span>Deschide scanner</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
 
-    <a href="../smart-trade-long/" data-phase="scan" target="ttools-smart" rel="noopener" class="card" style="--accent:linear-gradient(90deg,var(--crypto-1),#22c55e); --glow:rgba(247,147,26,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,var(--crypto-1),#22c55e);box-shadow:0 4px 14px rgba(247,147,26,.3);color:#fff">🎯</div>
-      <span class="card-tag" style="background:rgba(247,147,26,.12);color:var(--crypto-1);border:1px solid rgba(247,147,26,.35)">Smart Trade · v45</span>
-      <h2 class="card-title">Smart Trade Long</h2>
-      <p class="card-desc">Scoring 6 filtre (incl. RS vs SPY + max 52s) cu Entry/SL/TP auto din ATR + position sizing din % risc cont +
-        insider activity per stock — folosit înainte de fiecare trade.</p>
-      <div class="features">
-        <span class="feat tool">🎯 Score 0-100</span>
-        <span class="feat tool">📐 Entry/SL/TP1-3 auto</span>
-        <span class="feat tool">💰 Position sizer</span>
-        <span class="feat data">👔 Insider activity</span>
-        <span class="feat auto">🔄 Auto-scan 5min</span>
-        <span class="feat tool">📓 Plan → Hub tracker</span>
-      </div>
-      <div class="card-cta" style="color:var(--crypto-1)">
-        <span>Deschide Smart Trade</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="../watchlist-monitor/" data-phase="scan" target="ttools-watchlist" rel="noopener" class="card" style="--accent:linear-gradient(90deg,var(--green),#5bdcb0); --glow:rgba(34,214,107,.18)">
-      <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('watchlist')" title="Vezi toate funcționalitățile">ℹ</button>
-      <div class="card-icon" style="background:linear-gradient(135deg,var(--green),#5bdcb0);box-shadow:0 4px 14px rgba(34,214,107,.3);color:#000">👁️</div>
-      <span class="card-tag" style="background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.35)">Watchlist · v165</span>
-      <h2 class="card-title">Watchlist Monitor</h2>
-      <p class="card-desc">Auto-scan 60s pe stocks-urile tale cu verdict instant 5-tier
-        STRONG BUY → AVOID din scoring multi-factor (MA50/MA200/RSI/momentum).</p>
-      <div class="features">
-        <span class="feat auto">🔄 Auto-scan 60s</span>
-        <span class="feat tool">🎯 Verdict 5-tier</span>
-        <span class="feat data">📊 MA50/200 + RSI</span>
-        <span class="feat alert">🔔 Browser alerts STRONG BUY</span>
-        <span class="feat data">📡 Yahoo Finance free</span>
-        <span class="feat auto">🔗 Sync wl_stocks cu nasdaq</span>
-      </div>
-      <div class="card-cta" style="color:var(--green)">
-        <span>Deschide watchlist</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="../earnings-hub/" data-phase="scan" target="ttools-earnings" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a855f7,#ec4899); --glow:rgba(168,85,247,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#a855f7,#ec4899);box-shadow:0 4px 14px rgba(168,85,247,.3);color:#fff">📅</div>
-      <span class="card-tag" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3)">Earnings · v145</span>
-      <h2 class="card-title">Earnings Hub</h2>
-      <p class="card-desc">Calendar earnings 30 zile cu EPS history (8 trim.), AI verdict beats/misses,
-        insider clusters pre-earnings + reaction bias istoric. Alerte -48h pe watchlist (notif/sunet/Telegram).</p>
-      <div class="features">
-        <span class="feat data">📅 Calendar 30d Finnhub</span>
-        <span class="feat data">📊 EPS history + reacții</span>
-        <span class="feat ai">🧠 AI verdict 5 tier-uri</span>
-        <span class="feat alert">⏰ Alerte ≤48h watchlist</span>
-        <span class="feat data">👔 Insider 30z pre-earnings</span>
-      </div>
-      <div class="card-cta" style="color:#a855f7">
-        <span>Deschide Earnings Hub</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="../market-events/" data-phase="scan" target="ttools-events" rel="noopener" class="card events">
-      <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('market-events')" title="Vezi toate funcționalitățile">ℹ</button>
-      <div class="card-icon">📉</div>
-      <span class="card-tag">Events · v268</span>
-      <h2 class="card-title">Market Events</h2>
-      <p class="card-desc">Earnings calendar 7 zile + Top Losers Nasdaq + Volume Heatmap +
-        Sector Heatmap — evenimente cu impact pe preț.</p>
-      <div class="features">
-        <span class="feat data">📅 Earnings 7d EPS Est</span>
-        <span class="feat data">📉 Top Losers Nasdaq</span>
-        <span class="feat viz">🔥 Volume Heatmap</span>
-        <span class="feat viz">🗺️ Sector Heatmap</span>
-        <span class="feat auto">📡 Polling pseudo-live</span>
-        <span class="feat tool">🤖 Cross-AI inline</span>
-      </div>
-      <div class="card-cta">
-        <span>Deschide events</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="../factor-lab/" data-phase="review" target="ttools-flab" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#8b7cf6,#5bb0ff); --glow:rgba(139,124,246,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#8b7cf6,#5bb0ff);box-shadow:0 4px 14px rgba(139,124,246,.3);color:#0b0714">🧪</div>
-      <span class="card-tag" style="background:rgba(139,124,246,.12);color:#8b7cf6;border:1px solid rgba(139,124,246,.35)">Factor Lab · v9</span>
-      <h2 class="card-title">Factor Lab</h2>
-      <p class="card-desc">Bancul de probă: măsoară dacă un factor are edge REAL, înainte să merite construit ceva pe el.
-        Univers auto de pe Binance, 5 teste severe, controale long/short. Nu dă semnale — dă verdicte.</p>
-      <div class="features">
-        <span class="feat tool">🧪 5 teste severe</span>
-        <span class="feat data">⚖️ Controale long/short</span>
-        <span class="feat auto">🌐 Univers auto 50</span>
-        <span class="feat alert">📍 Unde e activ acum</span>
-      </div>
-      <div class="card-cta" style="color:#8b7cf6">
-        <span>Deschide Factor Lab</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="../mfx-screener/" data-phase="scan" target="ttools-mfx" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#2dd4a8,#5bb0ff); --glow:rgba(45,212,168,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#2dd4a8,#5bb0ff);box-shadow:0 4px 14px rgba(45,212,168,.3);color:#06231c">🎯</div>
-      <span class="card-tag" style="background:rgba(45,212,168,.12);color:#2dd4a8;border:1px solid rgba(45,212,168,.35)">MFX Screener · v6</span>
-      <h2 class="card-title">MFX Screener (EVC)</h2>
-      <p class="card-desc">Motorul deck-ului Pine Mentfx v1.1 rulat pe o listă întreagă: structură ruptă de corp,
-        EMA 5/10/20 de pe TF×6, Triple M și volum — cu veto de context pe TF-ul mare. Crypto și stocks.</p>
-      <div class="features">
-        <span class="feat tool">🎯 5 stări EVC</span>
-        <span class="feat data">⛓️ Veto HTF</span>
-        <span class="feat auto">📈 Crypto + stocks</span>
-        <span class="feat tool">🔎 Ce lipsește, pe rând</span>
-      </div>
-      <div class="card-cta" style="color:#2dd4a8">
-        <span>Deschide MFX Screener</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="../pump-radar/" data-phase="scan" target="ttools-pump" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#ef4444,#facc15); --glow:rgba(239,68,68,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#ef4444,#facc15);box-shadow:0 4px 14px rgba(239,68,68,.3);color:#fff">🚨</div>
-      <span class="card-tag" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.35)">Pump Radar · v125</span>
-      <h2 class="card-title">Pump Radar Stocks</h2>
-      <p class="card-desc">Auto-scan 30s/60s/120s pe ~90 stocks lichide, pe barele de 5m: pump/dump/vol-spike/momentum,
-        sliders praguri, insider check on-alert + alerte browser/sunet/Telegram.</p>
-      <div class="features">
-        <span class="feat alert">🚨 4 alerte 5m</span>
-        <span class="feat auto">🔄 Auto-scan 60s</span>
-        <span class="feat tool">🎚️ Sliders + 🔥 heat</span>
-        <span class="feat data">👔 Insider check</span>
-        <span class="feat alert">🔔🔊📡 Notif/beep/Telegram</span>
-      </div>
-      <div class="card-cta" style="color:#ef4444">
-        <span>Deschide Pump Radar</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="../markov-lab/" data-phase="scan" target="ttools-markov" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#5bb0ff); --glow:rgba(167,139,250,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">🔗</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Markov · v3.13</span>
-      <h2 class="card-title">Markov Lab</h2>
-      <p class="card-desc">Model Markov + HMM gaussian de regim de volatilitate. Detectează regim
-        calm/volatil (bate EWMA OOS), cu validare onestă de edge (chi² + backtest walk-forward).</p>
-      <div class="features">
-        <span class="feat data">🧠 HMM regim (Baum-Welch)</span>
-        <span class="feat viz">🌡️ Auto-K via BIC</span>
-        <span class="feat tool">🔍 Sweep + batch edge</span>
-        <span class="feat alert">✅ Validare OOS</span>
-      </div>
-      <div class="card-cta" style="color:#a78bfa">
-        <span>Deschide Markov Lab</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
 
         </div>
   </section>
@@ -1337,35 +1076,7 @@ body.hub-page .hub-na.prio-ok{
   <section class="wf-section" data-wf="review">
     <div class="wf-head">📊 Review — lecții & post-trade</div>
     <div class="wf-grid">
-    <a href="../weekly/" data-phase="review" target="ttools-weekly" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#5bb0ff,#ffd86b); --glow:rgba(91,176,255,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#5bb0ff,#ffd86b);box-shadow:0 4px 14px rgba(91,176,255,.3);color:#0a0a0a">📅</div>
-      <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Weekly · v4</span>
-      <h2 class="card-title">Weekly Review</h2>
-      <p class="card-desc">Retrospectiva ultimelor 7 zile din datele suitei: semnale (ledger), verdictele brief-ului,
-        execuțiile din Journal, regim + danger — plus sinteză AI la buton (ce a mers / zgomot / de urmărit).</p>
-      <div class="features">
-        <span class="feat data">📡 Semnale 7z</span>
-        <span class="feat risk">📓 Execuții</span>
-        <span class="feat ai">🤖 Sinteză AI</span>
-      </div>
-      <div class="card-cta" style="color:#5bb0ff">
-        <span>Deschide Weekly</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
 
-    <a href="../postmortem/" data-phase="review" target="ttools-postmortem" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#22d66b,#a78bfa); --glow:rgba(34,214,107,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#22d66b,#a78bfa);box-shadow:0 4px 14px rgba(34,214,107,.3);color:#0a0a0a">🔬</div>
-      <span class="card-tag" style="background:rgba(34,214,107,.15);color:#22d66b;border:1px solid rgba(34,214,107,.4)">Pro · v5</span>
-      <h2 class="card-title">Trade Post-Mortem</h2>
-      <p class="card-desc">MAE/MFE în R pe execuții reale + context regim/danger/sursă. Sugestii pattern: SL prea strâns, ieșire târzie, intrări contra mișcării.</p>
-      <div class="features">
-        <span class="feat data">MAE/MFE</span>
-        <span class="feat risk">🎯 SL/TP</span>
-        <span class="feat ai">💡 Sugestii</span>
-      </div>
-      <div class="card-cta" style="color:#22d66b"><span>Deschide Post-Mortem</span><span class="arrow">→</span></div>
-    </a>
 
     <a href="../shadow-book/" data-phase="review" target="ttools-shadow" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#5bb0ff); --glow:rgba(167,139,250,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#6366f1);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#fff">👻</div>
@@ -1449,9 +1160,9 @@ body.hub-page .hub-na.prio-ok{
 <script defer src="../lib/governor.js?v=26.10.08.0923"></script>
 <script defer src="../lib/router.js?v=712"></script>
 <script defer src="../lib/hub-market.js?v=788"></script>
-<script defer src="../lib/hub-state.js?v=712"></script>
-<script defer src="../lib/hub-tableau.js?v=786"></script>
-<script defer src="../lib/hub-next-action.js?v=712"></script>
+<script defer src="../lib/hub-state.js?v=26.10.14.1739"></script>
+<script defer src="../lib/hub-tableau.js?v=26.10.14.1739"></script>
+<script defer src="../lib/hub-next-action.js?v=26.10.14.1739"></script>
 <script defer src="../lib/macro-context.js?v=712"></script>
 <script defer src="../lib/cockpit.js?v=784"></script>
 <script defer src="../lib/hub-gappers.js?v=788"></script>
@@ -1559,6 +1270,7 @@ const SCANNER_FEATURES = {
 
 window.showFeaturesModal = function(scannerKey){
   const data = SCANNER_FEATURES[scannerKey];
+  if (data && window.TTAppRoutes.resolve(data.url).kind !== 'active') return;
   if (!data) return;
   document.getElementById('flOverlay')?.remove();
   const ov = document.createElement('div');
@@ -1848,7 +1560,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = 'tt-v884';
+  const swVer = 'tt-v885';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1868,27 +1580,18 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 // doar focus() — fără reload. Dacă fila a fost închisă, o redeschidem.
 (function(){
   const wins = {};
-  const SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/','mfx-screener/','factor-lab/',
-    'earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/',
-    'journal/','portfolio/','weekly/','health/','router/','equity/','shadow-book/','postmortem/'];
-  const segFromHref = href => {
-    try {
-      const p = new URL(href, location.href).pathname;
-      for (const s of SEGS) if (p.includes('/' + s)) return s;
-    } catch(e){}
-    return null;
-  };
   const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   document.addEventListener('click', function(e){
-    if (e.target.closest('.card-info-btn')) return;
+    if (e.defaultPrevented || e.target.closest('.card-info-btn')) return;
     const a = e.target.closest('a.card[target]');
     if (!a) return;
     const name = a.getAttribute('target') || '';
     if (!name.startsWith('ttools-')) return;
     e.preventDefault();
-    const seg = segFromHref(a.href);
-    if (window.self !== window.top && seg !== null) {
-      try { parent.postMessage({ ttOpen: seg }, location.origin); } catch(_){}
+    const destination = window.TTAppRoutes.resolve(a.href);
+    if (destination.kind === 'unavailable' || destination.kind === 'blocked') return;
+    if (window.self !== window.top && destination.kind === 'active') {
+      try { parent.postMessage({ ttOpen: destination.route, ttQuery: destination.query, ttHash: destination.hash.replace(/^#/, '') }, location.origin); } catch(_){}
       return;
     }
     if (isStandalone()) { location.href = a.href; return; }
@@ -2094,12 +1797,12 @@ window.addEventListener('DOMContentLoaded', function(){
   }
 });
 </script>
-<script defer src="../nav.js?v=712" data-nav-root="../"></script>
+<script defer src="../nav.js?v=26.10.14.1739" data-nav-root="../"></script>
 <!-- tt:sw-guard:start -->
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v884';
+  var PAGE_VER = 'tt-v885';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

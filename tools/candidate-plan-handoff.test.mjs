@@ -30,6 +30,7 @@ async function boot({search='?symbol=QCOM&mode=momentum&ticket=1&handoff=1',hash
     ctx.scannerState.selected={...candidate};
   }else if(page==='app'){
     for(const id of ['frame','brokerFrame'])node(id).contentWindow={postMessage:(data,origin)=>messages.push({data,origin,frame:id})};
+    vm.runInContext(fs.readFileSync('lib/app-routes.js','utf8'),ctx);
     vm.runInContext(shellScript,ctx);
   }
   await new Promise(r=>setImmediate(r));
@@ -129,3 +130,4 @@ test('a queued save rechecks expiry before committing rather than persisting an 
 });
 
 test('public snapshot retains source kind, numeric trend and ATR without copying private fields',async()=>{const b=await boot(),x={...candidate,kind:'synthetic',atr:2,apiKey:'PRIVATE_KEY',trend:{version:'decision-verdict-v1',short:'up',medium:'up',long:'unknown',price:101,ema21:100,ema50:99,ema200:null,slope21:.2,slope50:.1,ret5:1,ret20:2,historyKey:'ohlcv60:abcd',secret:'PRIVATE_NOTE'}};const r=b.ctx.CandidatePlanHandoff.read(x,{},NOW);assert.equal(r.ok,true);assert.equal(r.candidate.kind,'synthetic');assert.equal(r.candidate.atr,2);assert.equal(r.candidate.trend.ema200,null);assert.doesNotMatch(JSON.stringify(r.candidate),/PRIVATE|secret|apiKey/);assert.equal(b.ctx.CandidatePlanHandoff.read({...x,kind:'unknown'}, {},NOW).ok,false);});
+

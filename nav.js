@@ -6,87 +6,85 @@
 (function () {
   'use strict';
 
-  var SEGS = [
-    'alerts/', 'guide/', 'health/', 'europe-stocks/'
-  ];
+  var navScript = document.currentScript || document.querySelector('script[data-nav-root]');
+  var root = new URL('./', navScript && navScript.src ? navScript.src :
+    new URL((navScript && navScript.getAttribute('data-nav-root')) || './', location.href)).href;
 
-  // ── iframe: fără dock, link-uri interne → shell ──
-  if (window.self !== window.top) {
-    var hrefToSeg = function (href) {
-      var abs;
-      try { abs = new URL(href, location.href).pathname.replace(/index\.html$/, ''); } catch (_) { return null; }
-      for (var i = 0; i < SEGS.length; i++) {
-        if (abs.indexOf('/' + SEGS[i]) >= 0) return SEGS[i];
+  function start(routes) {
+    function destinationFor(href) {
+      var destination = routes.resolve(href, location.href);
+      // Older Hub widgets generated app-root links as ./journal/ under hub-clasic/.
+      if (destination.kind === 'unknown' && /^\.\//.test(href) &&
+          new URL(location.href).pathname.replace(/index\.html$/, '') === new URL('hub-clasic/', routes.root).pathname) {
+        destination = routes.resolve(href, routes.root);
       }
-      try {
-        var u = new URL(href, location.href);
-        if (/premarket_scanner\.html\/?$/.test(u.pathname) || /premarket_scanner\.html\/index\.html$/.test(u.pathname))
-          return '';
-      } catch (_) {}
-      return null;
-    };
+      return destination;
+    }
+    // Apply the same route policy before either standalone or iframe navigation.
+    function normalizeLinks(scope) {
+      var anchors = [];
+      if (scope && scope.matches && scope.matches('a[href]')) anchors.push(scope);
+      if (scope && scope.querySelectorAll) anchors = anchors.concat(Array.prototype.slice.call(scope.querySelectorAll('a[href]')));
+      anchors.forEach(function (a) {
+        var href = a.getAttribute('href') || '';
+        if (!href || href.charAt(0) === '#') return;
+        var destination = destinationFor(href);
+        if (destination.kind === 'unavailable') {
+          if (!a._ttNavigationUnavailable) a._ttNavigationUnavailable = { hidden: !!a.hidden, display: a.style.display };
+          a.hidden = true;
+          a.style.display = 'none';
+          a.setAttribute('data-tt-unavailable', '1');
+          a.removeAttribute('href');
+        } else if (destination.kind === 'active' && destination.url) {
+          if (a._ttNavigationUnavailable) {
+            a.hidden = a._ttNavigationUnavailable.hidden;
+            a.style.display = a._ttNavigationUnavailable.display;
+            delete a._ttNavigationUnavailable;
+            a.removeAttribute('data-tt-unavailable');
+          }
+          if (href !== destination.url) a.setAttribute('href', destination.url);
+        }
+      });
+    }
+    normalizeLinks(document);
+    try {
+      new MutationObserver(function (changes) {
+        changes.forEach(function (change) {
+          if (change.type === 'attributes') normalizeLinks(change.target);
+          else Array.prototype.forEach.call(change.addedNodes, function (node) {
+            if (node.nodeType === 1) normalizeLinks(node);
+          });
+        });
+      }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['href'] });
+    } catch (_) {}
+
+    // Guard new links even when a script clicks before the observer's next microtask.
     document.addEventListener('click', function (e) {
       var a = e.target.closest && e.target.closest('a[href]');
-      if (!a) return;
+      if (!a || e.defaultPrevented) return;
       var href = a.getAttribute('href') || '';
-      if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
-      if (href.charAt(0) === '#' && href.indexOf('/') < 0) return;
-      var seg = hrefToSeg(href);
-      if (seg === null && /^\.\.?\//.test(href)) {
-        for (var j = 0; j < SEGS.length; j++) {
-          if (href.indexOf(SEGS[j]) >= 0) { seg = SEGS[j]; break; }
-        }
-        if (href === '../' || href === './' || (/index\.html$/.test(href) && href.indexOf('/') <= 2)) seg = '';
+      if (!href || href.charAt(0) === '#') return;
+      var destination = destinationFor(href);
+      if (destination.kind === 'unavailable') {
+        normalizeLinks(a);
+        e.preventDefault();
+        e.stopPropagation();
+        return;
       }
-      if (seg === null) return;
+      if (window.self === window.top || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey ||
+          (e.button != null && e.button !== 0) || a.hasAttribute('download') || a.target === '_blank' ||
+          destination.kind !== 'active') return;
       e.preventDefault();
       e.stopPropagation();
-      var hash = '';
-      try { hash = (new URL(href, location.href).hash || '').replace(/^#/, ''); } catch (_) {}
-      try { parent.postMessage({ ttOpen: seg, ttHash: hash }, location.origin); } catch (_) {}
+      try { parent.postMessage({ ttOpen: destination.route, ttQuery: destination.query || '',
+        ttHash: (destination.hash || '').replace(/^#/, '') }, location.origin); } catch (_) {}
     }, true);
-    return;
-  }
+    if (window.self !== window.top) return;
 
-  var s = document.querySelector('script[data-nav-root]');
-  var root = (s && s.getAttribute('data-nav-root')) || './';
-  if (root.slice(-1) !== '/' && root !== './' && root !== '../') root += '/';
-
-  // Grupe complete — TOATE tool-urile din suite
-  var GROUPS = [
-    {
-      title: 'Hub & plan',
-      items: [
-        { u: '', n: 'Hub', e: '🏠' }
-      ]
-    },
-    {
-      title: 'Scan',
-      items: [
-        { u: 'europe-stocks/', n: 'Acțiuni Europa', e: '🇪🇺' },
-        { u: 'alerts/', n: 'Alerts', e: '🔔' }
-      ]
-    },
-    {
-      title: 'Capital & exec',
-      items: [
-      ]
-    },
-    {
-      title: 'Review',
-      items: [
-        { u: 'health/', n: 'Health', e: '💚' },
-        { u: 'guide/', n: 'Ghid', e: '📖' }
-      ]
-    }
-  ];
-
-  // Bara scurtă (mereu vizibilă) — restul e în panoul „Toate”
-  var QUICK = [
-    { u: '', n: 'Hub', e: '🏠' },
-    { u: 'alerts/', n: 'Alerts', e: '🔔' },
-    { u: 'health/', n: 'Health', e: '💚' }
-  ];
+  // The same five tasks and workspace links as the application shell.
+  var symbols={today:'◫',market:'⇄',portfolio:'◬',journal:'▤',risk:'◇',tools:'☷',settings:'⚙'};
+  var GROUPS=routes.groups.filter(function(g){return !g.hidden;}).map(function(g){return {title:g.name,items:g.items.map(function(x){return {u:x.u,n:x.n,e:symbols[x.i]||'◇'};})};});
+  var QUICK=[{u:'today/',n:'Astăzi',e:'◫'},{u:'holdings/',n:'Portofoliu',e:'◬'},{u:'journal/#exec',n:'Jurnal',e:'▤'}];
 
   function flatPages() {
     var out = [];
@@ -95,28 +93,14 @@
   }
 
   function detectActive() {
-    var path = location.pathname.replace(/index\.html$/, '');
-    var hash = (location.hash || '').replace(/^#/, '');
-    if (path.indexOf('/journal') >= 0) {
-      if (hash === 'portfolio' || hash.indexOf('portfolio') === 0) return 'journal/#portfolio';
-      if (hash === 'capital' || hash.indexOf('capital') === 0) return 'journal/#capital';
-      if (hash === 'desk' || hash.indexOf('desk') === 0) return 'journal/#desk';
-      if (hash === 'exec' || hash.indexOf('exec') === 0) return 'journal/#exec';
-      return 'journal/';
-    }
-    if (path.indexOf('/hub-demo') >= 0) return 'hub-demo/';
-    var all = flatPages();
-    for (var i = 0; i < all.length; i++) {
-      var u = all[i].u;
-      if (!u || u.indexOf('#') >= 0) continue;
-      if (path.indexOf('/' + u) >= 0) return u;
-    }
-    return '';
+    var current=routes.resolve(location.href);
+    return current.kind==='active'?(routes.section(current.route)||current.route):'today/';
   }
 
   if (document.getElementById('tt-dock')) return;
 
   var activeU = detectActive();
+  function navUrl(route) { return routes.url(route || 'today/') || routes.home; }
 
   if (!document.getElementById('tt-plex')) {
     var plex = document.createElement('link');
@@ -142,13 +126,13 @@
     '#tt-dock-wrap.tt-open #tt-dock-panel{display:block}' +
     '#tt-dock-panel .tt-g{margin-bottom:8px}' +
     '#tt-dock-panel .tt-g:last-child{margin-bottom:0}' +
-    '#tt-dock-panel .tt-gt{font-family:\'IBM Plex Sans\',system-ui,sans-serif;font-size:10px;font-weight:600;' +
+    '#tt-dock-panel .tt-gt{font-family:\'IBM Plex Sans\',system-ui,sans-serif;font-size:12px;font-weight:600;' +
     'letter-spacing:.04em;text-transform:uppercase;color:#8b929e;margin:0 0 5px 2px}' +
     '#tt-dock-panel .tt-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}' +
     '@media(min-width:520px){#tt-dock-panel .tt-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}' +
     '@media(min-width:700px){#tt-dock-panel .tt-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}' +
     '#tt-dock-panel a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;' +
-    'padding:8px 4px;border-radius:10px;text-decoration:none;color:#e6e8ec;font-size:10px;font-weight:600;' +
+    'padding:8px 4px;border-radius:10px;text-decoration:none;color:#e6e8ec;font-size:12px;font-weight:600;' +
     'font-family:\'IBM Plex Sans\',system-ui,sans-serif;border:1px solid #3a4250;background:rgba(34,40,48,.72);' +
     'min-height:52px;text-align:center;line-height:1.15}' +
     '#tt-dock-panel a:hover{border-color:#8a9aab;background:rgba(110,130,148,.16);color:#e6e8ec}' +
@@ -176,6 +160,7 @@
     'body.tt-has-dock .tt-fab,body.tt-has-dock .hub-fabs .tt-fab,body.tt-has-dock .hub-fabs{bottom:calc(76px + env(safe-area-inset-bottom,0px))!important}' +
     '#tt-dock-scrim{display:none;position:fixed;inset:0;z-index:2147483645;background:rgba(0,0,0,.35)}' +
     '#tt-dock-wrap.tt-open ~ #tt-dock-scrim,body.tt-nav-open #tt-dock-scrim{display:block}';
+  css.textContent += '#tt-dock a,#tt-dock button.tt-more{min-height:48px;font-size:12px;max-width:110px}#tt-dock-panel .tt-gt,#tt-dock-panel a{font-size:12px}#tt-dock a:focus-visible,#tt-dock button:focus-visible,#tt-dock-panel a:focus-visible{outline:2px solid #8ce5c3;outline-offset:2px}';
   document.head.appendChild(css);
 
   var scrim = document.createElement('div');
@@ -194,7 +179,7 @@
     return '<div class="tt-g"><div class="tt-gt">' + g.title + '</div><div class="tt-grid">' +
       g.items.map(function (p) {
         var act = p.u === activeU ? ' tt-active' : '';
-        return '<a class="' + (act ? 'tt-active' : '') + '" href="' + root + p.u + '" data-u="' + p.u + '">' +
+        return '<a class="' + (act ? 'tt-active' : '') + '" href="' + navUrl(p.u) + '" data-u="' + p.u + '">' +
           '<span class="tt-ico" aria-hidden="true">' + p.e + '</span>' +
           '<span class="tt-lbl">' + p.n + '</span></a>';
       }).join('') + '</div></div>';
@@ -206,7 +191,7 @@
   bar.setAttribute('aria-label', 'Navigare rapidă suite');
   bar.innerHTML = QUICK.map(function (p) {
     var act = p.u === activeU ? ' tt-active' : '';
-    return '<a class="' + (act ? 'tt-active' : '') + '" href="' + root + p.u + '" data-u="' + p.u + '" title="' + p.n + '">' +
+    return '<a class="' + (act ? 'tt-active' : '') + '" href="' + navUrl(p.u) + '" data-u="' + p.u + '" title="' + p.n + '">' +
       '<span class="tt-ico" aria-hidden="true">' + p.e + '</span>' +
       '<span class="tt-lbl">' + p.n + '</span></a>';
   }).join('') +
@@ -251,87 +236,16 @@
   });
 
 
-  // ── PAGINI RETRASE (22.09.2026) ──────────────────────────────────────────────
-  //
-  // Marius a scos din suita jurnalul/retrospectiva, laboratoarele si cele tehnice.
-  // Paginile RAMAN pe disc (se intorc stergand lista de mai jos), dar nu se mai
-  // navigheaza catre ele - iar celelalte pagini aveau 21 de linkuri intr-acolo.
-  //
-  // De ce aici si nu prin 16 fisiere: linkurile sunt si in HTML static, si generate
-  // din JS (`../journal/?sym=AAPL#exec` - „trimite simbolul in jurnal"). Un regex
-  // prin fisiere mari le-ar fi ratat pe unele si ar fi riscat sintaxa pe celelalte;
-  // aici e un singur loc, reversibil, si prinde si ce se deseneaza mai tarziu.
-  //
-  // `/hub-clasic/` e scutit: acolo TREBUIE sa ramana tot ce era inainte.
-  var RETRASE = [
-    'router/', 'journal/', 'portfolio/', 'equity/', 'governor/', 'weekly/', 'shadow-book/',
-    'postmortem/', 'markov-lab/', 'factor-lab/', 'mfx-screener/', 'hub-demo/',
-    'shell/', 'proxy/',
-    // 12.10.2026: oprite după auditul semnalelor (niciunul n-a bătut întâmplarea) — index.html e doar anunț.
-    // 14.10.2026: Candidate Engine NU mai e aici — e scannerul Decision Desk (aplicație separată, nu se atinge).
-    'nasdaq-scanner/', 'watchlist-monitor/', 'smart-trade-long/', 'pump-radar/'
-  ];
-
-  function eRetras(href) {
-    if (!href) return false;
-    for (var i = 0; i < RETRASE.length; i++) {
-      // prinde si `../journal/`, si `./journal/#desk`, si `../journal/?sym=X#exec`
-      if (href.indexOf(RETRASE[i]) !== -1) return true;
-    }
-    return false;
-  }
-
-  // Un <a> catre o pagina retrasa poate fi doua lucruri foarte diferite:
-  //
-  //   NAVIGATIE  <a href="./journal/#desk">Risk Desk →</a>        doar text/emoji
-  //   DATE       <a href="./journal/#desk" class="cd-cell">       are copii-elemente
-  //                <div class="cd-lbl">R RAMAS AZI</div>
-  //                <div class="cd-val">2.0R</div> ... </a>
-  //
-  // Ascunzandu-le la fel, banda „Capital Desk" din smart-trade-long a ramas GOALA:
-  // 10 cifre de risc (equity, drawdown, R ramas azi, expunere, PnL) desenate corect si
-  // apoi ascunse, fiindca fiecare cartonas era infasurat intr-un link catre journal.
-  // Cifrele nu vin din journal - se socotesc local in lib/capital-desk.js - deci nu
-  // aveau de ce sa dispara odata cu el.
-  //
-  // Deosebirea se face pe STRUCTURA, nu pe text: textul cartonaselor se umple mai
-  // tarziu, deci o regula care cauta cifre ar ascunde definitiv un cartonas inca gol.
-  function ascundeRetrase(radacina) {
-    if (location.pathname.indexOf('/hub-clasic/') !== -1) return;
-    var noduri = (radacina || document).querySelectorAll('a[href]');
-    for (var i = 0; i < noduri.length; i++) {
-      var a = noduri[i];
-      if (a.dataset.ttRetras) continue;
-      if (!eRetras(a.getAttribute('href'))) continue;
-      a.dataset.ttRetras = '1';
-      if (a.querySelector('*')) {
-        // duce date pe ecran: ramane vizibil, dar nu mai duce nicaieri
-        a.dataset.ttRetrasMod = 'dezarmat';
-        a.removeAttribute('href');
-        a.style.pointerEvents = 'none';
-        a.style.cursor = 'default';
-        a.title = 'pagina de destinatie e retrasa din suita; cifra se vede in continuare';
-      } else {
-        a.dataset.ttRetrasMod = 'ascuns';
-        a.hidden = true;
-        a.style.display = 'none';   // `hidden` singur nu bate un `display` din CSS
-      }
-    }
-  }
-
-  ascundeRetrase(document);
-  try {
-    new MutationObserver(function (m) {
-      for (var i = 0; i < m.length; i++) {
-        for (var j = 0; j < m[i].addedNodes.length; j++) {
-          var n = m[i].addedNodes[j];
-          if (n.nodeType === 1) ascundeRetrase(n.parentNode || document);
-        }
-      }
-    }).observe(document.documentElement, { childList: true, subtree: true });
-  } catch (e) { /* fara observer: ce se deseneaza mai tarziu ramane vizibil */ }
-
   window.addEventListener('hashchange', function () {
     paintActive(detectActive());
   });
+  }
+  if (window.TTAppRoutes) start(window.TTAppRoutes);
+  else {
+    var registry = document.createElement('script');
+    registry.src = root + 'lib/app-routes.js' + (navScript && navScript.src ? new URL(navScript.src).search : '');
+    registry.onload = function () { if (window.TTAppRoutes) start(window.TTAppRoutes); };
+    document.head.appendChild(registry);
+  }
 })();
+

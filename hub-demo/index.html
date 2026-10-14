@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="../lib/theme-light.css?v=791">
 <script src="../lib/theme.js?v=738"></script>
 <script src="../lib/suite-version.js?v=676"></script>
+<script src="../lib/app-routes.js?v=26.10.14.1739"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -303,7 +304,7 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
         <div class="na-meta" id="naMeta">—</div>
       </div>
       <div class="na-sec">
-        <a class="na-cta" id="naCta" href="../router/">Deschide →</a>
+        <a class="na-cta" id="naCta" href="../journal/#setup">Pregătește planul →</a>
         <a class="sec" id="naSec" href="../journal/#desk">Alternativă →</a>
       </div>
     </section>
@@ -332,7 +333,6 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
       <button type="button" class="btn primary" id="btnWriteCtx">Scrie din Next Action</button>
       <button type="button" class="btn" id="btnClearCtx">Șterge</button>
       <a class="btn" href="../journal/" id="btnOpenJournal">Journal</a>
-      <a class="btn" href="../nasdaq-scanner/" id="btnOpenScan">Scanner</a>
     </div>
   </section>
 
@@ -374,6 +374,12 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const appLink = href => {
+    if (!href || !window.TTAppRoutes) return null;
+    const routes = window.TTAppRoutes;
+    const destination = routes.resolve(href, routes.root);
+    return destination.kind === 'active' || destination.kind === 'external' ? destination.url : null;
+  };
   const CTX_KEY = 'tt_ctx_v1';
   const DEMO_SC_KEY = 'tt_hub_demo_scenario_v1';
   const RISK_HALT = 4;
@@ -632,8 +638,8 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
         why: (st.govReasons && st.govReasons[0])
           ? st.govReasons[0]
           : 'Governor a blocat ziua. Nu căuta setup-uri; verifică motivele pe Desk.',
-        cta: { label: 'Deschide Risk Desk', href: '../journal/#desk' },
-        sec: { label: 'Capital / DD →', href: '../journal/#capital' }
+        cta: { label: 'Deschide Risk Desk', href: './journal/#desk' },
+        sec: { label: 'Capital / DD →', href: './journal/#capital' }
       };
     } else if (winnerId === 'risk') {
       action = {
@@ -641,8 +647,8 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
         kicker: 'STOP · CAPITAL',
         title: 'Risc @ SL ' + st.riskPct.toFixed(1) + '% — peste prag',
         why: 'Bugetul de risc e plin sau depășit. Reduce / închide înainte de orice setup nou.',
-        cta: { label: 'Portfolio live', href: '../journal/#portfolio' },
-        sec: { label: 'Desk →', href: '../journal/#desk' }
+        cta: { label: 'Portfolio live', href: './journal/#portfolio' },
+        sec: { label: 'Desk →', href: './journal/#desk' }
       };
     } else if (winnerId === 'freeze') {
       action = {
@@ -650,8 +656,8 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
         kicker: 'STOP · MACRO',
         title: 'FREEZE pe eveniment — stai pe mâini',
         why: 'High-impact în fereastră. Gap-urile și scan-urile pot fi zgomot până trece fereastra.',
-        cta: { label: 'Calendar Macro', href: '../macro-dashboard/' },
-        sec: { label: 'Router context →', href: '../router/' }
+        cta: { label: 'Verifică starea datelor', href: './app/status/' },
+        sec: { label: 'Risk Desk →', href: './journal/#desk' }
       };
     } else if (winnerId === 'trust') {
       action = {
@@ -661,8 +667,8 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
         why: 'Trust ' + st.trustPct + '%' +
           (st.mktAgeMin != null ? ' · piețe acum ' + Math.round(st.mktAgeMin) + 'm' : '') +
           '. Reîmprospătează sursele înainte de orice decizie.',
-        cta: { label: 'Suite Health', href: '../health/' },
-        sec: { label: 'Macro refresh →', href: '../macro-dashboard/' }
+        cta: { label: 'Suite Health', href: './app/status/' },
+        sec: { label: 'Risk Desk →', href: './journal/#desk' }
       };
     } else if (winnerId === 'gap') {
       const g = st.gapList[0];
@@ -674,8 +680,8 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
         kicker: 'OPPORTUNITY · ' + String(st.session).toUpperCase(),
         title: 'Urmărește ' + sym + ' ' + pct,
         why: 'Top gapper din cache' + wl + '. Verifică spread/volum, apoi plan — nu market-order orb.',
-        cta: { label: 'Deschide ' + sym, href: '../nasdaq-scanner/?sym=' + encodeURIComponent(sym) },
-        sec: { label: 'Plan în Journal →', href: '../journal/?sym=' + encodeURIComponent(sym) },
+        cta: { label: 'Plan pentru ' + sym, href: './journal/?sym=' + encodeURIComponent(sym) + '#setup' },
+        sec: { label: 'Plan în Journal →', href: './journal/?sym=' + encodeURIComponent(sym) },
         ctxSym: sym,
         ctxSource: 'hub-demo-gapper'
       };
@@ -685,8 +691,8 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
         kicker: 'MANAGE · OPEN',
         title: st.openN + ' open · regim CAUTION',
         why: 'Ai poziții și semnalul nu e GO. Prioritate: gestionează riscul existent, nu adăuga size.',
-        cta: { label: 'Execuții open', href: '../journal/#exec' },
-        sec: { label: 'Portfolio →', href: '../journal/#portfolio' }
+        cta: { label: 'Execuții open', href: './journal/#exec' },
+        sec: { label: 'Portfolio →', href: './journal/#portfolio' }
       };
     } else if (winnerId === 'go') {
       action = {
@@ -694,9 +700,9 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
         kicker: 'GO · PLAYBOOK',
         title: 'GO ' + st.goScore + ' — confirmă playbook-ul',
         why: (st.strategy && st.strategy !== '—' ? st.strategy + ' · ' : '') +
-          'Următorul pas e Router Deep (reguli + sizing), nu scan la întâmplare.',
-        cta: { label: 'Router Deep', href: '../router/' },
-        sec: { label: 'STL radar →', href: '../smart-trade-long/' }
+          'Verifică regulile și dimensionarea înainte să salvezi planul.',
+        cta: { label: 'Pregătește planul', href: './journal/#setup' },
+        sec: { label: 'Risk Desk →', href: './journal/#desk' }
       };
     } else if (winnerId === 'review') {
       action = {
@@ -704,8 +710,8 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
         kicker: 'REVIEW · SESSION',
         title: 'Închide ziua corect',
         why: 'Sesiune ' + st.session + '. Execuții, PnL, greșeli — nu forța setup-uri out-of-hours fără plan.',
-        cta: { label: 'Journal / execuții', href: '../journal/#exec' },
-        sec: { label: 'Weekly →', href: '../weekly/' }
+        cta: { label: 'Journal / execuții', href: './journal/#exec' },
+        sec: { label: 'Astăzi →', href: './today/' }
       };
     } else {
       action = {
@@ -714,11 +720,13 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
         title: 'Filtrează — nu forța size full',
         why: 'GO ' + st.goScore + ' (' + st.goLabel + ') · Desk ' + st.verdict +
           '. Preferă watchlist + plan mic până se aliniază regimul.',
-        cta: { label: 'Router / morning', href: '../router/' },
-        sec: { label: 'Watchlist →', href: '../watchlist-monitor/' }
+        cta: { label: 'Pregătește planul', href: './journal/#setup' },
+        sec: { label: 'Risk Desk →', href: './journal/#desk' }
       };
     }
 
+    action.cta.href = appLink(action.cta.href);
+    action.sec.href = appLink(action.sec.href);
     action.ruleId = winnerId;
     return { action, ladder: steps, winnerId };
   }
@@ -752,8 +760,9 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
   }
 
   function cell(opts) {
-    const tag = opts.href ? 'a' : 'div';
-    const href = opts.href ? ' href="' + esc(opts.href) + '"' : '';
+    const destination = appLink(opts.href);
+    const tag = destination ? 'a' : 'div';
+    const href = destination ? ' href="' + esc(destination) + '"' : '';
     const hero = opts.hero ? ' hero' : '';
     const deg = opts.degraded ? ' degraded' : '';
     return '<' + tag + href + ' class="cell' + hero + deg + ' lvl-' + (opts.lvl || 'neut') + '">' +
@@ -822,15 +831,15 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
     const reg = st.regLabel ? String(st.regLabel).replace(/^[^\s]+\s*/, '') : '—';
     const g = $('decisionGrid');
     g.innerHTML = [
-      cell({ hero: true, lbl: 'GO', val: esc(String(st.goScore)), sub: st.goLabel + (st.strategy && st.strategy !== '—' ? ' · ' + st.strategy : ''), lvl: goLvl(st.goCls), href: '../router/', degraded }),
-      cell({ hero: true, lbl: 'Desk', val: esc(String(st.verdict)), sub: 'Governor', lvl: deskLvl(st.verdict), href: '../journal/#desk' }),
-      cell({ hero: true, lbl: 'Regim', val: esc(reg), sub: st.regAgeMin != null ? Math.round(st.regAgeMin) + 'm' : 'cache suite', lvl: /OFF|STRESS/i.test(reg) ? 'bear' : /ON|LEAN/i.test(reg) ? 'ok' : 'neut', href: '../macro-dashboard/', degraded: st.regAgeMin != null && st.regAgeMin > 12 * 60 }),
-      cell({ lbl: 'Danger', val: esc(String(st.dangerScore != null ? st.dangerScore : '—')), sub: '/100', lvl: st.dangerScore >= 70 ? 'bear' : st.dangerScore >= 40 ? 'warn' : (st.dangerScore != null ? 'ok' : 'neut'), href: '../macro-dashboard/' }),
-      cell({ lbl: 'Risc @ SL', val: st.riskPct != null ? st.riskPct.toFixed(1) + '%' : '—', sub: st.riskStale ? 'stale' : 'agregat', lvl: st.riskPct >= RISK_HALT ? 'bear' : st.riskPct >= 2 ? 'warn' : 'ok', href: '../journal/#portfolio' }),
-      cell({ lbl: 'Open', val: String(st.openN), sub: 'poziții', lvl: st.openN >= 5 ? 'warn' : 'neut', href: '../journal/#exec' }),
-      cell({ lbl: 'SPY', val: esc(fmtPx(st.spy)), sub: fmtChg(st.spy), lvl: mktLvl(st.spy, false), href: '../nasdaq-scanner/?sym=SPY', degraded }),
-      cell({ lbl: 'QQQ', val: esc(fmtPx(st.qqq)), sub: fmtChg(st.qqq), lvl: mktLvl(st.qqq, false), href: '../nasdaq-scanner/?sym=QQQ', degraded }),
-      cell({ lbl: 'VIX', val: st.vix && Number.isFinite(st.vix.price) ? st.vix.price.toFixed(2) : '—', sub: fmtChg(st.vix), lvl: mktLvl(st.vix, true), href: '../macro-dashboard/', degraded })
+      cell({ hero: true, lbl: 'GO', val: esc(String(st.goScore)), sub: st.goLabel + (st.strategy && st.strategy !== '—' ? ' · ' + st.strategy : ''), lvl: goLvl(st.goCls), href: null, degraded }),
+      cell({ hero: true, lbl: 'Desk', val: esc(String(st.verdict)), sub: 'Governor', lvl: deskLvl(st.verdict), href: './journal/#desk' }),
+      cell({ hero: true, lbl: 'Regim', val: esc(reg), sub: st.regAgeMin != null ? Math.round(st.regAgeMin) + 'm' : 'cache suite', lvl: /OFF|STRESS/i.test(reg) ? 'bear' : /ON|LEAN/i.test(reg) ? 'ok' : 'neut', href: null, degraded: st.regAgeMin != null && st.regAgeMin > 12 * 60 }),
+      cell({ lbl: 'Danger', val: esc(String(st.dangerScore != null ? st.dangerScore : '—')), sub: '/100', lvl: st.dangerScore >= 70 ? 'bear' : st.dangerScore >= 40 ? 'warn' : (st.dangerScore != null ? 'ok' : 'neut'), href: null }),
+      cell({ lbl: 'Risc @ SL', val: st.riskPct != null ? st.riskPct.toFixed(1) + '%' : '—', sub: st.riskStale ? 'stale' : 'agregat', lvl: st.riskPct >= RISK_HALT ? 'bear' : st.riskPct >= 2 ? 'warn' : 'ok', href: './journal/#portfolio' }),
+      cell({ lbl: 'Open', val: String(st.openN), sub: 'poziții', lvl: st.openN >= 5 ? 'warn' : 'neut', href: './journal/#exec' }),
+      cell({ lbl: 'SPY', val: esc(fmtPx(st.spy)), sub: fmtChg(st.spy), lvl: mktLvl(st.spy, false), href: null, degraded }),
+      cell({ lbl: 'QQQ', val: esc(fmtPx(st.qqq)), sub: fmtChg(st.qqq), lvl: mktLvl(st.qqq, false), href: null, degraded }),
+      cell({ lbl: 'VIX', val: st.vix && Number.isFinite(st.vix.price) ? st.vix.price.toFixed(2) : '—', sub: fmtChg(st.vix), lvl: mktLvl(st.vix, true), href: null, degraded })
     ].join('');
   }
 
@@ -846,7 +855,7 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
         const pct = g.gapPct != null ? Number(g.gapPct) : null;
         const cls = pct != null && pct >= 0 ? 'up' : 'dn';
         const txt = pct != null ? (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%' : '';
-        return '<a class="g-chip' + (dim ? ' muted' : '') + '" href="../nasdaq-scanner/?sym=' + encodeURIComponent(sym) + '">' +
+        return '<a class="g-chip' + (dim ? ' muted' : '') + '" href="' + esc(appLink('./journal/?sym=' + encodeURIComponent(sym) + '#setup')) + '" title="Pregătește planul">' +
           esc(sym) + (g.inWl ? '★' : '') + ' <span class="' + cls + '">' + esc(txt) + '</span></a>';
       }).join('');
   }
@@ -924,7 +933,8 @@ details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247
   setInterval(render, 60000);
 })();
 </script>
-<script src="../nav.js?v=682" data-nav-root="../"></script>
+<script src="../nav.js?v=26.10.14.1739" data-nav-root="../"></script>
 </body>
 </html>
+
 

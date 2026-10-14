@@ -74,7 +74,9 @@ test('top lists enforce sector diversity and contain up to ten real results',()=
 });
 test('European module is reachable in the app and local scripts/styles resolve',()=>{
   const path='europe-stocks/index.html',html=readFileSync(path,'utf8');
-  assert.ok(readFileSync('app/index.html','utf8').includes("u:'europe-stocks/',n:'Acțiuni Europa'"));
+  assert.match(readFileSync('app/index.html','utf8'),/src="\.\.\/lib\/app-routes\.js(?:\?[^" ]+)?"/);
+  assert.ok(readFileSync('lib/app-routes.js','utf8').includes("u:'europe-stocks/',n:'Acțiuni Europa'"));
+  assert.match(readFileSync('app/tools/index.html','utf8'),/id="toolGrid"/);
   for(const m of html.matchAll(/<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"/g))assert.ok(existsSync(resolve(dirname(path),m[1].split('?')[0])),m[1]);
   for(const cat of ['growth','earlyLong','reversal','earlyReversal'])assert.ok(html.includes('data-category="'+cat+'"'));
 });
@@ -184,3 +186,4 @@ test('a late database read cannot overwrite a fresh scan or a changed market fil
   if(scan){c.D.fetchStock=async()=>series();resolveMarket(series());await scan;}
  }
 });
+

@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../lib/plex.css?v=743">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=678">
 <link rel="stylesheet" href="../lib/capital-ui.css?v=678">
-<script src="../lib/suite-version.js?v=884"></script>
+<script src="../lib/suite-version.js?v=885"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -272,7 +272,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 #jpaneCapital .panel{ border-top:3px solid var(--crypto-1); }
 </style>
 <link rel="stylesheet" href="../lib/mobile-ui.css?v=20261002m1">
-<link rel="stylesheet" href="../lib/decision-panel.css?v=26.10.09.1548"><script src="../lib/decision-verdict.js?v=26.10.09.1548"></script><script src="../lib/decision-bridge.js?v=26.10.08.1850"></script><script src="../lib/ai.js?v=26.10.07.2305"></script><link rel="stylesheet" href="../lib/decision-insights.css?v=26.10.08.1850"><script src="../lib/decision-insights.js?v=26.10.08.1850"></script><script src="../lib/decision-panel.js?v=26.10.08.1850" data-decision-module="journal"></script><link rel="stylesheet" href="../lib/trading212-capital.css?v=26.10.08.0923"><link rel="stylesheet" href="design.css?v=26.10.14.1208"></head>
+<link rel="stylesheet" href="../lib/decision-panel.css?v=26.10.09.1548"><script src="../lib/decision-verdict.js?v=26.10.09.1548"></script><script src="../lib/decision-bridge.js?v=26.10.08.1850"></script><script src="../lib/ai.js?v=26.10.07.2305"></script><link rel="stylesheet" href="../lib/decision-insights.css?v=26.10.08.1850"><script src="../lib/decision-insights.js?v=26.10.08.1850"></script><script src="../lib/decision-panel.js?v=26.10.08.1850" data-decision-module="journal"></script><link rel="stylesheet" href="../lib/trading212-capital.css?v=26.10.08.0923"><link rel="stylesheet" href="design.css?v=26.10.14.1739"></head>
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
@@ -284,8 +284,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <button class="nav-link" id="btnImport" type="button" title="Sync complet tracker → journal (open + closed)">Sincronizează trackerul</button>
       <button class="nav-link" id="btnExportCd" type="button" title="Export JSON Capital Desk (equity, risc, desk, journal)">Exportă datele JSON</button>
       <button class="nav-link" id="btnJrCsv" type="button" title="Export execuții CSV">Exportă execuțiile CSV</button>
-      <a class="nav-link" href="../postmortem/">Analiza execuțiilor închise</a>
-      <a class="nav-link" href="../router/">Router</a>
+      <a class="nav-link" href="#exec" data-jtab-link="exec">Vezi execuțiile</a>
       <button class="nav-link" id="btnWsRevert" type="button" title="Revino la UI Journal v581 (workspace v2 off)">Vizualizare clasică</button>
     </div>
   </details>
@@ -584,6 +583,28 @@ tr.openrow{background:rgba(91,176,255,.06)}
   </div>
 </dialog>
 
+<dialog id="jrDetailsSheet" class="jr-details-dialog" aria-labelledby="jrDetailsTitle" aria-describedby="jrDetailsIdentity">
+  <header class="jr-details-header">
+    <p class="note">Jurnal · detalii execuție</p>
+    <h2 id="jrDetailsTitle" tabindex="-1">Detalii execuție</h2>
+    <p id="jrDetailsIdentity" class="note">—</p>
+  </header>
+  <div class="jr-details-body">
+    <div class="jr-details-summary">
+      <span>PnL net realizat · USD</span>
+      <strong id="jrDetailsResult">—</strong>
+      <p id="jrDetailsValuation" class="note">—</p>
+    </div>
+    <h3>Execuție și evaluare</h3>
+    <dl id="jrDetailsExecution" class="jr-details-grid"></dl>
+    <h3>Context și disciplină</h3>
+    <dl id="jrDetailsContext" class="jr-details-grid"></dl>
+  </div>
+  <footer class="jr-details-footer">
+    <button type="button" class="btn ghost" id="jrDetailsClose">Închide detaliile</button>
+  </footer>
+</dialog>
+
 <div id="jpanePortfolio" class="jr-pane" data-jpane="portfolio" role="tabpanel" aria-labelledby="jrTabPortfolio" hidden>
 <section class="panel"><h2>Portofoliu real · Trading 212</h2><p><a href="../holdings/">Deschide analiza deținerilor: indicatori, trend și scenarii →</a></p><p>Sold și poziții raportate de broker, separate de planurile manuale de mai jos. Snapshot local; actualizarea automată rulează în modulul Trading 212 deschis.</p><div id="t212Portfolio"></div></section>
 <section class="panel"><h2>Capital & risc · Trading 212 Invest</h2><p>Capitalul, expunerea și stopurile reale actualizează automat restricțiile Governor. Stopurile se documentează în Analiza deținerilor, în moneda instrumentului.</p><div data-t212-capital></div><a href="../holdings/">Completează stopurile și reperele →</a></section>
@@ -632,7 +653,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/trading212-snapshot.js?v=26.10.03.2316"></script><script src="../lib/trading212-context.js?v=26.10.03.2316"></script>
 <script src="../lib/execution-review.js?v=26.10.03.2316"></script><script src="../lib/trading212-journal.js?v=26.10.09.1548"></script>
 <script src="../lib/journal.js?v=26.10.04.0102"></script>
-<script src="../lib/suite-version.js?v=884"></script>
+<script src="../lib/suite-version.js?v=885"></script>
 <script src="../lib/journal-insights.js?v=625"></script>
 <script src="../lib/tracker.js?v=26.10.04.0102"></script>
 <script src="../lib/telegram.js?v=625"></script>
@@ -652,7 +673,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/setup-levels.js?v=26.10.04.0102"></script>
 <script src="../lib/setup-builder.js?v=26.10.14.0650"></script>
 <script src="../lib/portfolio-risk.js?v=fx-20261002"></script>
-<script src="../lib/journal-workspace.js?v=26.10.14.1243"></script>
+<script src="../lib/journal-workspace.js?v=26.10.14.1739"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -1107,7 +1128,7 @@ function segDetailHtml(list){
       <span>${JR.quotePrice(e, e.entry)}→${JR.quotePrice(e, e.exit)}</span>
       <span class="${win ? 'pos' : 'neg'}">${p != null ? (p >= 0 ? '+' : '') + fmt$(p).replace('$-','-$') : '—'}</span>${r != null ? `<span class="${r >= 0 ? 'pos' : 'neg'}">${(r >= 0 ? '+' : '') + r.toFixed(2)}R</span>` : ''}${seg !== 'source' && e.source ? `<span style="color:var(--t3)">${esc(e.source)}</span>` : ''}
       ${e.maeR!=null?`<span style="color:var(--t3)">MAE ${e.maeR.toFixed(1)}R</span>`:''}${e.mfeR!=null?`<span style="color:var(--t3)">MFE ${e.mfeR.toFixed(1)}R</span>`:''}
-      <span style="margin-left:auto;white-space:nowrap"><a class="act" href="../postmortem/?id=${encodeURIComponent(e.id)}" title="Post-mortem MAE/MFE">🔬</a> <button class="act" data-edit="${esc(e.id)}">✏</button> <button class="act" data-del="${esc(e.id)}">🗑</button></span>
+      <span style="margin-left:auto;white-space:nowrap"><button type="button" class="act" data-details="${esc(e.id)}" aria-haspopup="dialog" aria-controls="jrDetailsSheet" aria-label="Detaliile execuției ${esc(e.sym)}">Detalii execuție</button> <button type="button" class="act" data-edit="${esc(e.id)}" aria-label="Editează execuția ${esc(e.sym)}">✏</button> <button type="button" class="act" data-del="${esc(e.id)}" aria-label="Șterge execuția ${esc(e.sym)}">🗑</button></span>
     </div>`;
   }).join('');
 }
@@ -1147,7 +1168,10 @@ function renderSeg(){
     if (arrow) arrow.textContent = show ? '▾' : '▸';
     if (show) segOpen.add(row.dataset.key); else segOpen.delete(row.dataset.key);
   }));
-  // ✏/🗑 pe execuțiile închise din drill-down (singurul loc unde mai apar închisele)
+  $('segBody').querySelectorAll('[data-details]').forEach(b => b.addEventListener('click', () => {
+    if (window.JWS && JWS.openExecutionDetails) JWS.openExecutionDetails(b.dataset.details, b);
+  }));
+  // ✏/🗑 pe execuțiile închise din drill-down
   $('segBody').querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => {
     const e = JR.all().find(x => x.id === b.dataset.edit);
     if (e) fillForm(e);
@@ -1639,6 +1663,7 @@ function prefillFromQuery(){
 }
 
 function renderAll(){
+  if (window.JWS && JWS.syncExecutionDetails) JWS.syncExecutionDetails();
   if (window.CD && !(window.JWS && JWS.enabled())) CD.renderRail('capitalRail', jTab === 'portfolio' ? 'portfolio' : 'journal');
   showPrefillGate();
   renderHaltRail();
@@ -1833,7 +1858,7 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = 'tt-v884';
+  var ver = 'tt-v885';
   var full = window.SUITE_VERSION || 'tt-v625-2026-07-12';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
@@ -1859,12 +1884,12 @@ document.addEventListener('click', ev => {
   }
 })();
 </script>
-<script src="../nav.js?v=682" data-nav-root="../"></script>
+<script src="../nav.js?v=26.10.14.1739" data-nav-root="../"></script>
 <!-- tt:sw-guard:start -->
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v884';
+  var PAGE_VER = 'tt-v885';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
