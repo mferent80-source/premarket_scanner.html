@@ -56,6 +56,8 @@ Rezultatul trebuie să aibă `enabled:true` și Client ID-ul corect. Testează �
 
 ## Modelul de sincronizare
 
+- Workerul anunță `records.protocol:tt-cloud-records-v2` pentru citiri separate. Clientul citește mai întâi numai reviziile prin `GET /api/cloud/records?index=1`, apoi fiecare registru schimbat prin `?key=<cheie permisă>`. Registrele neschimbate se reutilizează dintr-o copie exactă a răspunsului serverului, în memoria dispozitivului, separată de baza reconcilierii. Indexul nu citește sau decriptează pachetele; o cerere cu cheie decriptează numai acel registru, după verificarea originii și sesiunii. Endpointul fără query rămâne compatibil cu clienții anteriori.
+- Un index invalid, o citire eșuată sau o revizie schimbată între index și registru oprește reconcilierea înainte de aplicarea datelor. Citirile finalizate pot fi reutilizate la reîncercare numai dacă noul index confirmă aceeași revizie. Nu se interpretează o eroare de rețea drept registru gol și nu se schimbă cheia de criptare, AAD, schema bazei sau limitele de scriere.
 - Doar o listă explicită de chei: jurnal manual/setări, execuții și snapshot broker, teze/tickere/benchmark, watchlist, temă, selecție cont, conexiune broker, istoric semnale Europa, setări calculator risc Europa și registrul analizelor înaintea intrării. Nu se trimit toate datele localStorage, alte API keys sau cache-uri de piață.
 - Registrele și modelele AI stocate separat în IndexedDB nu sunt incluse în acest protocol. Exporturile lor rămân disponibile în Analiza deținerilor; transferul lor cloud cere integrarea registrelor cu păstrarea estimărilor originale și a verificărilor.
 - Europa: observațiile distincte se unesc după ID; aceeași primă sesiune păstrează prețul, categoria și suportul originale. Actualizările folosesc data sesiunii, nu ora dispozitivului; randamentele deja calculate se păstrează. Reviziile prețului suspendă randamentele. Episoadele suprapuse, valori diferite pentru același rezultat sau depășirea limitei de 1.500 cer alegere. Setările de risc se aleg ca un pachet, fără a combina bugetul unui dispozitiv cu limita celuilalt.
@@ -90,3 +92,4 @@ Surse oficiale folosite pentru implementare:
 - https://developers.google.com/identity/gsi/web/reference/js-reference
 - https://developers.cloudflare.com/d1/worker-api/
 - https://developers.cloudflare.com/workers/configuration/secrets/
+
