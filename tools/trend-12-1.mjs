@@ -49,6 +49,7 @@ async function adu(s) {
       serii[s] = out; return;
     } catch (e) { if (inc === 3) picate.push(s + ' ' + String(e.message || 'eroare').slice(0, 40)); else await w(1500); }
   }
+  picate.push(s + ' 429 (4 încercări)');   // revizie 14.10: după 4×429 simbolul nu ajungea în jurnal
 }
 await adu('SPY');
 let spy = serii.SPY; delete serii.SPY;
@@ -64,6 +65,8 @@ if (aduse < univers.length * 0.7) { console.error('au venit sub 70 % din serii �
 
 // 3. clasamentul + regimul
 const rez = clasament(serii, spy, { top: TOP }), rg = regim(spy), info = Object.fromEntries(univers.map((x) => [x.s, x]));
+// revizie 14.10: garda de 70 % pe CLASATE, nu pe aduse (o zi cu 500 de serii „vechi” dădea un clasament din 100); clasament gol = nu public
+if (rez.n < 0.7 * Math.max(1, aduse - rez.excluse.scurt) || !rez.clasament.length) { console.error('clasate ' + rez.n + ' din ' + aduse + ' aduse (scurte ' + rez.excluse.scurt + ', vechi ' + rez.excluse.vechi + ') ⇒ sub 70 % sau clasament gol — nu public'); process.exit(1); }
 const top20 = rez.clasament.slice(0, 20);
 
 // 4. raportările (I-621) — cheia din secretele Actions; fără ea, câmpul lipsește
@@ -82,8 +85,8 @@ if (process.env.FINNHUB_API_KEY) {
 // 5. ieșiri / intrări față de ziua dinainte (I-615), sectoarele primelor 20 (I-616)
 const ist = fs.existsSync(F_IST) ? fs.readFileSync(F_IST, 'utf8') : '';
 const liniiIst = ist.split('\n').filter(Boolean);
-let prev = null; try { prev = liniiIst.length ? JSON.parse(liniiIst[liniiIst.length - 1]) : null; } catch { prev = null; }
-if (prev && prev.d === rez.dataUltimei) { try { prev = liniiIst.length > 1 ? JSON.parse(liniiIst[liniiIst.length - 2]) : null; } catch { prev = null; } }
+let prev = null, rerulare = false; try { prev = liniiIst.length ? JSON.parse(liniiIst[liniiIst.length - 1]) : null; } catch { prev = null; }
+if (prev && prev.d === rez.dataUltimei) { rerulare = true; try { prev = liniiIst.length > 1 ? JSON.parse(liniiIst[liniiIst.length - 2]) : null; } catch { prev = null; } }   // aceeași zi de date (re-rulare, sărbătoare US): nu e o zi nouă
 const ies = iesiri(prev, rez.toate, rg), intr = prev ? intrari(prev, top20) : [];   // prima zi din istoric nu e „20 de intrări”
 const sectoare = {}; top20.forEach((x) => { const s = info[x.s] && info[x.s].sector || 'Necunoscut'; sectoare[s] = (sectoare[s] || 0) + 1; });
 
@@ -108,7 +111,8 @@ console.log('raportări: ' + raportari.sursa + (raportari.n != null ? ' (' + rap
 
 // 7. Discord — doar la schimbare
 const mesaj = mesajDiscord({ dataUltimei: rez.dataUltimei, regim: rg, regimPrev: prev ? prev.regim : null, intrari: intr, iesiri: ies, raporteaza: top20.filter((x) => harta[x.s]).map((x) => ({ s: x.s, ...harta[x.s] })) });
-if (mesaj && process.env.DISCORD_WEBHOOK) {
+if (mesaj && rerulare) console.log('Discord: aceeași zi de date ca ultima linie (re-rulare / sărbătoare) ⇒ nu retrimit');
+else if (mesaj && process.env.DISCORD_WEBHOOK) {
   try {
     const r = await fetch(process.env.DISCORD_WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: mesaj }), signal: AbortSignal.timeout(20000) });
     console.log('Discord: ' + (r.ok ? 'trimis' : 'HTTP ' + r.status));

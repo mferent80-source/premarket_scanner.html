@@ -82,12 +82,33 @@ test('earnings peste clasamentul trend: cu cheia, cine raporteaza in 14 zile pri
 
 test('I-621: raportarile din JSON-ul robotului dau RAPORTEAZĂ fara cheie in browser; cand robotul a avut calendar, cine n-are raportare spune „fără raportare în 14z”', async () => {
   const t = json('2026-10-13', true, { raportari: { sursa: 'finnhub', la: '2026-10-14T06:30:00Z', fereastraZile: 14, n: 800 } });
-  t.clasament[2].raporteaza = { d: '2026-10-18', ora: 'amc', zile: 5 };
+  t.clasament[2].raporteaza = { d: '2026-10-18', ora: 'amc', zile: 5 };   // robotul a numărat de la 13.10; azi (14.10 NY) sunt 4
   const f = setup({ trend: t }); await f.hooks.loadTrend(); const s = f.hooks.state;
   const t2 = s.trend.find((x) => x.symbol === 'T2'), t0 = s.trend.find((x) => x.symbol === 'T0');
-  assert.equal(t2.state, 'RAPORTEAZĂ'); assert.match(t2.earnings, /raportează în 5z/); assert.match(t2.earnings, /după închidere/);
+  assert.equal(t2.state, 'RAPORTEAZĂ'); assert.match(t2.earnings, /raportează în 4z/); assert.match(t2.earnings, /după închidere/);
   assert.equal(t0.state, 'ÎN PROBĂ'); assert.match(t0.earnings, /fără raportare în 14z/);
   assert.ok(t2.fapte.some((p) => p.k === 'raportează' && p.rol === 'block'), 'faptul „raportează” e blocant');
+});
+
+test('revizie 14.10: zilele pana la raportare se recalculeaza fata de AZI (nu de la data clasamentului); o raportare trecuta nu mai e RAPORTEAZĂ; doua incarcari in paralel nu dubleaza cipurile', async () => {
+  const ziNY = (plus) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(now + plus * 86400000));
+  const t = json('2026-10-13', true, { raportari: { sursa: 'finnhub', la: '2026-10-14T06:30:00Z', fereastraZile: 14, n: 800 } });
+  t.clasament[1].raporteaza = { d: ziNY(1), ora: 'amc', zile: 2 };       // robotul a numărat 2 de la 13.10; azi e 14.10 ⇒ 1
+  t.clasament[2].raporteaza = { d: ziNY(-2), ora: 'bmo', zile: 0 };      // a raportat alaltăieri
+  const f = setup({ trend: t }); await Promise.all([f.hooks.loadTrend(), f.hooks.loadTrend()]); const s = f.hooks.state;
+  const t1 = s.trend.find((x) => x.symbol === 'T1'), t2 = s.trend.find((x) => x.symbol === 'T2');
+  assert.equal(t1.state, 'RAPORTEAZĂ'); assert.match(t1.earnings, /raportează în 1z/);
+  assert.equal(t2.state, 'ÎN PROBĂ'); assert.match(t2.earnings, /a raportat acum 2z/); assert.ok(t2.fapte.some((p) => p.k === 'a raportat'));
+  assert.equal(t1.fapte.filter((p) => p.k === 'raportează').length, 1, 'un singur cip, nu două');
+  assert.equal((t1.reason.match(/raportează în/g) || []).length, 1, 'motivul nu se dublează');
+});
+
+test('revizie 14.10: cautarea in modul Trend gaseste simbolul chiar daca e si in scanarea Top Long; VECHI de la 5 zile', async () => {
+  const f = setup(); await f.hooks.loadTrend(); const s = f.hooks.state; s.mode = 'trend';
+  s.analyses = [{ symbol: 'T1', mode: 'momentum', sector: 'Technology', actionable: false }];
+  f.node('search').value = 'T1'; assert.ok(f.hooks.currentItems().some((x) => x.symbol === 'T1' && x.mode === 'trend'));
+  const g = setup({ trend: json('2026-10-10') }); await g.hooks.loadTrend(); assert.ok(g.hooks.state.trend.every((x) => x.state === 'ÎN PROBĂ'), '3 zile (weekend) = proaspăt');
+  const h = setup({ trend: json('2026-10-08') }); await h.hooks.loadTrend(); assert.ok(h.hooks.state.trend.every((x) => x.state === 'VECHI'), '5 zile = VECHI');
 });
 
 test('I-615: iesirile din JSON se arata sub clasament ca IEȘIT, fara buton, fara sa intre in contor', async () => {
@@ -134,6 +155,7 @@ test('I-620 (ipoteza): dupa raportare cu reactie pozitiva in ultimele 7 zile, ca
   assert.equal(t2.pead, undefined, 'raportarea de acum 20 de zile nu conteaza');
   assert.equal(cereri.length, 20, 'doar primele 20, o cerere pe simbol');
   await f.hooks.peadPesteTrend(); assert.equal(cereri.length, 20, 'nu se repeta pentru aceeasi zi de date');
+  await f.hooks.loadTrend(); assert.equal(f.hooks.state.trend.find((x) => x.symbol === 'T1').pead.reactie, 4.2, 'revizie 14.10: reîncărcarea de la 5 minute păstrează faptul „după raportare”');
   const g = setup(); g.ctx.EARN = { cheie: () => '', istoric: async () => { throw Error('nu trebuia chemat'); } }; await g.hooks.loadTrend(); await g.hooks.peadPesteTrend();
   assert.ok(g.hooks.state.trend.every((x) => !x.pead), 'fara cheie nu se cere nimic');
 });

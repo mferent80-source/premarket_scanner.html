@@ -15,9 +15,10 @@ const zi = (t) => new Date(t).toISOString().slice(0, 10);
 
 test('raporteazaDinCalendar: ziua si ora raportarii pe simbol, zilele numarate de la data clasamentului, fara cele non-US', () => {
   const cal = [{ symbol: 'AAA', date: '2026-10-20', hour: 'amc' }, { symbol: 'BBB', date: '2026-10-15', hour: 'bmo' }, { symbol: 'CCC.HK', date: '2026-10-16' }, { symbol: 'AAA', date: '2027-01-20' }];
-  const r = raporteazaDinCalendar(cal, '2026-10-13');
+  const r = raporteazaDinCalendar(cal.concat([{ symbol: 'BRK.B', date: '2026-10-25', hour: 'bmo' }]), '2026-10-13');
   assert.deepEqual(r.AAA, { d: '2026-10-20', ora: 'amc', zile: 7 }); assert.deepEqual(r.BBB, { d: '2026-10-15', ora: 'bmo', zile: 2 });
-  assert.equal(r['CCC.HK'], undefined); assert.equal(Object.keys(r).length, 2, 'prima raportare a simbolului, nu ultima');
+  assert.equal(r['CCC.HK'], undefined); assert.deepEqual(r['BRK-B'], { d: '2026-10-25', ora: 'bmo', zile: 12 }, 'clasa de actiuni: BRK.B (Finnhub) = BRK-B (Yahoo)');
+  assert.equal(Object.keys(r).length, 3, 'prima raportare a simbolului, nu ultima');
 });
 
 test('iesiri si intrari fata de ziua dinainte: cazut sub top 20 %, momentum <= 0, lipsa din univers, regim oprit', () => {
@@ -28,13 +29,15 @@ test('iesiri si intrari fata de ziua dinainte: cazut sub top 20 %, momentum <= 0
   assert.deepEqual(intrari(prev, [{ s: 'A' }, { s: 'E' }]).map((x) => x.s), ['E']);
   const ro = iesiri(prev, clasat, { peste: false });
   assert.equal(ro.length, 4); assert.ok(ro.every((x) => x.motiv === 'regimul s-a oprit (SPY sub media pe 200 de zile)'));
+  const inca = iesiri({ ...prev, regim: false }, clasat, { peste: false });
+  assert.deepEqual(inca.map((x) => x.s), ['B', 'C', 'D'], 'revizie 14.10: cand regimul era DEJA oprit ieri, iesirile sunt cele normale, nu toate 20 in fiecare zi');
   assert.deepEqual(iesiri(null, clasat, { peste: true }), [], 'fără ziua dinainte, nimic de comparat');
 });
 
 test('mesajDiscord: gol cand nu s-a schimbat nimic; altfel regim + intrari + iesiri + cine raporteaza, sub 1.900 de caractere', () => {
   assert.equal(mesajDiscord({ dataUltimei: '2026-10-13', regim: { peste: true }, regimPrev: true, intrari: [], iesiri: [], raporteaza: [] }), '');
   const m = mesajDiscord({ dataUltimei: '2026-10-13', regim: { peste: true }, regimPrev: true, intrari: [{ s: 'E', m12: 1.0 }], iesiri: [{ s: 'B', motiv: 'a căzut la top 35,0 %' }], raporteaza: [{ s: 'A', zile: 1, ora: 'amc' }] });
-  assert.match(m, /Trend 12 luni · 2026-10-13/); assert.match(m, /regim pornit/); assert.match(m, /intrat: E \(\+100 %\)/); assert.match(m, /ieșit: B — a căzut/); assert.match(m, /raportează: A în 1z/);
+  assert.match(m, /Trend 12 luni · 2026-10-13/); assert.match(m, /regim pornit/); assert.match(m, /intrat: E \(\+100,0 %\)/); assert.match(m, /ieșit: B — a căzut/); assert.match(m, /raportează: A în 1z/);
   const flip = mesajDiscord({ dataUltimei: '2026-10-13', regim: { peste: false }, regimPrev: true, intrari: [], iesiri: [], raporteaza: [] });
   assert.match(flip, /regim OPRIT/);
   const lung = mesajDiscord({ dataUltimei: '2026-10-13', regim: { peste: true }, regimPrev: true, intrari: Array.from({ length: 200 }, (_, i) => ({ s: 'S' + i, m12: 1 })), iesiri: [], raporteaza: [] });
@@ -47,9 +50,11 @@ test('validareFisiere: JSON-ul si istoricul publicate au forma ceruta; o stricac
   assert.deepEqual(validareFisiere(bun, ist), []);
   assert.ok(validareFisiere({ ...bun, dataUltimei: '2026-13-40' }, ist).some((p) => /dataUltimei/.test(p)));
   assert.ok(validareFisiere({ ...bun, clasament: [{ s: 'A' }] }, ist).some((p) => /clasament/.test(p)));
-  assert.ok(validareFisiere(bun, ist + '{stricat\n').some((p) => /istoric/.test(p)));
+  assert.ok(validareFisiere(bun, ist + '{stricat\n').some((p) => /istoric/.test(p)), 'ultima linie stricată = problemă');
+  assert.deepEqual(validareFisiere(bun, '{stricat\n' + ist), [], 'revizie 14.10: o linie veche stricată nu blochează robotul pentru totdeauna');
   assert.ok(validareFisiere(bun, JSON.stringify({ d: '2026-10-10', top: [] }) + '\n').some((p) => /ultima zi/.test(p)));
   assert.ok(validareFisiere({ ...bun, regim: { peste: 'da' } }, ist).some((p) => /regim/.test(p)));
+  assert.ok(validareFisiere({ ...bun, clasament: [] }, ist).some((p) => /clasament gol/.test(p)), 'revizie 14.10: un clasament gol nu se publică');
 });
 
 test('fisierele publicate de robot trec garda de forma', () => {
@@ -58,20 +63,22 @@ test('fisierele publicate de robot trec garda de forma', () => {
   assert.deepEqual(validareFisiere(JSON.parse(readFileSync(j, 'utf8')), readFileSync(i, 'utf8')), []);
 });
 
-test('bilant: pe zilele cu 20/60 de zile de bursa dupa ele, excesul primelor 20 fata de SPY si fata de universul zilei; verdict dupa criterii', () => {
-  const spy = serie(400, 0.0005), bun = serie(400, 0.003), slab = serie(400, -0.001), mediu = serie(400, 0.0005);
+test('bilant: pe zilele cu 20/60 de zile de bursa dupa ele, excesul primelor 20 fata de SPY si fata de universul zilei; verdict pe FERESTRE NESUPRAPUSE (revizie 14.10)', () => {
+  const spy = serie(700, 0.0005), bun = serie(700, 0.003), slab = serie(700, -0.001), mediu = serie(700, 0.0005);
   const preturi = { SPY: spy, BUN: bun, SLAB: slab, MEDIU: mediu };
-  const istoric = []; for (let k = 250; k < 400 - 61; k += 5) istoric.push({ d: zi(spy[k].t), regim: true, n: 3, top: [['BUN', 1.5]], univers: ['BUN', 'SLAB', 'MEDIU'] });
+  const istoric = []; for (let k = 250; k < 250 + 90; k += 5) istoric.push({ d: zi(spy[k].t), regim: true, n: 3, top: [['BUN', 1.5]], univers: ['BUN', 'SLAB', 'MEDIU'] });
   const r = bilant(istoric, preturi, { h: [20, 60] });
   assert.equal(r.zile, istoric.length); assert.ok(r.n20 === istoric.length && r.n60 === istoric.length);
   assert.ok(r.exces20 > 0 && r.exces60 > r.exces20, 'BUN bate SPY, mai mult pe 60 z');
   assert.ok(r.nulB20 < r.exces20, 'media universului (cu SLAB) e sub primele 20');
   assert.ok(r.interval20[0] <= r.exces20 && r.exces20 <= r.interval20[1]);
-  assert.equal(r.verdict, 'în probă', 'sub 30 de zile cu rezultat ⇒ încă în probă');
-  const mult = []; for (let k = 250; k < 400 - 61; k += 2) mult.push({ d: zi(spy[k].t), regim: true, n: 3, top: [['BUN', 1.5]], univers: ['BUN', 'SLAB', 'MEDIU'] });
+  assert.ok(r.ferestre20 < 12); assert.equal(r.verdict, 'în probă', '90 de zile = 4 ferestre de 20 de zile ⇒ încă în probă, oricât de multe zile suprapuse ar fi');
+  const mult = []; for (let k = 250; k < 250 + 300; k += 1) mult.push({ d: zi(spy[k].t), regim: true, n: 3, top: [['BUN', 1.5]], univers: ['BUN', 'SLAB', 'MEDIU'] });
   const r2 = bilant(mult, preturi, { h: [20, 60] });
-  assert.ok(r2.n20 >= 30); assert.equal(r2.verdict, 'probat față de alte acțiuni');
-  const gol = bilant([{ d: zi(spy[399].t), regim: true, n: 3, top: [['BUN', 1]], univers: ['BUN'] }], preturi, { h: [20, 60] });
+  assert.ok(r2.ferestre20 >= 12, '300 de zile = 15 ferestre nesuprapuse'); assert.equal(r2.verdict, 'probat față de alte acțiuni');
+  const prost = []; for (let k = 250; k < 250 + 300; k += 1) prost.push({ d: zi(spy[k].t), regim: true, n: 3, top: [['SLAB', 1.5]], univers: ['BUN', 'SLAB', 'MEDIU'] });
+  assert.equal(bilant(prost, preturi, { h: [20, 60] }).verdict, 'picat față de alte acțiuni');
+  const gol = bilant([{ d: zi(spy[699].t), regim: true, n: 3, top: [['BUN', 1]], univers: ['BUN'] }], preturi, { h: [20, 60] });
   assert.equal(gol.n20, 0); assert.equal(gol.verdict, 'în probă');
 });
 

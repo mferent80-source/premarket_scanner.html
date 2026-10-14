@@ -48,8 +48,8 @@ export function clasament(serii, spy, o = {}) {
 export function raporteazaDinCalendar(items, dataUltimei) {
   const out = {}, t0 = Date.parse(dataUltimei + 'T12:00:00Z');
   for (const e of Array.isArray(items) ? items : []) {
-    const s = String(e && e.symbol || '');
-    if (!/^[A-Z][A-Z0-9]{0,4}$/.test(s) || !e.date || out[s]) continue;
+    const s = String(e && e.symbol || '').replace(/^([A-Z][A-Z0-9]{0,4})\.([A-Z])$/, '$1-$2');   // revizie 14.10: BRK.B (Finnhub) = BRK-B (Yahoo)
+    if (!/^[A-Z][A-Z0-9]{0,4}(-[A-Z])?$/.test(s) || !e.date || out[s]) continue;
     const zile = Math.round((Date.parse(e.date + 'T12:00:00Z') - t0) / 86400000);
     if (!Number.isFinite(zile)) continue;
     out[s] = { d: e.date, ora: e.hour || '', zile };
@@ -63,7 +63,7 @@ export function iesiri(prev, clasat, rg) {
   const azi = new Map((clasat || []).map((x) => [x.s, x])), out = [];
   for (const [s] of prev.top) {
     const x = azi.get(s);
-    if (rg && rg.peste === false) { out.push({ s, motiv: 'regimul s-a oprit (SPY sub media pe 200 de zile)', rangAzi: x ? x.rang : null, m12: x ? x.m12 : null }); continue; }
+    if (rg && rg.peste === false && prev.regim === true) { out.push({ s, motiv: 'regimul s-a oprit (SPY sub media pe 200 de zile)', rangAzi: x ? x.rang : null, m12: x ? x.m12 : null }); continue; }   // revizie 14.10: doar la OPRIRE, nu zilnic cât e oprit
     if (!x) { out.push({ s, motiv: 'a ieșit din univers', rangAzi: null, m12: null }); continue; }
     if (!(x.m12 > 0)) { out.push({ s, motiv: 'momentum 12-1 sub zero', rangAzi: x.rang, m12: x.m12 }); continue; }
     if (x.rang >= 0.2) out.push({ s, motiv: 'a căzut la top ' + (x.rang * 100).toFixed(1).replace('.', ',') + ' %', rangAzi: x.rang, m12: x.m12 });
@@ -83,7 +83,7 @@ export function mesajDiscord(o) {
   const intr = o.intrari || [], ies = o.iesiri || [], rap = (o.raporteaza || []).filter((r) => Number.isFinite(r.zile) && r.zile >= 0 && r.zile <= 14);
   if (!flip && !intr.length && !ies.length) return '';
   const L = ['**Trend 12 luni · ' + o.dataUltimei + '** · regim ' + (peste ? 'pornit' : 'OPRIT') + (flip ? ' (schimbat)' : '')];
-  if (intr.length) L.push('intrat: ' + intr.map((x) => x.s + (Number.isFinite(x.m12) ? ' (+' + Math.round(x.m12 * 100) + ' %)' : '')).join(', '));
+  if (intr.length) L.push('intrat: ' + intr.map((x) => x.s + (Number.isFinite(x.m12) ? ' (' + (x.m12 >= 0 ? '+' : '') + (x.m12 * 100).toFixed(1).replace('.', ',') + ' %)' : '')).join(', '));
   if (ies.length) L.push('ieșit: ' + ies.map((x) => x.s + ' — ' + x.motiv).join('; '));
   if (rap.length) L.push('raportează: ' + rap.map((r) => r.s + ' în ' + r.zile + 'z' + (r.ora ? ' ' + r.ora : '')).join(', '));
   L.push('_în probă; nu e un buton de cumpărat — detalii în Candidate Engine → Trend 12 luni_');
@@ -100,18 +100,21 @@ export function validareFisiere(j, jsonl) {
   if (!ziOk(j.dataUltimei)) p.push('dataUltimei nu e o zi validă');
   if (!j.regim || (typeof j.regim.peste !== 'boolean' && j.regim.peste !== null)) p.push('regim.peste nu e boolean');
   if (!Array.isArray(j.clasament) || j.clasament.length > 40) p.push('clasament lipsă sau > 40');
+  else if (!j.clasament.length) p.push('clasament gol');
   else j.clasament.forEach((x, i) => { if (!x || typeof x.s !== 'string' || !['pret', 'm12', 'm6', 'rang'].every((k) => Number.isFinite(x[k])) || !Array.isArray(x.spark)) p.push('clasament[' + i + '] fără câmpurile cerute'); });
   const linii = String(jsonl || '').split('\n').filter(Boolean);
   if (!linii.length) p.push('istoric gol');
-  let ultima = null;
-  linii.forEach((l, i) => { try { const o = JSON.parse(l); if (!ziOk(o.d) || !Array.isArray(o.top)) p.push('istoric linia ' + (i + 1) + ' fără d/top'); ultima = o; } catch { p.push('istoric linia ' + (i + 1) + ' nu e JSON'); } });
+  let ultima = null;   // revizie 14.10: doar ULTIMA linie trebuie să fie bună — o linie veche stricată nu blochează robotul pentru totdeauna
+  linii.forEach((l, i) => { const e = i === linii.length - 1; try { const o = JSON.parse(l); if (e && (!ziOk(o.d) || !Array.isArray(o.top))) p.push('istoric linia ' + (i + 1) + ' fără d/top'); if (e) ultima = o; } catch { if (e) p.push('istoric linia ' + (i + 1) + ' nu e JSON'); } });
   if (ultima && ultima.d !== j.dataUltimei) p.push('istoric: ultima zi ' + ultima.d + ' ≠ dataUltimei ' + j.dataUltimei);
   return p;
 }
 
 // mulberry32 — generatorul cerut de regula din 06.10
 function rnd(seed) { return () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-function interval(v, extr = 1000) { if (!v.length) return [null, null]; const R = rnd(7), bs = []; for (let k = 0; k < extr; k++) { let s = 0; for (let j = 0; j < v.length; j++) s += v[Math.floor(R() * v.length)]; bs.push(s / v.length); } bs.sort((a, b) => a - b); return [bs[Math.floor(extr * 0.05)], bs[Math.floor(extr * 0.95)]]; }
+// revizie 14.10: ferestrele de 20 de zile luate zi de zi se SUPRAPUN (regula din 06.10 despre puține observații independente) ⇒
+// bootstrap pe BLOCURI de `bloc` observații consecutive (circular), nu pe observații una câte una
+function interval(v, extr = 1000, bloc = 20) { if (!v.length) return [null, null]; const R = rnd(7), bs = [], n = v.length, b = Math.min(bloc, n); for (let k = 0; k < extr; k++) { let s = 0, c = 0; while (c < n) { const st = Math.floor(R() * n); for (let j = 0; j < b && c < n; j++, c++) s += v[(st + j) % n]; } bs.push(s / n); } bs.sort((a, b2) => a - b2); return [bs[Math.floor(extr * 0.05)], bs[Math.floor(extr * 0.95)]]; }
 
 /**
  * Bilanțul probei (I-614): pe fiecare zi din istoric cu h zile de bursă după ea, randamentul mediu al primelor 20 la h zile față de SPY
@@ -129,8 +132,9 @@ export function bilant(istoric, preturi, o = {}) {
     const si = idx.SPY ? idx.SPY.get(l.d) : null; if (si == null) continue;
     for (const h of H) {
       if (si + h >= spy.length) continue;
-      const spyR = spy[si + h].c / spy[si + 1].o - 1;
-      const rand = (s) => { const b = preturi[s], i = idx[s] ? idx[s].get(l.d) : null; if (!b || i == null || i + h >= b.length) return null; return b[i + h].c / b[i + 1].o - 1 - COST - spyR; };
+      const zIn = zi(spy[si + 1].t), zOut = zi(spy[si + h].t), spyR = spy[si + h].c / spy[si + 1].o - 1;
+      // revizie 14.10: intrarea și ieșirea pe DATELE calendarului SPY, nu pe indicii acțiunii (o zi lipsă nu mai decalează fereastra)
+      const rand = (s) => { const b = preturi[s], m = idx[s]; if (!b || !m) return null; const i0 = m.get(zIn), i1 = m.get(zOut); if (i0 == null || i1 == null) return null; return b[i1].c / b[i0].o - 1 - COST - spyR; };
       const top = l.top.map(([s]) => rand(s)).filter((v) => v !== null); if (!top.length) continue;
       const univ = (l.univers || []).map(rand).filter((v) => v !== null);
       const mTop = top.reduce((a, b) => a + b, 0) / top.length, mUniv = univ.length ? univ.reduce((a, b) => a + b, 0) / univ.length : null;
@@ -138,15 +142,16 @@ export function bilant(istoric, preturi, o = {}) {
     }
   }
   const medie = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
-  const r20 = rez[H[0]], r60 = rez[H[1]] || { top: [], nul: [], dif: [] }, dif20 = interval(r20.dif);
+  const r20 = rez[H[0]], r60 = rez[H[1]] || { top: [], nul: [], dif: [] }, dif20 = interval(r20.dif, 1000, H[0]);
+  const ferestre20 = Math.floor(r20.dif.length / H[0]);   // ferestre de 20 de zile care NU se suprapun = observațiile independente
   let verdict = 'în probă';
-  if (r20.dif.length >= 30 && dif20[0] !== null && dif20[0] > 0) verdict = 'probat față de alte acțiuni';
-  else if (r20.dif.length >= 60 && dif20[1] !== null && dif20[1] < 0) verdict = 'picat față de alte acțiuni';
+  if (ferestre20 >= 12 && dif20[0] !== null && dif20[0] > 0) verdict = 'probat față de alte acțiuni';
+  else if (ferestre20 >= 12 && dif20[1] !== null && dif20[1] < 0) verdict = 'picat față de alte acțiuni';
   return {
-    zile, n20: r20.top.length, n60: r60.top.length,
+    zile, n20: r20.top.length, n60: r60.top.length, ferestre20,
     exces20: medie(r20.top), exces60: medie(r60.top), nulB20: medie(r20.nul), nulB60: medie(r60.nul),
-    interval20: interval(r20.top), diferenta20: { medie: medie(r20.dif), interval: dif20 }, diferenta60: { medie: medie(r60.dif), interval: interval(r60.dif) },
-    verdict, criterii: '≥ 30 de zile cu rezultat la 20 z și marginea de 5 % a diferenței față de universul zilei > 0 ⇒ probat; ≥ 60 de zile și marginea de 95 % < 0 ⇒ picat; nulul „aceleași acțiuni, alte zile” se face separat, la 6–12 luni',
+    interval20: interval(r20.top, 1000, H[0]), diferenta20: { medie: medie(r20.dif), interval: dif20 }, diferenta60: { medie: medie(r60.dif), interval: interval(r60.dif, 1000, H[1] || 60) },
+    verdict, criterii: 'cel puțin 12 ferestre de 20 de zile care nu se suprapun (≈ 1 an) și marginea de 5 % a diferenței față de universul zilei > 0 (bootstrap pe blocuri de 20) ⇒ probat; 12 ferestre și marginea de 95 % < 0 ⇒ picat; nulul „aceleași acțiuni, alte zile” se face separat, la 6–12 luni',
   };
 }
 

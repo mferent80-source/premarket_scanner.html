@@ -61,6 +61,12 @@ test('I-618: candidatii momentum/reversal poarta faptele (EOD, trend, RS, RVOL, 
   f.hooks.render(); assert.match(f.node('rows').innerHTML, /ce-chip/);
 });
 
+test('revizie 14.10: un simbol pe care calendarul nu-l poate verifica (nu are forma de ticker US) e „neverificat”, nu „curat”', async () => {
+  const f = setup({ items: [] }); f.ctx.WL = { get: () => ['ABCDEFG1'] }; await f.hooks.scan();
+  const x = f.hooks.state.analyses.find((a) => a.mode === 'momentum' && a.symbol === 'ABCDEFG1');
+  assert.ok(x); assert.equal(x.actionable, false); assert.match(x.reason, /earnings neverificat/);
+});
+
 test('raportare maine / azi: blocat (BLOCKED), ca inainte', async () => {
   const f = setup({ items: [{ symbol: 'TEST', date: ziNY(1), hour: 'bmo', epsEstimate: 1 }] }); await f.hooks.scan();
   const x = f.hooks.state.analyses.find((a) => a.mode === 'momentum');

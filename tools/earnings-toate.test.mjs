@@ -13,6 +13,7 @@ function setup() {
       { symbol: 'AAA', date: '2026-10-20', hour: 'amc', epsEstimate: 1.2 },
       { symbol: 'BBB', date: '2026-10-21', hour: 'bmo', epsEstimate: null, revenueEstimate: null, epsActual: null },
       { symbol: 'CCC.HK', date: '2026-10-21', hour: 'bmo', epsEstimate: 2 },
+      { symbol: 'BRK.B', date: '2026-10-25', hour: 'bmo', epsEstimate: 3 },
     ] }; } },
   };
   ctx.window = ctx; vm.createContext(ctx);
@@ -25,8 +26,8 @@ test('implicit: doar raportarile cu estimari (ca pana acum, pentru hub)', async 
   assert.equal(r.ok, true); assert.deepEqual(r.items.map((e) => e.symbol), ['AAA']);
 });
 
-test('toate:true: orice raportare programata US, fara cele non-US, pentru garda scannerului', async () => {
+test('toate:true: orice raportare programata US, fara cele non-US, pentru garda scannerului; clasele de actiuni (BRK.B) devin BRK-B (ca la Yahoo)', async () => {
   const f = setup(); const r = await f.ctx.EARN.calendar({ zile: 14, toate: true });
-  assert.equal(r.ok, true); assert.deepEqual(r.items.map((e) => e.symbol), ['AAA', 'BBB']);
+  assert.equal(r.ok, true); assert.deepEqual(r.items.map((e) => e.symbol), ['AAA', 'BBB', 'BRK-B']);
   assert.match(f.cereri[0].opts.cacheKey, /toate/, 'cache separat de lista hubului');
 });
