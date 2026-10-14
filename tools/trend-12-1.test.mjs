@@ -2,7 +2,7 @@
 // Semnalul probat pe 14.10: top 20 % după randamentul pe lunile 2–12 (ultima lună sărită), față de ALTE acțiuni în aceeași zi.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { curataUnivers, clasament, regim, liniaIstoric, adaugaIstoric } from './trend-12-1-lib.mjs';
+import { curataUnivers, clasament, regim, liniaIstoric, adaugaIstoric, taieBaraPartiala } from './trend-12-1-lib.mjs';
 
 // o serie de bare zilnice doar în zile lucrătoare, preț cu creștere constantă pe zi
 function serie(n, pantaZi, { vol = 1e6, pret0 = 100, taie = 0 } = {}) {
@@ -59,6 +59,17 @@ test('regim: SPY peste / sub media simpla pe 200 de zile', () => {
   assert.equal(sus.peste, true); assert.equal(jos.peste, false);
   assert.ok(sus.inchidere > sus.sma200 && jos.inchidere < jos.sma200);
   assert.equal(regim(serie(100, 0.001)).peste, null, 'sub 200 de bare: regim necunoscut');
+});
+
+test('bara partiala: rulat in timpul sesiunii, ultima bara (de azi, neinchisa) se taie din toate seriile; dupa inchidere ramane', () => {
+  const spy = serie(300, 0.0005), serii = { A: serie(300, 0.001), B: serie(298, 0.001) };
+  const ultima = new Date(spy[spy.length - 1].t), ziNY = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(t));
+  // „acum” = ziua ultimei bare, la 13:00 New York (sesiune deschisă)
+  const deschis = Date.parse(ziNY(ultima) + 'T13:00:00-04:00'), inchis = Date.parse(ziNY(ultima) + 'T18:00:00-04:00');   // 18:00 EDT = 17:00 EST: închis în orice anotimp
+  const r1 = taieBaraPartiala(serii, spy, deschis);
+  assert.equal(r1.taiat, true); assert.equal(r1.spy.length, 299); assert.equal(r1.serii.A.length, 299); assert.equal(r1.serii.B.length, 298, 'seria care nu are bara de azi nu se taie');
+  const r2 = taieBaraPartiala(serii, spy, inchis);
+  assert.equal(r2.taiat, false); assert.equal(r2.spy.length, 300); assert.equal(r2.serii.A.length, 300);
 });
 
 test('istoricul: o linie pe zi de date, nu se dubleaza', () => {

@@ -3316,6 +3316,9 @@ pe un singur chart.
 | I-608 | Eticheta adevărului pe ARMED / FIRE: „semnal neprobat (audit 14.10) — listă de urmărit, nu intrare” în scanner și Desk (Decision App — doar cu acordul lui) | candidate-engine/engine.js + desk/ | S | P2 | propus | ideation | 2026-10-14 |
 | I-609 | Semnal pe orizontul documentat: momentum 6–12 luni cu luna din urmă sărită + regimul lățimii US — IPOTEZĂ, probată pe ambele nuluri și ambele jumătăți înainte de orice buton (Decision App) | candidate-engine/engine.js + scripturile de audit | L | P2 | propus | ideation | 2026-10-14 |
 | I-610 | Universul scannerului datat, din screenerul Nasdaq ținut de Radar (KV univers:sua), nu US_CORE de mână (67 câștigătorii de azi) (Decision App) | candidate-engine/engine.js + crypto/scripts/lib/tura-sectoare.mjs | M | P3 | propus | ideation | 2026-10-14 |
+| I-611 | Scorul de momentum premiază volumul pe zi roșie (rvol ≥ 1,1 dă 7 puncte fără direcția zilei) — de probat pe scripturile de pe E: înainte de orice schimbare | candidate-engine/engine.js | S | P3 | propus | ideation | 2026-10-14 |
+| I-612 | Governor „TRADE” fără jurnal și fără T212 = confort fals ⇒ „NEVERIFICAT” când n-are din ce judeca (Decision App, cu acordul lui) | lib/governor.js | S | P2 | propus | ideation | 2026-10-14 |
+| I-613 | Coloana SCOR din modul Trend (100 − rang) seamănă cu scorul celorlalte moduri, dar înseamnă altceva — de scos sau etichetat | candidate-engine/engine.js + index.html | S | P3 | propus | ideation | 2026-10-14 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6132,4 +6135,26 @@ Context: pagina repornită în `0fa541ea` (tt-v872); auditul în `docs/AUDIT-CAN
 - **Impact:** candidați pe care nu-i știe toată lumea; audit cinstit.
 - **Riscuri/dependențe:** Decision App citește din Radar (alt origin) — prin Tailscale sau un fișier publicat; volum de scanare mai mare (limitează la top 200).
 - **Fișiere:** candidate-engine/engine.js, crypto/scripts/lib/tura-sectoare.mjs (există).
+
+
+## 14.10.2026 — audit sever scanner + Trend + Desk (docs/AUDIT-SCANNER-DESK-2026-10-14.md): ce a rămas la decizia lui
+
+#### I-611 · Scorul de momentum premiază volumul pe zi roșie · [S] · P3 · propus
+- **Problema/golul:** `momentumScore`: `rvol ≥ 1,1` dă 7 puncte (și `≥ 1,5` încă 4) indiferent de direcția zilei — factor adirecțional premiat greșit (trader.md). Scorul n-are avantaj oricum (audit 14.10).
+- **Soluția:** volumul contează doar pe zi verde (`dayChg > 0`); dar orice schimbare de prag e o ipoteză: se probează întâi cu `ce_audit_1410.mjs` pe ambele nuluri.
+- **Impact:** scor mai cinstit; nu promite avantaj.
+- **Fișiere:** candidate-engine/engine.js.
+
+#### I-612 · Governor „TRADE” fără jurnal și fără T212 (Decision App) · [S] · P2 · propus
+- **Problema/golul:** `lib/governor.js`: jurnal manual gol ⇒ niciun motiv de oprire ⇒ TRADE; `accountSize` 10.000 implicit când lipsește contul. Scannerul și Desk-ul arată „Governor: TRADE” ca și cum limitele ar fi fost verificate.
+- **Soluția:** fără jurnal (0 rânduri) și fără snapshot T212 ⇒ verdict „NEVERIFICAT” cu motivul; Desk-ul și scannerul îl tratează deja ca blocaj (`knownGovernor`).
+- **Impact:** niciun plan pe un buget pe care nimeni nu l-a verificat.
+- **Riscuri/dependențe:** Decision App e aplicație separată — doar cu acordul lui; testele Governor-ului se adaptează.
+- **Fișiere:** lib/governor.js, tools/governor*.test.mjs.
+
+#### I-613 · Coloana SCOR din modul Trend · [S] · P3 · propus
+- **Problema/golul:** la Trend, SCOR = 100 − rang (80–100 pentru top 20 %) — arată ca scorul Top Long / Early Reversal, dar nu e același lucru; RANG (top x %) spune deja același lucru.
+- **Soluția:** coloana devine „—” sau „60 z” (randamentul pe 60 de zile din clasament), cu antetul schimbat doar pentru Trend.
+- **Impact:** nu se mai citesc două scoruri ca unul.
+- **Fișiere:** candidate-engine/engine.js (rowHtmlTrend, tableHead), index.html.
 

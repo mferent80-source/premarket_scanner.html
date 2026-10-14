@@ -66,6 +66,19 @@ test('fara regim si date vechi: starile FĂRĂ REGIM si VECHI; cand fisierul nu 
   assert.equal(f3.hooks.state.trend.length, 0); assert.equal(String(f3.node('countTrend').textContent), '0'); assert.match(f3.node('rows').innerHTML, /robot/i);
 });
 
+test('earnings peste clasamentul trend: cu cheia, cine raporteaza in 14 zile primeste starea RAPORTEAZĂ si ziua; fara cheie, spune „neverificat”', async () => {
+  const ziNY = (plus) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(now + plus * 86400000));
+  const f = setup(); f.ctx.EARN = { calendar: async (o) => ({ ok: true, items: [{ symbol: 'T3', date: ziNY(3), hour: 'amc', epsEstimate: 1 }, { symbol: 'T0', date: ziNY(0), hour: 'bmo' }], motiv: '' }) };
+  await f.hooks.loadTrend(); const s = f.hooks.state;
+  const t3 = s.trend.find((x) => x.symbol === 'T3'), t0 = s.trend.find((x) => x.symbol === 'T0'), t5 = s.trend.find((x) => x.symbol === 'T5');
+  assert.equal(t3.state, 'RAPORTEAZĂ'); assert.match(t3.reason, /raportează în 3z/); assert.match(t3.earnings, /3z/);
+  assert.equal(t0.state, 'RAPORTEAZĂ'); assert.match(t0.reason, /raportează în 0z/);
+  assert.equal(t5.state, 'ÎN PROBĂ'); assert.match(t5.earnings, /fără raportare în 14z/);
+  s.mode = 'trend'; f.hooks.render(); assert.match(f.node('rows').innerHTML, /RAPORTEAZĂ/);
+  const g = setup(); g.ctx.EARN = { calendar: async () => ({ ok: false, items: [], motiv: 'fără cheie' }) };
+  await g.hooks.loadTrend(); assert.ok(g.hooks.state.trend.every((x) => x.state === 'ÎN PROBĂ' && /neverificat/.test(x.earnings)));
+});
+
 test('cautarea si filtrele merg pe trend; copia locala a scanarii (ce_results_v2) nu primeste trend', async () => {
   const f = setup(); await f.hooks.loadTrend(); const s = f.hooks.state; s.mode = 'trend';
   f.node('search').value = 'T1'; const items = f.hooks.currentItems(); assert.ok(items.length >= 1 && items.every((x) => /T1/.test(x.symbol)));

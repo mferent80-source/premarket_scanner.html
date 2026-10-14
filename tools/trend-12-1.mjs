@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { curataUnivers, clasament, regim, liniaIstoric, adaugaIstoric } from './trend-12-1-lib.mjs';
+import { curataUnivers, clasament, regim, liniaIstoric, adaugaIstoric, taieBaraPartiala } from './trend-12-1-lib.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GEN = path.join(ROOT, 'candidate-engine', 'generated');
@@ -47,10 +47,13 @@ async function adu(s) {
   }
 }
 await adu('SPY');
-const spy = serii.SPY; delete serii.SPY;
+let spy = serii.SPY; delete serii.SPY;
 if (!spy || spy.length < 260) { console.error('SPY lipsește ⇒ nu public nimic'); process.exit(1); }
 const coada = univers.map((x) => x.s);
 await Promise.all(Array.from({ length: PARALEL }, async () => { while (coada.length) await adu(coada.shift()); }));
+// audit 14.10: rulat de mână în timpul sesiunii, ultima bară e neînchisă — se taie, altfel „EOD azi” ar fi o minciună
+const partial = taieBaraPartiala(serii, spy);
+if (partial.taiat) { console.log('sesiunea New York e deschisă ⇒ bara de azi (neînchisă) tăiată din toate seriile'); Object.assign(serii, partial.serii); spy = partial.spy; }
 const aduse = Object.keys(serii).length;
 console.log('serii: ' + aduse + ' din ' + univers.length + ' · picate ' + picate.length + (picate.length ? ' (' + picate.slice(0, 8).join(', ') + (picate.length > 8 ? '…' : '') + ')' : ''));
 if (aduse < univers.length * 0.7) { console.error('au venit sub 70 % din serii ⇒ nu public un clasament pe jumătate'); process.exit(1); }

@@ -52,6 +52,18 @@ export function regim(spy) {
   return { inchidere, sma200, peste: inchidere > sma200 };
 }
 
+/** Rulat în timpul sesiunii (manual), ultima bară a zilei e neînchisă: se taie din SPY și din seriile care o au. */
+export function taieBaraPartiala(serii, spy, now = Date.now()) {
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const p = Object.fromEntries(fmt.formatToParts(new Date(now)).filter((x) => x.type !== 'literal').map((x) => [x.type, x.value]));
+  const azi = p.year + '-' + p.month + '-' + p.day, minute = Number(p.hour) * 60 + Number(p.minute);
+  const ziNY = (t) => { const q = Object.fromEntries(fmt.formatToParts(new Date(t)).filter((x) => x.type !== 'literal').map((x) => [x.type, x.value])); return q.year + '-' + q.month + '-' + q.day; };
+  const deschis = minute < 16 * 60 + 15 && ziNY(spy[spy.length - 1].t) === azi;
+  if (!deschis) return { serii, spy, taiat: false };
+  const taie = (b) => (b.length && ziNY(b[b.length - 1].t) === azi ? b.slice(0, -1) : b);
+  return { serii: Object.fromEntries(Object.entries(serii).map(([s, b]) => [s, taie(b)])), spy: taie(spy), taiat: true };
+}
+
 /** O linie de istoric (pentru testul de peste 6–12 luni, pe date pe care nu le-am văzut): ziua, regimul, numărul, primele 20. */
 export function liniaIstoric(rez, rg) {
   return { d: rez.dataUltimei, regim: rg ? rg.peste : null, n: rez.n, top: rez.clasament.slice(0, 20).map((x) => [x.s, +x.m12.toFixed(4)]) };

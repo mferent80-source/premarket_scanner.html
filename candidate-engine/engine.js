@@ -83,21 +83,34 @@
     state.earningsOk = false; state.earningsMap = {};
     if (!window.EARN || !EARN.calendar) return;
     try {
-      var r = await EARN.calendar({ zile: 14 });
+      var r = await EARN.calendar({ zile: 14, toate: true });
       if (!r || !r.ok) return;
       state.earningsOk = true;
       (r.items || []).forEach(function (e) { if (e && e.symbol && !state.earningsMap[e.symbol]) state.earningsMap[e.symbol] = e; });
     } catch (_) {}
   }
+  // Audit 14.10.2026: zilele pana la raportare se numara pe calendarul New York (la 23:30 ora Romaniei e inca azi la New York),
+  // iar o raportare in fereastra de 14 zile NU mai lasa candidatul actionable: planul Desk-ului se tine zile/saptamani si ar
+  // traversa raportarea cu un stop pe care un gap il sare. Fara cheie (neverificat) la fel: nu se cumpara pe o garda oarba.
+  function zileNY(dataIso) {
+    var azi = DailySeries.date(Date.now(), 'America/New_York');
+    return Math.round((Date.parse(dataIso + 'T12:00:00Z') - Date.parse(azi + 'T12:00:00Z')) / 86400000);
+  }
   function earningsInfo(sym) {
     var e = state.earningsMap[sym];
-    if (!state.earningsOk) return { penalty: 5, blocked: false, text: 'earnings neverificat' };
-    if (regionOf(sym) === 'EU') return { penalty: 5, blocked: false, text: 'earnings EU neverificat' };
+    if (!state.earningsOk) return { penalty: 5, blocked: false, unverified: true, text: 'earnings neverificat' };
+    if (regionOf(sym) === 'EU') return { penalty: 5, blocked: false, unverified: true, text: 'earnings EU neverificat' };
     if (!e || !e.date) return { penalty: 0, blocked: false, text: 'fără earnings în 14z' };
-    var days = Math.ceil((new Date(e.date + 'T12:00:00').getTime() - Date.now()) / 86400000);
-    if (days <= 1) return { penalty: 30, blocked: true, text: 'earnings în ' + Math.max(0, days) + 'z' };
-    if (days <= 3) return { penalty: 12, blocked: false, text: 'earnings în ' + days + 'z' };
-    return { penalty: 4, blocked: false, text: 'earnings în ' + days + 'z' };
+    var days = zileNY(e.date);
+    if (days <= 1) return { penalty: 30, blocked: true, days: days, text: 'earnings în ' + Math.max(0, days) + 'z' };
+    if (days <= 3) return { penalty: 12, blocked: false, inFereastra: true, days: days, text: 'earnings în ' + days + 'z' };
+    return { penalty: 4, blocked: false, inFereastra: true, days: days, text: 'earnings în ' + days + 'z' };
+  }
+  function gardaEarnings(earn) {
+    if (!earn) return '';
+    if (earn.unverified) return 'earnings neverificat — fără cheia Finnhub nu se construiește plan';
+    if (earn.inFereastra) return 'raportează în ' + earn.days + ' zile — planul (zile, nu ore) ar traversa raportarea';
+    return '';
   }
 
   function momentumScore(f, earn) {
@@ -135,7 +148,7 @@
     return Math.round(clamp(s - earn.penalty, 0, 100));
   }
 
-  async function analyze(sym, benchmark) {
+  async function analyze(sym, benchmark, govScan) {
     var source=DailySeries.read(await D.fetchStock(sym, { range: '1y', interval: '1d', ttl: 1800 }),sym);
     var bars=source.bars,benchmarkRet20=benchmark&&benchmark.asOf===source.asOf?benchmark.ret20:null;
     if (!bars || bars.length < 80) throw new Error('istoric insuficient');
@@ -160,7 +173,7 @@
     var eb = MEB.computeEarlyBird(hist, 4, null);
     var mScore = momentumScore(f, earn);
     var rScore = reversalScore(f, eb, earn);
-    var gov = window.GV && GV.status ? GV.status() : { verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] };
+    var gov = govScan || (window.GV && GV.status ? GV.status() : { verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] });
     var knownGovernor = ['TRADE','CAUTION','HALTED'].includes(gov.verdict);
     var blocked = earn.blocked || !['TRADE','CAUTION'].includes(gov.verdict);
     var sector = window.EL && EL.sectorOf ? EL.sectorOf(sym) : 'Necunoscut';
@@ -197,6 +210,8 @@
       entryLow: entryLow, entryHigh: entryHigh, stop: stop, target: target, spark: f.spark,
       governor: gov, earnings: earn.text, ts: Date.now()
     };
+    var garda = gardaEarnings(earn);
+    if (garda && !blocked) { for (const item of [momentum, reversal]) { if (item.actionable) { item.actionable = false; item.state = 'WATCH'; } item.reason += ' · ' + garda; } }
     if(blocked){for(const item of [momentum,reversal])item.reason+=' · Plan blocat: '+(earn.blocked?earn.text:gov.reasons?.[0]||'Governor '+gov.verdict);}
     if(window.TTDecisionVerdict){for(const item of [momentum,reversal]){const verdict=TTDecisionVerdict.build({purpose:'entry',candidate:item,risk:gov});if(!verdict.canPlan){item.actionable=false;item.state=blocked||verdict.code==='BLOCKED'?'BLOCKED':'WATCH';item.reason+=' · '+(verdict.blockers[0]?.text||verdict.cautions[0]?.text||verdict.title);}}}
     return { momentum: momentum, reversal: reversal };
@@ -270,11 +285,12 @@
     try {
       var list = universe(); state.scanKey=JSON.stringify([$('universe').value,list]);state.scanned=list.length;$('ctxUniverse').textContent = list.length + ' simboluri';
       var initial=await Promise.all([earningsGate(),benchmarkReturns()]),bench=initial[1];
+      var govScan = window.GV && GV.status ? GV.status() : null;   // o singură citire a jurnalului pe scanare
       var all = [], q = list.slice(), done = 0, concurrency = 5;
       async function worker() {
         while (q.length) {
           var sym = q.shift();
-          try { all.push(await analyze(sym, bench[regionOf(sym)]));state.verified++; }
+          try { all.push(await analyze(sym, bench[regionOf(sym)], govScan));state.verified++; }
           catch (e) { state.failures.push({ symbol: sym, reason: e && e.message || 'eroare' }); }
           done++; progress(done, list.length);
         }
@@ -338,7 +354,7 @@
       + '<span class="ce-cell ' + clsB + '" data-label="'+(state.mode==='momentum'?'RVOL':'Din minim')+'">' + b + '</span><span class="ce-cell" data-label="'+(state.mode==='momentum'?'RS 20z':'Bază')+'">' + c + '</span><span class="ce-cell" data-label="'+(state.mode==='momentum'?'Ret. 20z':'RVOL')+'">' + d + '</span>'
       + '<strong class="ce-score">' + x.score + '</strong><i class="ce-state ' + stateClass(x) + '">' + x.state + '</i></button>';
   }
-  function stateClass(x) { return x.mode === 'trend' ? (x.state === 'VECHI' ? 'vechi' : x.state === 'FĂRĂ REGIM' ? 'regim' : 'proba') : String(x.state || '').toLowerCase(); }
+  function stateClass(x) { return x.mode === 'trend' ? (x.state === 'VECHI' ? 'vechi' : x.state === 'RAPORTEAZĂ' ? 'raporteaza' : x.state === 'FĂRĂ REGIM' ? 'regim' : 'proba') : String(x.state || '').toLowerCase(); }
   // Modul „Trend 12 luni” (14.10.2026): clasamentul vine de la robotul zilnic (tools/trend-12-1.mjs ⇒ generated/trend-12-1.json).
   // Semnal de SELECȚIE probat față de alte acțiuni în aceeași zi; neprobat pe listă istorică ⇒ fără plan, în probă.
   var TREND_ETICHETA = 'selecție probată față de acțiunile din aceeași zi; neprobată pe listă istorică; în probă — nu e un buton de cumpărat';
@@ -367,11 +383,29 @@
           governor: gov, earnings: 'neverificat în modul trend', ts: Date.parse(j.la) || Date.now(), sourceDate: j.dataUltimei
         };
       });
+      await earningsPesteTrend(vechi);
     } catch (e) {
       state.trend = []; state.trendMeta = null; state.trendEroare = (e && e.message) || 'eroare';
     }
     $('countTrend').textContent = state.trend.length;
     if (state.mode === 'trend') render(); else coverage();
+  }
+  // Audit 14.10.2026: 10 din cele 40 din clasament raportau în 14 zile și pagina nu spunea nimic. Cu cheia Finnhub, cine raportează
+  // primește starea RAPORTEAZĂ și ziua; fără cheie, rândul spune „neverificat” — nu tace.
+  async function earningsPesteTrend(vechi) {
+    var cal = null;
+    try { cal = window.EARN && EARN.calendar ? await EARN.calendar({ zile: 14, toate: true }) : null; } catch (_) { cal = null; }
+    var harta = {};
+    if (cal && cal.ok) (cal.items || []).forEach(function (e) { if (e && e.symbol && e.date && !harta[e.symbol]) harta[e.symbol] = e; });
+    state.trend.forEach(function (x) {
+      if (!cal || !cal.ok) { x.earnings = 'earnings neverificat (fără cheia Finnhub)'; return; }
+      var e = harta[x.symbol];
+      if (!e) { x.earnings = 'fără raportare în 14z'; return; }
+      var z = Math.max(0, zileNY(e.date));
+      x.earnings = 'raportează în ' + z + 'z' + (e.hour === 'amc' ? ' (după închidere)' : e.hour === 'bmo' ? ' (înainte de deschidere)' : '');
+      if (!vechi) x.state = 'RAPORTEAZĂ';
+      x.reason += ' · ' + x.earnings;
+    });
   }
   function rowHtmlTrend(x, i) {
     return '<button class="ce-row' + (state.selected && state.selected.symbol === x.symbol && state.selected.mode === x.mode ? ' selected' : '') + '" data-mode="trend" data-symbol="' + escapeHtml(x.symbol) + '">'
