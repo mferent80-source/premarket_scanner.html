@@ -21,6 +21,7 @@
   var state = {
     mode: requested?requestedMode:'momentum', analyses: [], scanning: false, shellVisible: true,
     momentum: [], reversal: [], selected: null, updatedAt: 0,
+    trend: [], trendMeta: null, trendEroare: '',
     failures: [], earningsOk: false, earningsMap: {}, timer: null,
     verified: 0, scanned: 0, hasScan: false, benchmarks: [], sectorPending: false, generation: 0, scanKey: null
   };
@@ -254,6 +255,7 @@
     var risk=window.GV?.status?.(),blocked=risk&&!['TRADE','CAUTION'].includes(risk.verdict),confirmed=state[state.mode].filter(function(x){return x.actionable;}).length;
     $('scanDetailsBody').innerHTML='<p>'+state.verified+' / '+state.scanned+' serii verificate. '+(state.scanning?'Scanarea continuă.':state.hasScan?'Clasamentele includ numai criteriile strategiei; numărul de analize nu este numărul de confirmări.':'Scanarea nu a fost încă finalizată.')+'</p>'
       +'<p>Governor: '+escapeHtml(risk?.verdict||'neverificat')+(blocked?' · candidații tehnici rămân vizibili pentru analiză; planurile noi sunt blocate. '+escapeHtml((risk.reasons||[]).join(' · ')):'. '+confirmed+' '+(confirmed===1?'candidat cu confirmare':'candidați cu confirmare')+' în clasamentul curent.')+'</p>'
+      +(state.trendMeta?'<p>Trend 12 luni: clasament EOD '+escapeHtml(state.trendMeta.dataUltimei)+(state.trendMeta.vechime>7?' (VECHI, '+state.trendMeta.vechime+' zile)':'')+' · '+(state.trendMeta.univers?escapeHtml(String(state.trendMeta.univers.n))+' acțiuni clasate':'')+' · regim '+(state.trendMeta.regim&&state.trendMeta.regim.peste?'pornit':'oprit')+' · '+escapeHtml(state.trendMeta.eticheta)+'</p>':state.trendEroare?'<p>Trend 12 luni: clasamentul robotului nu s-a putut citi ('+escapeHtml(state.trendEroare)+').</p>':'')
       +'<p>Sectoare: '+(state.sectorPending?'completare în fundal; rezultatele sunt deja disponibile.':'sunt folosite clasificările disponibile; cele lipsă rămân „Necunoscut”.')+'</p>'
       +'<div class="ce-coverage-grid"><div><b>Indici de comparație</b><ul>'+state.benchmarks.map(function(x){return '<li>'+escapeHtml(x.region+' · '+x.symbol+' · '+(x.asOf||x.reason))+'</li>';}).join('')+'</ul></div><div><b>Surse excluse</b><ul>'+state.failures.map(function(x){return '<li>'+escapeHtml(x.symbol+' · '+x.reason)+'</li>';}).join('')+'</ul>'+(state.failures.length?'':'<p>Nicio eroare de serie raportată.</p>')+'</div></div>';
   }
@@ -263,6 +265,7 @@
     if (state.scanning || !state.shellVisible) return;
     if (!validateDeps()) { showAlert('Lipsesc biblioteci critice din lib/. Scanarea a fost oprită.', true); return; }
     var token=++state.generation;
+    loadTrend();
     setScanning(true); showAlert(''); progress(0, 1); state.failures = [];state.verified=0;state.sectorPending=false;
     try {
       var list = universe(); state.scanKey=JSON.stringify([$('universe').value,list]);state.scanned=list.length;$('ctxUniverse').textContent = list.length + ' simboluri';
@@ -316,9 +319,12 @@
   function tableHead() {
     $('tableHead').innerHTML = state.mode === 'momentum'
       ? '<span>#</span><span>SIMBOL / MOTIV</span><span>SECTOR</span><span>Δ ZI</span><span>RVOL</span><span>RS 20Z</span><span>RET. 20Z</span><span>SCOR</span><span>STARE</span>'
+      : state.mode === 'trend'
+      ? '<span>#</span><span>SIMBOL / MOTIV</span><span>SECTOR</span><span>MOM 12-1</span><span>MOM 6-1</span><span>RANG</span><span>PREȚ</span><span>SCOR</span><span>STARE</span>'
       : '<span>#</span><span>SIMBOL / MOTIV</span><span>SECTOR</span><span>DE LA MAX.</span><span>DIN MINIM</span><span>BAZĂ</span><span>RVOL</span><span>SCOR</span><span>STARE</span>';
   }
   function rowHtml(x, i) {
+    if (x.mode === 'trend') return rowHtmlTrend(x, i);
     var a = state.mode === 'momentum' ? signed(x.dayChg, 1) : signed(x.metricA, 1);
     var b = state.mode === 'momentum' ? fmt(x.rvol, 2) + '×' : signed(x.metricB, 1);
     var c = state.mode === 'momentum' ? signed(x.rs, 1) : (x.baseDays || '—') + 'z';
@@ -330,7 +336,63 @@
       + '<div class="ce-symbol"><b>' + escapeHtml(x.symbol) + ' <em>' + escapeHtml(x.region) + '</em></b><small>' + escapeHtml(x.reason) + '</small>' + (window.T212C ? T212C.badge(x.symbol) : '') + '</div>'
       + '<span class="ce-cell" data-label="Sector">' + escapeHtml(x.sector) + '</span><b class="ce-cell ' + clsA + '" data-label="'+(state.mode==='momentum'?'Δ zi':'De la maxim')+'">' + a + '</b>'
       + '<span class="ce-cell ' + clsB + '" data-label="'+(state.mode==='momentum'?'RVOL':'Din minim')+'">' + b + '</span><span class="ce-cell" data-label="'+(state.mode==='momentum'?'RS 20z':'Bază')+'">' + c + '</span><span class="ce-cell" data-label="'+(state.mode==='momentum'?'Ret. 20z':'RVOL')+'">' + d + '</span>'
-      + '<strong class="ce-score">' + x.score + '</strong><i class="ce-state ' + x.state.toLowerCase() + '">' + x.state + '</i></button>';
+      + '<strong class="ce-score">' + x.score + '</strong><i class="ce-state ' + stateClass(x) + '">' + x.state + '</i></button>';
+  }
+  function stateClass(x) { return x.mode === 'trend' ? (x.state === 'VECHI' ? 'vechi' : x.state === 'FĂRĂ REGIM' ? 'regim' : 'proba') : String(x.state || '').toLowerCase(); }
+  // Modul „Trend 12 luni” (14.10.2026): clasamentul vine de la robotul zilnic (tools/trend-12-1.mjs ⇒ generated/trend-12-1.json).
+  // Semnal de SELECȚIE probat față de alte acțiuni în aceeași zi; neprobat pe listă istorică ⇒ fără plan, în probă.
+  var TREND_ETICHETA = 'selecție probată față de acțiunile din aceeași zi; neprobată pe listă istorică; în probă — nu e un buton de cumpărat';
+  async function loadTrend() {
+    state.trendEroare = '';
+    try {
+      var r = await fetch('generated/trend-12-1.json?x=' + Date.now(), { cache: 'no-store' });
+      if (!r || !r.ok) throw new Error('HTTP ' + (r && r.status));
+      var j = await r.json();
+      if (!j || !Array.isArray(j.clasament) || !/^\d{4}-\d{2}-\d{2}$/.test(String(j.dataUltimei || ''))) throw new Error('fișier fără clasament');
+      var asteptat = DailySeries.expected(Date.now(), 'America/New_York', 960);
+      var vechime = Math.round((Date.parse(asteptat + 'T00:00:00Z') - Date.parse(j.dataUltimei + 'T00:00:00Z')) / 86400000);
+      var regimPornit = !!(j.regim && j.regim.peste), vechi = vechime > 7;
+      var stare = vechi ? 'VECHI' : regimPornit ? 'ÎN PROBĂ' : 'FĂRĂ REGIM';
+      var gov = window.GV && GV.status ? GV.status() : { verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] };
+      var eticheta = String(j.eticheta || TREND_ETICHETA);
+      state.trendMeta = { la: j.la, dataUltimei: j.dataUltimei, vechime: vechime, regim: j.regim || null, univers: j.univers || null, metoda: j.metoda || '', eticheta: eticheta };
+      state.trend = j.clasament.slice(0, 20).map(function (c) {
+        return {
+          symbol: String(c.s || '').toUpperCase(), name: c.nume || c.s, mode: 'trend', kind: 'trend', region: 'US', currency: 'USD', sector: c.sector || 'Necunoscut',
+          score: Math.round(clamp(100 - (safeNum(c.rang) || 0) * 100, 0, 100)), state: stare, price: safeNum(c.pret), dayChg: null, rvol: null, rs: null,
+          metricA: (safeNum(c.m12) || 0) * 100, metricB: (safeNum(c.m6) || 0) * 100, rang: safeNum(c.rang), cap: safeNum(c.cap), dolari20: safeNum(c.dolari20),
+          eligible: true, actionable: false,
+          reason: 'EOD ' + j.dataUltimei + ' · ' + eticheta + ' · regim ' + (regimPornit ? 'pornit (SPY peste media pe 200 de zile)' : 'oprit (SPY sub media pe 200 de zile)') + (vechi ? ' · clasament VECHI de ' + vechime + ' zile' : ''),
+          entryLow: safeNum(c.pret), entryHigh: safeNum(c.pret), stop: null, target: null, spark: Array.isArray(c.spark) ? c.spark : [],
+          governor: gov, earnings: 'neverificat în modul trend', ts: Date.parse(j.la) || Date.now(), sourceDate: j.dataUltimei
+        };
+      });
+    } catch (e) {
+      state.trend = []; state.trendMeta = null; state.trendEroare = (e && e.message) || 'eroare';
+    }
+    $('countTrend').textContent = state.trend.length;
+    if (state.mode === 'trend') render(); else coverage();
+  }
+  function rowHtmlTrend(x, i) {
+    return '<button class="ce-row' + (state.selected && state.selected.symbol === x.symbol && state.selected.mode === x.mode ? ' selected' : '') + '" data-mode="trend" data-symbol="' + escapeHtml(x.symbol) + '">'
+      + '<span class="ce-rank">' + String(i + 1).padStart(2, '0') + '</span>'
+      + '<div class="ce-symbol"><b>' + escapeHtml(x.symbol) + ' <em>' + escapeHtml(x.region) + '</em></b><small>' + escapeHtml(x.name) + ' · ' + escapeHtml(x.reason) + '</small>' + (window.T212C ? T212C.badge(x.symbol) : '') + '</div>'
+      + '<span class="ce-cell" data-label="Sector">' + escapeHtml(x.sector) + '</span><b class="ce-cell ' + (x.metricA >= 0 ? 'ce-up' : 'ce-down') + '" data-label="Mom 12-1">' + signed(x.metricA, 1) + '</b>'
+      + '<span class="ce-cell ' + (x.metricB >= 0 ? 'ce-up' : 'ce-down') + '" data-label="Mom 6-1">' + signed(x.metricB, 1) + '</span><span class="ce-cell" data-label="Rang">' + (x.rang == null ? '—' : 'top ' + fmt(x.rang * 100, 1) + '%') + '</span><span class="ce-cell" data-label="Preț">' + fmt(x.price, 2) + '</span>'
+      + '<strong class="ce-score">' + x.score + '</strong><i class="ce-state ' + stateClass(x) + '">' + escapeHtml(x.state) + '</i></button>';
+  }
+  function renderDetailTrend(x) {
+    var m = state.trendMeta || {}, g = window.GV?.status?.() || x.governor || { verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] };
+    var motiv = (m.eticheta || TREND_ETICHETA) + ' Se ține 20–60 de zile, fără stop strâns (planul cu 1,25 ATR anulează efectul); ieșire când iese din top 20 % sau când regimul se oprește.';
+    window.TTDecisionPanel?.set({ purpose: 'entry', simulation: false, candidate: null, risk: g, empty: { title: 'Trend 12 luni · ' + x.symbol + ' · în probă', reason: 'În probă: selecție probată față de acțiunile din aceeași zi, neprobată pe listă istorică. Fără plan; se ține 20–60 de zile, fără stop strâns.' } });
+    $('dSymbol').textContent = x.symbol; $('dName').textContent = 'Trend 12 luni · ' + (x.name || '') + ' · ' + x.currency;
+    $('dScore').textContent = x.score; $('dSector').textContent = x.sector; $('dState').textContent = x.state;
+    $('dFresh').textContent = 'EOD ' + (m.dataUltimei || '—'); $('dReason').textContent = x.reason + ' · ' + motiv;
+    $('dEntry').textContent = fmt(x.price, 2) + ' (închiderea)'; $('dStop').textContent = '—'; $('dTarget').textContent = '—';
+    $('spark').innerHTML = sparkSvg(x.spark);
+    $('dGovernor').textContent = 'Governor: ' + g.verdict; $('dGovernorWhy').textContent = (g.reasons && g.reasons[0]) || 'modul Trend nu construiește plan';
+    $('governorBox').className = 'ce-governor ' + (g.verdict === 'HALTED' ? 'halted' : (g.verdict === 'CAUTION' ? 'caution' : ''));
+    $('setupBtn').disabled = true; $('setupBtn').title = 'Modul Trend 12 luni nu construiește plan: semnal de selecție în probă, ținut 20–60 de zile, fără stopul de 1,25 ATR.';
   }
   function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]; }); }
 
@@ -338,6 +400,12 @@
     tableHead();
     coverage();
     var items = currentItems();
+    if (!items.length && state.mode === 'trend') {
+      var qT=$('search').value.trim(),oT=$('onlyActionable').checked;
+      $('rows').innerHTML = '<div class="ce-empty"><b>' + (state.trendEroare ? 'Clasamentul Trend 12 luni nu a venit' : qT || oT ? 'Niciun candidat pentru filtrele curente' : 'Clasamentul Trend 12 luni e gol') + '</b>'
+        + (state.trendEroare ? 'Robotul zilnic nu a lăsat fișierul generated/trend-12-1.json sau nu s-a putut citi (' + escapeHtml(state.trendEroare) + ').' : oT ? 'Modul Trend nu are candidați „confirmați”: e un semnal de selecție în probă, fără plan. Resetează filtrele.' : qT ? 'Căutarea „' + escapeHtml(qT) + '” nu e în primele 20. Resetează filtrele.' : 'Nicio acțiune în primele 20 % cu momentum pozitiv.') + '</div>';
+      state.selected = null; renderDetail(null); return;
+    }
     if (!items.length) {
       var query=$('search').value.trim(),only=$('onlyActionable').checked;
       $('rows').innerHTML = '<div class="ce-empty"><b>'+(state.scanning?'Scanarea este în curs':!state.hasScan?'Scanarea se pregătește':!state.verified?'Nicio serie verificată':'Niciun candidat pentru filtrele curente')+'</b>'
@@ -363,6 +431,7 @@
     return '<svg viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="Evoluția ultimelor 45 sesiuni"><path class="grid" d="M0 30H320M0 59H320M0 88H320"/><polygon class="area" points="' + area + '"/><polyline class="line" points="' + pts + '"/></svg>';
   }
   function renderDetail(x) {
+    if (x && x.mode === 'trend') { renderDetailTrend(x); return; }
     window.TTDecisionPanel?.set({purpose:'entry',simulation:x?.kind==='synthetic',candidate:x,risk:x?.kind==='synthetic'?x.governor:window.GV?.status?.()||x?.governor,empty:{title:state.scanning?'Analizez piața':requested?'Nicio analiză actuală · '+requested:state.updatedAt?'Niciun candidat pentru selecția curentă':'Scanarea nu este încă disponibilă',reason:state.scanning?'Așteaptă verificarea prețurilor, a trendului și a benchmarkului.':requested?'Simbolul solicitat nu a trecut verificarea datelor sau nu corespunde filtrelor.':state.verified?'Există '+state.verified+' instrumente verificate, dar niciunul nu corespunde strategiei și filtrelor curente.':'Seriile de prețuri nu sunt încă verificate. Verifică acoperirea și erorile scanării.',next:state.scanning?'Așteaptă terminarea scanării.':'Scanează din nou sau schimbă strategia și filtrele; verifică și sursele excluse.'}});
     if (!x) {
       ['dSymbol','dName','dScore','dSector','dState','dFresh','dReason','dEntry','dStop','dTarget','dGovernor','dGovernorWhy'].forEach(function (id) { $(id).textContent = '—'; });
@@ -442,6 +511,7 @@
     return;
   }
   loadCache();
+  loadTrend();
   if(requested){$('search').value=requested;document.querySelectorAll('.ce-mode').forEach(function(b){b.classList.toggle('active',b.dataset.mode===state.mode);});showAlert('Validare intraday pentru '+requested+' · rulăm universul curent și tickerul solicitat. Ideea EOD nu este o intrare confirmată.');}
   schedule();
   setTimeout(scan, 400);

@@ -1,0 +1,41 @@
+name: Trend 12 luni (clasament zilnic pentru Candidate Engine)
+
+# 14.10.2026: robotul semnalului „Trend 12 luni” — primele 20 % după randamentul pe lunile 2–12 (ultima lună sărită), pe ~600 de
+# acțiuni SUA ≥ 2 mld. $. Scrie candidate-engine/generated/trend-12-1.json (citit de scanner) + istoricul zilnic (testul de peste
+# 6–12 luni). Pages (legacy, din main) publică singur după commit. O rulare pe zi lucrătoare, după închiderea US; depozitul e public
+# ⇒ minutele nu costă.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '40 22 * * 1-5'   # UTC, după închiderea de la 20:00 UTC
+
+permissions:
+  contents: write
+
+jobs:
+  clasament:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: trading-tools-trend-12-1
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --test tools/trend-12-1.test.mjs
+      - name: Clasamentul zilei
+        run: node tools/trend-12-1.mjs
+      - name: Salvează clasamentul și istoricul
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add candidate-engine/generated
+          if ! git diff --cached --quiet; then
+            git commit -m 'data(trend): clasamentul 12-1 al zilei [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
