@@ -102,6 +102,7 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
   <div class="chk" id="cFinnhub">
     <div class="chk-head"><span class="chk-dot" id="dFinnhub"></span><h2>🔑 Finnhub</h2><button class="chk-btn" data-run="finnhub">Testează</button></div>
     <div class="chk-body" id="bFinnhub">—</div>
+    <div class="chk-body" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center"><input id="inpFinnhub" type="text" autocomplete="off" spellcheck="false" placeholder="cheia Finnhub — o pui o dată, stă doar în browserul ăsta" style="flex:1 1 220px;min-width:0;background:var(--panel3);border:1px solid var(--b1);color:var(--t1);padding:5px 8px;border-radius:6px;font-family:var(--mono);font-size:11.5px"><button class="chk-btn" data-run="finnhubSalveaza" type="button">Salvează</button><span class="chk-sub">sau deschide <code>health/#finnhub=CHEIE</code> — fragmentul nu pleacă la server și dispare din bară</span></div>
   </div>
 
   <div class="chk" id="cAnthropic">
@@ -165,9 +166,9 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
 <script src="../lib/capital-desk.js?v=fx-20261002"></script>
 <script src="../lib/ai.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/suite-version.js?v=873"></script>
+<script src="../lib/suite-version.js?v=874"></script>
 <script src="../lib/quote-bus.js?v=752"></script>
-<script src="../lib/price-day.js?v=873"></script>
+<script src="../lib/price-day.js?v=874"></script>
 <script src="../lib/macro-context.js?v=619"></script>
 <script src="../lib/hub-state.js?v=626"></script>
 <script>
@@ -234,6 +235,27 @@ function checkFinnhubPresence(){
   const key = localStorage.getItem('finnhub_api_key') || '';
   if (!key){ dot('dFinnhub', 'err'); $('bFinnhub').innerHTML = '<span class="err">cheie LIPSĂ</span> — Nasdaq Scanner s-a oprit (12.10.2026); Crypto Radar ține cheia Finnhub pe serverul lui (Rezultate)'; }
   else { dot('dFinnhub', 'warn'); $('bFinnhub').innerHTML = `cheie prezentă (…${esc(key.slice(-4))}) — <span class="chk-sub">apasă „Testează" pt validare live</span>`; }
+}
+
+// Cheia se pune AICI din 14.10.2026 (Nasdaq Scanner, unde se punea, s-a oprit pe 12.10). Fără ea, scannerul Decision Desk
+// nu blochează intrările din ziua raportării (lib/earnings.js citește finnhub_api_key / fh_key). Ambele chei, ca lib/finnhub-key.js.
+function salveazaFinnhub(v){
+  v = String(v ?? '').trim();
+  if (!v) return false;
+  localStorage.setItem('finnhub_api_key', v); localStorage.setItem('fh_key', v);
+  return true;
+}
+// health/#finnhub=CHEIE — fragmentul (#) nu pleacă niciodată la server; doar query-ul (?) ar pleca, de aceea NU se citește de acolo.
+function cheieDinLink(hash){
+  const m = /[#&]finnhub=([^&]*)/.exec(String(hash || ''));
+  if (!m) return '';
+  try { return decodeURIComponent(m[1]).trim(); } catch (e) { return ''; }
+}
+async function salveazaDinCamp(){
+  const inp = $('inpFinnhub');
+  if (!salveazaFinnhub(inp && inp.value)) { dot('dFinnhub', 'warn'); $('bFinnhub').innerHTML = '<span class="warn">scrie cheia în câmp, apoi Salvează</span>'; return; }
+  if (inp) inp.value = '';
+  await runFinnhub();
 }
 
 // ── 3. Anthropic — DOAR prezență (un apel real costă bani; nu-l facem dintr-o pagină de health) ──
@@ -525,7 +547,7 @@ function toastQb(msg) {
 }
 
 // ── Wiring ──
-const RUNNERS = { proxy: runProxy, finnhub: runFinnhub, tg: runTG, bot: runBot, gist: runGist, qbpurge: async () => purgeQbPoison() };
+const RUNNERS = { proxy: runProxy, finnhub: runFinnhub, finnhubSalveaza: salveazaDinCamp, tg: runTG, bot: runBot, gist: runGist, qbpurge: async () => purgeQbPoison() };
 document.querySelectorAll('.chk-btn').forEach(b => b.addEventListener('click', async () => {
   b.disabled = true;
   try { await RUNNERS[b.dataset.run](); } finally { b.disabled = false; }
@@ -588,7 +610,12 @@ async function copyReport(){
 $('btnReport').addEventListener('click', copyReport);
 
 // La load: DOAR verificările gratuite (zero consum de cotă/bani/mesaje)
-checkFinnhubPresence();
+const cheieLink = cheieDinLink(location.hash);
+if (cheieLink && salveazaFinnhub(cheieLink)) {
+  history.replaceState(null, '', location.pathname + location.search);
+  dot('dFinnhub', 'ok'); $('bFinnhub').innerHTML = '<span class="ok">cheie salvată din link</span> (…' + esc(cheieLink.slice(-4)) + ') — verific…';
+  runFinnhub();
+} else checkFinnhubPresence();
 checkAnthropic();
 checkTG();
 checkGistPresence();
@@ -602,7 +629,7 @@ $('foot').textContent = 'verificările gratuite au rulat la deschidere · cele c
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = 'tt-v873';
+  const swVer = 'tt-v874';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
@@ -611,7 +638,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v873';
+  var PAGE_VER = 'tt-v874';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

@@ -3307,7 +3307,7 @@ pe un singur chart.
 | I-599 | Tablou pe 1920: coloana din stânga cu boții și pozițiile (T212, Salt) sortați după distanța la stop / lichidare, cu % și rezultatul, ca „aproape de rupere” din PAZNIC; un clic schimbă botul din Tablou | crypto/public/app.js (renderTabloBot, alegerea botului), public/index.html, public/app.css (≥1280) | M | P3 | propus | ideation | 2026-10-11 |
 | I-600 | Early Bird în Radar: scannerul de momentum pe instrumentele Salt Bank (Yahoo, US+EU) din `salt-instrumente`, arhivat 11.10 — ca filtru în pagina Salt, peste `data/salt-univers.json` | crypto/public/lib/salt-ecran.js, crypto/public/index.html | M | P3 | propus | mutare | 2026-10-11 |
 | I-601 | Mișcările zilei pe capitalizare + heatmap pe categorii (narrative tracker) din `scanner/crypto-events.html`, arhivat 11.10 — ca bloc în Sugestii, lângă pândă | crypto/public/lib/sugestii-ecran.js, crypto/scripts/colector.mjs | M | P3 | propus | mutare | 2026-10-11 |
-| I-602 | Câmp pentru cheia Finnhub în Health (fără ea, blocarea la earnings din scanner e oprită) | health/ + lib/finnhub-key.js | S | P1 | propus | ideation | 2026-10-14 |
+| I-602 | Câmp pentru cheia Finnhub în Health (fără ea, blocarea la earnings din scanner e oprită) | health/ + lib/finnhub-key.js | S | P1 | făcut 2026-10-14 | ideation | 2026-10-14 |
 | I-603 | sync-suite-version.mjs bate și `?v=NNN` ale modulelor Radar din alerts (azi de mână) | tools/sync-suite-version.mjs + alerts/ | S | P2 | propus | ideation | 2026-10-14 |
 | I-604 | proba-retrase.mjs: ținta pe o pagină cu nav.js și lista RETRASE citită din nav.js, nu copiată | tools/proba-retrase.mjs + nav.js | S | P2 | propus | ideation | 2026-10-14 |
 | I-605 | proba-ecran.mjs: etichetele hubului de azi (Watchlist / scanner nu mai există) | tools/proba-ecran.mjs | S | P3 | propus | ideation | 2026-10-14 |
@@ -6072,7 +6072,7 @@ Context: EL a văzut demo-ul „tema PAZNIC” (127.0.0.1:8799: culori, colțuri
 ## 14.10.2026 — ideation după restaurarea și auditul Candidate Engine (scannerul Decision Desk)
 Context: pagina repornită în `0fa541ea` (tt-v872); auditul în `docs/AUDIT-CANDIDATE-ENGINE-2026-10-14.md` — fără avantaj pe ambele nuluri + oglindă. Lentile: Trader — fără cheia Finnhub, blocarea la earnings e oprită și etichetele ARMED/FIRE promit un avantaj care nu există; Designer — badge-urile de stare strigă, hubul arată încă un semnal oprit; Inginer — probele au liste copiate din nav.js și sync-ul versiunii nu acoperă alerts; Automator — calendarul de earnings ar putea veni din Radar (cheia pe server), nu din browser.
 
-#### I-602 · Câmp pentru cheia Finnhub în Health · [S] · P1 · propus
+#### I-602 · Câmp pentru cheia Finnhub în Health · [S] · P1 · făcut 2026-10-14 (câmp + Salvează + link health/#finnhub=CHEIE)
 - **Problema/golul:** `lib/earnings.js` citește cheia din `localStorage` (`finnhub_api_key` / `fh_key`); fără ea scannerul scade 5 puncte la toate scorurile și blocarea „earnings ≤ 1 zi” nu există (rândul scrie „earnings neverificat”). Pagina Nasdaq Scanner, unde se punea cheia, e oprită din 12.10; Health doar o arată. Azi se pune din consolă cu `FH_KEY.set(...)`.
 - **Soluția:** în blocul 🔑 Finnhub din Health, un câmp + „Salvează” care cheamă `FH_KEY.set`, apoi „Testează” existent; starea „cheie prezentă …XXXX”. Alternativă (Automator): `earnings.js` să ia calendarul din Radar, care ține cheia pe server (pagina Rezultate), ca browserul să nu mai aibă nevoie de cheie.
 - **Impact:** previne intrarea în ziua raportării — singura gardă de eveniment a scannerului.
