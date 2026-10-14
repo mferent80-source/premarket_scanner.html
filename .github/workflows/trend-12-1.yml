@@ -26,9 +26,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: node --test tools/trend-12-1.test.mjs
+      - run: node --test tools/trend-12-1.test.mjs tools/trend-12-1-robot.test.mjs
       - name: Clasamentul zilei
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}   # raportările (I-621) — același secret ca price-alerts
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}   # intrări/ieșiri (I-617) — doar la schimbare
         run: node tools/trend-12-1.mjs
+      - name: Garda de formă a fișierelor publicate
+        run: node --test tools/trend-12-1-robot.test.mjs
       - name: Salvează clasamentul și istoricul
         run: |
           git config user.name 'github-actions[bot]'

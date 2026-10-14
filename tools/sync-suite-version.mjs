@@ -154,6 +154,21 @@ for (const file of htmlFiles(ROOT)) {
   }
 }
 
+// ── 4. modulele Radar din alerts (I-603, 14.10.2026): alerts/index.html leagă radar-ui.css / radar-poza.js / radar-ecran.js /
+// tema-paznic-suita.css cu ?v=NNN și tools/alerts-radar.test.mjs cere NNN = numărul din CACHE_VERSION. Se băteau de mână la fiecare bump.
+const RADAR_ALERTS_RE = /(src|href)=(["'])([^"']*(?:lib\/radar-ui\.css|lib\/radar-poza\.js|lib\/radar-ecran\.js|tema-paznic-suita\.css))(\?v=\d+)?/g;
+{
+  const file = join(ROOT, 'alerts', 'index.html');
+  let html = read(file);
+  const before = html;
+  RADAR_ALERTS_RE.lastIndex = 0;
+  html = html.replace(RADAR_ALERTS_RE, (_, attr, q, path) => `${attr}=${q}${path}?v=${nnn}${q}`);
+  if (html !== before) {
+    if (CHECK) problems.push(`alerts/index.html modulele Radar ?v= nu sunt pe ${nnn}`);
+    else { write(file, html); if (!fixed.includes('alerts/index.html')) fixed.push('alerts/index.html'); }
+  }
+}
+
 // ── raport ─────────────────────────────────────────────────────────────────
 if (CHECK) {
   if (problems.length) {
