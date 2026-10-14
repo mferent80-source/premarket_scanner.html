@@ -267,8 +267,9 @@
     'router/', 'journal/', 'portfolio/', 'equity/', 'governor/', 'weekly/', 'shadow-book/',
     'postmortem/', 'markov-lab/', 'factor-lab/', 'mfx-screener/', 'hub-demo/',
     'shell/', 'proxy/',
-    // 12.10.2026: oprite după auditul semnalelor (niciunul n-a bătut întâmplarea) — index.html e doar anunț
-    'nasdaq-scanner/', 'watchlist-monitor/', 'smart-trade-long/', 'pump-radar/', 'candidate-engine/'
+    // 12.10.2026: oprite după auditul semnalelor (niciunul n-a bătut întâmplarea) — index.html e doar anunț.
+    // 14.10.2026: Candidate Engine NU mai e aici — e scannerul Decision Desk (aplicație separată, nu se atinge).
+    'nasdaq-scanner/', 'watchlist-monitor/', 'smart-trade-long/', 'pump-radar/'
   ];
 
   function eRetras(href) {
