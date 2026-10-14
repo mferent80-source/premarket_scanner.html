@@ -58,3 +58,28 @@ body[data-holdings-view=quick] .roster-options{max-width:500px}
 @media(max-width:760px){.holding-roster-tools>details>summary{padding:12px}.holding-roster-tools>details[open]{padding:0 12px 12px}.holding-roster-tools>details[open]>summary{margin:0 -12px}.compare-controls{grid-template-columns:1fr}.holding-compare-table thead tr,.holding-compare-table tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.holding-compare-table thead th:first-child{display:none}.holding-compare-table tbody th{grid-column:1/-1;padding:14px 6px 3px;border-bottom:0;font-size:12px}.holding-compare-table td,.holding-compare-table thead th{padding:8px 6px}.holding-compare-table td+td,.holding-compare-table thead th+th{border-left:1px solid var(--line)}.holding-compare-table thead th{font-size:15px}.holding-compare-table{font-size:13px}.compare-open button{flex:1}.roster-star{right:5px}}
 /* Keep the verdict action and position controls inside a narrow phone card. */
 @media(max-width:760px){.holding-nav-heading{flex-direction:column;align-items:stretch}.holding-nav-actions{min-width:0;max-width:100%;flex-wrap:wrap}.holding-nav-actions [data-verdict-open]{flex:1 1 100%;font-size:14px;overflow-wrap:anywhere}}
+
+/* Position and known risk lead; detailed analyses are chosen within a section. */
+.holding-sections{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0 12px}
+.holding-sections button{min-height:44px;font-size:14px;padding:10px 12px;background:transparent;border-color:transparent}
+.holding-sections button[aria-pressed=true]{border-color:var(--line);background:var(--panel2);color:var(--green);font-weight:700}
+.holding-sections button:focus-visible,.holding-additional-analysis button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.holding-nav-sticky .holding-tabs{flex-wrap:wrap;overflow:visible;gap:8px;padding-bottom:12px}
+.holding-nav-sticky .holding-tabs button{min-height:44px;font-size:14px}
+.holding-additional-analysis{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
+.holding-additional-analysis p{font-size:13px;margin:0;flex:1;min-width:min(230px,100%)}
+.holding-additional-analysis button{font-size:14px;background:transparent;color:var(--blue);min-height:44px}
+.holdings-desk .selection-caption,.holdings-desk .roster-heading .eyebrow,.holdings-desk .holding-nav-heading small,.holdings-desk .holding-nav-actions>span,.holdings-desk .review-cue,.holdings-desk .roster-change{font-size:12px}
+.holdings-desk .review-shortcuts button,.holdings-desk .desk-tools>summary{min-height:44px}
+.holdings-desk .numbers,.holdings-desk .overview,.holdings-desk .roster-money{font-variant-numeric:tabular-nums}
+@media(max-width:760px){
+ .holding-nav-sticky{position:static;box-shadow:none}.holding-sections{gap:4px;margin-top:16px}
+ .holding-sections button{padding:8px 4px;font-size:14px}.holding-nav-sticky .holding-tabs{gap:4px}
+ .holding-nav-sticky .holding-tabs button{flex:1;font-size:14px;white-space:normal;line-height:1.4}
+ .holding-nav-actions [data-show-holdings]{font-size:14px;padding:10px 12px}
+ .holding-additional-analysis{align-items:stretch;gap:12px;margin-top:20px;padding-top:16px}.holding-additional-analysis button{width:100%}
+ body[data-holdings-mobile-view=list]:not([data-holdings-view=quick]) .selected-analysis{display:none}
+ body[data-holdings-mobile-view=detail]:not([data-holdings-view=quick]) .holdings-roster{display:none}
+ .selected-analysis{scroll-margin-top:80px}
+}
+

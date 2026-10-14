@@ -1,5 +1,5 @@
 // Cache only the application shell. Market data and scans always require network.
-const CACHE = 'tt-decision-phone-professional-v1';
+const CACHE = 'tt-decision-phone-design-26.10.14.1208';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './install.js?v=phone-20261003', './icons/icon-192.png', './icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));

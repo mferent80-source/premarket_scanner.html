@@ -4,16 +4,19 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const html=fs.readFileSync(new URL('../app/index.html',import.meta.url),'utf8');
 const script=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('var GROUPS='))[2];
-function boot(search=''){
- const elements={},events={},child={postMessage(){}};
- const el=id=>elements[id]||(elements[id]={value:'',hidden:false,contentWindow:child,contains:()=>false,querySelectorAll:()=>[],getAttribute(k){return this[k]||null;},focus(){},blur(){}});
+function boot(search='',savedModule=null){
+ const elements={},events={},child={postMessage(){}},brokerChild={postMessage(){}},storage=new Map(savedModule?[['tt_app_active_v1',savedModule]]:[]);
+ const el=id=>elements[id]||(elements[id]={value:'',hidden:false,dataset:{},contentWindow:id==='brokerFrame'?brokerChild:child,contains:()=>false,querySelectorAll:()=>[],getAttribute(k){return this[k]||null;},setAttribute(k,v){this[k]=v;},focus(){},blur(){}});
  const document={documentElement:{dataset:{appVersion:"release-test"}},getElementById:el,addEventListener(){}};
  const location={origin:'https://example.test',href:'https://example.test/project/app/'+search,search};
- const ctx={document,location,history:{state:null,replaceState(state,_,url){this.state=state;location.href=url;location.search=new URL(url).search;}},localStorage:{setItem(){}},window:{addEventListener:(n,f)=>events[n]=f},Intl,Date,URLSearchParams,URL};
+ const route=(state,url)=>{location.href=url;location.search=new URL(url).search;};
+ const ctx={document,location,history:{state:null,pushed:[],replaceState(state,_,url){this.state=state;route(state,url);},pushState(state,_,url){this.state=state;this.pushed.push({state,url});route(state,url);}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},navigator:{onLine:true},addEventListener:(n,f)=>events[n]=f,Intl,Date,URLSearchParams,URL};
+ ctx.window=ctx;
+ vm.runInNewContext(fs.readFileSync(new URL('../lib/app-search.js',import.meta.url),'utf8'),ctx);
  vm.runInNewContext(script,ctx);
- return {elements,send:data=>events.message({origin:ctx.location.origin,source:child,data}),events,ctx};
+ return {elements,storage,send:data=>events.message({origin:ctx.location.origin,source:elements.brokerFrame.hidden===false?brokerChild:child,data}),events,ctx};
 }
-test('opens new Decision Desk and exposes no classic navigation',()=>{const b=boot();assert.match(b.elements.frame.src,/desk\/\?app=/);assert.doesNotMatch(b.elements.nav.innerHTML,/Hub clasic|SHELL CLASIC|Smart Trade|Nasdaq Scanner/);});
+test('a fresh profile opens Astăzi and keeps both scanners accessible',()=>{const b=boot();assert.match(b.elements.frame.src,/today\/\?app=/);assert.equal(b.elements.pageName.textContent,'Astăzi');assert.match(b.elements.nav.innerHTML,/Long &amp; Reversal/);assert.match(b.elements.nav.innerHTML,/Două verdicte/);assert.match(b.elements.nav.innerHTML,/Instrumente &amp; suport/);});
 test('selected ticker and strategy reach the new plan ticket',()=>{const b=boot();b.send({ttOpenModule:'smart-trade-long/',ttQuery:'symbol=CAT&mode=reversal'});assert.equal(b.elements.frame.src,'../desk/?app=decision-mobile-v2&v=release-test&symbol=CAT&mode=reversal&ticket=1');});
 test('legacy hash message resolves portfolio within this app',()=>{const b=boot();b.send({ttOpen:'journal/',ttHash:'portfolio'});assert.equal(b.elements.frame.src,'../journal/?app=decision-mobile-v2&v=release-test#portfolio');});
 test('unrecognized module and other message senders cannot change route',()=>{const b=boot();const initial=b.elements.frame.src;b.send({ttOpenModule:'hub-clasic/'});assert.equal(b.elements.frame.src,initial);b.events.message({origin:b.ctx.location.origin,source:{},data:{ttOpenModule:'journal/'}});assert.equal(b.elements.frame.src,initial);});
@@ -52,3 +55,49 @@ test('an internal example link keeps its demo query when opened through the shel
  anchor.click({preventDefault(){}});assert.match(b.elements.frame.src,/shadow-book\/\?app=.*&demo=ai-strategy$/);
  assert.doesNotMatch(b.ctx.location.href,/demo=ai-strategy/);
 });
+
+test('remembered modules are respected and explicit valid queries take precedence',()=>{
+ assert.match(boot('', 'holdings/').elements.frame.src,/holdings\//);
+ assert.match(boot('?module=journal%2F%23exec','holdings/').elements.frame.src,/#exec$/);
+ assert.match(boot('?module=https%3A%2F%2Fforeign.test','holdings/').elements.frame.src,/holdings\//);
+ assert.match(boot('', 'https://foreign.test').elements.frame.src,/today\//);
+});
+
+test('browser Back restores route and its private query without adding another entry',()=>{
+ const b=boot();b.send({ttOpenModule:'candidate-engine/',ttQuery:'symbol=CAT&mode=reversal'});
+ const previous=b.ctx.history.pushed.at(-1);b.send({ttOpenModule:'holdings/'});const count=b.ctx.history.pushed.length;
+ b.ctx.location.href=previous.url;b.ctx.location.search=new URL(previous.url).search;b.events.popstate({state:previous.state});
+ assert.match(b.elements.frame.src,/symbol=CAT&mode=reversal/);assert.equal(b.ctx.history.pushed.length,count);assert.equal(b.elements.pageName.textContent,'Long & Reversal');assert.doesNotMatch(b.ctx.location.href,/symbol=CAT/);
+});
+
+test('trusted journal tab changes update shell state without reloading the iframe',()=>{
+ const b=boot('?module=journal%2F%23exec');let writes=0,src=b.elements.frame.src;
+ Object.defineProperty(b.elements.frame,'src',{get:()=>src,set:v=>{writes++;src=v;}});
+ b.send({ttModuleState:{module:'journal/',hash:'#capital'}});assert.equal(writes,0);assert.equal(b.elements.pageName.textContent,'Mișcări de capital');assert.equal(b.ctx.history.pushed.length,1);
+ assert.equal(new URL(b.ctx.location.href).searchParams.get('module'),'journal/#capital');
+ b.send({ttModuleState:{module:'journal/',hash:'#capital'}});assert.equal(b.ctx.history.pushed.length,1);
+ b.send({ttModuleState:{module:'journal/',hash:'#unknown'}});assert.equal(b.ctx.history.pushed.length,1);
+ b.events.message({origin:b.ctx.location.origin,source:b.elements.brokerFrame.contentWindow,data:{ttModuleState:{module:'journal/',hash:'#desk'}}});assert.equal(b.elements.pageName.textContent,'Mișcări de capital');
+});
+
+test('authentication and synchronization display separate visible states',()=>{
+ const b=boot();b.events['tt-cloud-state']({detail:{ready:true,connected:true,lastSync:Date.now(),conflicts:['tt_journal_v1']}});
+ assert.equal(b.elements.googleAccountLabel.textContent,'Google conectat');assert.equal(b.elements.syncStatus.textContent,'Conflict de sincronizare');assert.equal(b.elements.syncStatus.dataset.state,'conflict');
+ b.events['tt-cloud-state']({detail:{ready:true,connected:true,lastSync:Date.now(),error:'network_failed'}});assert.equal(b.elements.syncStatus.textContent,'Eroare de sincronizare');
+ b.ctx.navigator.onLine=false;b.events.offline();assert.equal(b.elements.syncStatus.textContent,'Eroare de sincronizare');
+ b.events['tt-cloud-state']({detail:{ready:true,connected:true,lastSync:Date.now()}});assert.equal(b.elements.syncStatus.textContent,'Offline · date locale');
+ b.ctx.navigator.onLine=true;b.events.online();assert.match(b.elements.syncStatus.textContent,/Sincronizat la/);
+});
+
+test('local symbol search groups results and never renders stored markup',()=>{
+ const b=boot();b.storage.set('ce_results_v2',JSON.stringify({momentum:[{symbol:'CAT',mode:'momentum',reason:'<img src=x onerror=alert(1)>'}]}));b.storage.set('tt_independent_scanner_v1',JSON.stringify({items:[{symbol:'CAT',reason:'Reguli independente'}]}));b.storage.set('tt_journal_v1',JSON.stringify([{sym:'CAT'}]));
+ b.elements.search.value='CAT';b.elements.search.oninput();const html=b.elements.palette.innerHTML;
+ assert.match(html,/Premarket Scanner/);assert.match(html,/Verdict independent/);assert.match(html,/Jurnal/);assert.match(html,/&lt;img/);assert.doesNotMatch(html,/<img/);
+});
+
+test('the mobile bar contains all four useful actions and grouped menu headings stay visible',()=>{
+ const b=boot();assert.equal((b.elements.mobileNav.innerHTML.match(/<button/g)||[]).length,4);
+ for(const label of ['Astăzi','Portofoliu','Jurnal','Mai multe'])assert.ok(b.elements.mobileNav.innerHTML.includes(label));
+ const css=fs.readFileSync(new URL('../app/layout.css',import.meta.url),'utf8');assert.match(css,/\.mobile-menu \.group\{display:block/);assert.doesNotMatch(css,/\.group[^}]*display:none/);
+});
+
