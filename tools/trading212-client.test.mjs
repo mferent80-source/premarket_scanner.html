@@ -7,11 +7,12 @@ const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 async function setup(enabled,vault=null,options={}){
  const elements=new Map(),events={},intervals=[];
  function el(id){if(!elements.has(id))elements.set(id,{value:'',hidden:false,disabled:false,textContent:'',innerHTML:'',handlers:{},querySelectorAll:()=>[],setAttribute(k,v){this[k]=v;},replaceChildren(){this.innerHTML=''},scrollIntoView(){this.scrolled=true},addEventListener(name,fn){this.handlers[name]=fn}});return elements.get(id)}
- const document={visibilityState:'visible',getElementById:el,querySelectorAll:()=>[]},Clock=options.Date||Date;
+ const kinds=['orders','dividends','transactions'].map(kind=>Object.assign(el('kind-'+kind),{dataset:{kind}}));
+ const document={visibilityState:'visible',getElementById:el,querySelectorAll:selector=>selector==='[data-kind]'?kinds:[]},Clock=options.Date||Date;
  const saved=options.saved||new Map(),storage={getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},sessionItems=new Map(),sessionStorage={getItem:k=>sessionItems.get(k)||null,setItem:(k,v)=>sessionItems.set(k,v)};
  const window={crypto:webcrypto,T212Vault:vault,T212J:options.journal,addEventListener:(name,fn)=>events[name]=fn},calls=[];
  window.parent=options.parent||window;
- const context=vm.createContext({window,Intl,Date:Clock,localStorage:storage});for(const file of ['lib/daily-series.js','lib/holding-evolution.js','lib/trading212-performance.js','lib/trading212-portfolio.js','lib/trading212-daily.js','lib/holdings-pulse.js','lib/position-history.js','lib/holding-handoff.js','lib/trading212-snapshot.js'])vm.runInContext(readFileSync(file,'utf8'),context);
+ const context=vm.createContext({window,Intl,Date:Clock,localStorage:storage});for(const file of ['lib/daily-series.js','lib/holding-evolution.js','lib/trading212-performance.js','lib/trading212-portfolio.js','lib/trading212-daily.js','lib/holdings-pulse.js','lib/position-history.js','lib/holding-handoff.js','lib/trading212-snapshot.js',...(options.journal==='real'?['lib/trading212-journal.js']:[])])vm.runInContext(readFileSync(file,'utf8'),context);
  window.ViewRefresh={patchList:(host,items,key,markup)=>{host.innerHTML=items.map(markup).join('');}};
  const fetch=async(u,request)=>{
   if(String(u).includes('trading212-config'))return {json:async()=>({enabled,endpoint:'https://owned-private.workers.dev',directCredentials:true})};
@@ -144,4 +145,80 @@ test('disconnect during durable persistence cannot render or advance the old jou
 for(const [code,expected] of [['fills_loading',/Se încarcă istoricul execuțiilor Trading 212/],['fills_unreadable',/Istoricul contului selectat nu poate fi citit/]])test('broker realized results distinguish '+code+' during durable history reads',async()=>{
  const journal={saveSnapshot(){},merge(){return {count:0,complete:false};},read(){throw Object.assign(Error('date indisponibile'),{code});}},s=await setup(true,null,{journal,response:(body,name)=>name==='summary'?{...body,data:{currency:'EUR',totalValue:100}}:body});
  await s.connect();assert.match(s.el('realizedSummary').textContent,expected);assert.equal(s.el('realizedSummary').innerHTML,'');
+});
+
+test('manual synchronization imports yesterday’s UHS sale before the automatic five-minute refresh',async()=>{
+ let time=Date.now(),arrived=false;class Clock extends Date{static now(){return time;}}
+ const old={id:'old-buy',ticker:'UHS_US_EQ',side:'BUY',quantity:0.25,price:210,date:new Date(time-172800000).toISOString(),priceCurrency:'USD',currency:'EUR'},sale={...old,id:'yesterday-uhs-sell',side:'SELL',price:225,realized:3,date:new Date(time-86400000).toISOString()};
+ const s=await setup(true,null,{Date:Clock,journal:'real',response:(b,name)=>name==='orders'?{...b,data:{items:arrived?[sale,old]:[old],nextCursor:null}}:b});
+ await s.connect();assert.equal(s.calls.filter(x=>x.url.includes('/orders')).length,1);assert.doesNotMatch(s.el('history').innerHTML,/SELL/);
+ arrived=true;time+=12000;await s.el('refresh').onclick();
+ const orders=s.calls.filter(x=>x.url.includes('/orders')),account=Object.values(s.window.T212J.read().accounts)[0];
+ assert.equal(orders.length,2);assert.equal(new URL(orders[1].url).searchParams.has('cursor'),false);assert.equal(account.items.find(x=>x.id===sale.id).side,'SELL');assert.equal(account.items.length,2);assert.equal(account.complete,true);assert.match(s.el('history').innerHTML,/SELL/);assert.match(s.el('history').innerHTML,/225 USD/);assert.equal((s.el('history').innerHTML.match(/<article/g)||[]).length,2);
+ time+=12000;s.intervals.find(x=>x.ms===12000).fn();await flushBroker();assert.equal(s.calls.filter(x=>x.url.includes('/orders')).length,2);
+});
+
+test('manual latest-order sampling preserves an unfinished historical cursor even when the head has no next page',async()=>{
+ let time=Date.now(),fresh=false;class Clock extends Date{static now(){return time;}}const imported=[];
+ const journal={saveSnapshot(){},merge(scope,environment,items,next,at,options){imported.push({items,next,options});return {count:imported.length,complete:!next};}},s=await setup(true,null,{Date:Clock,journal,response:(b,name,u)=>name==='orders'?{...b,data:new URL(u).searchParams.has('cursor')?{items:[{id:'older-fill'}],nextCursor:null}:fresh?{items:[{id:'UHS-sell',ticker:'UHS_US_EQ'}],nextCursor:null}:{items:[{id:'old-head',ticker:'OLD_US_EQ'}],nextCursor:'older-cursor'}}:b});
+ await s.connect();fresh=true;time+=12000;await s.el('refresh').onclick();
+ assert.equal(imported[1].items[0].id,'UHS-sell');assert.equal(imported[1].next,'older-cursor');assert.equal(imported[1].options.restart,false);assert.match(s.el('journalState').textContent,/import în curs/);assert.match(s.el('history').innerHTML,/UHS_US_EQ/);assert.match(s.el('history').innerHTML,/OLD_US_EQ/);assert.equal(s.el('more').hidden,false);
+ time+=12000;s.intervals.find(x=>x.ms===12000).fn();await flushBroker();
+ assert.equal(new URL(s.calls.filter(x=>x.url.includes('/orders'))[2].url).searchParams.get('cursor'),'older-cursor');assert.equal(imported[2].items[0].id,'older-fill');assert.equal(imported[2].next,null);assert.match(s.el('journalState').textContent,/parcurs integral/);
+});
+
+test('long automatic backfills sample recent sales every five minutes without restarting older-page progress',async()=>{
+ let time=Date.now();class Clock extends Date{static now(){return time;}}const imported=[];
+ const journal={saveSnapshot(){},merge(scope,environment,items,next,at,options){imported.push({items,next,options});return {count:imported.length,complete:!next};}},s=await setup(true,null,{Date:Clock,journal,response:(b,name,u)=>{if(name!=='orders')return b;const cursor=new URL(u).searchParams.get('cursor');return {...b,data:cursor?{items:[{id:'older-'+cursor}],nextCursor:cursor==='page-1'?'page-2':'page-3'}:{items:[{id:imported.length?'recent-UHS-sell':'first'}],nextCursor:'page-1'}};}});
+ await s.connect();const tick=s.intervals.find(x=>x.ms===12000).fn;
+ time+=12000;tick();await flushBroker();assert.equal(imported[1].next,'page-2');
+ time+=288000;tick();await flushBroker();assert.equal(imported[2].items[0].id,'recent-UHS-sell');assert.equal(imported[2].next,'page-2');assert.equal(imported[2].options.restart,false);
+ time+=12000;tick();await flushBroker();const orders=s.calls.filter(x=>x.url.includes('/orders'));assert.deepEqual(orders.map(x=>new URL(x.url).searchParams.get('cursor')),[null,'page-1',null,'page-2']);
+});
+
+test('refreshing recent sales leaves the selected cash-history page intact',async()=>{
+ let time=Date.now(),arrived=false;class Clock extends Date{static now(){return time;}}
+ const buy={id:'old-buy',ticker:'UHS_US_EQ',side:'BUY',quantity:1,price:210,date:new Date(time-172800000).toISOString()},sale={...buy,id:'UHS-sell',side:'SELL',price:225,date:new Date(time-86400000).toISOString()};
+ const s=await setup(true,null,{Date:Clock,journal:'real',response:(b,name)=>name==='orders'?{...b,data:{items:arrived?[sale,buy]:[buy],nextCursor:null}}:name==='dividends'?{...b,data:{items:[{id:'cash-row',type:'DIVIDEND',date:new Date(time).toISOString(),amount:2,currency:'EUR'}],nextCursor:'cash-next'}}:b});
+ await s.connect();s.el('kind-dividends').onclick();await flushBroker();const html=s.el('history').innerHTML,state=s.el('historyState').textContent;assert.match(html,/DIVIDEND/);assert.equal(s.el('more').hidden,false);
+ arrived=true;time+=12000;await s.el('refresh').onclick();assert.equal(s.el('history').innerHTML,html);assert.equal(s.el('historyState').textContent,state);assert.equal(s.el('more').hidden,false);assert.ok(Object.values(s.window.T212J.read().accounts)[0].items.some(x=>x.id===sale.id));
+});
+
+test('manual recent-sale refresh reports cooldowns and honors an extended Trading 212 429 delay',async()=>{
+ let time=Date.now(),orderReads=0;class Clock extends Date{static now(){return time;}}
+ const journal={saveSnapshot(){},merge(){return {count:1,complete:true};}},s=await setup(true,null,{Date:Clock,journal,fetch:async u=>{const name=new URL(u).pathname.split('/').at(-1);if(name==='orders'&&++orderReads===2)return {ok:false,status:429,json:async()=>({retryAfter:60})};return {ok:true,json:async()=>({source:'Trading 212',environment:'live',fetchedAt:new Date(time).toISOString(),data:name==='summary'?{currency:'EUR',available:5}:name==='positions'?[]:{items:[{id:'order'}],nextCursor:null}})};}});
+ await s.connect();time+=6000;await s.el('refresh').onclick();assert.equal(orderReads,1);assert.match(s.el('journalState').textContent,/Import parțial.*Așteaptă 5 secunde/);
+ time+=5000;await s.el('refresh').onclick();assert.equal(orderReads,2);assert.match(s.el('journalState').textContent,/Import parțial.*Limita Trading 212/);
+ time+=12000;await s.el('refresh').onclick();assert.equal(orderReads,2);assert.match(s.el('journalState').textContent,/Așteaptă 48 secunde/);
+ time+=48000;await s.el('refresh').onclick();assert.equal(orderReads,3);assert.match(s.el('journalState').textContent,/parcurs integral/);
+});
+
+test('failed persistence of a recent sale preserves the older cursor and remains retryable',async()=>{
+ let time=Date.now(),merges=0;class Clock extends Date{static now(){return time;}}const confirmed=[];
+ const journal={saveSnapshot(){},merge(scope,environment,items,next){if(++merges===2)throw Error('IndexedDB commit failed');confirmed.push(items[0].id);return {count:confirmed.length,complete:!next};}},s=await setup(true,null,{Date:Clock,journal,response:(b,name,u)=>name==='orders'?{...b,data:new URL(u).searchParams.has('cursor')?{items:[{id:'older-fill'}],nextCursor:null}:{items:[{id:merges?'UHS-sell':'old-head',ticker:merges?'UHS_US_EQ':'OLD_US_EQ'}],nextCursor:'older-cursor'}}:b});
+ await s.connect();const html=s.el('history').innerHTML;time+=12000;await s.el('refresh').onclick();assert.match(s.el('journalState').textContent,/Import parțial.*IndexedDB commit failed/);assert.deepEqual(confirmed,['old-head']);assert.equal(s.el('history').innerHTML,html);
+ time+=12000;s.intervals.find(x=>x.ms===12000).fn();await flushBroker();assert.equal(new URL(s.calls.filter(x=>x.url.includes('/orders'))[2].url).searchParams.get('cursor'),'older-cursor');assert.deepEqual(confirmed,['old-head','older-fill']);
+ time+=12000;await s.el('refresh').onclick();assert.deepEqual(confirmed,['old-head','older-fill','UHS-sell']);assert.match(s.el('history').innerHTML,/UHS_US_EQ/);
+});
+
+test('disconnect during a recent-sale durable save cannot publish progress from the old session',async()=>{
+ let time=Date.now(),merges=0,confirm;class Clock extends Date{static now(){return time;}}
+ const journal={saveSnapshot(){},merge(){if(++merges===1)return {count:1,complete:true};return new Promise(resolve=>{confirm=()=>resolve({count:2,complete:true});});}},s=await setup(true,null,{Date:Clock,journal,response:(b,name)=>name==='orders'?{...b,data:{items:[{id:merges?'UHS-sell':'old',ticker:merges?'UHS_US_EQ':'OLD_US_EQ'}],nextCursor:null}}:b});
+ await s.connect();const html=s.el('history').innerHTML;time+=12000;const pending=s.el('refresh').onclick();while(!confirm)await flushBroker();assert.equal(s.el('history').innerHTML,html);assert.doesNotMatch(s.el('history').innerHTML,/UHS_US_EQ/);const refused=await s.el('refresh').onclick();assert.equal(refused,false);assert.match(s.el('journalState').textContent,/salvare este încă în curs/);
+ s.el('disconnect').onclick();confirm();await pending;assert.equal(s.el('account').hidden,true);assert.equal(s.el('history').innerHTML,'');assert.equal(s.el('more').hidden,true);assert.doesNotMatch(s.el('journalState').textContent,/2 execuții/);
+});
+
+test('manual refresh still imports recent sales if balance and current-position reads fail',async()=>{
+ let time=Date.now(),failed=false,merges=0;class Clock extends Date{static now(){return time;}}
+ const journal={saveSnapshot(){},merge(){return {count:++merges,complete:true};}},s=await setup(true,null,{Date:Clock,journal,fetch:async u=>{const name=new URL(u).pathname.split('/').at(-1);if(failed&&name!=='orders')throw Error('portfolio temporarily unavailable');return {ok:true,json:async()=>({source:'Trading 212',environment:'live',fetchedAt:new Date(time).toISOString(),data:name==='summary'?{currency:'EUR',available:5}:name==='positions'?[]:{items:[{id:failed?'UHS-sell':'old'}],nextCursor:null}})};}});
+ await s.connect();failed=true;time+=12000;await s.el('refresh').onclick();assert.equal(merges,2);assert.equal(s.calls.filter(x=>x.url.includes('/orders')).length,2);assert.match(s.el('status').textContent,/Conectare nereușită/);assert.match(s.el('journalState').textContent,/2 execuții/);
+});
+
+test('confirmed recent orders update visible matches once and preserve the visible older-page cursor',async()=>{
+ let time=Date.now(),fresh=false;class Clock extends Date{static now(){return time;}}
+ const old={id:'old',ticker:'OLD_US_EQ',side:'BUY',price:210,priceCurrency:'USD',date:new Date(time-172800000).toISOString()},tail={...old,id:'tail',ticker:'TAIL_US_EQ',date:new Date(time-259200000).toISOString()},sale={...old,id:'UHS-sell',ticker:'UHS_US_EQ',side:'SELL',price:225,date:new Date(time-86400000).toISOString()};
+ const journal={saveSnapshot(){},merge(scope,environment,items,next){return {count:items.length,complete:!next};}},s=await setup(true,null,{Date:Clock,journal,response:(b,name,u)=>name==='orders'?{...b,data:new URL(u).searchParams.has('cursor')?{items:[{...tail,id:'older-extra',ticker:'OLDER_US_EQ'}],nextCursor:null}:fresh?{items:[sale,{...old,price:925}],nextCursor:'different-head-cursor'}:{items:[old,tail],nextCursor:'visible-older-cursor'}}:b});
+ await s.connect();fresh=true;time+=12000;await s.el('refresh').onclick();
+ const html=s.el('history').innerHTML;assert.equal((html.match(/<article/g)||[]).length,3);const oldCard=html.split('<article').find(x=>x.includes('<h3>OLD_US_EQ</h3>'));assert.match(oldCard,/925 USD/);assert.doesNotMatch(oldCard,/210 USD/);assert.ok(html.indexOf('UHS_US_EQ')<html.indexOf('OLD_US_EQ'));assert.match(html,/TAIL_US_EQ/);assert.equal(s.el('more').hidden,false);
+ time+=12000;await s.el('more').onclick();assert.equal(new URL(s.calls.filter(x=>x.url.includes('/orders'))[2].url).searchParams.get('cursor'),'visible-older-cursor');assert.match(s.el('history').innerHTML,/OLDER_US_EQ/);assert.equal((s.el('history').innerHTML.match(/<article/g)||[]).length,4);
 });

@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-function setup(options={}){const store=new Map();const context={document:options.document,addEventListener(){},setInterval(){},T212FillsStore:options.fillsStore,TTStorageWrite:options.storageWrite,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>{if(options.quota?.(k))throw Object.assign(Error('Storage quota exceeded'),{name:'QuotaExceededError'});store.set(k,v);}}};vm.createContext(context);vm.runInContext(readFileSync('lib/trading212-snapshot.js','utf8'),context);vm.runInContext(readFileSync('lib/trading212-daily.js','utf8'),context);vm.runInContext(readFileSync('lib/trading212-journal.js','utf8'),context);context.T212J._store=store;return context.T212J;}
+function setup(options={}){const store=new Map();const context={document:options.document,addEventListener(){},setInterval(){},T212FillsStore:options.fillsStore,ExecutionReview:options.executionReview,TTStorageWrite:options.storageWrite,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>{if(options.quota?.(k))throw Object.assign(Error('Storage quota exceeded'),{name:'QuotaExceededError'});store.set(k,v);}}};vm.createContext(context);vm.runInContext(readFileSync('lib/trading212-snapshot.js','utf8'),context);vm.runInContext(readFileSync('lib/trading212-daily.js','utf8'),context);vm.runInContext(readFileSync('lib/trading212-journal.js','utf8'),context);context.T212J._store=store;return context.T212J;}
 const fill={id:'f1',ticker:'AAPL_US_EQ',date:'2026-10-02T15:00:00Z',side:'BUY',quantity:0.5,price:230,priceCurrency:'USD',currency:'EUR',realized:null};
 test('broker fills deduplicate and retain currencies and isolated accounts',()=>{const j=setup();j.merge('live:a','live',[fill],null,fill.date);j.merge('live:a','live',[fill,{...fill,id:'f2',side:'SELL',realized:3}],null,fill.date);j.merge('demo:a','demo',[fill],null,fill.date);j.merge('live:b','live',[fill],null,fill.date);const data=j.read();assert.equal(data.accounts['live:a'].items.length,2);assert.equal(data.accounts['demo:a'].items.length,1);assert.equal(data.accounts['live:b'].items.length,1);assert.equal(data.accounts['live:a'].items[0].realized,null);assert.equal(data.accounts['live:a'].items[0].priceCurrency,'USD');assert.equal(data.accounts['live:a'].items[0].currency,'EUR');});
 test('malformed executions prevent complete coverage even on final page',()=>{const j=setup();const r=j.merge('live:a','live',[fill,{...fill,id:null},{...fill,id:'bad',quantity:0}], 'next',fill.date);assert.equal(r.count,1);assert.equal(r.skipped,2);assert.equal(r.complete,false);j.merge('live:a','live',[],null,fill.date);assert.equal(j.read().accounts['live:a'].complete,false);assert.equal(j.read().accounts['live:a'].rejected,2);});
@@ -81,4 +81,60 @@ for(const [code,expected] of [['fills_loading',/Se încarcă istoricul execuții
  const host={textContent:'',innerHTML:''},error=Object.assign(Error('date indisponibile'),{code}),fillsStore={peek(){throw error;},ready:async()=>{throw error;}};
  setup({fillsStore,document:{getElementById:id=>id==='t212Journal'?host:null}});await Promise.resolve();
  assert.match(host.textContent,expected);assert.equal(host.innerHTML,'');
+});
+
+function journalView(initial={accounts:{}},options={}){
+ const nodes={},listeners={};
+ for(const [id,value] of [['t212JournalTicker',''],['t212JournalSide','ALL'],['t212JournalReset','']]){
+  nodes[id]={value,addEventListener(type,fn){(listeners[id+':'+type]||=[]).push(fn);}};
+ }
+ const host=nodes.t212Journal={innerHTML:'',textContent:''},data=JSON.parse(JSON.stringify(initial)),store={peek(){if(options.error)throw options.error;return {data:JSON.parse(JSON.stringify(data)),state:'ready'};},ready:async()=>store.peek()};
+ const j=setup({document:{getElementById:id=>nodes[id]||null},fillsStore:store,executionReview:options.executionReview});
+ return {j,host,nodes,data,change(id,value,type){nodes[id].value=value;for(const fn of listeners[id+':'+type]||[])fn();},listeners};
+}
+const account=items=>({environment:'live',items,complete:true,fetchedAt:fill.date});
+test('broker journal finds yesterday UHS SELL in the full confirmed ledger and reset restores every execution',()=>{
+ const initial={accounts:{live:account([{...fill,id:'u1',ticker:'UHS_US_EQ',side:'SELL'},{...fill,id:'u2',ticker:'UHS_US_EQ'},fill])}},v=journalView(initial),before=JSON.stringify(v.data);
+ // A stale quota-limited legacy mirror must never decide the visible executions.
+ v.j._store.set('tt_trading212_fills_v1',JSON.stringify({accounts:{live:account([fill])}}));
+ assert.match(v.host.innerHTML,/Afișate: 3 din 3 execuții/);assert.match(v.host.innerHTML,/<td>SELL<\/td>/);
+ v.change('t212JournalTicker',' uhs ','input');v.change('t212JournalSide','SELL','change');
+ assert.match(v.host.innerHTML,/Afișate: 1 din 3 execuții/);assert.match(v.host.innerHTML,/<td>UHS_US_EQ<\/td><td>SELL<\/td>/);assert.doesNotMatch(v.host.innerHTML,/<td>AAPL_US_EQ<\/td>/);assert.doesNotMatch(v.host.innerHTML,/<td>BUY<\/td>/);
+ v.change('t212JournalReset','','click');assert.equal(v.nodes.t212JournalTicker.value,'');assert.equal(v.nodes.t212JournalSide.value,'ALL');assert.match(v.host.innerHTML,/Afișate: 3 din 3 execuții/);assert.equal(JSON.stringify(v.data),before);
+ assert.equal(v.listeners['t212JournalTicker:input'].length,1);
+});
+test('broker journal distinguishes an empty ticker filter from no imported history',()=>{
+ const v=journalView({accounts:{live:account([{...fill,ticker:'UHS_US_EQ',side:'SELL'}])}});
+ v.change('t212JournalTicker','UHS','input');v.change('t212JournalSide','BUY','change');
+ assert.match(v.host.innerHTML,/Afișate: 0 din 1 execuții/);assert.match(v.host.innerHTML,/Nicio execuție nu corespunde filtrelor/);assert.doesNotMatch(v.host.innerHTML,/Nu există încă execuții importate/);
+ const empty=journalView({accounts:{live:account([])}});assert.match(empty.host.innerHTML,/Afișate: 0 din 0 execuții/);assert.match(empty.host.innerHTML,/Nu există încă execuții importate pentru acest cont/);assert.doesNotMatch(empty.host.innerHTML,/Nicio execuție nu corespunde filtrelor/);
+});
+test('ticker filters preserve active-account and live/demo isolation',()=>{
+ const v=journalView({accounts:{old:account([{...fill,ticker:'OLD_ACCOUNT'}]),current:account([{...fill,ticker:'UHS_US_EQ',side:'SELL'}]),demo:{...account([{...fill,ticker:'DEMO_ONLY'}]),environment:'demo'}}});
+ v.j._store.set('tt_trading212_portfolio_v1',JSON.stringify({old:{environment:'live',active:false,fetchedAt:'2026-10-03T12:00:00Z'},current:{environment:'live',active:true,fetchedAt:fill.date}}));v.j.render();
+ assert.doesNotMatch(v.host.innerHTML,/<td>OLD_ACCOUNT<\/td>/);assert.match(v.host.innerHTML,/<td>DEMO_ONLY<\/td>/);assert.match(v.host.innerHTML,/Trading 212 · INVEST · 1 execuții/);assert.match(v.host.innerHTML,/Trading 212 · DEMO · 1 execuții/);
+ v.change('t212JournalTicker','UHS','input');assert.match(v.host.innerHTML,/Afișate: 1 din 1 execuții/);assert.match(v.host.innerHTML,/Afișate: 0 din 1 execuții/);assert.doesNotMatch(v.host.innerHTML,/<td>DEMO_ONLY<\/td>/);
+ v.j._store.set('tt_trading212_portfolio_v1',JSON.stringify({new:{environment:'live',active:true,fetchedAt:fill.date}}));v.j.render();assert.match(v.host.innerHTML,/Trading 212 · INVEST · 0 execuții/);assert.doesNotMatch(v.host.innerHTML,/<td>UHS_US_EQ<\/td>/);assert.doesNotMatch(v.host.innerHTML,/<td>OLD_ACCOUNT<\/td>/);
+});
+test('ticker search treats characters literally and safely escapes broker row text',()=>{
+ const ticker='UHS[<img src=x onerror=alert(1)>',v=journalView({accounts:{live:account([{...fill,ticker,side:'SELL'}])}});
+ v.change('t212JournalTicker','[','input');assert.match(v.host.innerHTML,/Afișate: 1 din 1 execuții/);assert.match(v.host.innerHTML,/UHS\[&lt;img src=x onerror=alert\(1\)&gt;/);assert.doesNotMatch(v.host.innerHTML,/<img/);
+ v.change('t212JournalSide','unknown','change');assert.match(v.host.innerHTML,/Afișate: 1 din 1 execuții/);
+});
+test('broker filtering leaves FIFO review based on the full confirmed account',()=>{
+ const sizes=[],items=[{...fill,id:'buy',ticker:'UHS_US_EQ'},{...fill,id:'sell',ticker:'UHS_US_EQ',side:'SELL'},fill],v=journalView({accounts:{live:account(items)}},{executionReview:{fifo(xs){sizes.push(xs.length);return {matches:[],open:[],unmatched:[]};}}});
+ v.change('t212JournalTicker','UHS','input');v.change('t212JournalSide','SELL','change');assert.match(v.host.innerHTML,/Afișate: 1 din 3 execuții/);assert.ok(sizes.every(n=>n===3));assert.equal(JSON.stringify(v.data.accounts.live.items),JSON.stringify(items));
+});
+for(const code of ['fills_loading','fills_unreadable'])test('filter changes cannot turn '+code+' into an empty or stale ledger',()=>{
+ const v=journalView({accounts:{live:account([{...fill,ticker:'UHS_US_EQ',side:'SELL'}])}},{error:Object.assign(Error('date indisponibile'),{code})});
+ v.j._store.set('tt_trading212_fills_v1',JSON.stringify({accounts:{live:account([fill])}}));v.change('t212JournalTicker','UHS','input');v.change('t212JournalSide','SELL','change');
+ assert.match(v.host.textContent,code==='fills_loading'?/Se încarcă istoricul/:/Jurnalul brokerului nu poate fi citit/);assert.equal(v.host.innerHTML,'');
+});
+test('journal exposes labelled ticker and side controls and explains where broker sales appear',()=>{
+ const html=readFileSync('journal/index.html','utf8');assert.match(html,/for="t212JournalTicker">Caută ticker/);assert.match(html,/id="t212JournalTicker"[^>]+type="search"/);assert.match(html,/id="t212JournalSide"[^>]*><option value="ALL">Toate operațiile/);assert.match(html,/<option value="SELL">Vânzări · SELL/);assert.match(html,/Vânzările brokerului apar aici ca <strong>SELL<\/strong>/);assert.match(html,/Secțiunea „Închise” de mai jos aparține jurnalului manual/);
+});
+
+for(const [state,caption] of [[{syncStatus:'loading',syncError:null},/Actualizare în curs · execuțiile confirmate sunt păstrate/],[{syncStatus:'error',syncError:'latest head unavailable'},/Import întrerupt · execuțiile confirmate sunt păstrate/]])test('broker journal shows incomplete refresh honestly while retaining confirmed execution values: '+state.syncStatus,()=>{
+ const data={accounts:{live:{...account([{...fill,ticker:'UHS_US_EQ',side:'SELL',realized:3}]),...state}}},v=journalView(data),before=JSON.stringify(v.data);
+ assert.match(v.host.innerHTML,caption);assert.doesNotMatch(v.host.innerHTML,/Istoricul disponibil a fost parcurs integral/);assert.match(v.host.innerHTML,/<td>UHS_US_EQ<\/td><td>SELL<\/td>/);assert.match(v.host.innerHTML,/<td>3 EUR<\/td>/);assert.doesNotMatch(v.host.innerHTML,/execuții incompatibile/);v.change('t212JournalSide','SELL','change');assert.equal(JSON.stringify(v.data),before);
 });

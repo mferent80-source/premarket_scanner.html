@@ -439,7 +439,13 @@ tr.openrow{background:rgba(91,176,255,.06)}
 
 <div id="jpaneExec" class="jr-pane" data-jpane="exec" role="tabpanel" aria-labelledby="jrTabExec" hidden>
 
-<section class="panel"><h2>Execuții Trading 212 · import automat</h2><p>Execuțiile BUY/SELL raportate de broker. P&amp;L în moneda brokerului; nu sunt incluse în statisticile USD ale planurilor manuale. Stopul și R nu sunt inventate.</p><div id="t212Journal"></div></section>
+<section class="panel"><h2>Execuții Trading 212 · import automat</h2><p>Execuțiile BUY/SELL raportate de broker. P&amp;L în moneda brokerului; nu sunt incluse în statisticile USD ale planurilor manuale. Stopul și R nu sunt inventate.</p>
+<p>Vânzările brokerului apar aici ca <strong>SELL</strong>. Secțiunea „Închise” de mai jos aparține jurnalului manual.</p>
+<div id="t212JournalFilters" class="frm" style="gap:12px;align-items:flex-end;flex-wrap:wrap">
+  <label for="t212JournalTicker">Caută ticker<input id="t212JournalTicker" type="search" placeholder="ex. UHS" maxlength="80" autocomplete="off" spellcheck="false" aria-controls="t212Journal"></label>
+  <label for="t212JournalSide">Operație<select id="t212JournalSide" aria-controls="t212Journal"><option value="ALL">Toate operațiile</option><option value="BUY">Cumpărări · BUY</option><option value="SELL">Vânzări · SELL</option></select></label>
+  <button id="t212JournalReset" class="btn ghost" type="button" aria-controls="t212Journal">Resetează filtrele</button>
+</div><div id="t212Journal"></div></section>
 <div id="haltRail" class="jr-halt-rail"></div>
 <div id="fxWarning" class="jr-fees-banner"></div>
 <div id="feesImportBanner" class="jr-fees-banner"></div>
@@ -653,7 +659,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/trading212-snapshot.js?v=26.10.03.2316"></script><script src="../lib/storage-write.js?v=26.10.15.0547"></script>
 <script src="../lib/trading212-fills-store.js?v=26.10.15.0547"></script>
 <script src="../lib/trading212-context.js?v=26.10.15.0547"></script>
-<script src="../lib/execution-review.js?v=26.10.03.2316"></script><script src="../lib/trading212-journal.js?v=26.10.15.0547"></script>
+<script src="../lib/execution-review.js?v=26.10.03.2316"></script><script src="../lib/trading212-journal.js?v=26.10.15.0604"></script>
 <script src="../lib/journal.js?v=26.10.04.0102"></script>
 <script src="../lib/suite-version.js?v=888"></script>
 <script src="../lib/journal-insights.js?v=625"></script>
