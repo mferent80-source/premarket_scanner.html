@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ro" data-app-version="26.10.15.0604">
+<html lang="ro" data-app-version="26.10.15.0650">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -22,7 +22,7 @@
   </aside>
   <section class="workspace">
     <header class="topbar">
-      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.15.0604</span></small><b id="pageName">Astăzi</b></div>
+      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.15.0650</span></small><b id="pageName">Astăzi</b></div>
       <div class="account-state"><button class="google-account" id="googleAccount" data-state="checking" title="Deschide Cont & sincronizare"><i aria-hidden="true"></i><span id="googleAccountLabel" aria-live="polite">Verific Google…</span></button><button class="sync-state" id="syncStatus" data-state="checking" aria-live="polite">Verific sincronizarea</button><small class="sync-error-detail" id="syncErrorDetail" role="status" hidden></small></div>
       <div class="spacer"></div><button class="app-update" data-update hidden>Actualizează</button>
       <input class="search" id="search" aria-label="Caută module, tickere, dețineri și jurnal" aria-controls="palette" aria-expanded="false" placeholder="Caută · Ctrl K" autocomplete="off">
@@ -175,7 +175,14 @@
   document.addEventListener('click',function(e){if(e.target!==search&&!palette.contains(e.target)){palette.hidden=true;search.setAttribute?.('aria-expanded','false');}});
   window.addEventListener('popstate',function(e){var route=e.state?.ttApp,u=canonical(route?.module||new URLSearchParams(location.search).get('module'));if(known(u))openModule(u,route?.query||'',null,{history:'none',force:true});});
   window.addEventListener('message',function(e){
-    if(e.origin!==location.origin||!e.data||e.source!==frame.contentWindow)return;var d=e.data;
+    if(e.origin!==location.origin||!e.data)return;var d=e.data;
+    if(d.ttBrokerRefresh){
+      if(e.source!==brokerFrame.contentWindow||active!=='today/'||frame!==normalFrame)return;
+      var brokerState=d.ttBrokerRefresh.state,messages={loading:'Citesc contul și execuțiile recente din Trading 212…',ready:'Contul și execuțiile recente au fost citite și salvate.',partial:'Actualizare parțială: unele date ale contului sau execuțiile recente nu au fost confirmate.',error:'Contul Invest nu poate fi actualizat acum. Verifică legătura în Portofoliu.',busy:'O citire este în curs sau în pauza impusă de broker. Reîncearcă după finalizare.'};
+      if(Object.prototype.hasOwnProperty.call(messages,brokerState))normalFrame.contentWindow.postMessage({ttBrokerRefresh:{state:brokerState,message:messages[brokerState]}},location.origin);return;
+    }
+    if(e.source!==frame.contentWindow)return;
+    if(d.ttRefreshBroker===true){if(active==='today/'&&frame===normalFrame)brokerFrame.contentWindow.postMessage({ttRefreshBroker:true},location.origin);return;}
     if(d.ttModuleState){var state=d.ttModuleState,hash=state.hash;if(active.indexOf('journal/')!==0||state.module!=='journal/'||!['#desk','#setup','#exec','#portfolio','#capital'].includes(hash))return;var u='journal/'+hash;if(u!==active){active=u;rememberRoute('push');titleRoute();renderNav();normalFrame._ttTarget=moduleTarget(active,currentQuery);}return;}
     if(d.ttPlanReady){if(active==='desk/'&&frame===normalFrame&&pendingPlanCandidate&&d.ttPlanReady.symbol===pendingPlanCandidate.symbol&&d.ttPlanReady.mode===pendingPlanCandidate.mode){var candidate=pendingPlanCandidate;pendingPlanCandidate=null;frame.contentWindow.postMessage({ttPlanCandidate:candidate},location.origin);}return;}
     var u=d.ttOpenModule!==undefined?d.ttOpenModule:d.ttOpen;if(typeof u!=='string')return;if(d.ttHash&&known(u+(d.ttHash[0]==='#'?d.ttHash:'#'+d.ttHash)))u+=d.ttHash[0]==='#'?d.ttHash:'#'+d.ttHash;openModule(u,d.ttQuery,d.ttPlanCandidate);
@@ -188,7 +195,7 @@
 <script src="../lib/breadth-daily.js?v=daily-scan-20261003"></script>
 <script>document.addEventListener('tt-breadth-daily',function(e){var s=e.detail,n=document.getElementById('breadthDailyState');n.hidden=s.status==='disabled';n.textContent=TTBreadthDaily.message(s);});TTBreadthDaily.start();</script>
 <script src="install.js?v=phone-20261003"></script>
-<script src="version.js?v=26.10.15.0604"></script>
+<script src="version.js?v=26.10.15.0650"></script>
 <script src="../lib/trading212-vault.js?v=26.10.05.2201"></script><script src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=26.10.15.0547"></script>
 </body>
 </html>

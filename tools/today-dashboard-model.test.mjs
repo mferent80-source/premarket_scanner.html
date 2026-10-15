@@ -8,7 +8,7 @@ const ISO=t=>new Date(t).toISOString(), plain=x=>JSON.parse(JSON.stringify(x));
 const PORTFOLIO='tt_trading212_portfolio_v1', HISTORY='tt_trading212_account_history_v1', FILLS='tt_trading212_fills_v1';
 function context(extra={}) {
  const c={Date,Intl,URL,AbortController,setTimeout,clearTimeout,...extra}; vm.createContext(c);
- for(const path of ['lib/trading212-snapshot.js','lib/exchange-calendar.js','lib/daily-series.js','lib/indicators.js','lib/holdings-events.js','lib/breadth.js','today-demo/model.js'])vm.runInContext(readFileSync(path,'utf8'),c,{filename:path});
+ for(const path of ['lib/trading212-snapshot.js','lib/exchange-calendar.js','lib/daily-series.js','lib/indicators.js','lib/holdings-events.js','lib/breadth.js','lib/today-dashboard.js'])vm.runInContext(readFileSync(path,'utf8'),c,{filename:path});
  return c;
 }
 const C=context();
@@ -59,6 +59,11 @@ test('market uses completed provider-identified bars and keeps Treasury yield in
 test('market cache is isolated in memory, force bypasses it and caller edits do not corrupt cached data',async()=>{
  let calls=0;const m=make({data:{fetchStock:async s=>{calls++;return bars(s);}}});const first=await m.market();first.items[0].price=0;assert.ok((await m.market()).items[0].price>0);assert.equal(calls,4);await m.market({force:true});assert.equal(calls,8);
 });
+test('the ten-minute market cache expires at a newly completed US session instead of keeping yesterday marked latest',async()=>{
+ let clock=Date.parse('2026-10-15T20:10:00Z'),calls=0;const m=make({now:()=>clock,data:{fetchStock:async s=>{calls++;return bars(s);}}});
+ const before=await m.market();assert.equal(before.items[0].asOf,'2026-10-14');assert.equal(calls,4);
+ clock=Date.parse('2026-10-15T20:16:00Z');const after=await m.market();assert.equal(calls,8);assert.equal(after.items[0].asOf,'2026-10-15');assert.equal(after.breadth.state,'stale');assert.equal(after.breadth.stance,null);
+});
 test('unverified source identity or currency produces no chart or zero-price fallback',async()=>{
  const r=await make({data:{fetchStock:async s=>bars(s,{symbol:s==='SPY'?'QQQ':s,currency:s==='QQQ'?'EUR':null})}}).market();assert.equal(r.items[0].state,'error');assert.equal(r.items[0].price,null);assert.equal(r.items[0].points.length,0);assert.equal(r.items[1].state,'error');
 });
@@ -89,6 +94,11 @@ test('news fallback reuses only an existing key and ignores wrapper false-availa
 test('activity selects exact live scope and preserves instrument-price versus wallet-P&L currency',async()=>{
  const l=ledger([fill()]);l.accounts.other={environment:'live',complete:true,items:[fill('other')]};const s=storage();const r=await make({storage:s,readFillsRecord:async()=>record(l)}).activity({scope:SCOPE});assert.equal(r.state,'ready');assert.equal(r.items.length,1);assert.equal(r.items[0].id,'u1');assert.equal(r.items[0].currency,'USD');assert.equal(r.items[0].realizedCurrency,'RON');assert.equal(r.items[0].realized,120);assert.equal((await make({storage:s,readFillsRecord:async()=>record(l)}).activity({scope:'unrelated'})).items.length,0);
 });
+test('each activity read observes the current durable revision without reading credentials or opening a writer store',async()=>{
+ let stored=record(ledger([fill('before')]));const c=context({T212Vault:new Proxy({}, {get(){throw Error('Broker credentials must stay with the controlled connection.');}})});
+ const s=storage(),m=c.TodayDashboardModel.create({storage:s,now:()=>NOW,readFillsRecord:async()=>stored});assert.equal((await m.activity({scope:SCOPE})).items[0].id,'before');
+ stored={...record(ledger([fill('after')])),revision:3};assert.equal((await m.activity({scope:SCOPE})).items[0].id,'after');assert.deepEqual([...s.map],[]);
+});
 test('recent SELL filter runs before the limit so newer purchases cannot hide the latest UHS sale',async()=>{
  const items=[fill('sale'),...Array.from({length:5},(_,i)=>fill('buy'+i,{side:'BUY',date:ISO(NOW-(i+1)*60000)}))];const r=await make({readFillsRecord:async()=>record(ledger(items))}).activity({scope:SCOPE,side:'SELL',limit:1});assert.equal(r.items.length,1);assert.equal(r.items[0].id,'sale');assert.equal(r.items[0].side,'SELL');
 });
@@ -116,4 +126,7 @@ test('native read of absent IndexedDB aborts the upgrade rather than creating an
 });
 test('missing IndexedDB API is an explicit read failure and does not authorize an unverified legacy fallback',async()=>{
  const s=storage({[FILLS]:ledger([fill('legacy')])}),m=make({storage:s,indexedDB:null});const r=await m.activity({scope:SCOPE});assert.equal(r.state,'error');assert.equal(r.items.length,0);assert.equal(s.reads.includes(FILLS),false);
+});
+test('blocked IndexedDB discovery times out without opening or creating a ledger',async()=>{
+ let opens=0;await assert.rejects(C.TodayDashboardModel.readExistingFills({databases:()=>new Promise(()=>{}),open(){opens++;throw Error('Must not open.');}},5),/nu a răspuns/);assert.equal(opens,0);
 });

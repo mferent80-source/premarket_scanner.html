@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const html=fs.readFileSync(new URL('../app/index.html',import.meta.url),'utf8');
 const script=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('var GROUPS='))[2];
 function boot(search='',savedModule=null){
- const elements={},events={},child={postMessage(){}},brokerChild={postMessage(){}},storage=new Map(savedModule?[['tt_app_active_v1',savedModule]]:[]);
+ const elements={},events={},messages={child:[],broker:[]},child={postMessage:(data,origin)=>messages.child.push({data,origin})},brokerChild={postMessage:(data,origin)=>messages.broker.push({data,origin})},storage=new Map(savedModule?[['tt_app_active_v1',savedModule]]:[]);
  const el=id=>elements[id]||(elements[id]={value:'',hidden:false,dataset:{},contentWindow:id==='brokerFrame'?brokerChild:child,contains:()=>false,querySelectorAll:()=>[],getAttribute(k){return this[k]||null;},setAttribute(k,v){this[k]=v;},focus(){},blur(){}});
  const document={documentElement:{dataset:{appVersion:"release-test"}},getElementById:el,addEventListener(){}};
  const location={origin:'https://example.test',href:'https://example.test/project/app/'+search,search};
@@ -15,7 +15,7 @@ function boot(search='',savedModule=null){
  vm.runInNewContext(fs.readFileSync(new URL('../lib/app-routes.js',import.meta.url),'utf8'),ctx);
  vm.runInNewContext(fs.readFileSync(new URL('../lib/app-search.js',import.meta.url),'utf8'),ctx);
  vm.runInNewContext(script,ctx);
- return {elements,storage,send:data=>events.message({origin:ctx.location.origin,source:elements.brokerFrame.hidden===false?brokerChild:child,data}),events,ctx};
+ return {elements,storage,messages,send:data=>events.message({origin:ctx.location.origin,source:elements.brokerFrame.hidden===false?brokerChild:child,data}),events,ctx};
 }
 function link(href,attributes={}){
  const values={href,...attributes};
@@ -38,6 +38,23 @@ test('journal opens execution tab and support routes use app pages',()=>{const b
 test('Europe home link returns to Today in the existing workspace',()=>{const b=boot('?module=europe-stocks%2F'),child=loadChildDocument(b);assert.equal(child.click(link('../app/')),true);assert.match(b.elements.frame.src,/^\.\.\/today\/\?app=/);assert.equal(b.elements.pageName.textContent,'Astăzi');});
 
 test('broker frame persists across module navigation without restarting connection',()=>{const b=boot();const initial=b.elements.brokerFrame.src;b.send({ttOpenModule:'broker/'});assert.equal(b.elements.brokerFrame.src,initial);assert.equal(b.elements.brokerFrame.hidden,false);assert.equal(b.elements.frame.hidden,true);b.send({ttOpenModule:'journal/'});assert.equal(b.elements.brokerFrame.hidden,true);assert.equal(b.elements.brokerFrame.src,initial);b.send({ttOpenModule:'broker/'});assert.equal(b.elements.brokerFrame.src,initial);});
+
+test('only the active Today document can request a refresh from the persistent broker',()=>{
+ const b=boot(),src=b.elements.brokerFrame.src;
+ b.send({ttRefreshBroker:true});assert.deepEqual(JSON.parse(JSON.stringify(b.messages.broker)),[{data:{ttRefreshBroker:true},origin:b.ctx.location.origin}]);assert.equal(b.elements.brokerFrame.src,src);
+ b.events.message({origin:'https://untrusted.test',source:b.elements.frame.contentWindow,data:{ttRefreshBroker:true}});
+ b.events.message({origin:b.ctx.location.origin,source:{},data:{ttRefreshBroker:true}});assert.equal(b.messages.broker.length,1);
+ b.send({ttOpenModule:'journal/'});b.send({ttRefreshBroker:true});assert.equal(b.messages.broker.length,1);
+ b.send({ttOpenModule:'broker/'});b.send({ttRefreshBroker:true});assert.equal(b.messages.broker.length,1);
+});
+
+test('broker refresh results are accepted from the hidden broker only, stripped to fixed messages, and sent to active Today',()=>{
+ const b=boot(),send=(data,source=b.elements.brokerFrame.contentWindow,origin=b.ctx.location.origin)=>b.events.message({origin,source,data});
+ for(const state of ['loading','ready','partial','error','busy'])send({ttBrokerRefresh:{state,message:'secret-key',account:{secret:'other-account'}}});
+ assert.equal(b.messages.child.length,5);for(const m of b.messages.child){assert.deepEqual(Object.keys(m.data.ttBrokerRefresh).sort(),['message','state']);assert.doesNotMatch(JSON.stringify(m),/secret-key|other-account/);assert.equal(m.origin,b.ctx.location.origin);}
+ send({ttBrokerRefresh:{state:'ready'}},b.elements.frame.contentWindow);send({ttBrokerRefresh:{state:'ready'}},{ });send({ttBrokerRefresh:{state:'ready'}},b.elements.brokerFrame.contentWindow,'https://untrusted.test');send({ttBrokerRefresh:{state:'toString'}});assert.equal(b.messages.child.length,5);
+ b.send({ttOpenModule:'journal/'});send({ttBrokerRefresh:{state:'ready'}});assert.equal(b.messages.child.length,5);
+});
 
 test('reselecting an open module preserves its document, while explicit reload navigates',()=>{
  const b=boot('?module=holdings%2F');let writes=0,src=b.elements.frame.src;

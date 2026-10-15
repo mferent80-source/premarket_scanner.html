@@ -1,6 +1,6 @@
 # Astăzi — propunere de dashboard
 
-Acest prototip se deschide separat la `today-demo/`. Pagina Astăzi și navigarea aplicației publicate rămân la versiunea aprobată anterior. Integrarea noului dashboard se face după revizuirea demo-ului.
+Acest prototip se deschide separat la `today-demo/`. Designul aprobat este integrat în pagina `today/`, care pornește direct cu datele contului și sursele publice. Exemplele ilustrative rămân disponibile doar în acest demo.
 
 „Previzualizare” folosește exclusiv valori ilustrative în memorie, marcate în pagină. „Datele mele + piață” citește contul Invest de pe dispozitiv și solicită datele publice de piață. Schimbarea modului nu salvează exemplele în registrele financiare.
 
@@ -11,6 +11,7 @@ Acest prototip se deschide separat la `today-demo/`. Pagina Astăzi și navigare
 - Știrile reale păstrează publicația, data și un link HTTPS verificabil. Un flux indisponibil se deosebește de un flux accesibil fără articole relevante.
 - Execuțiile sunt citite din registrul confirmat al contului selectat. Demo-ul nu încarcă modulul care migrează sau modifică registrul și nu citește credențialele Trading 212.
 - Actualizarea contului se face prin pagina Trading 212 existentă. Butonul din demo recitește datele locale și sursele publice; cache-ul public de piață poate fi actualizat de stratul de date existent.
+- În aplicația principală, butonul din Astăzi solicită și actualizarea contului prin conexiunea Trading 212 existentă. Pagina păstrează data ultimei citiri confirmate și distinge o actualizare parțială sau indisponibilă.
 - Premarket Scanner și verdictul independent V1 rămân două surse distincte, cu regulile lor existente.
 
 Verificări: `node --test tools/today-dashboard-model.test.mjs tools/today-dashboard-ui.test.mjs`.
