@@ -24,3 +24,15 @@ test('Health: datele (nu cache-urile) suitei și ale altor aplicații de pe acee
     assert.equal(isDeepCandidate(k), false, k);
   assert.equal(isDeepCandidate('ttd:pd:y1m:AVGO'), true, 'cache-ul de prețuri rămâne curățabil');
 });
+
+// 15.10.2026 (el: „nu apare curăță cache”): de la 99c36ad7 sursele retrase din hub (Macro) au href: null;
+// randarea „Hub stale audit” făcea i.href.replace(...) ⇒ TypeError ⇒ checkLS() de după nu mai rula ⇒ fără butoane de curățenie.
+test('Health: o sursă hub fără link (href null) nu oprește verificările de după (localStorage)', () => {
+  const m = /\$\('bHubStale'\)\.innerHTML = a\.items\.map\(i =>\n([\s\S]*?)\n  \)\.join/.exec(HTML);
+  assert.ok(m, 'randarea Hub stale există');
+  const randeaza = new Function('esc', 'return i => ' + m[1].trim() + ';')((s) => String(s));
+  assert.doesNotThrow(() => randeaza({ cls: 'warn', label: 'Fără snapshot Macro (sursă retrasă)', href: null }));
+  assert.ok(!randeaza({ cls: 'warn', label: 'x', href: null }).includes('fix →'), 'fără link nu apare „fix →”');
+  assert.ok(randeaza({ cls: 'warn', label: 'x', href: './journal/#capital' }).includes('href="../journal/#capital"'), 'cu link rămâne „fix →”');
+  assert.ok(HTML.indexOf('checkHubStale();') < HTML.indexOf('checkLS();\ncheckQB();'), 'checkLS rulează după Hub stale');
+});
