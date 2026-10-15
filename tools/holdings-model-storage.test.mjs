@@ -85,3 +85,22 @@ test('dacă IndexedDB refuză salvarea, raportul încearcă spațiul local înai
  s.save('key',{trainedAt:3,result:'kept'},false);await s.settled('key');
  assert.equal(JSON.parse(local.get('key')).result,'kept');assert.equal(s.inspect('key',false,true).state,'local');assert.equal(s.inspect('key',false,true).message,null);
 });
+
+// 15.10.2026 (el, din nou: „Analize înaintea intrării · 01 · spațiul local plin”): rapoartele vechi se mutau doar la deschiderea
+// tickerului; la pornirea aplicației se mută acum toate, ca registrele sincronizate să aibă loc în spațiul local.
+const fakeStorage=entries=>{const m=new Map(entries);return {m,get length(){return m.size;},key:i=>[...m.keys()][i]??null,getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};};
+test('la pornire, toate rapoartele modelelor trec în IndexedDB și eliberează spațiul local; alte chei rămân neatinse',async()=>{
+ const {migrateAll}=createRequire(import.meta.url)('../lib/holdings-model-storage.js');
+ const local=fakeStorage([['tt_holdings_isolation_v1:live%3Aa|QCOM_US_EQ','{"trainedAt":5,"result":"q"}'],['tt_holdings_garch_v1:live%3Aa|AVGO_US_EQ','{"trainedAt":6,"result":"g"}'],['tt_trade_evidence_v1','{"version":1,"entries":[]}'],['tt_holdings_analysis_v1','{"keep":true}']]),durable=backup();
+ const r=await migrateAll(local,durable);
+ assert.equal(r.moved,2);assert.ok(r.chars>40);assert.equal(r.failed,0);
+ assert.deepEqual([...local.m.keys()].sort(),['tt_holdings_analysis_v1','tt_trade_evidence_v1']);
+ assert.equal(JSON.parse(durable.records.get('tt_holdings_isolation_v1:live%3Aa|QCOM_US_EQ')).retention,'indexeddb');
+ const reader=create(local,{durable});await reader.restore('tt_holdings_isolation_v1:live%3Aa|QCOM_US_EQ',false);assert.equal(reader.read('tt_holdings_isolation_v1:live%3Aa|QCOM_US_EQ',false).result,'q');
+});
+test('dacă IndexedDB refuză mutarea, raportul rămâne în spațiul local',async()=>{
+ const {migrateAll}=createRequire(import.meta.url)('../lib/holdings-model-storage.js');
+ const local=fakeStorage([['tt_holdings_quantile_v1:x|A','{"trainedAt":1}']]);
+ const r=await migrateAll(local,{get:async()=>null,set:async()=>{throw Error('refuzat');}});
+ assert.equal(r.moved,0);assert.equal(r.failed,1);assert.equal(local.m.has('tt_holdings_quantile_v1:x|A'),true);
+});
