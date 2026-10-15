@@ -31,3 +31,16 @@ test('upstream failures expose only safe stage codes, never response bodies or c
 });
 
 test('broker redirects stop at first response without forwarding credentials',async()=>{let calls=0;const r=await handle(req(),env,async(url,options)=>{calls++;assert.equal(options.redirect,'manual');assert.ok(options.signal instanceof AbortSignal);return new Response(null,{status:302,headers:{Location:'https://evil.example'}})});assert.equal(calls,1);assert.deepEqual(await r.json(),{error:'broker_redirected'});});
+
+// 15.10.2026 (el: 502 ore în șir pe /api/trading212/transactions?cursor=019ef2b7…): serviciul trimitea mai departe DOAR `cursor`
+// din nextPagePath; orice alt parametru pus de Trading 212 (de ex. `time` la tranzacții) se pierdea. Acum călătorește împachetat.
+test('parametrii suplimentari din nextPagePath (de ex. time) se păstrează într-un cursor opac și ajung înapoi la Trading 212',async()=>{
+ const route=ROUTES.transactions,base='https://demo.trading212.com';
+ const packed=nextCursor(route+'?cursor=019ef2b7-655a-7f0c-ad6b-4951f9ca7a52&time=2026-07-20T12:30:00Z&limit=50',route,base);
+ assert.match(packed,/^p1\.[-\w]+$/);assert.ok(packed.length<=256);
+ assert.equal(nextCursor(route+'?cursor=abc&limit=50',route,base),'abc','fără alți parametri cursorul rămâne simplu');
+ let target;const r=await handle(req('transactions?cursor='+packed),env,async url=>{target=new URL(url);return response({items:[],nextPagePath:null})});
+ assert.equal(r.status,200);assert.equal(target.searchParams.get('cursor'),'019ef2b7-655a-7f0c-ad6b-4951f9ca7a52');assert.equal(target.searchParams.get('time'),'2026-07-20T12:30:00Z');assert.equal(target.searchParams.get('limit'),'50');
+ for(const bad of ['p1.'+'x'.repeat(10),'p1.'+btoa('{"cursor":"a b"}').replace(/=+$/,''),'p1.'+btoa('{"cursor":"ok","limit":"9999"}').replace(/=+$/,'')]){let called=false;const x=await handle(req('transactions?cursor='+encodeURIComponent(bad)),env,()=>{called=true;});assert.equal(x.status,400,bad);assert.equal(called,false);}
+ for(const path of [route+'?cursor=ok&time=<script>',route+'?cursor=ok&x='+'a'.repeat(300)])assert.throws(()=>nextCursor(path,route,base));
+});

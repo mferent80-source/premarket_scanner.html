@@ -1,6 +1,6 @@
 (function(g){
 'use strict';
-const R=g.HoldingsIsolation,N=g.HoldingsNeural,esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=(n,d=1)=>Number.isFinite(n)?n.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d}):'—',day=t=>new Date(t).toISOString().slice(0,10),reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)},{onChange:refresh}),errors=new Map(),demoStarted=new Set();let context=null,job=null,serial=0;
+const R=g.HoldingsIsolation,N=g.HoldingsNeural,esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=(n,d=1)=>Number.isFinite(n)?n.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d}):'—',day=t=>new Date(t).toISOString().slice(0,10),reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v),removeItem:k=>localStorage.removeItem(k)},{onChange:refresh}),errors=new Map(),demoStarted=new Set();let context=null,job=null,serial=0;
 const key=p=>'tt_holdings_isolation_v1:'+encodeURIComponent(context.scope)+'|'+encodeURIComponent(p.ticker);
 function restore(p){return context&&p?reports.restore(key(p),context.demo):Promise.resolve();}
 function read(p){try{return reports.read(key(p),context.demo);}catch{return null;}}

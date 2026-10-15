@@ -50,7 +50,7 @@ async function backup(){const list=await Store.get('backups:'+session.subject)||
 async function performSync(){if(!ready||!session||busy||checking||navigator.onLine===false)return;busy=true;error='';failure=null;let currentKey=null;broadcast();try{
  backupPaused=await Store.get('backup-pause')===true;if(backupPaused)return;
  const owner=await deviceOwner();if(owner&&owner!==session.subject)throw Error('account_mismatch');await Store.put('owner',session.subject);
- const remote=await readRecords();let backedUp=false;
+ const remote=await readRecords();let backedUp=false;const skipped=[],full=e=>e?.name==='QuotaExceededError'||e?.code===22||e?.code===1014;
  for(const key of activeKeys){
   currentKey=key;
   if(conflicts[key]&&key!=='cloud_credentials')continue;const current=await value(key),record=remote[key],base=baseline[key];if(key==='cloud_credentials')connectionState(current,record);if(conflicts[key])continue;
@@ -69,12 +69,15 @@ async function performSync(){if(!ready||!session||busy||checking||navigator.onLi
    if(!backedUp&&key!=='cloud_credentials'){await backup();backedUp=true;}
    // A concurrent local edit still descends from the snapshot read above,
    // not from the merged cloud value that this device has not accepted.
-   if(!await apply(key,next,current)){baseline[key]={...(remote[key]||{revision:0}),value:current};continue;}
+   // Un registru care nu încape pe dispozitiv nu mai oprește celelalte registre; rămâne de reîncercat la următoarea sincronizare.
+   let applied;try{applied=await apply(key,next,current);}catch(e){if(full(e)){skipped.push({key,e});continue;}throw e;}
+   if(!applied){baseline[key]={...(remote[key]||{revision:0}),value:current};continue;}
   }
   baseline[key]=remote[key]||{value:undefined,revision:0};if(key==='cloud_credentials')connectionState(await value(key),remote[key]);
  }
  // Ownership is durable before any upload; the legacy mirror may be full.
- try{localStorage.setItem('tt_cloud_owner',session.subject);}catch{}await Store.put('baseline:'+session.subject,baseline);lastSync=Date.now();
+ try{localStorage.setItem('tt_cloud_owner',session.subject);}catch{}await Store.put('baseline:'+session.subject,baseline);
+ if(skipped.length){currentKey=skipped[0].key;error='Spațiul local al browserului este plin: '+(skipped.length===1?'1 registru nu a fost scris':skipped.length+' registre nu au fost scrise')+' pe acest dispozitiv; celelalte s-au sincronizat. Eliberează spațiu din Starea aplicației.';failure=failed(skipped[0].e,{operation:'sync',key:currentKey});}else lastSync=Date.now();
  }catch(e){error=e.status===409?'Datele au fost modificate pe celălalt dispozitiv. Reconcilierea se reia la următoarea sincronizare.':e.message;failure=failed(e,{operation:'sync',key:currentKey});}finally{busy=false;broadcast();}}
 async function sync(){if(navigator.locks)return navigator.locks.request('tt-cloud-sync',{ifAvailable:true},lock=>lock?performSync():undefined);return performSync();}
 async function login(credential,nonce){if(!ready)throw Error('cloud_not_configured');const owner=await deviceOwner();const result=await api('auth','POST',{credential,nonce});if(owner&&owner!==result.subject){session={...result};await api('session','DELETE');session=null;throw Error('account_mismatch');}session=result;await Store.put('session',session);baseline=await Store.get('baseline:'+session.subject)||{};conflicts={};await sync();broadcast();}

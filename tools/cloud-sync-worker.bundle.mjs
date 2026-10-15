@@ -18,7 +18,6 @@ function historyItem(item, kind) {
   return {id:text(item.reference),ticker:text(item.instrument?.ticker||item.ticker),date:text(kind==='dividends'?item.paidOn:item.dateTime),type:text(item.type),amount:number(item.amount),currency:text(item.currency)};
 }
 
-
 return {number,summary,position,historyItem};
 })();
 const TTBrokerRelay=(()=>{
@@ -29,11 +28,28 @@ async function equalSecret(a,b) {
   const hash=async s=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)));
   const [x,y]=await Promise.all([hash(a),hash(b)]);let difference=0;for(let i=0;i<x.length;i++)difference|=x[i]^y[i];return difference===0;
 }
+// Trading 212 poate pune în nextPagePath și alți parametri în afară de cursor (de ex. `time` la tranzacții). Fără ei pagina
+// următoare e respinsă; ei călătoresc împachetați într-un cursor opac „p1.” și se întorc neschimbați la Trading 212.
+const PACKED='p1.',plainCursor=c=>typeof c==='string'&&!!c&&c.length<=256&&/^[-\w:.]+$/.test(c);
+const extraParam=(k,v)=>/^[a-zA-Z]{1,24}$/.test(k)&&k!=='cursor'&&k!=='limit'&&typeof v==='string'&&!!v&&v.length<=120&&/^[-\w:.+]+$/.test(v);
 function nextCursor(path,route,base) {
   if (!path) return null;
   const u=new URL(path,base);
   if (u.origin!==new URL(base).origin||u.pathname!==route) throw new Error('pagination');
-  const c=u.searchParams.get('cursor');if(!c||c.length>256||!/^[-\w:.]+$/.test(c))throw new Error('pagination');return c;
+  const c=u.searchParams.get('cursor');if(!plainCursor(c)||c.startsWith(PACKED))throw new Error('pagination');
+  const extra=[...u.searchParams].filter(([k])=>k!=='cursor'&&k!=='limit');
+  if(!extra.length)return c;
+  if(extra.some(([k,v])=>!extraParam(k,v))||new Set(extra.map(([k])=>k)).size!==extra.length)throw new Error('pagination');
+  const packed=PACKED+btoa(JSON.stringify(Object.fromEntries([['cursor',c],...extra]))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  if(packed.length>256)throw new Error('pagination');return packed;
+}
+function cursorParams(c) {
+  if(!plainCursor(c))throw new Error('cursor');
+  if(!c.startsWith(PACKED))return {cursor:c};
+  const b=c.slice(PACKED.length).replace(/-/g,'+').replace(/_/g,'/'),value=JSON.parse(atob(b+'='.repeat((4-b.length%4)%4)));
+  if(!value||typeof value!=='object'||Array.isArray(value)||!plainCursor(value.cursor)||value.cursor.startsWith(PACKED))throw new Error('cursor');
+  for(const [k,v] of Object.entries(value))if(k!=='cursor'&&!extraParam(k,v))throw new Error('cursor');
+  return value;
 }
 async function handle(request,env,upstream=fetch) {
   const origin=request.headers.get('Origin');
@@ -66,7 +82,7 @@ async function handle(request,env,upstream=fetch) {
   const base=`https://${environment}.trading212.com`,target=new URL(ROUTES[kind],base);
   const historical=['orders','dividends','transactions'].includes(kind);
   for(const key of url.searchParams.keys())if(key!=='cursor'||!historical)return reply({error:'invalid_query'},400);
-  if(historical){target.searchParams.set('limit','50');const c=url.searchParams.get('cursor');if(c){if(c.length>256||!/^[-\w:.]+$/.test(c))return reply({error:'invalid_cursor'},400);target.searchParams.set('cursor',c);}}
+  if(historical){target.searchParams.set('limit','50');const c=url.searchParams.get('cursor');if(c){let params;try{params=cursorParams(c);}catch{return reply({error:'invalid_cursor'},400);}for(const [k,v] of Object.entries(params))target.searchParams.set(k,v);}}
   let stage='connect';
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),20000);
@@ -90,7 +106,6 @@ async function handle(request,env,upstream=fetch) {
   }finally{clearTimeout(timer);}
 }
 
-
 return {ROUTES,nextCursor,handle};
 })();
 const TTEvidenceSchema=(()=>{
@@ -107,7 +122,6 @@ function valid(r,now=Date.now()){
 function ledger(value,{simulation=false,now=Date.now()}={}){return exact(value,['version','entries'])&&value.version===VERSION&&Array.isArray(value.entries)&&value.entries.length<=20000&&value.entries.every(r=>valid(r,now)&&r.simulation===simulation)&&new Set(value.entries.map(r=>r.id)).size===value.entries.length;}
 return {KEY,VERSION,IDS,valid,ledger};
 });
-
 
 return globalThis.TradeEvidenceSchema;
 })();
@@ -264,7 +278,6 @@ const TTPrivateStore=(()=>{
 async function readPrivate(subject,key,env,deps){const row=await env.CLOUD_DB.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=? AND key=?').bind(subject,key).first();return row?{...row,value:await deps.unseal(row.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+key+'|'+row.revision)}:null;}
 async function writePrivate(subject,key,value,revision,env,deps,now=Date.now()){const next=revision+1,packet=await deps.seal(value,env.CLOUD_ENCRYPTION_KEY,subject+'|'+key+'|'+next),seconds=Math.floor(now/1000),result=revision?await env.CLOUD_DB.prepare('UPDATE cloud_records SET revision=?,packet=?,updated=? WHERE subject=? AND key=? AND revision=?').bind(next,packet,seconds,subject,key,revision).run():await env.CLOUD_DB.prepare('INSERT OR IGNORE INTO cloud_records(subject,key,revision,packet,updated) VALUES(?,?,?,?,?)').bind(subject,key,next,packet,seconds).run();return result.meta.changes===1?next:null;}
 
-
 return {readPrivate,writePrivate};
 })();
 const TTWebPush=(()=>{
@@ -278,7 +291,6 @@ async function hkdf(secret,salt,info,length){const key=await crypto.subtle.impor
 async function encryptPush(subscription,payload){if(!validSubscription(subscription))throw Error('invalid_push');const plain=E.encode(JSON.stringify(payload));if(plain.length>3000)throw Error('push_payload_too_large');const ua=decode64(subscription.keys.p256dh),auth=decode64(subscription.keys.auth),pair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']),as=new Uint8Array(await crypto.subtle.exportKey('raw',pair.publicKey)),publicKey=await crypto.subtle.importKey('raw',ua,{name:'ECDH',namedCurve:'P-256'},false,[]),shared=new Uint8Array(await crypto.subtle.deriveBits({name:'ECDH',public:publicKey},pair.privateKey,256)),salt=crypto.getRandomValues(new Uint8Array(16)),ikm=await hkdf(shared,auth,join(E.encode('WebPush: info\0'),ua,as),32),cek=await hkdf(ikm,salt,E.encode('Content-Encoding: aes128gcm\0'),16),nonce=await hkdf(ikm,salt,E.encode('Content-Encoding: nonce\0'),12),key=await crypto.subtle.importKey('raw',cek,'AES-GCM',false,['encrypt']),cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv:nonce},key,join(plain,new Uint8Array([2])))),recordSize=new Uint8Array(4);new DataView(recordSize.buffer).setUint32(0,4096);return join(salt,recordSize,new Uint8Array([65]),as,cipher);}
 async function createPushKeys(){const pair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);const privateKey=await crypto.subtle.exportKey('jwk',pair.privateKey),publicKey=await crypto.subtle.exportKey('jwk',pair.publicKey);return {privateKey,publicKey:base64url(join(new Uint8Array([4]),decode64(publicKey.x),decode64(publicKey.y)))};}
 async function sendPush(subscription,payload,keys,upstream=fetch,now=Date.now()){if(!validSubscription(subscription))throw Error('invalid_push');const header=base64url(E.encode(JSON.stringify({typ:'JWT',alg:'ES256'}))),claims=base64url(E.encode(JSON.stringify({aud:new URL(subscription.endpoint).origin,exp:Math.floor(now/1000)+3600,sub:'https://mferent80-source.github.io/premarket_scanner.html/app/'}))),signing=header+'.'+claims,key=await crypto.subtle.importKey('jwk',keys.privateKey,{name:'ECDSA',namedCurve:'P-256'},false,['sign']),signature=base64url(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},key,E.encode(signing))),body=await encryptPush(subscription,payload),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);try{const r=await upstream(subscription.endpoint,{method:'POST',redirect:'manual',signal:controller.signal,headers:{Authorization:'vapid t='+signing+'.'+signature+', k='+keys.publicKey,'Content-Encoding':'aes128gcm','Content-Type':'application/octet-stream',TTL:'300',Urgency:'normal'},body});return {state:r.status===404||r.status===410?'expired':r.status>=200&&r.status<300?'accepted':'failed',status:r.status,at:now};}catch{return {state:'failed',status:null,at:now};}finally{clearTimeout(timer);}}
-
 
 return {base64url,decode64,validSubscription,encryptPush,createPushKeys,sendPush};
 })();
@@ -310,7 +322,6 @@ async function deliverPush(subject,event,env,deps,upstream=fetch,now=Date.now(),
 }
 async function pushReceipt(request,env,deps,parseBody){const b=await parseBody(request,5000);if(!['received','opened'].includes(b.phase)||typeof b.token!=='string')return {body:{error:'invalid_push_receipt'},status:400};let claim;try{claim=await deps.unseal(b.token,env.CLOUD_ENCRYPTION_KEY,'push-receipt-v1');}catch{return {body:{error:'invalid_push_receipt'},status:401};}const now=Date.now();if(!Number.isFinite(claim.expires)||claim.expires<now||claim.expires>now+3600000)return {body:{error:'push_receipt_expired'},status:401};for(let i=0;i<3;i++){const row=await readPrivate(claim.subject,PUSH_KEY,env,deps),device=row?.value.devices.find(d=>d.id===claim.id);if(!device||device.last?.eventId!==claim.eventId)return {body:{ignored:true},status:200};const field=b.phase==='opened'?'openedAt':'receivedAt',devices=row.value.devices.map(d=>d.id===claim.id?{...d,last:{...d.last,[field]:d.last[field]||now}}:d);if(await writePrivate(claim.subject,PUSH_KEY,{devices},row.revision,env,deps))return {body:{confirmed:b.phase},status:200};}return {body:{error:'revision_conflict'},status:409};}
 
-
 return {PUSH_KEY,handlePush,deliverPush,pushReceipt};
 })();
 const TTCloudAudit=(()=>{
@@ -327,7 +338,6 @@ async function handleAudit({request,subject,env,deps,parseBody}){
  }
  return reply({error:'revision_conflict'},409);
 }
-
 
 return {AUDIT_KEY,handleAudit};
 })();
@@ -390,7 +400,6 @@ async function runMonitors(env,deps,upstream=fetch,now=Date.now()){
  for(const row of rows){if(checked+failed>=5)break;if(env.GOOGLE_ALLOWED_SUB&&row.subject!==env.GOOGLE_ALLOWED_SUB)continue;try{const current=await read(db,row.subject,MONITOR_KEY,env,deps.unseal);if(!current?.value.enabled)continue;await runOne(row.subject,env,deps,upstream,now);checked++;}catch{failed++;}}
  const heartbeat=await read(db,'__monitor_service__',HEARTBEAT_KEY,env,deps.unseal);await write(db,'__monitor_service__',HEARTBEAT_KEY,{at:now,checked,failed},heartbeat?.revision||0,env,deps.seal,now);return {checked,failed};
 }
-
 
 return {MONITOR_KEY,HEARTBEAT_KEY,monitorScope,monitorRules,schedulerStatus,handleMonitor,runMonitors};
 })();

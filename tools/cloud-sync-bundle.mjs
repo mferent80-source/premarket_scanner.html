@@ -20,7 +20,7 @@ export const destination=new URL('./cloud-sync-worker.bundle.mjs',import.meta.ur
 export async function buildBundle(){
  const blocks=[];
  for(const m of modules){
-  let source=await readFile(new URL(m.path,import.meta.url),'utf8');
+  /* copia de lucru Windows e CRLF (autocrlf); pachetul se construiește din același text ca pe GitHub (LF) */ let source=(await readFile(new URL(m.path,import.meta.url),'utf8')).replace(/\r\n/g,'\n');
   const imports=source.match(/^import .*;$/gm)||[],exports=[...source.matchAll(/^export (?:async )?(?:const|function) (\w+)/gm)].map(x=>x[1]);
   if(JSON.stringify(imports)!==JSON.stringify(m.imports)||exports.length!==m.exports.length||exports.some(x=>!m.exports.includes(x)))throw Error('Manifestul Workerului trebuie actualizat pentru '+m.path);
   source=source.replace(/^import .*;\n/gm,'').replace(/^export default .*;\n?/gm,'').replace(/^export (?=(?:async )?(?:const|function) )/gm,'');
@@ -31,6 +31,6 @@ export async function buildBundle(){
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const bundle=await buildBundle();
- if(process.argv.includes('--check')){if(await readFile(destination,'utf8')!==bundle)throw Error('Workerul pregătit pentru publicare nu este actualizat. Rulează node tools/cloud-sync-bundle.mjs.');console.log('Workerul de sincronizare este actualizat.');}
+ if(process.argv.includes('--check')){if((await readFile(destination,'utf8')).replace(/\r\n/g,'\n')!==bundle)throw Error('Workerul pregătit pentru publicare nu este actualizat. Rulează node tools/cloud-sync-bundle.mjs.');console.log('Workerul de sincronizare este actualizat.');}
  else {await writeFile(destination,bundle);console.log('Pregătit: tools/cloud-sync-worker.bundle.mjs');}
 }

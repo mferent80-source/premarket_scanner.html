@@ -5,11 +5,28 @@ async function equalSecret(a,b) {
   const hash=async s=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)));
   const [x,y]=await Promise.all([hash(a),hash(b)]);let difference=0;for(let i=0;i<x.length;i++)difference|=x[i]^y[i];return difference===0;
 }
+// Trading 212 poate pune în nextPagePath și alți parametri în afară de cursor (de ex. `time` la tranzacții). Fără ei pagina
+// următoare e respinsă; ei călătoresc împachetați într-un cursor opac „p1.” și se întorc neschimbați la Trading 212.
+const PACKED='p1.',plainCursor=c=>typeof c==='string'&&!!c&&c.length<=256&&/^[-\w:.]+$/.test(c);
+const extraParam=(k,v)=>/^[a-zA-Z]{1,24}$/.test(k)&&k!=='cursor'&&k!=='limit'&&typeof v==='string'&&!!v&&v.length<=120&&/^[-\w:.+]+$/.test(v);
 export function nextCursor(path,route,base) {
   if (!path) return null;
   const u=new URL(path,base);
   if (u.origin!==new URL(base).origin||u.pathname!==route) throw new Error('pagination');
-  const c=u.searchParams.get('cursor');if(!c||c.length>256||!/^[-\w:.]+$/.test(c))throw new Error('pagination');return c;
+  const c=u.searchParams.get('cursor');if(!plainCursor(c)||c.startsWith(PACKED))throw new Error('pagination');
+  const extra=[...u.searchParams].filter(([k])=>k!=='cursor'&&k!=='limit');
+  if(!extra.length)return c;
+  if(extra.some(([k,v])=>!extraParam(k,v))||new Set(extra.map(([k])=>k)).size!==extra.length)throw new Error('pagination');
+  const packed=PACKED+btoa(JSON.stringify(Object.fromEntries([['cursor',c],...extra]))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  if(packed.length>256)throw new Error('pagination');return packed;
+}
+function cursorParams(c) {
+  if(!plainCursor(c))throw new Error('cursor');
+  if(!c.startsWith(PACKED))return {cursor:c};
+  const b=c.slice(PACKED.length).replace(/-/g,'+').replace(/_/g,'/'),value=JSON.parse(atob(b+'='.repeat((4-b.length%4)%4)));
+  if(!value||typeof value!=='object'||Array.isArray(value)||!plainCursor(value.cursor)||value.cursor.startsWith(PACKED))throw new Error('cursor');
+  for(const [k,v] of Object.entries(value))if(k!=='cursor'&&!extraParam(k,v))throw new Error('cursor');
+  return value;
 }
 export async function handle(request,env,upstream=fetch) {
   const origin=request.headers.get('Origin');
@@ -42,7 +59,7 @@ export async function handle(request,env,upstream=fetch) {
   const base=`https://${environment}.trading212.com`,target=new URL(ROUTES[kind],base);
   const historical=['orders','dividends','transactions'].includes(kind);
   for(const key of url.searchParams.keys())if(key!=='cursor'||!historical)return reply({error:'invalid_query'},400);
-  if(historical){target.searchParams.set('limit','50');const c=url.searchParams.get('cursor');if(c){if(c.length>256||!/^[-\w:.]+$/.test(c))return reply({error:'invalid_cursor'},400);target.searchParams.set('cursor',c);}}
+  if(historical){target.searchParams.set('limit','50');const c=url.searchParams.get('cursor');if(c){let params;try{params=cursorParams(c);}catch{return reply({error:'invalid_cursor'},400);}for(const [k,v] of Object.entries(params))target.searchParams.set(k,v);}}
   let stage='connect';
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),20000);

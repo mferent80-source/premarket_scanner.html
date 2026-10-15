@@ -1,6 +1,6 @@
 (function(g){
 'use strict';
-const G=g.HoldingsGarch,reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)},{onChange:refresh}),errors=new Map();let context=null,job=null,serial=0;
+const G=g.HoldingsGarch,reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v),removeItem:k=>localStorage.removeItem(k)},{onChange:refresh}),errors=new Map();let context=null,job=null,serial=0;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=(v,d=2)=>Number.isFinite(v)?v.toLocaleString('ro-RO',{maximumFractionDigits:d,minimumFractionDigits:d}):'—',day=t=>new Date(t).toISOString().slice(0,10);
 const key=p=>'tt_holdings_garch_v1:'+encodeURIComponent(context.scope)+'|'+encodeURIComponent(p.ticker);
 const blocked=()=>!!job||['HoldingsNeuralUI','HoldingsHMMUI','HoldingsIsolationUI','HoldingsQuantileUI','HoldingsKNNUI'].some(name=>g[name]?.busy());

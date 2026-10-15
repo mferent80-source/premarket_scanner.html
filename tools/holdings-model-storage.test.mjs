@@ -63,3 +63,25 @@ test('corrupt or inaccessible backups never claim persistence, and ledger failur
  for(const get of [async()=>'{broken',async()=>{throw Error('denied');}]){const s=create(refused,{durable:{get,set:async()=>{throw Error('denied');}}});await s.restore('key',false);assert.equal(s.read('key',false),null);}
  const s=create(refused,{durable:backup()});s.save('key',{trainedAt:1,result:'verified'},false);s.captureFailed('key',false);await s.settled('key');assert.equal(s.inspect('key',false,true).state,'indexeddb');assert.match(s.inspect('key',false,true).message,/Registrul estimărilor/);
 });
+
+// 15.10.2026: rapoartele modelelor din Portofoliu (Isolation QCOM/AVGO ~0,9 mil. caractere, Quantile, GARCH…) umpleau spațiul local comun
+// al originii, iar sincronizarea pica pe „spațiu plin”. Când IndexedDB e disponibil, rapoartele nu mai stau în spațiul local.
+test('cu IndexedDB disponibil raportul nu mai ocupă spațiul local, iar copia locală veche se șterge după confirmare',async()=>{
+ const durable=backup(),local=new Map([['key','{"trainedAt":1,"result":"old-local"}']]),writes=[];
+ const s=create({getItem:k=>local.get(k)||null,setItem(k,v){writes.push(k);local.set(k,v);},removeItem:k=>local.delete(k)},{durable});
+ assert.equal(s.save('key',{trainedAt:2,result:'new'},false),'pending');assert.deepEqual(writes,[]);
+ await s.settled('key');assert.equal(local.has('key'),false);assert.equal(s.read('key',false).result,'new');assert.equal(s.inspect('key',false,true).state,'indexeddb');
+ assert.equal(JSON.parse(durable.records.get('key')).result,'new');
+});
+test('un raport vechi doar din spațiul local se mută în IndexedDB la restaurare și eliberează spațiul local',async()=>{
+ const durable=backup(),local=new Map([['key','{"trainedAt":5,"result":"local-only"}'],['journal','untouched']]);
+ const s=create({getItem:k=>local.get(k)||null,setItem:(k,v)=>local.set(k,v),removeItem:k=>local.delete(k)},{durable});
+ await s.restore('key',false);
+ assert.equal(local.has('key'),false);assert.equal(local.get('journal'),'untouched');assert.equal(JSON.parse(durable.records.get('key')).result,'local-only');
+ assert.equal(s.read('key',false).result,'local-only');assert.equal(s.inspect('key',false,true).state,'indexeddb');
+});
+test('dacă IndexedDB refuză salvarea, raportul încearcă spațiul local înainte să rămână doar în sesiune',async()=>{
+ const local=new Map(),s=create({getItem:k=>local.get(k)||null,setItem:(k,v)=>local.set(k,v)},{durable:{get:async()=>null,set:async()=>{throw Error('IndexedDB refuzat');}}});
+ s.save('key',{trainedAt:3,result:'kept'},false);await s.settled('key');
+ assert.equal(JSON.parse(local.get('key')).result,'kept');assert.equal(s.inspect('key',false,true).state,'local');assert.equal(s.inspect('key',false,true).message,null);
+});

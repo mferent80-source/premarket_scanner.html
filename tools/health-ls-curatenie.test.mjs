@@ -34,5 +34,6 @@ test('Health: o sursă hub fără link (href null) nu oprește verificările de 
   assert.doesNotThrow(() => randeaza({ cls: 'warn', label: 'Fără snapshot Macro (sursă retrasă)', href: null }));
   assert.ok(!randeaza({ cls: 'warn', label: 'x', href: null }).includes('fix →'), 'fără link nu apare „fix →”');
   assert.ok(randeaza({ cls: 'warn', label: 'x', href: './journal/#capital' }).includes('href="../journal/#capital"'), 'cu link rămâne „fix →”');
-  assert.ok(HTML.indexOf('checkHubStale();') < HTML.indexOf('checkLS();\ncheckQB();'), 'checkLS rulează după Hub stale');
+  assert.ok(HTML.indexOf("['Hub stale',checkHubStale]") < HTML.indexOf("['localStorage',checkLS]"), 'checkLS rulează după Hub stale');
+ assert.match(HTML, /const runSafe=\(name,fn\)=>\{try\{/, 'fiecare verificare e protejată: una care pică nu le oprește pe celelalte');
 });

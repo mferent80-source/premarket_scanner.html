@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';import {createRequire} from 'node:module';import {KEYS,mergeRecord,validateValue,EvidenceCloud} from '../lib/cloud-sync-model.mjs';
 const {create:planStore}=createRequire(import.meta.url)('../lib/trade-plan-store.js');
-const source=readFileSync(new URL('../app/cloud-sync.js',import.meta.url),'utf8').replace(/^import .*;\n/,'');
+const source=readFileSync(new URL('../app/cloud-sync.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/,'');
 const boundedStatus={enabled:true,protocol:'tt-cloud-sync-v1',clientId:'test.apps.googleusercontent.com',checks:{database:true,google:true,encryption:true,schema:true},supportedKeys:KEYS,records:{protocol:'tt-cloud-records-v2',maxKeys:1}};
 async function setup({local={},remote={},baseline={},vault=null,cloudOwner=null,failOwnerMirror=false,broker=null,failVaultSave=false,enabled=true,autoActivate=false,status={enabled:true,protocol:'tt-cloud-sync-v1',clientId:'test.apps.googleusercontent.com',checks:{database:true,google:true,encryption:true,schema:true}},statusHttp=200,sessionHttp=200,savedSession=true,authResult={error:'challenge_expired'},authHttp=401,endpoint='https://premarket-scanner-html.mferent80.workers.dev',onPut,onRecords,onIndex,onKey,planBackup,missingPlanModule=false,fillsBackup,failFillsMirror=false,missingFillsModule=false,failStorageKey=null}={}){
  const storage=new Map(Object.entries(local)),privateStore=new Map([['session',savedSession?{token:'token',subject:'123',email:'me@example.test'}:null],['baseline:123',baseline],['owner',cloudOwner]]),calls=[];let currentVault=vault;const records=structuredClone(remote),window={addEventListener(){},dispatchEvent(){},T212Vault:{read:async()=>currentVault,save:async v=>{if(failVaultSave)throw Error('Vault unavailable');currentVault=v;},clear:async()=>{currentVault=null;}},TTCloudStore:{get:async k=>structuredClone(privateStore.get(k)||null),put:async(k,v)=>{privateStore.set(k,structuredClone(v));},remove:async k=>{privateStore.delete(k);}}};
@@ -311,3 +311,11 @@ test('network and API diagnostics retain only their allowed stage, register, cod
  checkSafeFailure(service,{code:'cloud_unavailable',operation:'service',key:null,httpStatus:503});
 });
 
+// 15.10.2026 (el: „Eroare de sincronizare” mereu, „Analize înaintea intrării · 08 · spațiul local plin”): un registru care nu încape
+// pe dispozitiv oprea TOATĂ sincronizarea la fiecare 30 s. Acum e sărit (și reîncercat data viitoare); restul registrelor trec.
+test('un registru care nu încape pe dispozitiv nu mai oprește restul sincronizării, dar sincronizarea nu se declară completă',async()=>{
+ const key='tt_trading212_portfolio_v1',old={'live:fixture':{fetchedAt:'2026-10-10T12:00:00Z',positions:[{ticker:'A',quantity:5}]}},phone={'live:fixture':{fetchedAt:'2026-10-10T12:01:00Z',positions:[{ticker:'A',quantity:6}]}},raw=JSON.stringify(old);
+ const s=await setup({local:{[key]:raw,tt_theme:'dark'},failStorageKey:key,remote:{[key]:{revision:2,updated:9,value:phone},tt_theme:{revision:2,updated:9,value:'light'}},baseline:{[key]:{revision:1,value:old},tt_theme:{revision:1,value:'dark'}}});
+ assert.equal(s.storage.get('tt_theme'),'light','registrul de după cel refuzat se aplică');assert.equal(s.storage.get(key),raw,'registrul refuzat rămâne neatins');
+ assert.equal(s.api.state().lastSync,null);assert.match(s.api.state().error,/1 registru nu a fost scris/);assert.equal(s.api.state().failure.code,'storage_quota');assert.equal(s.api.state().failure.key,key);
+});

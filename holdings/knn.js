@@ -1,6 +1,6 @@
 (function(g){
 'use strict';
-const Q=g.HoldingsKNN,N=g.HoldingsNeural,reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)},{onChange:refresh}),errors=new Map(),demoStarted=new Set();let context=null,job=null,serial=0;
+const Q=g.HoldingsKNN,N=g.HoldingsNeural,reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v),removeItem:k=>localStorage.removeItem(k)},{onChange:refresh}),errors=new Map(),demoStarted=new Set();let context=null,job=null,serial=0;
 const equal=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<=1e-6*Math.max(1,Math.abs(a),Math.abs(b));
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=(v,d=2)=>Number.isFinite(v)?v.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d}):'—',day=t=>new Date(t).toISOString().slice(0,10);
 const key=p=>'tt_holdings_knn_v1:'+encodeURIComponent(context.scope)+'|'+encodeURIComponent(p.ticker);

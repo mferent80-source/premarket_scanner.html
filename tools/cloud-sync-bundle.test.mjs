@@ -10,7 +10,7 @@ const ORIGIN='https://mferent80-source.github.io';
 const request=(route,method='GET',token='',data)=>new Request('https://worker'+route,{method,headers:{Origin:ORIGIN,...(token?{Authorization:'Bearer '+token}:{}),...(data?{'Content-Type':'application/json'}:{})},...(data?{body:JSON.stringify(data)}:{})});
 function database(sqlite){return {prepare(sql){return {first:async()=>sqlite.prepare(sql).get()||null,bind(...args){return {first:async()=>sqlite.prepare(sql).get(...args)||null,all:async()=>({results:sqlite.prepare(sql).all(...args)}),run:async()=>({meta:{changes:Number(sqlite.prepare(sql).run(...args).changes)}})};}};}};}
 test('the dashboard Worker contains the exact tested sources and needs no external imports',async()=>{
- const built=await buildBundle(),saved=await readFile(destination,'utf8');assert.equal(saved,built);assert.ok(!/^import\b/m.test(saved));
+ const built=await buildBundle(),saved=(await readFile(destination,'utf8')).replace(/\r\n/g,'\n');assert.equal(saved,built);assert.ok(!/^import\b/m.test(saved));
 });
 test('the standalone deployment keeps broker access read-only and refuses unconfigured cloud',async()=>{
  assert.equal((await worker.fetch(request('/api/trading212/positions','POST'),{})).status,405);
