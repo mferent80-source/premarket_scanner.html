@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '40 22 * * 1-5'   # UTC, după închiderea de la 20:00 UTC
+    - cron: '10 3 * * 2-6'    # 15.10.2026: a doua încercare, dacă la prima peste 5 % din acțiuni n-aveau încă bara zilei (Actions întârzie rulările)
 
 permissions:
   contents: write
@@ -31,6 +32,7 @@ jobs:
         env:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}   # raportările (I-621) — același secret ca price-alerts
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}   # intrări/ieșiri (I-617) — doar la schimbare
+          INCERCARE: ${{ github.event_name == 'schedule' && github.event.schedule == '10 3 * * 2-6' && 'a doua' || 'prima' }}   # 15.10: decizieDateVechi
         run: node tools/trend-12-1.mjs
       - name: Garda de formă a fișierelor publicate
         run: node --test tools/trend-12-1-robot.test.mjs

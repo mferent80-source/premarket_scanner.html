@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { curataUnivers, clasament, regim, liniaIstoric, adaugaIstoric, taieBaraPartiala, raporteazaDinCalendar, iesiri, intrari, mesajDiscord, validareFisiere } from './trend-12-1-lib.mjs';
+import { curataUnivers, clasament, regim, liniaIstoric, adaugaIstoric, taieBaraPartiala, raporteazaDinCalendar, iesiri, intrari, mesajDiscord, validareFisiere, decizieDateVechi } from './trend-12-1-lib.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GEN = path.join(ROOT, 'candidate-engine', 'generated');
@@ -67,6 +67,12 @@ if (aduse < univers.length * 0.7) { console.error('au venit sub 70 % din serii �
 const rez = clasament(serii, spy, { top: TOP }), rg = regim(spy), info = Object.fromEntries(univers.map((x) => [x.s, x]));
 // revizie 14.10: garda de 70 % pe CLASATE, nu pe aduse (o zi cu 500 de serii „vechi” dădea un clasament din 100); clasament gol = nu public
 if (rez.n < 0.7 * Math.max(1, aduse - rez.excluse.scurt) || !rez.clasament.length) { console.error('clasate ' + rez.n + ' din ' + aduse + ' aduse (scurte ' + rez.excluse.scurt + ', vechi ' + rez.excluse.vechi + ') ⇒ sub 70 % sau clasament gol — nu public'); process.exit(1); }
+// 15.10.2026: date VECHI (2+ zile) peste 5 % ⇒ prima încercare (22:40 UTC) nu publică, a doua (03:10 UTC) reîncearcă; a doua tot peste ⇒ pică
+// (pasul „Discord la eșec”, I-629). O zi de întârziere nu mai contează aici: acțiunea se clasează pe ultima ei zi (clasament → intarziat).
+const decizie = decizieDateVechi({ vechi: rez.excluse.vechi, baza: aduse - rez.excluse.scurt, incercare: process.env.INCERCARE });
+console.log('date: ' + rez.intarziate + ' cu o zi de întârziere (clasate pe ultima lor zi) · ' + rez.excluse.vechi + ' vechi (2+ zile) din ' + (aduse - rez.excluse.scurt) + ' · încercarea ' + (process.env.INCERCARE || 'prima') + ' ⇒ ' + decizie);
+if (decizie === 'reincerc') { console.log('peste 5 % date vechi ⇒ nu public acum; a doua încercare la 03:10 UTC'); process.exit(0); }
+if (decizie === 'pica') { console.error('și a doua încercare: peste 5 % date vechi ⇒ nu public'); process.exit(1); }
 const top20 = rez.clasament.slice(0, 20);
 
 // 4. raportările (I-621) — cheia din secretele Actions; fără ea, câmpul lipsește
@@ -87,13 +93,18 @@ const ist = fs.existsSync(F_IST) ? fs.readFileSync(F_IST, 'utf8') : '';
 const liniiIst = ist.split('\n').filter(Boolean);
 let prev = null, rerulare = false; try { prev = liniiIst.length ? JSON.parse(liniiIst[liniiIst.length - 1]) : null; } catch { prev = null; }
 if (prev && prev.d === rez.dataUltimei) { rerulare = true; try { prev = liniiIst.length > 1 ? JSON.parse(liniiIst[liniiIst.length - 2]) : null; } catch { prev = null; } }   // aceeași zi de date (re-rulare, sărbătoare US): nu e o zi nouă
-const ies = iesiri(prev, rez.toate, rg), intr = prev ? intrari(prev, top20) : [];   // prima zi din istoric nu e „20 de intrări”
+// 15.10: fără date azi (vechi 2+ zile sau neaduse) ≠ ieșire din trend — nu intră la ieșiri și nu pleacă pe Discord
+const faraDate = new Set(rez.faraDate.concat(picate.map((x) => String(x).split(' ')[0])));
+const faraDateTop = prev && Array.isArray(prev.top) ? prev.top.map(([s]) => s).filter((s) => faraDate.has(s)) : [];
+if (faraDateTop.length) console.log('din topul de ieri, fără date azi (nu le trec la ieșiri): ' + faraDateTop.join(', '));
+const ies = iesiri(prev, rez.toate, rg, faraDate), intr = prev ? intrari(prev, top20) : [];   // prima zi din istoric nu e „20 de intrări”
 const sectoare = {}; top20.forEach((x) => { const s = info[x.s] && info[x.s].sector || 'Necunoscut'; sectoare[s] = (sectoare[s] || 0) + 1; });
 
 // 6. fișierele
 const out = {
   versiune: 1, la: new Date().toISOString(), dataUltimei: rez.dataUltimei, regim: rg,
-  univers: { n: rez.n, cerute: univers.length, aduse, minCap: MIN_CAP, sursa, screenerLa, excluse: rez.excluse },
+  univers: { n: rez.n, cerute: univers.length, aduse, minCap: MIN_CAP, sursa, screenerLa, excluse: rez.excluse, intarziate: rez.intarziate },
+  faraDateTop,   /* 15.10: din topul de ieri, fără date azi — nu sunt ieșiri */
   metoda: 'primele 20 % după randamentul pe lunile 2–12 (ultima lună sărită), momentum pozitiv, acțiuni SUA ≥ 2 mld. $, preț ≥ 5 $, ≥ 10 mil. $/zi; regim = SPY peste media pe 200 de zile',
   eticheta: 'indiciu față de acțiunile din aceeași zi (5 ani: +0,8 % pe 20 de zile, t ≈ 1,5 pe ferestre independente — sub pragul de „probat”); neprobat pe listă istorică; în probă — nu e un buton de cumpărat',
   raportari, sectoare, ziuaDinainte: prev ? prev.d : null,

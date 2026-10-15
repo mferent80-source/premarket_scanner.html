@@ -94,3 +94,30 @@ test('salt: cel mai mare salt close-to-close intr-o zi din fereastra 12-1, cu zi
   const x = r.clasament.find((c) => c.s === 'RUPTA'); assert.ok(x, 'ramane in clasament'); assert.ok(x.salt.pct > 0.99 && x.salt.pct < 1.01);
   assert.ok(r.clasament.find((c) => c.s === 'LINA').salt.pct < 0.01);
 });
+
+// 15.10.2026 (el: „fă tot” — robotul rulat la 00:51 UTC: 136 de acțiuni fără bara zilei ⇒ „au ieșit din univers”, primele din top)
+test('clasament 15.10: o zi de întârziere (Yahoo n-a dat încă bara de azi) NU scoate acțiunea — se clasează pe ultima ei zi, marcată; 2+ zile ⇒ vechi, în faraDate', () => {
+  const spy = serie(300, 0.0005);
+  const serii = { TARE: serie(300, 0.004), INTARZIAT: serie(300, 0.003, { taie: 1 }), VECHI: serie(300, 0.004, { taie: 3 }) };
+  const r = clasament(serii, spy, { top: 10, minPret: 5, minDolari: 1e7 });
+  assert.deepEqual(r.clasament.map((x) => x.s), ['TARE', 'INTARZIAT']);
+  const i = r.clasament.find((x) => x.s === 'INTARZIAT');
+  assert.equal(i.intarziat, true); assert.equal(i.ultima, new Date(spy[spy.length - 2].t).toISOString().slice(0, 10));
+  assert.equal(r.clasament.find((x) => x.s === 'TARE').intarziat, undefined);
+  assert.equal(r.intarziate, 1); assert.equal(r.excluse.vechi, 1); assert.deepEqual(r.faraDate, ['VECHI']);
+});
+test('iesiri 15.10: o acțiune din topul de ieri fără date azi NU e „a ieșit din univers”; doar cea scoasă chiar din univers e', async () => {
+  const { iesiri } = await import('./trend-12-1-lib.mjs');
+  const prev = { d: '2026-10-13', regim: true, top: [['SNDK', 12], ['LITE', 4], ['GONE', 2]] };
+  const out = iesiri(prev, [], { peste: true }, new Set(['SNDK', 'LITE']));
+  assert.deepEqual(out.map((x) => x.s), ['GONE']); assert.equal(out[0].motiv, 'a ieșit din univers');
+  assert.equal(iesiri(prev, [], { peste: true }).length, 3, 'fără lista faraDate, comportamentul vechi');
+});
+test('decizieDateVechi 15.10: ≤ 5 % vechi ⇒ public; peste ⇒ prima încercare reîncearcă (03:10 UTC), a doua pică (Discord „a picat”)', async () => {
+  const { decizieDateVechi } = await import('./trend-12-1-lib.mjs');
+  assert.equal(decizieDateVechi({ vechi: 29, baza: 590, incercare: 'prima' }), 'public');
+  assert.equal(decizieDateVechi({ vechi: 136, baza: 590, incercare: 'prima' }), 'reincerc');
+  assert.equal(decizieDateVechi({ vechi: 136, baza: 590, incercare: 'a doua' }), 'pica');
+  assert.equal(decizieDateVechi({ vechi: 136, baza: 590 }), 'reincerc', 'fără INCERCARE = prima');
+  assert.equal(decizieDateVechi({ vechi: 0, baza: 0, incercare: 'prima' }), 'public');
+});

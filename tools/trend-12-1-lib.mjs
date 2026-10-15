@@ -28,23 +28,37 @@ export function curataUnivers(rows, o = {}) {
 /** serii = { simbol: bare[] } (bare zilnice {t,o,h,l,c,v}), spy = bare[] ⇒ clasamentul 12-1 al zilei. */
 export function clasament(serii, spy, o = {}) {
   const top = o.top ?? 40, minPret = o.minPret ?? 5, minDolari = o.minDolari ?? 1e7;
-  const dataUltimei = zi(spy[spy.length - 1].t), excluse = { pret: 0, bani: 0, scurt: 0, vechi: 0 }, l = [];
+  const dataUltimei = zi(spy[spy.length - 1].t), excluse = { pret: 0, bani: 0, scurt: 0, vechi: 0 }, l = [], faraDate = [];
+  // 15.10.2026: robotul rulat târziu (00:51 UTC) găsea 136 de acțiuni fără bara zilei (Yahoo încă n-o dăduse) ⇒ „au ieșit din univers”,
+  // chiar primele din top. O zi de întârziere NU mai scoate acțiunea: se clasează pe ultima ei zi (12-1 sare oricum ultima lună), marcată
+  // `intarziat`; 2+ zile ⇒ „vechi”, exclusă și pusă în `faraDate` (nu e o ieșire din trend, e o lipsă de date).
+  const ziuaDinainte = spy.length > 1 ? zi(spy[spy.length - 2].t) : null;
+  let intarziate = 0;
   for (const [s, b] of Object.entries(serii)) {
     if (!Array.isArray(b) || b.length < 260) { excluse.scurt++; continue; }
     const n = b.length;
-    if (zi(b[n - 1].t) !== dataUltimei) { excluse.vechi++; continue; }
+    const ultimaZi = zi(b[n - 1].t), intarziat = ultimaZi !== dataUltimei && ultimaZi === ziuaDinainte;
+    if (ultimaZi !== dataUltimei && !intarziat) { excluse.vechi++; faraDate.push(s); continue; }
     const pret = b[n - 1].c;
     if (!(pret >= minPret)) { excluse.pret++; continue; }
     const dolari20 = b.slice(-20).reduce((a, x) => a + x.c * x.v, 0) / 20;
     if (!(dolari20 >= minDolari)) { excluse.bani++; continue; }
     // 14.10 („fă toate”): cel mai mare salt close-to-close într-o zi din fereastra 12-1 — split neajustat / reverse split / glitch / știre (MRNA +177 %
     // într-un pas pe 14.10). Se PUBLICĂ, nu se taie: robotul măsoară, omul verifică seria înainte să creadă cifra 12-1.
-    l.push({ s, pret, m12: b[n - 22].c / b[n - 253].c - 1, m6: b[n - 22].c / b[n - 127].c - 1, r60: n > 61 ? b[n - 1].c / b[n - 61].c - 1 : null, dolari20, ultima: zi(b[n - 1].t), salt: saltMaxim(b.slice(n - 253)) });
+    l.push({ s, pret, m12: b[n - 22].c / b[n - 253].c - 1, m6: b[n - 22].c / b[n - 127].c - 1, r60: n > 61 ? b[n - 1].c / b[n - 61].c - 1 : null, dolari20, ultima: zi(b[n - 1].t), salt: saltMaxim(b.slice(n - 253)), ...(intarziat ? { intarziat: true } : {}) });
+    if (intarziat) intarziate++;
   }
   l.sort((a, b) => b.m12 - a.m12);
   const n = l.length;
   l.forEach((x, i) => { x.rang = i / n; });
-  return { dataUltimei, n, excluse, clasament: l.filter((x) => x.m12 > 0).slice(0, top), toate: l, clasate: l.map((x) => x.s) };
+  return { dataUltimei, n, excluse, intarziate, faraDate, clasament: l.filter((x) => x.m12 > 0).slice(0, top), toate: l, clasate: l.map((x) => x.s) };
+}
+
+/** 15.10.2026: câte acțiuni au date VECHI (2+ zile) din cele care puteau fi clasate. ≤ 5 % ⇒ public; peste ⇒ prima încercare (22:40 UTC)
+ *  nu publică și lasă a doua (03:10 UTC) să reîncerce; a doua încercare cu tot peste 5 % ⇒ pică (Discord „robotul a PICAT”, I-629). */
+export function decizieDateVechi({ vechi, baza, incercare } = {}) {
+  if (!(baza > 0) || !(vechi / baza > 0.05)) return 'public';
+  return incercare === 'a doua' ? 'pica' : 'reincerc';
 }
 
 /** Cel mai mare salt close-to-close într-o zi (fracție, cu ziua lui); null sub 2 bare. Nu judecă: un split neajustat și o știre arată la fel. */
@@ -68,12 +82,13 @@ export function raporteazaDinCalendar(items, dataUltimei) {
 }
 
 /** Cine a ieșit din primele 20 față de ziua dinainte (linia din istoric) și de ce. */
-export function iesiri(prev, clasat, rg) {
+export function iesiri(prev, clasat, rg, faraDate) {   /* 15.10: faraDate = Set cu acțiunile fără date azi (nu sunt ieșiri) */
   if (!prev || !Array.isArray(prev.top)) return [];
   const azi = new Map((clasat || []).map((x) => [x.s, x])), out = [];
   for (const [s] of prev.top) {
     const x = azi.get(s);
     if (rg && rg.peste === false && prev.regim === true) { out.push({ s, motiv: 'regimul s-a oprit (SPY sub media pe 200 de zile)', rangAzi: x ? x.rang : null, m12: x ? x.m12 : null }); continue; }   // revizie 14.10: doar la OPRIRE, nu zilnic cât e oprit
+    if (!x && faraDate && faraDate.has(s)) continue;   /* 15.10: lipsă de date, nu ieșire din trend */
     if (!x) { out.push({ s, motiv: 'a ieșit din univers', rangAzi: null, m12: null }); continue; }
     if (!(x.m12 > 0)) { out.push({ s, motiv: 'momentum 12-1 sub zero', rangAzi: x.rang, m12: x.m12 }); continue; }
     if (x.rang >= 0.2) out.push({ s, motiv: 'a căzut la top ' + (x.rang * 100).toFixed(1).replace('.', ',') + ' %', rangAzi: x.rang, m12: x.m12 });
