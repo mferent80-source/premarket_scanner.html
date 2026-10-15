@@ -152,3 +152,10 @@ test('cantitățile ambigue rămân respinse: cumpărare negativă, zero sau sen
  const r=j.merge('live:a','live',[{...fill,id:'b-neg',quantity:-1},{...fill,id:'s-zero',side:'SELL',quantity:0},{...fill,id:'no-side',side:null,quantity:-1}],null,fill.date,{restart:true});
  assert.equal(r.count,0);assert.equal(r.rejected,3);assert.equal(r.complete,false);
 });
+test('tabelul execuțiilor arată data în ora României, prețul la ban și rezultatele cu o zecimală (fără ISO brut sau 391.40000000000003)',()=>{
+ const x={...fill,id:'x1',ticker:'MSFT_US_EQ',side:'SELL',date:'2026-09-19T14:30:00Z',quantity:0.123456,price:391.40000000000003,realized:12.345,amount:48.3219};
+ const v=journalView({accounts:{live:account([x])}}),html=v.host.innerHTML;
+ assert.match(html,/<td>19\.09\.2026, 17:30<\/td>/);assert.doesNotMatch(html,/2026-09-19T14:30/);
+ assert.match(html,/<td>0,123456<\/td>/);assert.match(html,/<td>391,4 USD<\/td>/);assert.doesNotMatch(html,/391\.4000/);
+ assert.match(html,/<td>12,3 EUR<\/td>/);assert.match(html,/<td>48,3 EUR<\/td>/);
+});
