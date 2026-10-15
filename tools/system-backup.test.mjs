@@ -234,4 +234,15 @@ test('a failed backup restore never sends a fills invalidation as though it comm
   const ui=backupUI(),pending=ui.node('backupApply').onclick();await backupTick();ui.reject(Error('Saving was refused'));await pending;
   assert.equal(ui.messages.length,0);assert.deepEqual(ui.events,['paused']);assert.match(ui.node('backupMessage').textContent,/refused/);
 });
-
+test('restaurarea registrului de analize UNEȘTE pe id (nu șterge analizele de după export), iar arhivele vechi îl duc în IndexedDB',async()=>{
+  const vm=(await import('node:vm')).default,{readFileSync}=await import('node:fs'),c={Date,Intl,localStorage:{getItem:()=>null}};c.window=c;vm.createContext(c);
+  vm.runInContext(readFileSync('lib/trade-evidence-schema.js','utf8'),c);vm.runInContext(readFileSync('lib/trade-evidence.js','utf8'),c);
+  const real=(r,i)=>({...r,simulation:false,source:{...r.source,kind:'market',checkedAt:now-300000-i},scope:'active',createdAt:now-300000-i,expiresAt:now+1500000,baselineAt:now-301000-i});
+  const [r0,r1]=JSON.parse(JSON.stringify(c.TradeEvidence.demo(now).records)).map(real),ev=(...rows)=>({version:c.TradeEvidence.VERSION,entries:rows});
+  const m=memory([entry('tt_trade_evidence_v1',ev(r1),'evidence')]);
+  const p=await m.controller.preview(await archive([entry('tt_trade_evidence_v1',ev(r0))]));
+  const row=p.rows.find(r=>r.key==='tt_trade_evidence_v1');assert.equal(row.target,'evidence','arhiva veche (spațiul local) merge pe ținta IndexedDB');
+  await m.controller.restore(p,[row.id]);
+  assert.deepEqual(JSON.parse(m.data.get(id({target:'evidence',key:'tt_trade_evidence_v1'})).value).entries.map(r=>r.id).sort(),[r0.id,r1.id].sort(),'analiza de după export rămâne, cea din arhivă se adaugă');
+  assert.equal(m.data.has(id({target:'local',key:'tt_trade_evidence_v1'})),false,'nimic scris în spațiul local');
+});

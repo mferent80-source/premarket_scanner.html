@@ -4,7 +4,7 @@ const E=g.TradeEvidence,$=id=>document.getElementById(id),esc=v=>String(v??'—'
 let context=null,message='',busy=false,limit=20,demoData=null,extraCost=1;const memory=new Map(),demoStorage={getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)};
 function data(){
  if(context?.demo){if(!demoData){demoData=E.demo();demoStorage.setItem(E.KEY,JSON.stringify({version:E.VERSION,entries:demoData.records}));}return {storage:demoStorage,scope:demoData.history.scope,snapshot:{fetchedAt:new Date().toISOString(),positions:[]},history:demoData.history};}
- const selected=g.T212Snapshot?.read('live');return {storage:g.localStorage,scope:selected?.[0]||null,snapshot:selected?.[1]||null,history:g.T212Performance?.read({selectedCurrency:selected?.[1].summary?.currency})||{rows:[],scope:null}};
+ const selected=g.T212Snapshot?.read('live');return {storage:g.TTEvidenceVault?.storage||g.localStorage,scope:selected?.[0]||null,snapshot:selected?.[1]||null,history:g.T212Performance?.read({selectedCurrency:selected?.[1].summary?.currency})||{rows:[],scope:null}};
 }
 function baseline(d,candidate){const xs=d.snapshot?.positions;if(!d.scope||!g.T212Snapshot.fresh(d.snapshot)||!Array.isArray(xs)||xs.some(p=>!p||typeof p.ticker!=='string'||!Number.isFinite(p.quantity)||p.quantity<0)||new Set(xs.map(p=>p.ticker)).size!==xs.length)return null;return xs.find(x=>x.ticker===candidate?.symbol+'_US_EQ')?.quantity||0;}
 async function capture(quiet=false,chosen=null){
@@ -12,6 +12,7 @@ async function capture(quiet=false,chosen=null){
  try{const c=chosen?.candidate||context.candidate,d=data(),quantity=baseline(d,c),report=chosen?.report||context.prepare?.()||context.report,model=g.TTDecisionBridge?.find(g.TTDecisionVerdict.sourceOf(c));
   if(!context.demo&&chosen?.scope&&chosen.scope!==d.scope)throw Error('Contul selectat s-a schimbat; analiza planului nu este asociată altui cont.');
   if(quantity===null)throw Error('Sincronizează contul și lista completă a pozițiilor înaintea capturii.');
+  await d.storage.ready?.();await d.storage.refresh?.();
   const previous=E.read(d.storage).entries.find(x=>x.scope===d.scope&&x.symbol===c.symbol&&x.verdict.snapshotId===report.snapshotId&&x.expiresAt>Date.now());
   if(previous){message='Analiza pentru '+c.symbol+' este deja păstrată până la '+date(previous.expiresAt)+'.';saved=true;}
   else{const r=E.snapshot(c,report,model,{scope:d.scope,baselineQuantity:quantity,baselineAt:Date.parse(d.snapshot.fetchedAt),simulation:context.demo});if(!r)throw Error('Sursa, nivelurile sau moneda nu permit capturarea unei analize actuale.');await E.save(r,{storage:d.storage,simulation:context.demo});message=(context.demo?'DEMO FICTIV · ':'')+'Analiza '+r.symbol+' este fixată. BUY trebuie să fie ulterior capturii și până la '+date(r.expiresAt)+'.'+(quantity?' Poziție preexistentă: rezultatul adăugării rămâne exclus până la o asociere verificabilă.':'');saved=true;}
