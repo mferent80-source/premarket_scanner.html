@@ -73,7 +73,7 @@ function renderRealized(){
   const report=window.T212Performance.build({scope:journalScope,account,snapshot,environment:previewMode?'live':brokerEnvironment,selectedCurrency:currency,days:Number($('realizedPeriod').value)||null});
   if(report.currency&&report.currency!==currency){host.textContent='Nicio vânzare cu P&L eligibil în '+currency+'.';return;}
   host.innerHTML=window.T212Portfolio.realizedMarkup(report);
- }catch(_){host.textContent='Istoricul contului selectat nu poate fi citit. Reia sincronizarea.';}
+ }catch(error){host.textContent=error?.code==='fills_loading'?'Se încarcă istoricul execuțiilor Trading 212…':'Istoricul contului selectat nu poate fi citit. Reia sincronizarea.';}
 }
 $('positions').addEventListener('click',e=>{
  const button=e.target.closest('[data-analyze-position],[data-analyze-demo]');if(!button)return;
@@ -97,12 +97,12 @@ $('clearPositionFilters').addEventListener('click',()=>{$('positionSearch').valu
 window.addEventListener('storage',e=>{if(e.key===window.T212Performance?.KEY)renderRealized();});
 
 function history(){const orders=kind==='orders';$('history').innerHTML=rows.map(r=>`<article class="card"><h3>${esc(r.ticker||r.type)}</h3><p>${esc(stamp(r.date))}</p><p>${esc(orders?(r.side||'Sens indisponibil')+' · '+(r.status||'Stare indisponibilă'):r.type)}</p><dl>${orders?pair('Cantitate executată',fmt(r.quantity))+pair('Preț execuție',fmt(r.price,r.priceCurrency)):''}${pair(orders?'Valoare netă':'Sumă',fmt(r.amount,r.currency))}${orders?pair('P&L realizat raportat',fmt(r.realized,r.currency)):''}</dl></article>`).join('');}
-async function loadHistory(append=false){if(!token||busy)return;const id=session,selected=kind;busy=true;$('more').disabled=true;document.querySelectorAll('[data-kind]').forEach(b=>b.disabled=true);$('historyState').textContent='Încarc istoricul…';
- try{const b=await api(selected,append?cursor:null);if(id!==session||selected!==kind)return;if(!Array.isArray(b.data?.items))throw Error('Istoric incompatibil.');if(!append){rows=[];seen.clear();}
- for(const item of b.data.items){const key=item.id?selected+':'+item.id:JSON.stringify(item);if(!seen.has(key)){seen.add(key);rows.push(item);}}
- if(selected==='orders'&&window.T212J&&journalScope)acceptJournalPage(b,!append);
- if(selected!=='orders'&&window.T212J&&journalScope)window.T212J.mergeCash(journalScope,brokerEnvironment,selected,b.data.items,b.data.nextCursor,b.fetchedAt,{restart:!append});cursor=b.data.nextCursor;history();$('more').hidden=!cursor;$('historyState').textContent=`${rows.length} înregistrări · ${cursor?'istoric parțial, mai există pagini':'toate paginile disponibile au fost încărcate'} · ${stamp(b.fetchedAt)}`;
- }catch(e){if(id===session&&e.name!=='AbortError'){$('historyState').textContent='Istoric neactualizat: '+e.message;if(selected==='orders')try{window.T212J?.importState?.(journalScope,brokerEnvironment,'error');}catch(_){}}}
+async function loadHistory(append=false){if(!token||busy||journalRunning)return;const id=session,selected=kind,scope=journalScope,mode=brokerEnvironment;busy=true;$('more').disabled=true;document.querySelectorAll('[data-kind]').forEach(b=>b.disabled=true);$('historyState').textContent='Încarc istoricul…';
+ try{const b=await api(selected,append?cursor:null);if(id!==session||selected!==kind)return;if(!Array.isArray(b.data?.items))throw Error('Istoric incompatibil.');
+ if(selected==='orders'&&window.T212J&&scope)await acceptJournalPage(b,!append,id,scope,mode);
+ if(selected!=='orders'&&window.T212J&&scope)await window.T212J.mergeCash(scope,mode,selected,b.data.items,b.data.nextCursor,b.fetchedAt,{restart:!append});if(id!==session||selected!==kind)return;
+ if(!append){rows=[];seen.clear();}for(const item of b.data.items){const key=item.id?selected+':'+item.id:JSON.stringify(item);if(!seen.has(key)){seen.add(key);rows.push(item);}}cursor=b.data.nextCursor;history();$('more').hidden=!cursor;$('historyState').textContent=`${rows.length} înregistrări · ${cursor?'istoric parțial, mai există pagini':'toate paginile disponibile au fost încărcate'} · ${stamp(b.fetchedAt)}`;
+ }catch(e){if(id===session&&e.name!=='AbortError'){$('historyState').textContent='Istoric neactualizat: '+e.message;if(selected==='orders')try{await window.T212J?.importState?.(scope,mode,'error');}catch(_){}}}
  finally{if(id===session){busy=false;$('more').disabled=false;document.querySelectorAll('[data-kind]').forEach(b=>b.disabled=false);}}
 }
 async function sync(){if(busy)return;const id=session;busy=true;$('account').setAttribute('aria-busy','true');$('refresh').disabled=true;$('connectButton').disabled=true;$('status').textContent='Sincronizez contul și pozițiile…';
@@ -137,20 +137,21 @@ window.addEventListener('pagehide',reset);
 function connectionReady(value){ready=value;['apiKey','apiSecret','brokerEnvironment','connectButton'].forEach(id=>$(id).disabled=!value);}
 if(!previewMode)try{const c=await fetch('../app/trading212-config.json',{cache:'no-store'}).then(r=>r.json());if(c.enabled&&c.directCredentials===true){configuredBase=validEndpoint(c.endpoint);connectionReady(true);$('configState').textContent='Introdu API Key și API Secret. Datele sunt citite fără plasare de ordine.';}else {connectionReady(false);$('configState').textContent='Formularul simplu este pregătit. Conectarea online este încă în curs de activare; nu introduce cheia deocamdată.';}}catch(_){connectionReady(false);$('configState').textContent='Conectarea online nu este disponibilă momentan. Cheia nu este solicitată până la activare.';}
 
-function acceptJournalPage(page,restart){
- const next=page.data.nextCursor,result=window.T212J.merge(journalScope,brokerEnvironment,page.data.items,next,page.fetchedAt,{restart});
- renderRealized();journalStarted=true;journalCursor=next;journalDone=!journalCursor;if(journalDone)journalNext=Date.now()+300000;
+async function acceptJournalPage(page,restart,id=session,scope=journalScope,mode=brokerEnvironment){
+ const next=page.data.nextCursor,result=await window.T212J.merge(scope,mode,page.data.items,next,page.fetchedAt,{restart});
+ // A page is progress only after durable persistence; an old session cannot advance the current cursor.
+ if(id!==session||scope!==journalScope)return null;renderRealized();journalStarted=true;journalCursor=next;journalDone=!journalCursor;if(journalDone)journalNext=Date.now()+300000;
  $('journalState').textContent=`${result.count} execuții în jurnal și Performance Control · ${result.complete?'istoric disponibil parcurs integral':journalDone?'PARȚIAL · execuții incompatibile, necesită reverificare':'import în curs, urmează pagina următoare'}${result.rejected?' · '+result.rejected+' execuții incompatibile excluse':''}${result.excluded?' · '+result.excluded+' ordine fără execuție excluse':''}`;
  return result;
 }
 async function importJournalPage(){
  if(!token||busy||journalRunning||!journalScope||!window.T212J||Date.now()<journalNext)return;
  if((times.orders||0)>Date.now())return;
- const id=session,scope=journalScope;journalRunning=true;
- try{window.T212J.importState?.(scope,brokerEnvironment,'loading');const restart=journalDone||!journalStarted,page=await api('orders',journalDone?null:journalCursor);if(id!==session)return;
+ const id=session,scope=journalScope,mode=brokerEnvironment;journalRunning=true;
+ try{await window.T212J.importState?.(scope,mode,'loading');if(id!==session)return;const restart=journalDone||!journalStarted,page=await api('orders',journalDone?null:journalCursor);if(id!==session)return;
  // Known fills may precede late/backfilled executions on later pages; always follow the cursor.
- acceptJournalPage(page,restart);
- }catch(e){if(id===session&&e.name!=='AbortError'){$('journalState').textContent='Import parțial / întrerupt: '+e.message;try{window.T212J.importState?.(scope,brokerEnvironment,'error');}catch(_){}}}
+ await acceptJournalPage(page,restart,id,scope,mode);
+ }catch(e){if(id===session&&e.name!=='AbortError'){$('journalState').textContent='Import parțial / întrerupt: '+e.message;try{await window.T212J.importState?.(scope,mode,'error');}catch(_){}}}
  finally{if(id===session){journalRunning=false;renderRealized();}}
 }
 setInterval(()=>{if(token&&$('autoSync').checked&&!busy&&!journalRunning&&navigator.onLine!==false&&document.visibilityState!=='hidden')sync();},60000);
@@ -164,8 +165,8 @@ async function importCashPage(){
  const selected=['dividends','transactions'][cashTurn++%2],id=session,scope=journalScope,state=cashStates[scope+'|'+selected]||{cursor:null,done:false,next:0};
  if(state.next>Date.now()||(times[selected]||0)>Date.now())return;
  cashRunning=true;
- try{const restart=state.done||!state.cursor;window.T212J.cashImportState?.(scope,brokerEnvironment,selected);const page=await api(selected,state.done?null:state.cursor);if(id!==session)return;if(!Array.isArray(page.data?.items))throw Error('Istoric monetar incompatibil.');window.T212J.mergeCash(scope,brokerEnvironment,selected,page.data.items,page.data.nextCursor,page.fetchedAt,{restart});state.cursor=page.data.nextCursor;state.done=!state.cursor;state.next=Date.now()+(state.done?300000:12000);}
- catch(e){if(id===session&&e.name!=='AbortError'){window.T212J.cashError(scope,brokerEnvironment,selected,e.message);state.next=Date.now()+300000;}}
+ try{const restart=state.done||!state.cursor;await window.T212J.cashImportState?.(scope,brokerEnvironment,selected);if(id!==session)return;const page=await api(selected,state.done?null:state.cursor);if(id!==session)return;if(!Array.isArray(page.data?.items))throw Error('Istoric monetar incompatibil.');await window.T212J.mergeCash(scope,brokerEnvironment,selected,page.data.items,page.data.nextCursor,page.fetchedAt,{restart});if(id!==session)return;state.cursor=page.data.nextCursor;state.done=!state.cursor;state.next=Date.now()+(state.done?300000:12000);}
+ catch(e){if(id===session&&e.name!=='AbortError'){try{await window.T212J.cashError(scope,brokerEnvironment,selected,e.message);}catch(_){}state.next=Date.now()+300000;}}
  finally{cashStates[scope+'|'+selected]=state;cashRunning=false;}
 }
 setInterval(()=>{if(token&&$('autoSync').checked&&navigator.onLine!==false&&document.visibilityState!=='hidden')importCashPage();},15000);
@@ -178,3 +179,4 @@ if(previewMode){
  $('historyState').textContent='DEMO FICTIV · vânzări simulate';rows=previewFixture.account.items;history();
  document.querySelectorAll('[data-kind]').forEach(b=>b.disabled=true);
 }
+

@@ -2,13 +2,13 @@
 
 ## Pentru utilizator
 
-Aplicație → Mai multe → Trading 212 Invest → API Key + API Secret → Conectează Trading 212. Selectează Invest real sau Demo pentru cheia respectivă. Folosește o cheie Trading 212 cu permisiuni **numai de citire** pentru cont, portofoliu și istorice.
+Aplicație → Instrumente → Trading 212 Invest → API Key + API Secret → Conectează Trading 212. Selectează Invest real sau Demo pentru cheia respectivă. Folosește o cheie Trading 212 cu permisiuni **numai de citire** pentru cont, portofoliu și istorice.
 
 Nu mai sunt cerute adresa backendului sau un cod separat. Cheia nu se introduce în chat, GitHub sau fișiere publice. După conectarea reușită, credențialele sunt salvate criptat AES-GCM în IndexedDB pe dispozitiv, împreună cu o CryptoKey neexportabilă; nu sunt salvate în localStorage sau în fișiere publice. Formularul este golit după conectare. La redeschidere sunt decriptate local pentru reconectare. Criptarea nu protejează împotriva scripturilor malicioase care rulează pe aceeași origine sau a accesului la sesiunea de browser. Butonul Șterge conexiunea salvată elimină cheia locală și credențialele. Transferul pe alt dispozitiv este voluntar, cu cod criptat AES-GCM și parolă PBKDF2-SHA256/600000 iterații; Sincronizarea Google PC/telefon este implementată separat, dar necesită activarea infrastructurii descrise în `tools/cloud-sync-README.md`; până atunci transferul manual rămâne disponibil. Sunt transmise prin HTTPS către releul integrării și Trading 212 la fiecare citire. Infrastructura furnizorilor poate păstra metadate potrivit propriilor politici.
 
 ## Stare actuală
 
-Formularul și releul Trading 212 sunt publicate; `app/trading212-config.json` este activat pe Workerul `premarket-scanner-html.mferent80.workers.dev`. Utilizatorul a confirmat conectarea. Sincronizarea Google între dispozitive este încă neactivată; vezi `tools/cloud-sync-README.md`.
+Formularul și releul Trading 212 sunt publicate; `app/trading212-config.json` este activat pe Workerul `premarket-scanner-html.mferent80.workers.dev`. Utilizatorul a confirmat conectarea. Sincronizarea Google între dispozitive este implementată și se activează după verificarea serviciului; vezi `tools/cloud-sync-README.md`.
 
 Trading 212 nu permite conectarea directă de pe originea GitHub Pages verificată: cererea OPTIONS pentru Authorization a răspuns 405 fără antete CORS. Un releu HTTPS este necesar, dar rămâne în afara pașilor utilizatorului.
 
@@ -46,10 +46,19 @@ App shell păstrează un iframe broker separat pentru sincronizare cât timp apl
 
 Modul vechi compatibil: fără `T212_AUTH_MODE=session`, Workerul poate utiliza perechea de secrete server și T212_CLIENT_TOKEN pentru citire. Interfața simplă folosește exclusiv modul session.
 
+## Păstrarea istoricului complet
+
+Execuțiile folosesc registrul durabil `T212FillsStore`: baza IndexedDB `tt-broker-fills-v1`, store `records`, cheia `tt_trading212_fills_v1`. Înregistrarea `{revision,raw,localRaw}` păstrează istoricul complet și ancora copiei localStorage. Migrarea inițială confirmă salvarea în IndexedDB și păstrează istoricul local existent. Copia localStorage se actualizează când încape; depășirea cotei ei nu invalidează istoricul deja confirmat în IndexedDB și nu scurtează execuțiile.
+
+Importatorul așteaptă confirmarea fiecărei salvări înainte să avanseze cursorul sau să declare istoricul complet. La o tranzacție refuzată, pagina neconfirmată nu este considerată importată. Brokerul, Jurnalul, Performance Control, riscul, portofoliul, asocierea analizelor și cloud citesc același registru confirmat. O citire eșuată, un istoric încă neîncărcat sau copii modificate incompatibil afișează o stare de verificare/eroare; nu devin un istoric gol ori rezultate zero.
+
+La cota localStorage plină, mecanismul comun poate elimina numai cache-uri de piață proprii `ttd:` cu structura validă `{t,v}`, verificând că nu au fost schimbate de altă fereastră. Nu șterge execuții, jurnal, planuri, setări, credențiale sau alte date ale utilizatorului. Backupul complet include copia localStorage și copia IndexedDB; restaurarea istoricului durabil păstrează ancora locală, confirmă înainte copia de recuperare și verifică atomic conținutul curent. Copiile deteriorate/incompatibile cer verificare, iar editările ulterioare se păstrează la restaurare și anulare. Nu este necesară ștergerea datelor aplicației pentru această migrare.
+
 ## Verificare
 
 ```sh
 node --test tools/trading212.test.mjs tools/trading212-client.test.mjs tools/decision-app-navigation.test.mjs tools/phone-install.test.mjs
+node --test tools/trading212-fills-store.test.mjs tools/trading212-fills-readers.test.mjs tools/storage-write.test.mjs tools/system-backup.test.mjs
 ```
 
 Documentație oficială: https://docs.trading212.com/ și https://helpcentre.trading212.com/hc/en-us/articles/14584770928157-Trading-212-API-key
@@ -69,3 +78,4 @@ Pozițiile fără rezultat ori monedă nu devin automat zero. Dublurile aceluia�
 Verificare suplimentară: `tools/trading212-portfolio.test.mjs` și testele clientului verifică FX, GBp, recuperarea după −20%, monedele distincte, lipsurile, dublurile, acoperirea, izolarea contului și preview-ul fără credențiale.
 
 Verificarea generică a contului se deschide separat, în secțiunea pliabilă „Starea verificărilor contului”, fără a împinge clasamentele sub un bloc de verdict. Preview-ul fictiv nu afișează această evaluare a contului real.
+

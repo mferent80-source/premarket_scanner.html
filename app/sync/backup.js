@@ -1,4 +1,4 @@
-import {browserAdapter,createController,GROUPS,MAX_BYTES} from '../../lib/system-backup.mjs?v=26.10.09.1822';
+import {browserAdapter,createController,GROUPS,MAX_BYTES} from '../../lib/system-backup.mjs?v=26.10.15.0547';
 
 const $=id=>document.getElementById(id),cloud=()=>parent!==window?parent.TTCloud:null;
 const privateStore=()=>parent!==window&&parent.TTCloudStore?parent.TTCloudStore:window.TTCloudStore;
@@ -19,7 +19,7 @@ function label(row) {
     const type=base.replace('tt_holdings_','').replace('_v1','');name=models[type]||prefixes[type]||base.replace(/^tt_|_v1$/g,'').replaceAll('_',' ');
     try {const pieces=suffix.startsWith('[')?JSON.parse(suffix):suffix.split('|').map(decodeURIComponent);const ticker=pieces[2]||pieces[1];if(ticker&&typeof ticker==='string'&&ticker.length<60)name+=' · '+ticker.replace(/_US_EQ$/,'');} catch{}
   }
-  return name+(row.target==='local'?'':' · copie separată');
+  return name+(row.mirror?' · copie locală păstrată':row.target==='fills'?' · istoric complet':row.target==='local'?'':' · copie separată');
 }
 function message(text) {$('backupMessage').textContent=text;}
 function controls() {
@@ -54,7 +54,7 @@ function renderPreview() {
     for(const row of rows) {
       const item=document.createElement('label');item.className='backup-row';const input=document.createElement('input');input.type='checkbox';input.dataset.backupRow='';input.dataset.group=group;input.value=row.id;input.checked=row.status==='new'&&(row.key!=='tt_trade_plans_v1'||planIsNew);input.disabled=['same','invalid'].includes(row.status);
       const body=document.createElement('span'),name=document.createElement('b'),status=document.createElement('small');name.textContent=label(row);
-      status.textContent=({same:'Identic · se păstrează',new:'Lipsește local · poate fi adăugat',different:'Diferă · selectează explicit pentru restaurare',invalid:'Restaurare blocată'})[row.status]+(row.rows!==null?' · '+fmt(row.rows||0)+' înregistrări':'')+(row.error?' · '+row.error:'');
+      status.textContent=(row.mirror?'Se păstrează · istoricul complet se restaurează în stocarea separată':({same:'Identic · se păstrează',new:'Lipsește local · poate fi adăugat',different:'Diferă · selectează explicit pentru restaurare',invalid:'Restaurare blocată'})[row.status])+(row.rows!==null?' · '+fmt(row.rows||0)+' înregistrări':'')+(row.error?' · '+row.error:'');
       body.append(name,status);item.append(input,body);detail.append(item);input.onchange=changed;
     }
     host.append(detail);
@@ -73,6 +73,17 @@ async function run(fn) {if(busy)return;busy=true;controls();try {await fn();}cat
 async function pause() {
   if(cloud()) await cloud().pauseForBackup();else await privateStore().put('backup-pause',true);
 }
+async function refreshFills() {
+  // Read only after the restore/recovery transaction has committed. Existing
+  // readers then refresh from confirmed IDB data, not an oversized LS mirror.
+  let revision=null;
+  for(const host of parent!==window?[parent,window]:[window]) {
+    try {const saved=await host.T212FillsStore?.read();if(Number.isSafeInteger(saved?.revision)) revision=saved.revision;} catch{}
+  }
+  if(revision!==null&&window.BroadcastChannel) {
+    try {const channel=new BroadcastChannel('tt-trading212-fills-changed-v1');channel.postMessage({key:'tt_trading212_fills_v1',revision,invalidate:true});channel.close();} catch{}
+  }
+}
 $('backupExport').onclick=()=>run(async()=> {
   message('Citesc toate registrele și modelele păstrate…');
   const archive=await controller.export({appVersion:parent!==window?parent.document.documentElement.dataset.appVersion||'':(await fetch('../version.json',{cache:'no-store'}).then(r=>r.json())).version,origin:location.origin});
@@ -85,12 +96,13 @@ $('backupFile').onchange=async event=> {
 };
 $('backupApply').onclick=()=>run(async()=> {
   const selected=selection();message('Păstrez copia anterioară și restaurez selecția…');await pause();
-  const result=await controller.restore(plan,selected);plan=null;renderPreview();$('backupFile').value='';
+  const result=await controller.restore(plan,selected);await refreshFills();plan=null;renderPreview();$('backupFile').value='';
   message(fmt(result.saved)+' registre restaurate. Reîncarcă aplicația pentru a reciti datele. Sincronizarea rămâne suspendată până la „Sincronizează acum”; poți anula restaurarea înainte.');$('backupReload').hidden=false;
 });
 $('backupUndo').onclick=()=>run(async()=> {
-  await pause();const result=await controller.undo();plan=null;renderPreview();
+  await pause();const result=await controller.undo();await refreshFills();plan=null;renderPreview();
   message(result.pending?'Recuperare parțială: '+result.pending+' registre au modificări ulterioare sau nu au putut fi salvate. Acestea au fost păstrate; copia anterioară rămâne disponibilă.':fmt(result.restored)+' registre recuperate. Sincronizarea rămâne suspendată până la verificarea datelor.');$('backupReload').hidden=false;
 });
 $('backupReload').onclick=()=>{if(parent!==window)parent.location.reload();else location.reload();};
 state();controls();
+

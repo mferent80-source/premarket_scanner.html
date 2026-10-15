@@ -5,11 +5,13 @@ import {readFileSync} from 'node:fs';
 import {webcrypto} from 'node:crypto';
 
 const NOW=Date.parse('2026-10-10T10:00:00Z'),TOKEN='a'.repeat(32),script=readFileSync('lib/operational-checks.js','utf8');
-function setup(extra={}){const c={Date,Uint8Array,setTimeout,clearTimeout,crypto:webcrypto,...extra};vm.createContext(c);vm.runInContext(script,c);return c.TTOperationalChecks;}
+const failureScript=readFileSync('app/failure-info.js','utf8');
+function setup(extra={}){const c={Date,Uint8Array,setTimeout,clearTimeout,crypto:webcrypto,...extra};vm.createContext(c);vm.runInContext(failureScript,c);if(Object.hasOwn(extra,'TTCloudFailure'))c.TTCloudFailure=extra.TTCloudFailure;vm.runInContext(script,c);return c.TTOperationalChecks;}
 const plain=x=>JSON.parse(JSON.stringify(x));
 function stores(){const ledger=new Map([['tt_journal_v1','[{"id":"original"}]'],['tt_theme','dark']]),privateData=new Map([['session',{secret:'private'}]]);return {ledger,privateData,local:{getItem:k=>ledger.get(k)??null,setItem:(k,v)=>ledger.set(k,v),removeItem:k=>ledger.delete(k)},privateStore:{get:async k=>privateData.get(k)??null,put:async(k,v)=>privateData.set(k,v),remove:async k=>privateData.delete(k)}};}
 const item=(r,id)=>r.rows.find(x=>x.id===id);
 const cloud=()=>({connected:true,ready:true,lastSync:NOW-1000,conflicts:[],trading212:{cloud:true},monitor:{protocol:'tt-account-monitor-v1',schedulerFresh:true,schedulerAt:NOW-60000},push:{protocol:'tt-web-push-v1',available:true},audit:{protocol:'tt-audit-v1',available:true}});
+const failure=(extra={})=>({code:'cloud_unavailable',operation:'read-record',key:'tt_journal_v1',httpStatus:503,at:NOW-100,...extra});
 
 test('write-read-remove probes preserve every original and remove only their own temporary entries',async()=>{const A=setup(),s=stores(),before=[...s.ledger],privateBefore=[...s.privateData];const r=await A.probe({...s,randomId:()=>TOKEN,now:()=>NOW});assert.equal(r.local.state,'good');assert.equal(r.private.state,'good');assert.deepEqual([...s.ledger],before);assert.deepEqual([...s.privateData],privateBefore);});
 test('quota failure is independent from the successful encrypted-store check',async()=>{const A=setup(),s=stores();s.local.setItem=()=>{throw Error('quota');};const r=await A.probe({...s,now:()=>NOW});assert.equal(r.local.state,'blocked');assert.equal(r.local.code,'failed');assert.equal(r.private.state,'good');assert.equal(s.ledger.get('tt_journal_v1'),'[{"id":"original"}]');});
@@ -27,10 +29,82 @@ test('a failed readiness check hides stale service capabilities while keeping th
 test('storage is unknown before testing and expires after ten minutes',()=>{const A=setup();assert.equal(item(A.build({now:NOW}),'private-storage').state,'unknown');const storage={local:{state:'good',code:'verified',at:NOW-600001},private:{state:'good',code:'verified',at:NOW}};const r=A.build({storage,now:NOW});assert.equal(item(r,'local-storage').state,'warning');assert.equal(item(r,'private-storage').state,'good');assert.match(item(r,'private-storage').action,/backup mare/);});
 test('export is a whitelist and never contains Google identity, financial values, credentials, endpoints or raw errors',()=>{const A=setup(),secret='PRIVATE_DO_NOT_EXPORT',s={...cloud(),email:secret,subject:secret,token:secret,error:secret,conflicts:[secret],trading212:{cloud:true,key:secret,secret},push:{protocol:'tt-web-push-v1',available:true,devices:[{endpoint:secret}]}},snapshot=['scope-'+secret,{environment:'live',fetchedAt:new Date(NOW).toISOString(),positions:[{ticker:secret,value:999999}],summary:{total:999999},key:secret}],r=A.report({cloud:s,snapshot,permission:'granted',storage:{local:{state:'blocked',code:'failed',at:NOW,error:secret}},appVersion:'26.10.10.1234',now:NOW,userAgent:secret,local:secret});assert.equal(r.appVersion,'26.10.10.1234');assert.equal(r.protocol,'tt-operational-report-v1');assert.equal(JSON.stringify(r).includes(secret),false);assert.equal(JSON.stringify(r).includes('999999'),false);assert.equal(r.rows.length,10);assert.equal(Object.values(plain(r.counts)).reduce((a,b)=>a+b,0),10);assert.equal(A.report({appVersion:secret,now:NOW}).appVersion,null);});
 
-function ui({recheck=async()=>{},storeFailure=false}={}){const nodes=new Map(),events={},s=cloud(),ls=stores(),downloads=[];const element=(tag='div')=>({tag,children:[],dataset:{},append(...items){this.children.push(...items);},replaceChildren(...items){this.children=items;},click(){if(this.tag==='a')downloads.push(this);},remove(){}}),get=id=>{if(!nodes.has(id))nodes.set(id,element());return nodes.get(id);};let writes=0;const set=ls.local.setItem;ls.local.setItem=(...args)=>{writes++;if(storeFailure)throw Error('quota');return set(...args);};const c={Date,Uint8Array,setTimeout,clearTimeout,setInterval:()=>0,crypto:webcrypto,Blob,URL:{createObjectURL:b=>{c.download=b;return 'blob:test';},revokeObjectURL(){}},navigator:{onLine:true,serviceWorker:{}},Notification:{permission:'granted'},PushManager:function(){},location:{origin:'https://test.example'},localStorage:ls.local,document:{body:element('body'),documentElement:{dataset:{}},createElement:element,getElementById:get,addEventListener:(n,f)=>events[n]=f,hidden:false},addEventListener:(n,f)=>events[n]=f};c.window=c;c.parent={document:{documentElement:{dataset:{appVersion:'26.10.10.1234'}}},TTCloud:{state:()=>s,recheck},TTCloudStore:ls.privateStore,T212Snapshot:{read:()=>null}};vm.createContext(c);vm.runInContext(script,c);vm.runInContext(readFileSync('app/sync/verification.js','utf8'),c);return {c,s,nodes,events,ls,downloads,get,writes:()=>writes};}
+test('export preserves only validated synchronization failure metadata',()=>{
+ const A=setup();
+ for(const info of [failure(),failure({code:'network_error',operation:'service',key:null,httpStatus:null}),failure({code:'cloud_records_changed',key:'tt_trade_evidence_v1:3f',httpStatus:409})]){
+  const r=A.report({cloud:{...cloud(),error:info.code,failure:info},now:NOW});
+  assert.deepEqual(plain(r.synchronizationFailure),info);
+  assert.equal(item(r,'sync').state,'blocked');
+ }
+});
+
+test('raw failures and identity, credential or financial payloads cannot enter synchronization metadata',()=>{
+ const A=setup(),secret='PRIVATE_FAILURE_DO_NOT_EXPORT',info=failure();
+ const s={...cloud(),error:secret,email:secret,subject:secret,token:secret,failure:{...info,message:secret,url:secret,subject:secret,email:secret,token:secret,credentials:{key:secret,secret},body:{positions:[{ticker:secret,value:999999}],summary:{total:999999}}}};
+ const r=A.report({cloud:s,now:NOW});
+ assert.deepEqual(plain(r.synchronizationFailure),info);
+ assert.equal(JSON.stringify(r).includes(secret),false);
+ assert.equal(JSON.stringify(r).includes('999999'),false);
+ for(const unsafe of [secret,{code:secret,operation:secret,key:secret,httpStatus:secret,at:secret},{...info,key:'__audit_receipts_v1'},{...info,key:'cloud_credentials?token='+secret}]){
+  const exported=A.report({cloud:{...s,failure:unsafe},now:NOW});
+  assert.equal(JSON.stringify(exported).includes(secret),false);
+  assert.equal(JSON.stringify(exported).includes('__audit_receipts_v1'),false);
+ }
+});
+
+test('export fails closed when the failure helper is missing, incompatible or throws',()=>{
+ const secret='PRIVATE_HELPER_ERROR';
+ for(const helper of [undefined,null,{}, {sanitize:secret},{sanitize:()=>{throw Error(secret);}}]){
+  const A=setup({TTCloudFailure:helper}),r=A.report({cloud:{...cloud(),error:secret,failure:failure()},now:NOW});
+  assert.equal(r.synchronizationFailure,null);
+  assert.equal(JSON.stringify(r).includes(secret),false);
+ }
+});
+
+test('export independently rejects unsafe results from an incompatible failure helper',()=>{
+ const secret='PRIVATE_HELPER_RESULT';
+ const invalid=[null,[],secret,{},failure({code:secret}),failure({operation:secret}),failure({key:secret}),failure({key:'__audit_receipts_v1'}),failure({key:'tt_trade_evidence_v1:40'}),failure({key:undefined}),failure({httpStatus:undefined}),failure({httpStatus:99}),failure({httpStatus:600}),failure({httpStatus:503.5}),failure({httpStatus:'503'}),failure({at:0}),failure({at:NaN}),failure({at:Infinity}),failure({at:NOW+60001}),failure({at:String(NOW)})];
+ for(const result of invalid){
+  const A=setup({TTCloudFailure:{sanitize:()=>result}}),r=A.report({cloud:{...cloud(),error:secret,failure:failure()},now:NOW});
+  assert.equal(r.synchronizationFailure,null);
+  assert.equal(JSON.stringify(r).includes(secret),false);
+ }
+ const info=failure(),A=setup({TTCloudFailure:{sanitize:()=>({...info,subject:secret,email:secret,token:secret,payload:{total:999999},toJSON:()=>secret})}});
+ const r=A.report({cloud:{...cloud(),error:secret,failure:failure()},now:NOW});
+ assert.deepEqual(plain(r.synchronizationFailure),info);
+ assert.equal(JSON.stringify(r).includes(secret),false);
+ assert.equal(JSON.stringify(r).includes('999999'),false);
+});
+
+test('cleared synchronization errors suppress stale failure metadata without calling the helper',()=>{
+ let calls=0;
+ const A=setup({TTCloudFailure:{sanitize:()=>{calls++;return failure();}}});
+ for(const error of ['',null,false,undefined]){
+  const r=A.report({cloud:{...cloud(),error,failure:failure()},now:NOW});
+  assert.equal(r.synchronizationFailure,null);
+  assert.equal(item(r,'sync').state,'good');
+ }
+ assert.equal(calls,0);
+});
+
+function ui({recheck=async()=>{},storeFailure=false}={}){const nodes=new Map(),events={},s=cloud(),ls=stores(),downloads=[];const element=(tag='div')=>({tag,children:[],dataset:{},append(...items){this.children.push(...items);},replaceChildren(...items){this.children=items;},click(){if(this.tag==='a')downloads.push(this);},remove(){}}),get=id=>{if(!nodes.has(id))nodes.set(id,element());return nodes.get(id);};let writes=0;const set=ls.local.setItem;ls.local.setItem=(...args)=>{writes++;if(storeFailure)throw Error('quota');return set(...args);};const c={Date,Uint8Array,setTimeout,clearTimeout,setInterval:()=>0,crypto:webcrypto,Blob,URL:{createObjectURL:b=>{c.download=b;return 'blob:test';},revokeObjectURL(){}},navigator:{onLine:true,serviceWorker:{}},Notification:{permission:'granted'},PushManager:function(){},location:{origin:'https://test.example'},localStorage:ls.local,document:{body:element('body'),documentElement:{dataset:{}},createElement:element,getElementById:get,addEventListener:(n,f)=>events[n]=f,hidden:false},addEventListener:(n,f)=>events[n]=f};c.window=c;c.parent={document:{documentElement:{dataset:{appVersion:'26.10.10.1234'}}},TTCloud:{state:()=>s,recheck},TTCloudStore:ls.privateStore,T212Snapshot:{read:()=>null}};vm.createContext(c);vm.runInContext(failureScript,c);vm.runInContext(script,c);vm.runInContext(readFileSync('app/sync/verification.js','utf8'),c);return {c,s,nodes,events,ls,downloads,get,writes:()=>writes};}
 const card=(u,title)=>u.get('operationalChecks').children.find(x=>x.children[0].textContent===title);
 test('opening diagnostics is read-only; storage is tested only by an explicit action',async()=>{const u=ui();assert.equal(u.writes(),0);assert.equal(card(u,'Stocarea registrelor locale').children[1].textContent,'Neconfirmat');await u.get('operationalStorage').onclick();assert.equal(u.writes(),1);assert.equal(card(u,'Stocarea registrelor locale').children[1].textContent,'Verificat');assert.equal(card(u,'Stocarea privată criptată').children[1].textContent,'Verificat');assert.equal(u.ls.ledger.size,2);});
 test('a rejected service recheck still completes the storage test and reenables buttons',async()=>{const u=ui({recheck:async()=>{throw Error('SECRET');},storeFailure:true});await u.get('operationalRefresh').onclick();assert.equal(u.get('operationalExport').disabled,false);assert.match(u.get('operationalMessage').textContent,/serviciul|Serviciul/);assert.equal(card(u,'Stocarea registrelor locale').children[1].textContent,'Blocat');assert.equal(card(u,'Stocarea privată criptată').children[1].textContent,'Verificat');assert.equal(u.get('operationalMessage').textContent.includes('SECRET'),false);});
 test('a hanging service recheck has a deadline independent from local storage and is safely retryable',async()=>{const timers=new Map();let id=0;const u=ui({recheck:()=>new Promise(()=>{})});u.c.setTimeout=(fn,ms)=>{timers.set(++id,{fn,ms});return id;};u.c.clearTimeout=i=>timers.delete(i);const job=u.get('operationalRefresh').onclick();for(let i=0;i<3;i++)await new Promise(r=>setImmediate(r));assert.equal(u.get('operationalExport').disabled,true);for(const t of [...timers.values()])if(t.ms===8000)t.fn();await job;assert.equal(u.get('operationalExport').disabled,false);assert.match(u.get('operationalMessage').textContent,/nu a confirmat/);assert.equal(card(u,'Stocarea registrelor locale').children[1].textContent,'Verificat');});
 test('export samples current state, not stale displayed state, and drops personal fields',async()=>{const u=ui();u.s.email='PRIVATE_EMAIL';u.s.error='PRIVATE_ERROR';u.s.conflicts=['PRIVATE_LEDGER'];u.get('operationalExport').onclick();const r=JSON.parse(await u.c.download.text());assert.equal(item(r,'sync').state,'blocked');assert.equal(JSON.stringify(r).includes('PRIVATE_'),false);assert.equal(u.downloads.length,1);});
+test('downloaded diagnostics retain current safe failure metadata and suppress it after recovery',async()=>{
+ const u=ui(),info=failure({at:Date.now()-1000});
+ u.s.error='PRIVATE_RAW_ERROR';u.s.failure={...info,email:'PRIVATE_EMAIL',token:'PRIVATE_TOKEN',body:{total:999999}};
+ u.get('operationalExport').onclick();
+ const failed=JSON.parse(await u.c.download.text());
+ assert.deepEqual(failed.synchronizationFailure,info);
+ assert.equal(JSON.stringify(failed).includes('PRIVATE_'),false);
+ assert.equal(JSON.stringify(failed).includes('999999'),false);
+ u.s.error='';u.get('operationalExport').onclick();
+ const recovered=JSON.parse(await u.c.download.text());
+ assert.equal(recovered.synchronizationFailure,null);
+ assert.equal(u.writes(),0);
+});
 test('only trusted parent notifications rerender diagnostics; corrupt snapshot originals remain untouched',()=>{const u=ui(),raw='{invalid';u.ls.ledger.set('tt_trading212_portfolio_v1',raw);const before=card(u,'Snapshot Invest');u.events.message({source:{},origin:u.c.location.origin,data:{ttCloudState:{}}});assert.equal(card(u,'Snapshot Invest'),before);u.events.message({source:u.c.parent,origin:'https://foreign.example',data:{ttCloudState:{}}});assert.equal(card(u,'Snapshot Invest'),before);u.events.message({source:u.c.parent,origin:u.c.location.origin,data:{ttCloudState:{}}});assert.equal(card(u,'Snapshot Invest').children[1].textContent,'Blocat');assert.equal(u.ls.ledger.get('tt_trading212_portfolio_v1'),raw);});
+

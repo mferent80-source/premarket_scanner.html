@@ -2,10 +2,14 @@ import test from 'node:test';import assert from 'node:assert/strict';import vm f
 const {create:planStore}=createRequire(import.meta.url)('../lib/trade-plan-store.js');
 const source=readFileSync(new URL('../app/cloud-sync.js',import.meta.url),'utf8').replace(/^import .*;\n/,'');
 const boundedStatus={enabled:true,protocol:'tt-cloud-sync-v1',clientId:'test.apps.googleusercontent.com',checks:{database:true,google:true,encryption:true,schema:true},supportedKeys:KEYS,records:{protocol:'tt-cloud-records-v2',maxKeys:1}};
-async function setup({local={},remote={},baseline={},vault=null,cloudOwner=null,failOwnerMirror=false,broker=null,failVaultSave=false,enabled=true,autoActivate=false,status={enabled:true,protocol:'tt-cloud-sync-v1',clientId:'test.apps.googleusercontent.com',checks:{database:true,google:true,encryption:true,schema:true}},statusHttp=200,sessionHttp=200,savedSession=true,authResult={error:'challenge_expired'},authHttp=401,endpoint='https://premarket-scanner-html.mferent80.workers.dev',onPut,onRecords,onIndex,onKey,planBackup,missingPlanModule=false}={}){
+async function setup({local={},remote={},baseline={},vault=null,cloudOwner=null,failOwnerMirror=false,broker=null,failVaultSave=false,enabled=true,autoActivate=false,status={enabled:true,protocol:'tt-cloud-sync-v1',clientId:'test.apps.googleusercontent.com',checks:{database:true,google:true,encryption:true,schema:true}},statusHttp=200,sessionHttp=200,savedSession=true,authResult={error:'challenge_expired'},authHttp=401,endpoint='https://premarket-scanner-html.mferent80.workers.dev',onPut,onRecords,onIndex,onKey,planBackup,missingPlanModule=false,fillsBackup,failFillsMirror=false,missingFillsModule=false,failStorageKey=null}={}){
  const storage=new Map(Object.entries(local)),privateStore=new Map([['session',savedSession?{token:'token',subject:'123',email:'me@example.test'}:null],['baseline:123',baseline],['owner',cloudOwner]]),calls=[];let currentVault=vault;const records=structuredClone(remote),window={addEventListener(){},dispatchEvent(){},T212Vault:{read:async()=>currentVault,save:async v=>{if(failVaultSave)throw Error('Vault unavailable');currentVault=v;},clear:async()=>{currentVault=null;}},TTCloudStore:{get:async k=>structuredClone(privateStore.get(k)||null),put:async(k,v)=>{privateStore.set(k,structuredClone(v));},remove:async k=>{privateStore.delete(k);}}};
- const c={KEYS,mergeRecord,validateValue,EvidenceCloud,window,localStorage:{getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>{if(failOwnerMirror&&k==='tt_cloud_owner')throw Error('QuotaExceededError');storage.set(k,String(v));},removeItem:k=>storage.delete(k)},document:{hidden:false,addEventListener(){},querySelectorAll:()=>[],getElementById:id=>id==='brokerFrame'?broker:null},navigator:{onLine:true},location:{origin:'https://mferent80-source.github.io',href:'https://mferent80-source.github.io/app/'},URL,Date,AbortController,CustomEvent:class{},StorageEvent:class{},setTimeout,clearTimeout,setInterval:()=>{},fetch:async(url,opts)=>{calls.push({url,opts});let data,http=200;if(url==='cloud-sync-config.json')data={enabled,autoActivate,endpoint};else if(url.endsWith('/status')){data=typeof status==='function'?status():status;http=statusHttp;}else if(url.endsWith('/session')){data=sessionHttp===200?{subject:'123'}:{error:'session_expired'};http=sessionHttp;}else if(url.endsWith('/auth')){data=typeof authResult==='function'?authResult():authResult;http=typeof authHttp==='function'?authHttp():authHttp;}else if(url.endsWith('/records?index=1')){const override=onIndex?await onIndex(records):undefined;data=override===undefined?{protocol:'tt-cloud-records-v2',records:Object.fromEntries(Object.entries(records).map(([k,r])=>[k,{revision:r.revision,updated:r.updated}]))}:override;}else if(url.includes('/records?key=')){const key=new URL(url).searchParams.get('key'),override=onKey?await onKey(records,key):undefined;data=override===undefined?{records:records[key]?{[key]:structuredClone(records[key])}:{}}:override;}else if(url.endsWith('/records')){if(onRecords)await onRecords(records);data={records:structuredClone(records)};}else if(url.endsWith('/record')){const b=JSON.parse(opts.body);if(onPut)onPut(storage,b);assert.equal(b.revision,records[b.key]?.revision||0);records[b.key]={revision:b.revision+1,value:b.value,updated:10};data={revision:b.revision+1,updated:10};}else throw Error(url);return {ok:http===200,status:http,json:async()=>data};}};
- let planLedger;if(!missingPlanModule){planLedger=planStore(c.localStorage,{durable:planBackup||null,notify:false});window.TTPlanStore={create:()=>planLedger};}vm.createContext(c);vm.runInContext(source,c);for(let i=0;i<15;i++)await new Promise(r=>setImmediate(r));return {api:window.TTCloud,storage,privateStore,records,calls,planLedger,context:c,vault:()=>currentVault};
+ const c={KEYS,mergeRecord,validateValue,EvidenceCloud,window,localStorage:{getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>{if(failOwnerMirror&&k==='tt_cloud_owner')throw Error('QuotaExceededError');if(failFillsMirror&&k==='tt_trading212_fills_v1'||k===failStorageKey)throw Object.assign(Error('Storage quota exceeded'),{name:'QuotaExceededError'});storage.set(k,String(v));},removeItem:k=>storage.delete(k),key:i=>[...storage.keys()][i]??null,get length(){return storage.size;}},document:{hidden:false,addEventListener(){},querySelectorAll:()=>[],getElementById:id=>id==='brokerFrame'?broker:null},navigator:{onLine:true},location:{origin:'https://mferent80-source.github.io',href:'https://mferent80-source.github.io/app/'},URL,URLSearchParams,Date,AbortController,CustomEvent:class{},StorageEvent:class{},setTimeout,clearTimeout,setInterval:()=>{},fetch:async(url,opts)=>{calls.push({url,opts});let data,http=200;if(url==='cloud-sync-config.json')data={enabled,autoActivate,endpoint};else if(url.endsWith('/status')){data=typeof status==='function'?status():status;http=statusHttp;}else if(url.endsWith('/session')){data=sessionHttp===200?{subject:'123'}:{error:'session_expired'};http=sessionHttp;}else if(url.endsWith('/auth')){data=typeof authResult==='function'?authResult():authResult;http=typeof authHttp==='function'?authHttp():authHttp;}else if(url.endsWith('/records?index=1')){const override=onIndex?await onIndex(records):undefined;data=override===undefined?{protocol:'tt-cloud-records-v2',records:Object.fromEntries(Object.entries(records).map(([k,r])=>[k,{revision:r.revision,updated:r.updated}]))}:override;}else if(url.includes('/records?key=')){const key=new URL(url).searchParams.get('key'),override=onKey?await onKey(records,key):undefined;data=override===undefined?{records:records[key]?{[key]:structuredClone(records[key])}:{}}:override;}else if(url.endsWith('/records')){if(onRecords)await onRecords(records);data={records:structuredClone(records)};}else if(url.endsWith('/record')){const b=JSON.parse(opts.body);if(onPut)await onPut(storage,b,c);assert.equal(b.revision,records[b.key]?.revision||0);records[b.key]={revision:b.revision+1,value:b.value,updated:10};data={revision:b.revision+1,updated:10};}else throw Error(url);return {ok:http===200,status:http,json:async()=>data};}};
+ let planLedger;if(!missingPlanModule){planLedger=planStore(c.localStorage,{durable:planBackup||null,notify:false});window.TTPlanStore={create:()=>planLedger};}
+ window.localStorage=c.localStorage;window.navigator=c.navigator;vm.createContext(c);
+ for(const file of ['../lib/storage-write.js','../app/failure-info.js','../lib/trading212-fills-store.js'])vm.runInContext(readFileSync(new URL(file,import.meta.url),'utf8'),c);
+ let fillsLedger;if(missingFillsModule)delete window.T212FillsStore;else{fillsLedger=window.T212FillsStore.create(c.localStorage,{durable:fillsBackup||null,notify:false});await fillsLedger.ready().catch(()=>{});window.T212FillsStore={...window.T212FillsStore,...fillsLedger};}
+ vm.runInContext(source,c);for(let i=0;i<15;i++)await new Promise(r=>setImmediate(r));return {api:window.TTCloud,storage,privateStore,records,calls,planLedger,fillsLedger,context:c,vault:()=>currentVault};
 }
 test('first phone receives cloud data without pushing empty replacement',async()=>{const s=await setup({remote:{tt_journal_v1:{revision:3,updated:9,value:[{id:'trade'}]}}});assert.equal(JSON.parse(s.storage.get('tt_journal_v1'))[0].id,'trade');assert.equal(s.calls.filter(c=>c.opts?.method==='PUT').length,0);assert.equal(s.api.state().connected,true);});
 test('bounded cloud reads fetch changed records only and never request the aggregate payload',async()=>{
@@ -156,6 +160,7 @@ test('a cloud import holds the history lock and preserves a concurrent Europa ob
  const concurrent={schema:1,entries:[observation]},locks=[];
  s.context.navigator.locks={request:async(name,options,callback)=>{
   if(name==='tt-cloud-sync')return callback({});
+  if(name==='tt_trading212_fills_v1')return options();
   locks.push(name);s.storage.set(key,JSON.stringify(concurrent));return options();
  }};
  await s.api.sync();assert.deepEqual(locks,[key]);assert.deepEqual(JSON.parse(s.storage.get(key)),concurrent);assert.equal(s.records[key].value.entries.length,0);
@@ -205,5 +210,104 @@ test('older server never receives analyses or empty bucket writes',async()=>{con
 test('PC uploads originals and a fresh phone receives them without duplicating or deleting history',async()=>{const a=analysis(),pc=await setup({status:analysisStatus,local:{[EvidenceCloud.KEY]:JSON.stringify(ledger(a))}}),key=EvidenceCloud.bucket(a.id);assert.ok(pc.api.state().supportedKeys.includes(EvidenceCloud.KEY));assert.equal(pc.records[key].value.entries[0].id,a.id);assert.equal(pc.records[EvidenceCloud.KEY],undefined);const phone=await setup({status:analysisStatus,remote:pc.records});assert.equal(JSON.parse(phone.storage.get(EvidenceCloud.KEY)).entries.length,1);assert.equal(phone.calls.filter(c=>c.opts?.method==='PUT').length,0);await phone.api.sync();assert.equal(JSON.parse(phone.storage.get(EvidenceCloud.KEY)).entries.length,1);assert.equal(phone.privateStore.get('backups:123')[0].snapshot[key],undefined);});
 test('a scan during cloud PUT remains local and is uploaded on reconciliation',async()=>{const a=analysis(),b=analysis('new-scan');let fired=false;const pc=await setup({status:analysisStatus,local:{[EvidenceCloud.KEY]:JSON.stringify(ledger(a))},onPut:(storage,body)=>{if(EvidenceCloud.isBucket(body.key)&&!fired){fired=true;storage.set(EvidenceCloud.KEY,JSON.stringify(ledger(a,b)));}}});await pc.api.sync();assert.equal(JSON.parse(pc.storage.get(EvidenceCloud.KEY)).entries.length,2);assert.equal(Object.values(pc.records).filter(r=>r.value?.version==='trade-evidence-v1').reduce((n,r)=>n+r.value.entries.length,0),2);});
 test('conflicting analysis resolution preserves unrelated records on both devices and a backup',async()=>{const a=analysis(),key=EvidenceCloud.bucket(a.id);let i=0;while(EvidenceCloud.bucket('local-'+i)!==key)i++;const b=analysis('local-'+i);i=0;while(EvidenceCloud.bucket('remote-'+i)!==key)i++;const c=analysis('remote-'+i),changed={...a,stop:90};const pc=await setup({status:analysisStatus,local:{[EvidenceCloud.KEY]:JSON.stringify(ledger(a,b))},remote:{[key]:{revision:2,value:ledger(changed,c)}},baseline:{[key]:{revision:1,value:ledger(a)}}});assert.ok(pc.api.state().conflicts.includes(key));assert.equal(pc.calls.filter(x=>x.opts?.method==='PUT').length,0);await pc.api.resolve(key,'remote');const result=JSON.parse(pc.storage.get(EvidenceCloud.KEY));assert.equal(result.entries.length,3);assert.equal(result.entries.find(x=>x.id===a.id).stop,90);assert.equal(pc.records[key].value.entries.length,3);assert.equal(pc.privateStore.get('backups:123')[0].snapshot[EvidenceCloud.KEY].entries[0].stop,95);});
-test('analysis import uses the same lock as automatic capture and keeps a concurrent new scan',async()=>{const a=analysis(),key=EvidenceCloud.bucket(a.id),s=await setup({status:analysisStatus});s.records[key]={revision:1,value:ledger(a)};const b=analysis('lock-scan'),locks=[];s.context.navigator.locks={request:async(name,options,callback)=>{if(name==='tt-cloud-sync')return callback({});locks.push(name);s.storage.set(EvidenceCloud.KEY,JSON.stringify(ledger(b)));return options();}};await s.api.sync();assert.ok(locks.includes(EvidenceCloud.KEY));assert.ok(JSON.parse(s.storage.get(EvidenceCloud.KEY)).entries.some(r=>r.id===b.id));await s.api.sync();assert.ok(Object.values(s.records).some(r=>r.value?.entries?.some(x=>x.id===b.id)));});
+test('analysis import uses the same lock as automatic capture and keeps a concurrent new scan',async()=>{const a=analysis(),key=EvidenceCloud.bucket(a.id),s=await setup({status:analysisStatus});s.records[key]={revision:1,value:ledger(a)};const b=analysis('lock-scan'),locks=[];s.context.navigator.locks={request:async(name,options,callback)=>{if(name==='tt-cloud-sync')return callback({});if(name==='tt_trading212_fills_v1')return options();locks.push(name);s.storage.set(EvidenceCloud.KEY,JSON.stringify(ledger(b)));return options();}};await s.api.sync();assert.ok(locks.includes(EvidenceCloud.KEY));assert.ok(JSON.parse(s.storage.get(EvidenceCloud.KEY)).entries.some(r=>r.id===b.id));await s.api.sync();assert.ok(Object.values(s.records).some(r=>r.value?.entries?.some(x=>x.id===b.id)));});
+
+const FILLS='tt_trading212_fills_v1',plain=value=>JSON.parse(JSON.stringify(value));
+const brokerFill=id=>({id,ticker:'TEST_US_EQ',date:'2026-10-10T12:00:00Z',side:'SELL',quantity:2,price:120,priceCurrency:'USD',currency:'EUR',realized:18,amount:220,fxRate:.92,taxes:[{name:'FX_FEE',quantity:.3,currency:'EUR'}]});
+const brokerFills=(...ids)=>({accounts:{'live:fixture':{environment:'live',items:ids.map(brokerFill),complete:true,fetchedAt:'2026-10-10T12:01:00Z',syncStatus:'complete',syncError:null}}});
+const fillIds=value=>new Set(value.accounts['live:fixture'].items.map(row=>row.id));
+function durableFills(legacy,data){
+ let saved=data===undefined?null:{raw:JSON.stringify(data),localRaw:legacy===undefined?null:JSON.stringify(legacy),revision:1},tail=Promise.resolve(),readError=null,writeError=null;
+ return {get saved(){return structuredClone(saved);},failRead(error){readError=error;},failWrite(error){writeError=error;},read:async()=>{if(readError)throw readError;return structuredClone(saved);},update(fn){const pending=tail.then(()=>{if(writeError)throw writeError;const next=fn(structuredClone(saved));if(next.write!==false)saved=structuredClone(next.record);return structuredClone(next.value);});tail=pending.catch(()=>{});return pending;}};
+}
+const fillPuts=s=>s.calls.filter(call=>call.url.endsWith('/record')&&JSON.parse(call.opts.body).key===FILLS);
+
+test('cloud reconciles the full durable fills union under mirror quota and a new page recovers it over stale localStorage',async()=>{
+ const old=brokerFills('base'),full=brokerFills('base','PC'),phone=brokerFills('base','phone'),raw=JSON.stringify(old),backup=durableFills(old,full);
+ const s=await setup({local:{[FILLS]:raw},fillsBackup:backup,failFillsMirror:true,remote:{[FILLS]:{revision:2,updated:9,value:phone}},baseline:{[FILLS]:{revision:1,value:old}}});
+ const expected=new Set(['base','PC','phone']);
+ assert.equal(s.api.state().error,'');assert.equal(s.api.state().failure,null);assert.ok(s.api.state().lastSync);
+ assert.equal(s.storage.get(FILLS),raw,'the refused mirror retains its exact original bytes');
+ assert.deepEqual(fillIds(JSON.parse(backup.saved.raw)),expected);
+ assert.deepEqual(fillIds(plain((await s.fillsLedger.read()).data)),expected);
+ assert.deepEqual(fillIds(s.records[FILLS].value),expected);
+ assert.deepEqual(s.privateStore.get('backups:123')[0].snapshot[FILLS],full,'recovery uses the full confirmed register, not its stale mirror');
+ assert.equal(backup.saved.localRaw,raw);assert.ok(backup.saved.revision>1);
+ const fresh=await setup({local:{[FILLS]:raw},fillsBackup:backup,failFillsMirror:true,remote:s.records,baseline:s.privateStore.get('baseline:123')});
+ assert.equal(fresh.api.state().error,'');assert.ok(fresh.api.state().lastSync);
+ assert.deepEqual(fillIds(plain((await fresh.fillsLedger.read()).data)),expected);
+ assert.equal(fresh.storage.get(FILLS),raw);assert.equal(fillPuts(fresh).length,0,'reload must not republish the stale mirror');
+});
+
+test('failed durable fills reads cannot upload stale or empty history or confirm synchronization',async()=>{
+ for(const legacy of [brokerFills('stale'),undefined]){
+  const full=brokerFills('confirmed'),backup=durableFills(legacy,full),before=backup.saved;
+  backup.failRead(Error('PRIVATE_IDB_READ'));backup.failWrite(Error('PRIVATE_IDB_WRITE'));
+  const remote={[FILLS]:{revision:2,updated:9,value:brokerFills('phone')}},local=legacy===undefined?{}:{[FILLS]:JSON.stringify(legacy)};
+  const s=await setup({local,fillsBackup:backup,failFillsMirror:true,remote});
+  assert.notEqual(s.api.state().error,'');assert.equal(s.api.state().lastSync,null);assert.equal(s.api.state().busy,false);
+  assert.equal(fillPuts(s).length,0);assert.deepEqual(s.records,remote);assert.deepEqual(backup.saved,before);
+  assert.equal(s.storage.get(FILLS),local[FILLS]);assert.equal(s.privateStore.get('backups:123'),undefined);
+  await assert.rejects(s.fillsLedger.read());assert.throws(()=>s.fillsLedger.peek());
+ }
+});
+
+test('an unconfirmed durable fills write retains both originals without publishing a stale or empty replacement',async()=>{
+ const old=brokerFills('base'),full=brokerFills('base','PC'),phone=brokerFills('base','PC','phone'),backup=durableFills(old,full),before=backup.saved,raw=JSON.stringify(old);
+ backup.failWrite(Error('PRIVATE_IDB_COMMIT'));
+ const remote={[FILLS]:{revision:2,updated:9,value:phone}},s=await setup({local:{[FILLS]:raw},fillsBackup:backup,failFillsMirror:true,remote,baseline:{[FILLS]:{revision:1,value:old}}});
+ assert.notEqual(s.api.state().error,'');assert.equal(s.api.state().lastSync,null);assert.equal(fillPuts(s).length,0);
+ assert.equal(s.storage.get(FILLS),raw);assert.deepEqual(backup.saved,before);assert.deepEqual(s.records,remote);
+ assert.deepEqual(s.privateStore.get('backups:123')[0].snapshot[FILLS],full);
+ assert.deepEqual(plain((await s.fillsLedger.read()).data),full);
+});
+
+test('an unloaded fills module fails closed before stale local executions can be published',async()=>{
+ const raw=JSON.stringify(brokerFills('stale')),s=await setup({local:{[FILLS]:raw},missingFillsModule:true});
+ assert.match(s.api.state().error,/Modulul execuțiilor nu s-a încărcat/);
+ assert.equal(s.api.state().lastSync,null);assert.equal(fillPuts(s).length,0);assert.equal(s.storage.get(FILLS),raw);
+ assert.equal(s.records[FILLS],undefined);
+});
+
+test('a concurrent confirmed broker execution defeats stale cloud CAS and reaches the next full union',async()=>{
+ const base=brokerFills('base'),full=brokerFills('base','PC'),phone=brokerFills('base','phone'),raw=JSON.stringify(base),backup=durableFills(base,full);let fired=false;
+ const s=await setup({local:{[FILLS]:raw},fillsBackup:backup,failFillsMirror:true,remote:{[FILLS]:{revision:2,updated:9,value:phone}},baseline:{[FILLS]:{revision:1,value:base}},onPut:async(_storage,body,context)=>{
+  if(body.key===FILLS&&!fired){fired=true;await context.window.T212FillsStore.mutate(data=>{data.accounts['live:fixture'].items.push(brokerFill('broker-during-sync'));return data;});}
+ }});
+ assert.equal(fired,true);assert.equal(s.api.state().error,'');
+ assert.deepEqual(fillIds(plain((await s.fillsLedger.read()).data)),new Set(['base','PC','broker-during-sync']));
+ assert.deepEqual(fillIds(s.records[FILLS].value),new Set(['base','PC','phone']));
+ assert.deepEqual(s.privateStore.get('baseline:123')[FILLS].value,full,'rejected CAS preserves the earlier merge baseline');
+ assert.equal(s.storage.get(FILLS),raw);
+ await s.api.sync();const expected=new Set(['base','PC','phone','broker-during-sync']);
+ assert.equal(s.api.state().error,'');assert.ok(s.api.state().lastSync);
+ assert.deepEqual(fillIds(plain((await s.fillsLedger.read()).data)),expected);assert.deepEqual(fillIds(JSON.parse(backup.saved.raw)),expected);assert.deepEqual(fillIds(s.records[FILLS].value),expected);
+ assert.equal(s.storage.get(FILLS),raw);
+});
+
+function checkSafeFailure(s,{code,operation,key,httpStatus}){
+ const failure=plain(s.api.state().failure);
+ assert.deepEqual(Object.keys(failure).sort(),['at','code','httpStatus','key','operation']);
+ assert.equal(failure.code,code);assert.equal(failure.operation,operation);assert.equal(failure.key,key);assert.equal(failure.httpStatus,httpStatus);
+ assert.ok(Number.isSafeInteger(failure.at)&&failure.at>0&&failure.at<=Date.now()+60000);
+ assert.equal(s.context.window.TTCloudFailure.sanitize(s.api.state().failure).code,code);
+ assert.doesNotMatch(JSON.stringify(failure),/PRIVATE_|me@example|token|Authorization|Bearer/);
+ return failure;
+}
+
+test('quota diagnostics identify the refused register without exposing snapshot payloads or identity',async()=>{
+ const key='tt_trading212_portfolio_v1',old={'live:fixture':{fetchedAt:'2026-10-10T12:00:00Z',positions:[{ticker:'PRIVATE_PAYLOAD',quantity:5}]}},phone={'live:fixture':{fetchedAt:'2026-10-10T12:01:00Z',positions:[{ticker:'PRIVATE_REMOTE',quantity:6}]}},raw=JSON.stringify(old);
+ const s=await setup({local:{[key]:raw},failStorageKey:key,remote:{[key]:{revision:2,updated:9,value:phone}},baseline:{[key]:{revision:1,value:old}}});
+ assert.equal(s.api.state().lastSync,null);assert.equal(s.storage.get(key),raw);assert.equal(s.api.state().connected,true);
+ checkSafeFailure(s,{code:'storage_quota',operation:'sync',key,httpStatus:null});
+});
+
+test('network and API diagnostics retain only their allowed stage, register, code and HTTP metadata',async()=>{
+ const network=await setup({status:boundedStatus,remote:{[FILLS]:{revision:1,updated:1,value:brokerFills('PRIVATE_PAYLOAD')}},onKey:()=>{throw TypeError('PRIVATE_RESPONSE_BODY');}});
+ assert.equal(network.api.state().lastSync,null);assert.equal(fillPuts(network).length,0);
+ checkSafeFailure(network,{code:'network_error',operation:'read-record',key:FILLS,httpStatus:null});
+ const service=await setup({statusHttp:503,status:{error:'cloud_unavailable',payload:'PRIVATE_RESPONSE_BODY'}});
+ assert.equal(service.api.state().ready,false);assert.equal(service.api.state().lastSync,null);
+ checkSafeFailure(service,{code:'cloud_unavailable',operation:'service',key:null,httpStatus:503});
+});
 

@@ -111,3 +111,37 @@ test('broker position action hands the exact selected account to analysis and re
  time+=600000;click();assert.equal(opened.length,1);assert.match(s.el('positionCoverage').textContent,/Sincronizează/);
  saved.set('tt_trading212_portfolio_v1',JSON.stringify({other:{environment:'live',active:true,positions:[position],fetchedAt:new Date(time).toISOString()}}));click();assert.equal(opened.length,1);assert.match(s.el('positionCoverage').textContent,/Contul selectat s-a schimbat/);
 });
+
+
+async function flushBroker(){for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));}
+test('durable journal pages cannot advance the history cursor before confirmed persistence',async()=>{
+ let time=Date.now(),confirm;class Clock extends Date{static now(){return time;}}
+ const journal={saveSnapshot(){},merge(scope,environment,items,next){return new Promise(resolve=>{confirm=()=>resolve({count:items.length,complete:!next});});}},s=await setup(true,null,{Date:Clock,journal,response:(b,name)=>name==='orders'?{...b,data:{items:[{id:'confirmed-only',ticker:'A'}],nextCursor:'next-page'}}:b});
+ const pending=s.connect();while(!confirm)await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(s.el('history').innerHTML,'');assert.equal(s.el('more').hidden,true);assert.doesNotMatch(s.el('journalState').textContent,/execuții în jurnal/);
+ time+=12000;s.intervals.find(x=>x.ms===12000).fn();await flushBroker();assert.equal(s.calls.filter(x=>x.url.includes('/orders')).length,1);
+ time-=12000;confirm();await pending;assert.match(s.el('journalState').textContent,/1 execuții în jurnal/);assert.match(s.el('history').innerHTML,/A/);assert.equal(s.el('more').hidden,false);
+});
+test('rejected durable page leaves its unconfirmed cursor eligible for a full retry',async()=>{
+ let time=Date.now(),merges=0;class Clock extends Date{static now(){return time;}}
+ const states=[],journal={saveSnapshot(){},async importState(scope,environment,state){states.push(state);},async merge(scope,environment,items,next){if(++merges===1)throw Error('IndexedDB commit failed');return {count:items.length,complete:!next};}},s=await setup(true,null,{Date:Clock,journal,response:(b,name)=>name==='orders'?{...b,data:{items:[{id:'unconfirmed',ticker:'A'}],nextCursor:'not-yet-confirmed'}}:b});
+ await s.connect();assert.match(s.el('historyState').textContent,/IndexedDB commit failed/);assert.equal(s.el('history').innerHTML,'');assert.equal(s.el('more').hidden,true);assert.deepEqual(states,['error']);
+ time+=12000;s.intervals.find(x=>x.ms===12000).fn();await flushBroker();const orders=s.calls.filter(x=>x.url.includes('/orders'));
+ assert.equal(orders.length,2);assert.equal(new URL(orders[1].url).searchParams.has('cursor'),false);assert.match(s.el('journalState').textContent,/1 execuții în jurnal/);
+});
+test('loading state is confirmed before the next broker journal page is requested',async()=>{
+ let time=Date.now(),confirm;class Clock extends Date{static now(){return time;}}
+ const journal={saveSnapshot(){},merge(){return {count:1,complete:false};},importState(){return new Promise(resolve=>{confirm=resolve;});}},s=await setup(true,null,{Date:Clock,journal,response:(b,name)=>name==='orders'?{...b,data:{items:[{id:'first'}],nextCursor:'next'}}:b});
+ await s.connect();time+=12000;s.intervals.find(x=>x.ms===12000).fn();await flushBroker();assert.equal(typeof confirm,'function');assert.equal(s.calls.filter(x=>x.url.includes('/orders')).length,1);
+ confirm();await flushBroker();const orders=s.calls.filter(x=>x.url.includes('/orders'));assert.equal(orders.length,2);assert.equal(new URL(orders[1].url).searchParams.get('cursor'),'next');
+});
+test('disconnect during durable persistence cannot render or advance the old journal session',async()=>{
+ let confirm;const journal={saveSnapshot(){},merge(){return new Promise(resolve=>{confirm=()=>resolve({count:1,complete:true});});}},s=await setup(true,null,{journal});
+ const pending=s.connect();while(!confirm)await new Promise(resolve=>setImmediate(resolve));s.el('disconnect').onclick();confirm();await pending;
+ assert.equal(s.el('account').hidden,true);assert.equal(s.el('history').innerHTML,'');assert.equal(s.el('more').hidden,true);assert.doesNotMatch(s.el('journalState').textContent,/1 execuții în jurnal/);
+});
+
+for(const [code,expected] of [['fills_loading',/Se încarcă istoricul execuțiilor Trading 212/],['fills_unreadable',/Istoricul contului selectat nu poate fi citit/]])test('broker realized results distinguish '+code+' during durable history reads',async()=>{
+ const journal={saveSnapshot(){},merge(){return {count:0,complete:false};},read(){throw Object.assign(Error('date indisponibile'),{code});}},s=await setup(true,null,{journal,response:(body,name)=>name==='summary'?{...body,data:{currency:'EUR',totalValue:100}}:body});
+ await s.connect();assert.match(s.el('realizedSummary').textContent,expected);assert.equal(s.el('realizedSummary').innerHTML,'');
+});

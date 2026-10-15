@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-function setup(){const store=new Map();const context={localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)}};vm.createContext(context);vm.runInContext(readFileSync('lib/trading212-snapshot.js','utf8'),context);vm.runInContext(readFileSync('lib/trading212-daily.js','utf8'),context);vm.runInContext(readFileSync('lib/trading212-journal.js','utf8'),context);context.T212J._store=store;return context.T212J;}
+function setup(options={}){const store=new Map();const context={document:options.document,addEventListener(){},setInterval(){},T212FillsStore:options.fillsStore,TTStorageWrite:options.storageWrite,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>{if(options.quota?.(k))throw Object.assign(Error('Storage quota exceeded'),{name:'QuotaExceededError'});store.set(k,v);}}};vm.createContext(context);vm.runInContext(readFileSync('lib/trading212-snapshot.js','utf8'),context);vm.runInContext(readFileSync('lib/trading212-daily.js','utf8'),context);vm.runInContext(readFileSync('lib/trading212-journal.js','utf8'),context);context.T212J._store=store;return context.T212J;}
 const fill={id:'f1',ticker:'AAPL_US_EQ',date:'2026-10-02T15:00:00Z',side:'BUY',quantity:0.5,price:230,priceCurrency:'USD',currency:'EUR',realized:null};
 test('broker fills deduplicate and retain currencies and isolated accounts',()=>{const j=setup();j.merge('live:a','live',[fill],null,fill.date);j.merge('live:a','live',[fill,{...fill,id:'f2',side:'SELL',realized:3}],null,fill.date);j.merge('demo:a','demo',[fill],null,fill.date);j.merge('live:b','live',[fill],null,fill.date);const data=j.read();assert.equal(data.accounts['live:a'].items.length,2);assert.equal(data.accounts['demo:a'].items.length,1);assert.equal(data.accounts['live:b'].items.length,1);assert.equal(data.accounts['live:a'].items[0].realized,null);assert.equal(data.accounts['live:a'].items[0].priceCurrency,'USD');assert.equal(data.accounts['live:a'].items[0].currency,'EUR');});
 test('malformed executions prevent complete coverage even on final page',()=>{const j=setup();const r=j.merge('live:a','live',[fill,{...fill,id:null},{...fill,id:'bad',quantity:0}], 'next',fill.date);assert.equal(r.count,1);assert.equal(r.skipped,2);assert.equal(r.complete,false);j.merge('live:a','live',[],null,fill.date);assert.equal(j.read().accounts['live:a'].complete,false);assert.equal(j.read().accounts['live:a'].rejected,2);});
@@ -43,3 +43,42 @@ test('history import errors retain the previous fills and a successful page clea
 });
 
 test('only complete snapshots enter exact-account daily position history',()=>{const j=setup(),at=new Date().toISOString(),p={ticker:'A',quantity:1,currentPrice:10,averagePrice:9,instrumentCurrency:'USD',currency:'EUR',unrealized:1};j.saveSnapshot('a','live',{currency:'EUR',totalValue:100},[p],at);j.saveSnapshot('a','live',null,[{...p,currentPrice:100}],at);j.saveSnapshot('d','demo',{currency:'EUR',totalValue:500},[{...p,currentPrice:20}],at);const data=JSON.parse(j._store.get('tt_trading212_position_history_v1'));assert.equal(data.accounts.a.days[0].positions[0].currentPrice,10);assert.equal(data.accounts.d.environment,'demo');assert.equal(data.accounts.d.days[0].positions[0].currentPrice,20);});
+
+
+function durableStore(initial={accounts:{}}){
+ const clone=value=>JSON.parse(JSON.stringify(value));let data=clone(initial),revision=0,pending=null;
+ return {peek:()=>({data:clone(data),revision,state:'ready',raw:JSON.stringify(data)}),
+  mutate(fn){const next=fn(clone(data));return new Promise((resolve,reject)=>{pending={next,resolve,reject};});},
+  confirm(){data=clone(pending.next);revision++;pending.resolve(this.peek());pending=null;},
+  reject(){pending.reject(Error('IndexedDB commit failed'));pending=null;}
+ };
+}
+test('durable fills remain complete when the legacy Storage quota is exhausted',async()=>{
+ const items=Array.from({length:1600},(_,i)=>({...fill,id:'retained-'+i,amount:i,fxRate:1.08,taxes:[{name:'FX',quantity:0.02,currency:'EUR'}]}));
+ const store=durableStore({accounts:{a:{environment:'live',items,complete:true},demo:{environment:'demo',items:[fill]}}}),j=setup({fillsStore:store,quota:()=>true});
+ const pending=j.merge('a','live',[{...fill,id:'new',side:'SELL',realized:15}],null,fill.date,{restart:true});
+ assert.equal(j.read().accounts.a.items.length,1600);store.confirm();const result=await pending;
+ assert.equal(result.count,1601);assert.equal(result.complete,true);assert.equal(j.read().accounts.demo.items.length,1);assert.equal(j._store.has('tt_trading212_fills_v1'),false);
+ const retained=j.read().accounts.a.items.find(x=>x.id==='retained-21');assert.equal(retained.amount,21);assert.equal(retained.fxRate,1.08);assert.equal(retained.taxes[0].currency,'EUR');
+});
+test('a failed durable merge cannot expose unconfirmed fills or complete coverage',async()=>{
+ const store=durableStore({accounts:{a:{environment:'live',items:[fill],nextCursor:'unread',complete:false}}}),j=setup({fillsStore:store});
+ const pending=j.merge('a','live',[{...fill,id:'unconfirmed'}],null,fill.date);store.reject();await assert.rejects(pending,/IndexedDB commit failed/);
+ const account=j.read().accounts.a;assert.equal(account.items.length,1);assert.equal(account.nextCursor,'unread');assert.equal(account.complete,false);
+});
+test('durable import state is visible only after its transaction succeeds',async()=>{
+ const store=durableStore({accounts:{a:{environment:'live',items:[fill],syncStatus:'complete',syncError:null}}}),j=setup({fillsStore:store});
+ const failed=j.importState('a','live','error');assert.equal(j.read().accounts.a.syncStatus,'complete');store.reject();await assert.rejects(failed,/IndexedDB commit failed/);assert.equal(j.read().accounts.a.syncError,null);
+ const saved=j.importState('a','live','error');store.confirm();await saved;assert.equal(j.read().accounts.a.syncError,'Import întrerupt');assert.equal(j.read().accounts.a.items.length,1);
+});
+test('snapshot and cash writes use safe quota recovery when the shared writer is available',()=>{
+ const writes=[],j=setup({storageWrite:{setItem(storage,key,raw){writes.push(key);storage.setItem(key,raw);}}});
+ j.saveSnapshot('a','live',{currency:'EUR',totalValue:100},[],fill.date);j.mergeCash('a','live','dividends',[{id:'d',amount:2,currency:'EUR',date:fill.date}],null,fill.date);j.cashError('a','live','dividends','unavailable');
+ assert.ok(writes.includes('tt_trading212_portfolio_v1'));assert.ok(writes.includes('tt_trading212_account_history_v1'));assert.equal(writes.filter(x=>x==='tt_trading212_cash_v1').length,2);
+});
+
+for(const [code,expected] of [['fills_loading',/Se încarcă istoricul execuțiilor Trading 212/],['fills_unreadable',/Jurnalul brokerului nu poate fi citit: date indisponibile/]])test('broker journal distinguishes '+code+' from loaded account history',async()=>{
+ const host={textContent:'',innerHTML:''},error=Object.assign(Error('date indisponibile'),{code}),fillsStore={peek(){throw error;},ready:async()=>{throw error;}};
+ setup({fillsStore,document:{getElementById:id=>id==='t212Journal'?host:null}});await Promise.resolve();
+ assert.match(host.textContent,expected);assert.equal(host.innerHTML,'');
+});

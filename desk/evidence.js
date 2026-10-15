@@ -24,6 +24,12 @@ function render(c){
  context=c;if(!$('entryTracking')||!E)return;const d=data(),candidate=c.candidate,quantity=candidate?baseline(d,candidate):null;
  $('trackEntry').disabled=busy||quantity===null||!g.TTDecisionVerdict?.sourceCurrent(candidate)||candidate?.currency!=='USD'||!c.report?.snapshotId||![candidate?.entryLow,candidate?.entryHigh,candidate?.stop,candidate?.target].every(x=>Number.isFinite(x)&&x>0);
  $('entryTrackingStatus').textContent=message||(c.demo?'DEMO FICTIV · Exemple simulate; nimic nu se salvează în cont.':!d.scope?'Conectează Invest pentru urmărirea analizelor înaintea intrărilor reale.':'Păstrează manual selecția curentă. Scannerul păstrează automat analizele valide; numai BUY ulterior capturii, în maximum 30 minute, poate fi asociat.');
+ if(d.history.state==='pending'||d.history.errorCode){const reason=d.history.reason||'Istoricul execuțiilor nu poate fi citit.';
+  $('entryTrackingStatus').textContent=(message?message+' ':'')+reason;
+  $('entryEvidenceCount').textContent=d.history.state==='pending'?'Analize păstrate · evaluarea se încarcă':'Analize păstrate · evaluare indisponibilă';
+  $('entryTracking').innerHTML='<p class="performance-status" role="status">'+esc(reason)+'</p><p>Analizele salvate sunt păstrate. Asocierea lor cu execuțiile și rezultatele se verifică după citirea istoricului acestui cont.</p>';
+  $('trackEntry').onclick=()=>capture();return;
+ }
  let records=[],outcomes=[],error=null;
  try{records=E.read(d.storage).entries;outcomes=E.evaluate(records,d.history);}catch(e){error=e.message;}
  const cutoff=c.days?Date.now()-c.days*86400000:-Infinity;outcomes=outcomes.filter(x=>(!c.ticker||x.record.ticker===c.ticker)&&(x.closedAt??x.record.createdAt)>=cutoff);const chosenCurrency=c.currency||d.history.currency,summary=E.summarize(outcomes,chosenCurrency),closed=summary.count,robust=E.robustness(outcomes,d.history,{currency:chosenCurrency,extraCost});
@@ -40,3 +46,4 @@ function render(c){
 }
 g.TTDeskEvidence={render,capture};
 })(window);
+

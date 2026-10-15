@@ -3,7 +3,7 @@
 const esc=v=>String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=(v,c='')=>Number.isFinite(v)?v.toLocaleString('ro-RO',{maximumFractionDigits:2})+(c?' '+c:''):'—',signed=(v,c)=>(v>0?'+':'')+fmt(v,c),day=at=>new Date(at).toLocaleString('ro-RO');let selectedAt=null,current=null;
 function point(index){if(!current?.analysis.curve.length)return;const {analysis:a,currency:c}=current,x=a.curve[Math.max(0,Math.min(a.curve.length-1,Number(index)))];selectedAt=x.at;const out=document.getElementById('pnlPoint'),slider=document.getElementById('pnlPointSlider');out.textContent=day(x.at)+' · P&L cumulat '+signed(x.cumulative,c)+' · rezultat la acest timp '+signed(x.pnl,c)+' · scădere față de vârf '+fmt(x.drawdown,c);slider.setAttribute('aria-valuetext',out.textContent);}
 function render(report){
- const host=document.getElementById('performanceAnalytics');if(!host||!g.T212Performance)return;const a=g.T212Performance.analyse(report),c=report.currency;current={analysis:a,currency:c};
+ const host=document.getElementById('performanceAnalytics');if(!host||!g.T212Performance)return;if(report.state==='pending'||report.errorCode){current=null;host.innerHTML='<section class="pnl-analytics"><h3>Evoluția rezultatului realizat</h3><p role="status">'+esc(report.reason||'Istoricul execuțiilor nu poate fi citit.')+'</p></section>';return;}const a=g.T212Performance.analyse(report),c=report.currency;current={analysis:a,currency:c};
  let chart='<p>Curba apare după prima execuție SELL cu P&L raportat în moneda selectată.</p>';
  if(a.error)chart='<p>Agregatele nu sunt calculabile; verifică execuțiile importate.</p>';
  else if(a.curve.length){
@@ -17,3 +17,4 @@ function render(report){
 }
 g.TTDeskAnalytics={render,point};
 })(window);
+

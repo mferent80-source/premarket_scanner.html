@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ro" data-app-version="26.10.14.2209">
+<html lang="ro" data-app-version="26.10.15.0547">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="../lib/plex.css?v=825">
 <script src="../lib/theme.js?v=825"></script>
-<link rel="stylesheet" href="layout.css?v=26.10.14.2209">
+<link rel="stylesheet" href="layout.css?v=26.10.15.0547">
 </head>
 <body>
 <div class="app">
@@ -22,8 +22,8 @@
   </aside>
   <section class="workspace">
     <header class="topbar">
-      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.14.2209</span></small><b id="pageName">Astăzi</b></div>
-      <div class="account-state"><button class="google-account" id="googleAccount" data-state="checking" title="Deschide Cont & sincronizare"><i aria-hidden="true"></i><span id="googleAccountLabel" aria-live="polite">Verific Google…</span></button><button class="sync-state" id="syncStatus" data-state="checking" aria-live="polite">Verific sincronizarea</button></div>
+      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.15.0547</span></small><b id="pageName">Astăzi</b></div>
+      <div class="account-state"><button class="google-account" id="googleAccount" data-state="checking" title="Deschide Cont & sincronizare"><i aria-hidden="true"></i><span id="googleAccountLabel" aria-live="polite">Verific Google…</span></button><button class="sync-state" id="syncStatus" data-state="checking" aria-live="polite">Verific sincronizarea</button><small class="sync-error-detail" id="syncErrorDetail" role="status" hidden></small></div>
       <div class="spacer"></div><button class="app-update" data-update hidden>Actualizează</button>
       <input class="search" id="search" aria-label="Caută module, tickere, dețineri și jurnal" aria-controls="palette" aria-expanded="false" placeholder="Caută · Ctrl K" autocomplete="off">
       <button class="old-shell" id="reloadModule" aria-label="Reîncarcă modulul" title="Reîncarcă modulul">↻</button>
@@ -44,18 +44,21 @@
 <script src="../lib/decision-validation.js?v=26.10.08.1850"></script>
 <script src="../lib/decision-verdict.js?v=26.10.09.2242"></script><script src="../lib/decision-bridge.js?v=26.10.08.1850"></script>
 <script src="../lib/candidate-plan-handoff.js?v=26.10.09.2242"></script>
+<script src="../lib/storage-write.js?v=26.10.15.0547"></script>
+<script src="../lib/trading212-fills-store.js?v=26.10.15.0547"></script>
 <script src="../lib/trade-plan-store.js?v=26.10.05.2201"></script>
 <script src="../lib/journal.js?v=26.10.08.1527"></script>
 <script src="../lib/trading212-snapshot.js?v=26.10.08.1527"></script>
-<script src="../lib/trading212-performance.js?v=26.10.08.1527"></script>
+<script src="../lib/trading212-performance.js?v=26.10.15.0547"></script>
 <script src="../lib/trading212-capital.js?v=26.10.08.1527"></script>
 <script src="../lib/governor.js?v=26.10.08.1527"></script>
 <script src="../lib/trade-evidence-schema.js?v=26.10.09.2330"></script>
 <script src="../lib/trade-evidence.js?v=26.10.09.2330"></script>
 <script src="../lib/trade-evidence-auto.js?v=26.10.08.1527"></script>
 <script src="../lib/holding-handoff.js"></script>
-<script src="../lib/app-routes.js?v=26.10.14.2209"></script>
-<script src="../lib/app-search.js?v=26.10.14.2209"></script>
+<script src="../lib/app-routes.js?v=26.10.15.0547"></script>
+<script src="failure-info.js?v=26.10.15.0547"></script>
+<script src="../lib/app-search.js?v=26.10.15.0547"></script>
 <script>
 (function(){
   'use strict';
@@ -78,6 +81,7 @@
     googleAccount.title=label+(connected&&cloudState.email?' · '+cloudState.email:'')+' · Deschide Cont & sincronizare';googleAccount.setAttribute?.('aria-label',googleAccount.title);
     var status=window.TTAppSearch?TTAppSearch.cloudStatus(cloudState,typeof navigator==='undefined'||navigator.onLine!==false):{kind:'checking',label:'Verific sincronizarea'};
     syncStatus.textContent=status.label;syncStatus.dataset.state=status.kind;syncStatus.title=status.label+(cloudState.error?' · '+cloudState.error:'')+' · Deschide Cont & sincronizare';
+    var detail=document.getElementById('syncErrorDetail');if(detail){detail.hidden=!cloudState.error;detail.textContent=cloudState.error?(window.TTCloudFailure?TTCloudFailure.describe(cloudState.failure):'Detaliile erorii sunt în Cont & sincronizare.')+' · v'+document.documentElement.dataset.appVersion:'';}
   }
   googleAccount.onclick=syncStatus.onclick=function(){openModule('app/sync/');};
   window.addEventListener('tt-cloud-state',function(e){renderGoogleAccount(e.detail);});
@@ -184,8 +188,8 @@
 <script src="../lib/breadth-daily.js?v=daily-scan-20261003"></script>
 <script>document.addEventListener('tt-breadth-daily',function(e){var s=e.detail,n=document.getElementById('breadthDailyState');n.hidden=s.status==='disabled';n.textContent=TTBreadthDaily.message(s);});TTBreadthDaily.start();</script>
 <script src="install.js?v=phone-20261003"></script>
-<script src="version.js?v=26.10.14.2209"></script>
-<script src="../lib/trading212-vault.js?v=26.10.05.2201"></script><script src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=26.10.14.2209"></script>
+<script src="version.js?v=26.10.15.0547"></script>
+<script src="../lib/trading212-vault.js?v=26.10.05.2201"></script><script src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=26.10.15.0547"></script>
 </body>
 </html>
 

@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createArchive,readArchive,createController,groupFor,digest,MAX_BYTES} from '../lib/system-backup.mjs';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import {createArchive,readArchive,createController,groupFor,digest,MAX_BYTES,browserAdapter} from '../lib/system-backup.mjs';
 
 const now=Date.parse('2026-10-09T15:30:00Z');
 const copy=x=>structuredClone(x), id=e=>JSON.stringify([e.target,e.key]);
@@ -127,3 +129,109 @@ test('duplicate selections and invalid or identical rows cannot be applied',asyn
   const m=memory([journal('same')]),p=await m.controller.preview(await archive([journal('same'),entry('tt_theme','dark')]));
   const changed=p.rows.find(r=>r.status==='new').id,same=p.rows.find(r=>r.status==='same').id;for(const list of [[changed,changed],[same],['unknown'],[]])await assert.rejects(m.controller.restore(p,list));assert.equal(m.recovery,null);
 });
+
+const fillsKey='tt_trading212_fills_v1';
+const fillsData=(ids=['original'])=>({accounts:{'live-account':{environment:'live',items:ids.map(id=>({id,ticker:'TEST_US_EQ',side:'BUY',quantity:1,price:100,date:'2026-10-09T12:00:00Z'})),complete:true}}});
+const fillsRecord=(data,localRaw=null,revision=1)=>({target:'fills',key:fillsKey,value:{revision,raw:data===null?null:JSON.stringify(data),localRaw}});
+
+test('complete durable fills larger than a cloud shard export with every original execution',async()=>{
+  const data=fillsData(Array.from({length:7000},(_,n)=>'fill-'+n));
+  for(const item of data.accounts['live-account'].items) item.brokerOriginal='x'.repeat(70);
+  const durable=fillsRecord(data),m=memory([durable]),a=await m.controller.export();
+  assert.ok(a.manifest.bytes>1000000);assert.equal(a.entries.length,1);assert.equal(a.entries[0].target,'fills');assert.equal(a.entries[0].group,'trading');assert.equal(a.entries[0].valid,true);assert.equal(a.entries[0].rows,7000);
+  const read=await readArchive(JSON.stringify(a),{now});assert.deepEqual(JSON.parse(read.entries[0].value.raw),data);
+  assert.equal(groupFor('fills',fillsKey),'trading');assert.equal(groupFor('fills','cloud_credentials'),null);
+});
+test('durable authority restores every fill while a quota-sized legacy mirror is preserved',async()=>{
+  const legacy=entry(fillsKey,fillsData(['old'])),durable=fillsRecord(fillsData(['new','old']),legacy.value,3),m=memory([legacy]);
+  const p=await m.controller.preview(await archive([legacy,durable]));
+  assert.equal(p.rows.find(r=>r.target==='local').mirror,true);assert.equal(p.rows.find(r=>r.target==='local').status,'same');
+  const replace=m.adapter.replace;m.adapter.replace=async(target,changes)=>{assert.ok(!changes.some(e=>target==='local'&&e.key===fillsKey),'never write a quota-sized fills mirror');return replace(target,changes);};
+  await m.controller.restore(p,selected(p));
+  assert.equal(m.data.get(id(legacy)).value,legacy.value);assert.deepEqual(JSON.parse(m.data.get(id(durable)).value.raw),fillsData(['new','old']));assert.equal(m.data.get(id(durable)).value.localRaw,legacy.value);
+  await m.controller.undo();assert.equal(m.data.size,1);assert.deepEqual(m.data.get(id(legacy)),legacy);
+});
+test('IDB-only full history restores and recovers without inventing a local mirror',async()=>{
+  const original=fillsRecord(fillsData(['device']),null,7),incoming=fillsRecord(fillsData(['backup-1','backup-2']),null,2),m=memory([original]);
+  const p=await m.controller.preview(await archive([incoming]));await m.controller.restore(p,selected(p));
+  assert.equal(m.data.size,1);const saved=m.data.get(id(original)).value;assert.equal(saved.revision,8);assert.equal(saved.localRaw,null);assert.deepEqual(JSON.parse(saved.raw),fillsData(['backup-1','backup-2']));
+  const fresh=createController(m.adapter,{now:()=>now});await fresh.undo();assert.deepEqual(m.data.get(id(original)),original);
+});
+test('legacy-only backup migrates into durable authority and keeps the current physical mirror',async()=>{
+  const legacy=entry(fillsKey,fillsData(['device'])),incoming=entry(fillsKey,fillsData(['backup'])),original=fillsRecord(fillsData(['durable-device']),legacy.value,4),m=memory([legacy,original]);
+  const p=await m.controller.preview(await archive([incoming]));assert.equal(p.rows.length,2);await m.controller.restore(p,selected(p));
+  assert.equal(m.data.get(id(legacy)).value,legacy.value);assert.deepEqual(JSON.parse(m.data.get(id(original)).value.raw),fillsData(['backup']));assert.equal(m.data.get(id(original)).value.revision,5);await m.controller.undo();assert.deepEqual(m.data.get(id(original)),original);
+});
+test('a fills mirror changed after preview prevents durable restore before any mutation',async()=>{
+  const legacy=entry(fillsKey,fillsData(['device'])),m=memory([legacy]),p=await m.controller.preview(await archive([fillsRecord(fillsData(['backup']))]));
+  m.data.set(id(legacy),entry(fillsKey,fillsData(['later-import'])));
+  await assert.rejects(m.controller.restore(p,selected(p)),/după previzualizare/);assert.equal(m.recovery,null);assert.equal(m.data.size,1);
+});
+test('undo never overwrites a subsequent durable history or an independently changed mirror',async()=>{
+  for(const target of ['fills','local']) {
+    const legacy=entry(fillsKey,fillsData(['device'])),original=fillsRecord(fillsData(['old']),legacy.value,3),m=memory([legacy,original]),p=await m.controller.preview(await archive([fillsRecord(fillsData(['backup']))]));
+    await m.controller.restore(p,selected(p));
+    const later=target==='fills'?fillsRecord(fillsData(['later-durable']),legacy.value,5):entry(fillsKey,fillsData(['later-local']));m.data.set(id(later),later);
+    const out=await m.controller.undo();assert.equal(out.pending,1);assert.deepEqual(m.data.get(id(later)),later);assert.equal(m.recovery.state,'recovery-needed');
+  }
+});
+test('later local failure rolls back durable fills while retaining both before-images',async()=>{
+  const original=fillsRecord(fillsData(['original'])),m=memory([original,journal('old')]),p=await m.controller.preview(await archive([fillsRecord(fillsData(['restored'])),journal('new')]));m.setFault({key:'tt_journal_v1'});
+  await assert.rejects(m.controller.restore(p,selected(p)),/anterioare au fost recuperate/);assert.deepEqual(m.data.get(id(original)),original);assert.match(m.data.get(id(journal(''))).value,/old/);assert.equal(m.recovery.state,'rolled-back');
+});
+test('incompatible archived fills mirrors remain exportable but restoration is blocked',async()=>{
+  const legacy=entry(fillsKey,fillsData(['legacy-edit'])),durable=fillsRecord(fillsData(['durable-edit']),JSON.stringify(fillsData(['base']))),m=memory();
+  const p=await m.controller.preview(await archive([legacy,durable]));assert.ok(p.rows.every(r=>r.status==='invalid'));await assert.rejects(m.controller.restore(p,p.rows.map(r=>r.id)),/incompatibilă/);assert.equal(m.data.size,0);
+  const broken=await readArchive(await archive([fillsRecord({accounts:{bad:{items:'broken'}}})]),{now});assert.equal(broken.entries[0].valid,false);
+  const incomplete=await m.controller.preview(await archive([legacy,fillsRecord({accounts:{bad:{items:'broken'}}})]));assert.ok(incomplete.rows.every(r=>r.status==='invalid'),'a valid mirror cannot bypass a damaged authoritative copy');
+});
+test('confirmed empty durable authority never resurrects stale legacy executions',async()=>{
+  const legacy=entry(fillsKey,fillsData(['stale'])),durable=fillsRecord(null,legacy.value,2),m=memory();
+  const p=await m.controller.preview(await archive([legacy,durable]));await m.controller.restore(p,selected(p));
+  assert.equal(m.data.size,1);assert.equal(m.data.get(id(durable)).value.raw,null);assert.equal(m.data.get(id(durable)).value.localRaw,null);
+});
+
+function controlledFillsDB(record) {
+  let saved=copy(record),tx;
+  const factory={open(database,version){assert.equal(database,'tt-broker-fills-v1');assert.equal(version,1);const request={result:{objectStoreNames:{contains:()=>true},close(){},transaction(store,mode){assert.equal(store,'records');assert.equal(mode,'readwrite');tx={staged:undefined,objectStore(){return {get(key){assert.equal(key,fillsKey);return tx.read={result:copy(saved)};},put(value,key){assert.equal(key,fillsKey);tx.staged=copy(value);},delete(key){assert.equal(key,fillsKey);tx.staged=null;}};},abort(){tx.onabort?.();},commit(){if(tx.staged!==undefined)saved=tx.staged;tx.oncomplete();}};return tx;}}};queueMicrotask(()=>request.onsuccess());return request;}};
+  return {factory,get tx(){return tx;},get record(){return copy(saved);}};
+}
+const backupTick=()=>new Promise(resolve=>setImmediate(resolve));
+test('fills restoration is confirmed only at IDB commit and never attempts a localStorage write',async()=>{
+  const old=fillsRecord(fillsData(['old'])).value,next=fillsRecord(fillsData(['new'])).value,b=controlledFillsDB(old),storage={getItem:()=>null,setItem(){assert.fail('quota-sized local mirror write');}},adapter=browserAdapter({storage,factory:b.factory});let finished=false;
+  const pending=adapter.replace('fills',[{key:fillsKey,before:old,after:next,localBefore:null}]);pending.then(()=>finished=true,()=>finished=true);await backupTick();b.tx.read.onsuccess();await backupTick();assert.equal(finished,false);assert.deepEqual(b.record,old);
+  b.tx.commit();await pending;assert.deepEqual(b.record,next);
+});
+test('fills IDB transaction aborts when the physical anchor changes before its compare-and-swap',async()=>{
+  const old=fillsRecord(fillsData(['old'])).value,next=fillsRecord(fillsData(['new'])).value,b=controlledFillsDB(old);let raw=null;
+  const adapter=browserAdapter({storage:{getItem:()=>raw},factory:b.factory}),pending=adapter.replace('fills',[{key:fillsKey,before:old,after:next,localBefore:null}]);await backupTick();raw=JSON.stringify(fillsData(['concurrent']));b.tx.read.onsuccess();await assert.rejects(pending,/locală.*modificat/);assert.deepEqual(b.record,old);assert.equal(b.tx.staged,undefined);
+});
+
+function backupUI() {
+  const nodes=new Map(),messages=[],events=[];let complete,reject;
+  const operation=new Promise((resolve,fail)=>{complete=resolve;reject=fail;});
+  const rows=[{value:'fills-row',checked:true,disabled:false,dataset:{group:'trading'}}];
+  const node=id=>{if(!nodes.has(id))nodes.set(id,{value:'',hidden:true,disabled:false,textContent:'',replaceChildren(){},querySelectorAll(selector){return selector==='input[data-backup-row]'?rows:[];}});return nodes.get(id);};
+  const controller={status:async()=>null,restore:async()=>operation,undo:async()=>operation};
+  const store={read:async()=>{events.push('read-confirmed');return {revision:2};}};
+  const context={console,Date,Map,Set,Number,Error,JSON,Promise,GROUPS:{},MAX_BYTES,browserAdapter:()=>({}),createController:()=>controller,document:{getElementById:node},T212FillsStore:store,
+    BroadcastChannel:class{constructor(name){assert.equal(name,'tt-trading212-fills-changed-v1');}postMessage(data){events.push('broadcast');messages.push(data);}close(){}},
+    parent:{TTCloud:{pauseForBackup:async()=>events.push('paused')},T212FillsStore:store},setTimeout};
+  context.window=context;vm.createContext(context);
+  const source=readFileSync(new URL('../app/sync/backup.js',import.meta.url),'utf8').replace(/^import[^\n]+\n/,'');vm.runInContext(source,context);
+  vm.runInContext('plan={rows:[{id:"fills-row",target:"fills",key:"tt_trading212_fills_v1",status:"different"}]};',context);
+  return {nodes,node,messages,events,complete:value=>{events.push('commit');complete(value);},reject};
+}
+test('backup restore and undo invalidate other fills readers only after confirmed commit',async()=>{
+  for(const action of ['backupApply','backupUndo']) {
+    const ui=backupUI(),pending=ui.node(action).onclick();await backupTick();assert.equal(ui.messages.length,0);assert.deepEqual(ui.events,['paused']);
+    ui.complete(action==='backupApply'?{saved:1}:{restored:1,pending:0});await pending;
+    assert.deepEqual(ui.messages.map(value=>JSON.parse(JSON.stringify(value))),[{key:fillsKey,revision:2,invalidate:true}]);
+    assert.deepEqual(ui.events,['paused','commit','read-confirmed','read-confirmed','broadcast']);
+  }
+});
+test('a failed backup restore never sends a fills invalidation as though it committed',async()=>{
+  const ui=backupUI(),pending=ui.node('backupApply').onclick();await backupTick();ui.reject(Error('Saving was refused'));await pending;
+  assert.equal(ui.messages.length,0);assert.deepEqual(ui.events,['paused']);assert.match(ui.node('backupMessage').textContent,/refused/);
+});
+

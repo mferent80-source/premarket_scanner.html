@@ -11,6 +11,18 @@ function prepare(source,{simulation=false}={}){
  if(!broker)$('performanceStatus').textContent='Rezultatele planurilor Shadow sunt păstrate separat de execuțiile reale. P&L în USD; R folosește riscul inițial documentat.';
 }
 function render(r,{simulation=false,limit=20}={}){
+ const unavailable=r.state==='pending'||Boolean(r.errorCode);
+ for(const id of ['performanceCurrency','performanceTicker','performancePeriod']){const control=document.getElementById(id);if(control)control.disabled=unavailable;}
+ if(unavailable){const reason=r.reason||'Istoricul execuțiilor nu poate fi citit.',pending=r.state==='pending';
+  for(const id of ['perfClosed','perfWinRate','perfPnl','perfAvgR','perfFactor','brokerBuys','brokerSells','brokerPositions'])$(id).textContent='—';
+  $('perfPnl').className='';$('perfAvgR').className='';$('perfClosed').title=reason;
+  $('perfSample').textContent=pending?'ÎNCĂRCARE ISTORIC':'ISTORIC INDISPONIBIL';
+  $('performanceStatus').textContent=reason;
+  $('perfRead').innerHTML='<b>'+esc(pending?'Încarc istoricul Trading 212':'Istoricul Trading 212 nu poate fi verificat')+'</b>'+esc(reason);
+  $('brokerPerformanceRows').innerHTML='<tr><td colspan="7">'+esc(reason)+'</td></tr>';
+  $('brokerPerformanceNote').textContent='Statisticile execuțiilor rămân indisponibile până când istoricul acestui cont poate fi citit. Înregistrările existente sunt păstrate.';
+  $('brokerMore').hidden=true;$('brokerRowsCount').textContent='Număr de execuții indisponibil';return;
+ }
  const ticker=document.getElementById('performanceTicker');if(ticker){const options='<option value="">Toate instrumentele</option>'+(r.symbols||[]).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');if(ticker.innerHTML!==options)ticker.innerHTML=options;ticker.value=r.ticker||'';}
  const c=r.currency;const select=$('performanceCurrency'),options=r.currencies.length?r.currencies:[c||''];
  const markup=options.map(v=>'<option value="'+esc(v)+'">'+esc(v||'Monedă necunoscută')+'</option>').join('');if(select.innerHTML!==markup)select.innerHTML=markup;select.value=c||'';
@@ -29,3 +41,4 @@ function render(r,{simulation=false,limit=20}={}){
 }
 g.TTDeskPerformance={prepare,render};
 })(window);
+

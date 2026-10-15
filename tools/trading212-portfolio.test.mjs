@@ -76,3 +76,8 @@ test('demo broker history requires explicit environment and cannot enter the def
  assert.equal(F.build({scope:'demo',snapshot,account}).state,'missing');assert.equal(F.build({scope:'demo',snapshot,account,environment:'demo'}).total,64.5);
  assert.equal(F.build({scope:'demo',snapshot,account:{...account,environment:'live'},environment:'demo'}).state,'missing');
 });
+test('realized results show storage loading and unreadable reasons instead of empty-history claims',()=>{
+ const {P}=setup();for(const report of [{state:'pending',reason:'Istoricul se încarcă.'},{state:'error',errorCode:'fills_unreadable',reason:'Istoricul nu poate fi citit. Datele sunt păstrate.'}]){const markup=P.realizedMarkup(report);assert.match(markup,report.state==='pending'?/se încarcă/:/nu poate fi citit/);assert.doesNotMatch(markup,/Nicio vânzare|0 execuții|IMPORT PARȚIAL/);}
+ const {F}=setup(),d=P.demo(),partial=F.build({scope:d.scope,snapshot:{environment:'live',summary:d.summary,positions:d.positions},account:{...d.account,syncError:'Import întrerupt'}});assert.equal(partial.state,'error');assert.match(P.realizedMarkup(partial),/64,5 EUR/);assert.match(P.realizedMarkup(partial),/4 execuții/);
+});
+

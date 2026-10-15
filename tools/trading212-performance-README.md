@@ -1,8 +1,16 @@
 # Trading 212 → Decision Desk Performance Control
 
-The app keeps its broker frame alive while navigating. After reconnecting an existing saved connection, the first orders-history page is merged into `tt_trading212_fills_v1` immediately. The importer follows every cursor, including pages containing previously known fills. Account/positions refresh every 60 seconds; completed history is revisited after five minutes, subject to API cooldowns. Synchronization requires an open, active app, an available network, and automatic synchronization enabled.
+The app keeps its broker frame alive while navigating. After reconnecting an existing saved connection, the first orders-history page is merged into `tt_trading212_fills_v1` and saved through the durable fills store. The importer awaits each confirmed save before advancing its cursor or marking history complete, including pages containing previously known fills. A failed transaction leaves that page unconfirmed. Account/positions refresh every 60 seconds; completed history is revisited after five minutes, subject to API cooldowns. Synchronization requires an open, active app, an available network, and automatic synchronization enabled.
 
 Decision Desk defaults to Trading 212 Invest. It reads only the selected live snapshot's account scope and updates on broker storage events or its regular render cycle. It never falls back to another account or demo history. The optional `?demo=1` preview uses explicitly fictitious fixtures without changing the real journal. Shadow statistics remain available through their own source selector.
+
+## Durable execution history
+
+`T212FillsStore` keeps the complete `tt_trading212_fills_v1` ledger in IndexedDB database `tt-broker-fills-v1`, object store `records`, under the same key. Its `{revision,raw,localRaw}` record retains the confirmed ledger and the anchor of the existing localStorage mirror. Initial migration commits the old ledger to IndexedDB without deleting or trimming the legacy copy. The mirror is updated when storage permits; a mirror quota failure does not invalidate an already confirmed IndexedDB commit.
+
+Broker views, the journal, performance, capital/risk controls, portfolio context, pre-entry outcome matching and cloud synchronization consume the same confirmed ledger. Cloud reads and replaces it through the durable store with the same writer lock and optimistic checks. A failed or blocked read is an unavailable/error state, never an empty history or a zero result. Divergent legacy edits require review rather than silently choosing a stale copy. Cross-window notifications carry only the key and revision.
+
+The shared localStorage writer may reclaim only owned `ttd:` market caches with a valid `{t,v}` envelope after a quota error, preserving entries changed by another window. It never evicts executions, the manual journal, plans, settings, credentials or other user data. Full backup exports both physical copies; restore uses the durable full ledger while retaining the local mirror anchor, including migration from legacy-only backup files. Durable before-images and compare-and-swap checks protect subsequent edits during restore and undo, and incompatible copies remain blocked for review. Full-history backup validation does not apply the encrypted cloud record's size limit; the cloud service's existing size and conflict checks remain in force.
 
 ## Calculation contract
 
@@ -16,7 +24,7 @@ The implementation consumes the existing read-only normalized worker response; i
 
 Official schema and pagination: [Trading 212 API](https://docs.trading212.com/api), [historical orders](https://docs.trading212.com/api/historical-events/orders_1). The source model separates instrument price currency from wallet-impact currency. The API field is presented as reported P&L, without asserting an independently reconciled net/fiscal result.
 
-Validation: `tools/trading212-performance.test.mjs` checks currencies, partial fills, duplicates, data validity, account isolation, costs and FX. Desk tests check source switching, filters and immediate updates from broker storage; client tests check the initial import and cursor/backfill behavior.
+Validation: `tools/trading212-performance.test.mjs` checks currencies, partial fills, duplicates, data validity, account isolation, costs and FX. Desk tests check source switching, filters and immediate updates from broker storage; client tests check the initial import and cursor/backfill behavior. `tools/trading212-fills-store.test.mjs`, `tools/trading212-fills-readers.test.mjs`, `tools/storage-write.test.mjs` and `tools/system-backup.test.mjs` cover durable migration, mirror quota, confirmed-reader updates, protected cache reclamation and complete backup/recovery.
 
 ## Capital and risk controls
 
@@ -42,6 +50,7 @@ Broker P&L comes only from the associated reported exits. Quote-price R is separ
 
 Additional validation: `tools/trading212-capital.test.mjs`, `tools/trade-evidence.test.mjs`, `tools/decision-bridge.test.mjs` and Desk interaction tests cover missing stops, scope rotation, FX, capacity persistence, future-fill rejection, immutable KNN capture, partial exits and ambiguous attribution.
 
-Automatic capture and immutable synchronization are checked by `tools/trade-evidence-auto.test.mjs`, `tools/trade-evidence-cloud.test.mjs`, client concurrency tests and authenticated two-device integration through the standalone encrypted D1 Worker. Local quota or service-record limits stop the operation with an error; originals are not silently trimmed.
+Automatic capture and immutable synchronization are checked by `tools/trade-evidence-auto.test.mjs`, `tools/trade-evidence-cloud.test.mjs`, client concurrency tests and authenticated two-device integration through the standalone encrypted D1 Worker. An unconfirmed durable write, an unrecoverable localStorage write or a service-record limit stops the affected operation with an error; originals are not silently trimmed. An optional fills mirror quota failure after a confirmed IndexedDB commit is handled separately and does not revoke that commit.
 
 A compatible model report observed after a broker BUY can only create a later capture; it never supplies missing states to an earlier capture or claims ownership of that earlier entry. Trade-outcome grouping remains distinct from future-session forecast validation.
+
