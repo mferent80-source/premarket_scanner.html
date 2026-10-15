@@ -123,3 +123,23 @@ test('amploarea rezumă intervalul în puncte procentuale, nu în procente relat
  s.click({dataset:{chartTab:'breadth'}});
  assert.match(s.element('chartHost').innerHTML,/52,0% → 35,8% · -16,2 pp/);
 });
+
+// 15.10.2026 (el: „la câteva secunde pare că își face refresh pagina”): conectorul Trading 212 scrie la 12–15 s, iar fiecare scriere
+// reîncărca tot ecranul cu „Se verifică…”. Reîmprospătarea din fundal păstrează datele vizibile și nu rescrie ce nu s-a schimbat.
+test('reîmprospătarea din fundal păstrează reperele și știrile pe ecran până sosesc cele noi; „Actualizează” arată în continuare încărcarea',async()=>{
+ const spy={symbol:'SPY',label:'S&P 500 · ETF SPY',unit:'USD',price:769.6,changePct:-1.08,state:'ready',source:'Yahoo Finance · sesiuni încheiate',asOf:'2026-10-14',points:[],indicators:{}};
+ const later=defer();let reads=0;
+ const s=setup({market:()=>++reads===1?Promise.resolve({items:[spy],breadth:{state:'error',points:[],reason:'x'}}):later.promise});await flush();
+ assert.match(s.element('marketStrip').innerHTML,/769,60 USD/);
+ s.event('storage',{key:'tt_trading212_fills_v1'});s.runTimers(150);await flush();
+ assert.equal(reads,2,'piața se recitește');assert.match(s.element('marketStrip').innerHTML,/769,60 USD/);assert.doesNotMatch(s.element('marketStrip').innerHTML,/Se verifică/);assert.doesNotMatch(s.element('refreshStatus').textContent,/^Citesc/);
+ later.resolve({items:[spy],breadth:{state:'error',points:[],reason:'x'}});await flush();
+ s.refresh();assert.match(s.element('marketStrip').innerHTML,/Se verifică/,'„Actualizează” cerut de om pornește de la zero');
+});
+test('o secțiune cu același conținut nu e rescrisă la reîmprospătare (graficul nu reclipește, tabelele deschise rămân deschise)',async()=>{
+ const s=setup();await flush();
+ const host=s.element('chartHost');let value=host.innerHTML,writes=0;Object.defineProperty(host,'innerHTML',{get:()=>value,set:x=>{writes++;value=x;}});
+ s.event('focus');s.runTimers(150);await flush();
+ assert.equal(writes,0);
+ s.click({dataset:{chartTab:'SPY'}});assert.equal(writes,1,'o schimbare reală se desenează');
+});
