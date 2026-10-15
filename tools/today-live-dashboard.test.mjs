@@ -101,7 +101,7 @@ test('reperele: procentele zilei au o zecimală, prețurile rămân la două, su
  const m=s.element('marketStrip').innerHTML;assert.match(m,/769,60 USD/);assert.match(m,/-1,1%/);assert.match(m,/\+10,5%/);assert.doesNotMatch(m,/-1,08%/);assert.match(m,/5,19%/);
  assert.equal(m.split('EOD 2026-10-14 · Yahoo Finance').length-1,1);assert.match(m,/class="move-bar"/);
  assert.match(s.element('briefMarket').innerHTML,/Participare sub jumătate/);assert.match(s.element('briefMarket').innerHTML,/Amploare 35,8%/);
- assert.match(s.element('marketContext').innerHTML,/Peste SMA 200/);assert.match(s.element('marketContext').innerHTML,/class="breadth-spark"/);
+ assert.match(s.element('marketContext').innerHTML,/Peste SMA 200/);assert.match(s.element('marketContext').innerHTML,/class="breadth-spark"/);assert.equal(s.element('contextAsOf').textContent,'EOD 14.10');
 });
 test('ceasul sesiunii folosește programul calendarului și arată ora României',async()=>{
  const s=setup();await flush();
