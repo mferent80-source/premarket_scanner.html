@@ -108,3 +108,18 @@ test('ceasul sesiunii folosește programul calendarului și arată ora României
  assert.match(s.element('clockReg').textContent,/^Sesiunea 16:30–23:00$/);assert.match(s.element('sessionWhen').textContent,/^Deschide în 1 h 30 min, la 16:30$/);assert.equal(s.element('clockNow').hidden,false);assert.match(s.element('clockNow').dataset.t,/acum 15:00/);
  assert.doesNotMatch(s.element('todayDate').textContent,/^[A-ZĂÂÎȘȚ ,0-9]+$/);
 });
+
+// 15.10.2026 (el: „în demo dacă schimbăm perioada arată informațiile perioadei, aici nu arată nimic”): istoricul contului are 11 zile,
+// deci 1M/3M/1A desenau aceleași puncte fără nicio explicație. Graficul spune acum de unde începe istoricul și rezumă intervalul.
+test('perioada mai lungă decât istoricul contului spune de unde începe istoricul și rezumă intervalul, fără randament',async()=>{
+ const s=setup({a:account({points:[{at:NOW-11*DAY,value:40000},{at:NOW-5*DAY,value:41000},{at:NOW,value:42000}]})});await flush();
+ s.click({dataset:{period:'90'}});await flush();
+ const h=s.element('chartHost').innerHTML;
+ assert.match(h,/Istoricul contului începe la 04\.10\.2026 · 3 observații; perioada aleasă \(3 luni\) arată tot ce există până acum\./);
+ assert.match(h,/De la 04\.10\.2026: 40\.000,00 → 42\.000,00 RON · \+2\.000,00 RON \(\+5,0%\) · include depuneri și retrageri; nu este randament\./);
+});
+test('amploarea rezumă intervalul în puncte procentuale, nu în procente relative',async()=>{
+ const s=setup({market:{items:[],breadth:{state:'ready',above50:35.8,above200:51.2,asOf:'2026-10-14',source:'Market Breadth',coverage:'S&P 500',points:[{at:NOW-20*DAY,value:52},{at:NOW-DAY,value:35.8}]}}});await flush();
+ s.click({dataset:{chartTab:'breadth'}});
+ assert.match(s.element('chartHost').innerHTML,/52,0% → 35,8% · -16,2 pp/);
+});

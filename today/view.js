@@ -78,9 +78,23 @@
   points=points.filter(p=>!finite(stamp(p.at))||stamp(p.at)>=cutoff);
   return {points,label,unit,reason,source};
  }
+ function periodInfo(c,tab){
+  const xs=c.points.filter(p=>p&&finite(stamp(p.at))&&finite(p.value));if(!xs.length)return '';
+  const first=xs[0],last=xs.at(-1),label={30:'1 lună',90:'3 luni',365:'1 an'}[ui.days]||ui.days+' zile',lines=[];
+  const day=x=>new Date(stamp(x)).toLocaleDateString('ro-RO',{timeZone:'Europe/Bucharest',day:'2-digit',month:'2-digit',year:'numeric'});
+  if(stamp(first.at)>Date.now()-ui.days*DAY+2*DAY)lines.push((tab==='account'?'Istoricul contului începe la ':'Seria disponibilă începe la ')+day(first.at)+' · '+xs.length+(xs.length===1?' observație':' observații')+'; perioada aleasă ('+label+') arată tot ce există până acum.');
+  if(xs.length>=2){
+   const diff=last.value-first.value,breadth=tab==='breadth',unit=breadth?'%':c.unit?' '+c.unit:'';
+   let text='De la '+day(first.at)+': '+number(first.value,breadth?1:2)+(breadth?'%':'')+' → '+number(last.value,breadth?1:2)+unit+' · ';
+   text+=breadth?(diff>0?'+':'')+number(diff,1)+' pp':(diff>0?'+':'')+number(diff,2)+unit+(first.value?' ('+pct(diff/first.value*100)+')':'');
+   if(tab==='account')text+=' · include depuneri și retrageri; nu este randament.';
+   lines.push(text);
+  }
+  return lines.length?'<div class="period-info">'+lines.map(x=>'<p>'+esc(x)+'</p>').join('')+'</div>':'';
+ }
  function renderChart(){
   const c=chartConfig(),tab=chartTab(),missing=tab!=='account'&&(!ui.account||ui.account.state==='missing');ui.chartPoints=c.points;ui.chartUnit=c.unit;
-  $('chartHost').innerHTML=(missing?'<p class="account-empty"><b>Nu există încă observații confirmate</b> pentru cont. Istoricul începe la prima sincronizare a contului. Depunerile și retragerile schimbă valoarea contului. Graficul nu reprezintă randamentul. Până atunci, graficul arată date publice.</p>':'')+chartMarkup(c.points,c);
+  $('chartHost').innerHTML=(missing?'<p class="account-empty"><b>Nu există încă observații confirmate</b> pentru cont. Istoricul începe la prima sincronizare a contului. Depunerile și retragerile schimbă valoarea contului. Graficul nu reprezintă randamentul. Până atunci, graficul arată date publice.</p>':'')+periodInfo(c,tab)+chartMarkup(c.points,c);
   for(const b of doc.querySelectorAll('[data-chart-tab]'))b.setAttribute('aria-pressed',String(b.dataset.chartTab===tab));
   for(const b of doc.querySelectorAll('[data-period]'))b.setAttribute('aria-pressed',String(Number(b.dataset.period)===ui.days));
  }
