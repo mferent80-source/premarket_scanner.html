@@ -222,3 +222,28 @@ test('confirmed recent orders update visible matches once and preserve the visib
  const html=s.el('history').innerHTML;assert.equal((html.match(/<article/g)||[]).length,3);const oldCard=html.split('<article').find(x=>x.includes('<h3>OLD_US_EQ</h3>'));assert.match(oldCard,/925 USD/);assert.doesNotMatch(oldCard,/210 USD/);assert.ok(html.indexOf('UHS_US_EQ')<html.indexOf('OLD_US_EQ'));assert.match(html,/TAIL_US_EQ/);assert.equal(s.el('more').hidden,false);
  time+=12000;await s.el('more').onclick();assert.equal(new URL(s.calls.filter(x=>x.url.includes('/orders'))[2].url).searchParams.get('cursor'),'visible-older-cursor');assert.match(s.el('history').innerHTML,/OLDER_US_EQ/);assert.equal((s.el('history').innerHTML.match(/<article/g)||[]).length,4);
 });
+
+// 15.10.2026 (el: 429/502 pe /api/trading212/transactions?cursor=019ef2b7… ore în șir): o pagină veche care pică repetat
+// bloca importul pe același cursor la nesfârșit, iar prima pagină (tranzacțiile noi) nu se mai citea deloc.
+async function cursorScenario(failure){
+ let time=Date.now();class Clock extends Date{static now(){return time;}}
+ const ok=data=>({ok:true,json:async()=>({source:'Trading 212',environment:'live',fetchedAt:new Date(time).toISOString(),data})});
+ const s=await setup(true,null,{Date:Clock,journal:'real',fetch:u=>{const url=new URL(u),name=url.pathname.split('/').at(-1),cursor=url.searchParams.get('cursor');
+  if(name==='transactions'){if(cursor==='bad')return failure;return ok({items:[{id:'t-'+time,type:'DEPOSIT',date:new Date(time).toISOString(),amount:100,currency:'EUR'}],nextCursor:'bad'});}
+  return ok(name==='summary'?{currency:'EUR',available:5}:name==='positions'?[]:{items:[],nextCursor:null});}});
+ await s.connect();await flushBroker();
+ const tick=async(ms=16000)=>{time+=ms;s.intervals.find(x=>x.ms===15000).fn();await flushBroker();};
+ const transactions=()=>s.calls.filter(x=>x.url.includes('/transactions')).map(x=>new URL(x.url).searchParams.get('cursor'));
+ for(let i=0;i<4;i++)await tick();
+ assert.deepEqual(transactions(),[null,'bad'],'prima pagină, apoi pagina veche care pică');
+ await tick(301000);await tick();
+ return transactions();
+}
+test('o pagină veche de tranzacții care pică nu mai blochează importul: următoarea încercare reia de la prima pagină',async()=>{
+ const seen=await cursorScenario({ok:false,status:502,json:async()=>({error:'broker_unavailable'})});
+ assert.equal(seen.length,3);assert.equal(seen[2],null,'reia de la prima pagină, nu bate iar în cursorul stricat');
+});
+test('limita temporară Trading 212 (429) păstrează cursorul paginii vechi',async()=>{
+ const seen=await cursorScenario({ok:false,status:429,json:async()=>({error:'rate_limited',retryAfter:30})});
+ assert.equal(seen.length,3);assert.equal(seen[2],'bad');
+});

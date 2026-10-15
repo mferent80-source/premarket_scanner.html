@@ -18,7 +18,7 @@ async function api(name,next){
  const timeout=setTimeout(()=>{timedOut=true;abort();},25000);
  try{
   const r=await fetch(u,{headers:{Authorization:'Basic '+token,'X-T212-Environment':expectedEnvironment},cache:'no-store',credentials:'omit',redirect:'error',signal:requestController.signal});
-  const b=await r.json();if(!r.ok){if(r.status===429){const seconds=Math.max(10,Math.min(300,Number(b.retryAfter)||60));times[name]=Date.now()+seconds*1000;throw Error(`Limita Trading 212: reîncearcă peste ${seconds} secunde.`);}const code=Object.hasOwn(errors,b.error)?b.error:'connection_failed';throw Error((errors[b.error]||'Conectarea nu a putut fi verificată.')+` [HTTP ${r.status} · ${code}]`);}
+  const b=await r.json();if(!r.ok){if(r.status===429){const seconds=Math.max(10,Math.min(300,Number(b.retryAfter)||60));times[name]=Date.now()+seconds*1000;const limited=Error(`Limita Trading 212: reîncearcă peste ${seconds} secunde.`);limited.rateLimited=true;throw limited;}const code=Object.hasOwn(errors,b.error)?b.error:'connection_failed';throw Error((errors[b.error]||'Conectarea nu a putut fi verificată.')+` [HTTP ${r.status} · ${code}]`);}
   const at=Date.parse(b?.fetchedAt),d=b?.data,object=v=>v&&typeof v==='object'&&!Array.isArray(v);
   if(b?.source!=='Trading 212'||b.environment!==expectedEnvironment||!Number.isFinite(at)||at>Date.now()+60000||Date.now()-at>300000)throw Error('Răspuns broker expirat, din viitor sau pentru alt mediu.');
   const numbers=(v,fields)=>fields.every(k=>v[k]===null||v[k]===undefined||numeric(v[k]));
@@ -188,7 +188,8 @@ async function importCashPage(){
  if(state.next>Date.now()||(times[selected]||0)>Date.now())return;
  cashRunning=true;
  try{const restart=state.done||!state.cursor;await window.T212J.cashImportState?.(scope,brokerEnvironment,selected);if(id!==session)return;const page=await api(selected,state.done?null:state.cursor);if(id!==session)return;if(!Array.isArray(page.data?.items))throw Error('Istoric monetar incompatibil.');await window.T212J.mergeCash(scope,brokerEnvironment,selected,page.data.items,page.data.nextCursor,page.fetchedAt,{restart});if(id!==session)return;state.cursor=page.data.nextCursor;state.done=!state.cursor;state.next=Date.now()+(state.done?300000:12000);}
- catch(e){if(id===session&&e.name!=='AbortError'){try{await window.T212J.cashError(scope,brokerEnvironment,selected,e.message);}catch(_){}state.next=Date.now()+300000;}}
+ catch(e){if(id===session&&e.name!=='AbortError'){try{await window.T212J.cashError(scope,brokerEnvironment,selected,e.message);}catch(_){}if(state.cursor&&!e.rateLimited){state.cursor=null;state.done=false;}state.next=Date.now()+300000;}}
+ // O pagină veche care pică altfel decât limita 429 nu mai e reîncercată la nesfârșit: următoarea încercare reia de la prima pagină, ca tranzacțiile noi să intre.
  finally{cashStates[scope+'|'+selected]=state;cashRunning=false;}
 }
 setInterval(()=>{if(token&&$('autoSync').checked&&navigator.onLine!==false&&document.visibilityState!=='hidden')importCashPage();},15000);
