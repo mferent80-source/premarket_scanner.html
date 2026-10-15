@@ -83,3 +83,28 @@ test('the single standalone theme control uses the suite API and all local asset
  const s=setup({embedded:false});s.element('themeToggle');s.event('unused');assert.match(source,/TTTheme\?\.set/);assert.match(css,/#ttThemeBtn\{display:none!important\}/);
  for(const m of html.matchAll(/<(?:script|link)\b[^>]*?(?:src|href)="([^"]+)"/gi)){const value=m[1];if(/^(https?:|data:)/.test(value))continue;assert.ok(existsSync(resolve(dirname('today/index.html'),value.split(/[?#]/,1)[0])),value);}assert.doesNotMatch(html,/trading212-fills-store\.js|trading212-journal\.js|broker\.js/);assert.match(html,/holding-handoff\.js/);assert.match(css,/grid-template-areas:"account" "market" "context"/);assert.match(css,/min-height:44px/);assert.doesNotMatch(source,/localStorage\.setItem|indexedDB\.open|fetch\(/);
 });
+
+// 15.10.2026 — reproiectarea din demo: „Azi, pe scurt”, ceasul sesiunii, procente cu o zecimală, graficul pe SPY când contul lipsește.
+test('brief: contul lipsă cere conectarea, fără sold inventat; graficul pornește pe SPY și păstrează starea goală a contului',async()=>{
+ const s=setup({a:account({state:'missing',scope:null,total:null,positions:[],points:[]})});await flush();
+ assert.match(s.element('briefAccount').innerHTML,/Conectează contul/);assert.match(s.element('briefAccount').innerHTML,/Cont neconectat/);assert.doesNotMatch(s.element('briefAccount').innerHTML,/0,00/);
+ assert.match(s.element('chartHost').innerHTML,/Nu există încă observații confirmate<\/b> pentru cont/);assert.match(s.element('chartHost').innerHTML,/Aștept seria EOD confirmată/);
+ assert.match(s.element('briefIdeas').innerHTML,/Nicio scanare salvată/);assert.match(s.element('attentionStrip').innerHTML,/Nicio scanare salvată în cele două motoare/);
+});
+test('brief: contul citit arată soldul, P&L-ul la ban și cea mai mare pondere cu o zecimală',async()=>{
+ const s=setup({a:account({positions:[{ticker:'AAA_US_EQ',quantity:1,value:100,currency:'RON',unrealized:5,weight:29.06},{ticker:'BBB_US_EQ',quantity:1,value:50,currency:'RON',unrealized:-1,weight:11}]})});await flush();
+ const h=s.element('briefAccount').innerHTML;assert.match(h,/42\.000,00 RON/);assert.match(h,/\+200,00 RON/);assert.match(h,/2 poziții · cea mai mare <b>29,1%<\/b>/);assert.match(h,/Citit /);
+});
+test('reperele: procentele zilei au o zecimală, prețurile rămân la două, sursa comună apare o singură dată',async()=>{
+ const item=(symbol,label,unit,price,changePct)=>({symbol,label,unit,price,changePct,state:'ready',source:'Yahoo Finance · sesiuni încheiate',asOf:'2026-10-14',points:[],indicators:{}});
+ const s=setup({market:{items:[item('SPY','S&P 500 · ETF SPY','USD',769.6,-1.084),item('QQQ','Nasdaq 100 · ETF QQQ','USD',728.95,-1.97),item('^VIX','Volatilitate · VIX','puncte',16.87,10.48),item('^TNX','Randament SUA · 10 ani','%',5.19,0.3)],breadth:{state:'ready',above50:35.8,above200:51.2,asOf:'2026-10-14',source:'Market Breadth',coverage:'S&P 500',points:[{at:NOW-2*DAY,value:40},{at:NOW-DAY,value:35.8}]}}});await flush();
+ const m=s.element('marketStrip').innerHTML;assert.match(m,/769,60 USD/);assert.match(m,/-1,1%/);assert.match(m,/\+10,5%/);assert.doesNotMatch(m,/-1,08%/);assert.match(m,/5,19%/);
+ assert.equal(m.split('EOD 2026-10-14 · Yahoo Finance').length-1,1);assert.match(m,/class="move-bar"/);
+ assert.match(s.element('briefMarket').innerHTML,/Participare sub jumătate/);assert.match(s.element('briefMarket').innerHTML,/Amploare 35,8%/);
+ assert.match(s.element('marketContext').innerHTML,/Peste SMA 200/);assert.match(s.element('marketContext').innerHTML,/class="breadth-spark"/);
+});
+test('ceasul sesiunii folosește programul calendarului și arată ora României',async()=>{
+ const s=setup();await flush();
+ assert.match(s.element('clockReg').textContent,/^Sesiunea 16:30–23:00$/);assert.match(s.element('sessionWhen').textContent,/^Deschide în 1 h 30 min, la 16:30$/);assert.equal(s.element('clockNow').hidden,false);assert.match(s.element('clockNow').dataset.t,/acum 15:00/);
+ assert.doesNotMatch(s.element('todayDate').textContent,/^[A-ZĂÂÎȘȚ ,0-9]+$/);
+});
