@@ -48,3 +48,15 @@ test('last verified listing metadata can schedule a refresh, but never turns an 
  c.symbol=()=> 'OTHER';assert.equal(c.marketReference(p),null);c.symbol=()=> 'TEST';c.cache['account|TEST_US_EQ'].model.timezone=null;assert.equal(c.marketReference(p),null);
  assert.match(code,/reference:marketReference/);assert.match(code,/model:p=>\{const m=currentModel\(p\)/);
 });
+test('registrul „gata” cu un raport pierdut sau vechi: modelele se reantrenează o singură dată pe deschiderea paginii',async()=>{
+ const s=await setup();assert.equal(s.counts().loads,1);
+ await s.c.HoldingsAutoLearningUI.tick();assert.equal(s.counts().loads,1,'cu rapoartele utilizabile nu se reantrenează');
+ s.c.HoldingsHMMUI.inspect=()=>({usable:false,record:{},assessment:{state:'stale'}});
+ await s.c.HoldingsAutoLearningUI.tick();assert.equal(s.counts().loads,2,'raportul HMM vechi pornește reparația');
+ await s.c.HoldingsAutoLearningUI.tick();assert.equal(s.counts().loads,2,'o singură reparație pe deschidere, nu la fiecare minut');
+});
+test('reparația respectă reantrenarea automată oprită',async()=>{
+ const s=await setup(),k=s.c.HoldingsAutoLearning.key(s.identity),st=JSON.parse(s.saved.get(k));s.saved.set(k,JSON.stringify({...st,enabled:false}));
+ s.c.HoldingsHMMUI.inspect=()=>({usable:false,record:{},assessment:{state:'stale'}});
+ await s.c.HoldingsAutoLearningUI.tick();assert.equal(s.counts().loads,1);
+});
