@@ -117,3 +117,11 @@ test('static legacy CTAs and nested 404 recovery have no missing destinations',(
  const recovery=read('404.html').match(/id="appHome" href="([^"]+)"/)[1];
  for(const path of ['missing/','missing/deep/page/'])assert.equal(new URL(recovery,new URL(path,ROOT)).href,ROOT+'app/?module=today%2F');
 });
+
+// 15.10.2026 (el: „pagina alerts nu mai are link direct… vroiam să rămână independentă sau măcar s-o pot accesa ca înainte”):
+// reorganizarea din 14.10 scosese Alerts din bara suitei; revine ca pagină independentă, în bara rapidă și în „Toate”.
+test('Alerts rămâne în bara suitei ca pagină independentă, cu link direct spre alerts/',()=>{
+ const src=read('nav.js');
+ assert.match(src,/var QUICK=\[[^\]]*\{u:'alerts\/',n:'Alerts',e:'🔔'\}/,'în bara rapidă');
+ assert.match(src,/var INDEPENDENT=\{title:'INDEPENDENTE',items:\[\{u:'alerts\/',n:'Alerts',e:'🔔'\}\]\};\s*GROUPS\.push\(INDEPENDENT\);/,'în panoul „Toate”');
+});

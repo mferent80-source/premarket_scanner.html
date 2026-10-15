@@ -84,7 +84,11 @@
   // The same five tasks and workspace links as the application shell.
   var symbols={today:'◫',market:'⇄',portfolio:'◬',journal:'▤',risk:'◇',tools:'☷',settings:'⚙'};
   var GROUPS=routes.groups.filter(function(g){return !g.hidden;}).map(function(g){return {title:g.name,items:g.items.map(function(x){return {u:x.u,n:x.n,e:symbols[x.i]||'◇'};})};});
-  var QUICK=[{u:'today/',n:'Astăzi',e:'◫'},{u:'holdings/',n:'Portofoliu',e:'◬'},{u:'journal/#exec',n:'Jurnal',e:'▤'}];
+  // Alerts rămâne pagină independentă (el, 15.10.2026: „vroiam să rămână independentă sau măcar s-o pot accesa ca înainte”):
+  // link direct spre alerts/, în bara rapidă și în „Toate”, separat de sarcinile Decision App.
+  var INDEPENDENT={title:'INDEPENDENTE',items:[{u:'alerts/',n:'Alerts',e:'🔔'}]};
+  GROUPS.push(INDEPENDENT);
+  var QUICK=[{u:'today/',n:'Astăzi',e:'◫'},{u:'holdings/',n:'Portofoliu',e:'◬'},{u:'journal/#exec',n:'Jurnal',e:'▤'},{u:'alerts/',n:'Alerts',e:'🔔'}];
 
   function flatPages() {
     var out = [];
@@ -94,6 +98,7 @@
 
   function detectActive() {
     var current=routes.resolve(location.href);
+    if(current.kind==='active'&&current.route==='alerts/')return 'alerts/'; // pagina independentă își are butonul ei activ
     return current.kind==='active'?(routes.section(current.route)||current.route):'today/';
   }
 
