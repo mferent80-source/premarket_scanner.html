@@ -3337,6 +3337,11 @@ pe un singur chart.
 | I-629 | Discord când robotul Trend PICĂ în Actions (SPY lipsă, sub 70 % serii, garda de formă): azi eșecul e mut, JSON-ul rămâne vechi și nimeni nu știe; pas `if: failure()` cu `DISCORD_WEBHOOK` în trend-12-1.yml și trend-12-1-bilant.yml | .github/workflows/trend-12-1.yml + trend-12-1-bilant.yml | S | P2 | făcut 2026-10-14 | ideation | 2026-10-14 |
 | I-630 | Proba PAZNIC–lățime zilnic automat până la oprirea PAZNIC (18–19.10): 13.10 a fost ratată (manuală); o tură la 12:00 RO în colector (sau sarcină planificată) rulează `proba-latime-vs-paznic.mjs` și scrie rândul în jurnal | crypto/scripts/colector.mjs + proba-latime-vs-paznic.mjs | S | P2 | făcut 2026-10-14 | ideation | 2026-10-14 |
 | I-631 | Bilanțul Trend de sâmbătă anunță pe Discord DOAR când verdictul se schimbă (în probă → probat / picat) și intră în raportul de duminică al Radarului ca un rând | tools/trend-12-1-bilant.mjs + .github/workflows/trend-12-1-bilant.yml + crypto (raportul de duminică) | S | P3 | făcut 2026-10-14 | ideation | 2026-10-14 |
+| I-632 | Busola, cartela botului deschis: „Deschide botul în Radar ↗” (tabloul botului pe moneda lui) — azi drumul e doar Radar → Busola (I-582) | busola/src/ui/Acum.tsx (Boții tăi), legaturaRadar din FiltruGrid.tsx | S | P2 | propus | ideation | 2026-10-15 |
+| I-633 | Botul ÎNCHIS rămâne 2 h în „Boții tăi” din Busola cu rezultatul („închis acum 12 min · +1,3%”), apoi iese — azi dispare tăcut și nu știi dacă s-a închis sau lista a căzut | busola/cron/botiRapid.ts + urca-boti.ts + masoara.ts (închișii recenți în boti-<cheie>), src/sursa/boti.ts, src/ui/Acum.tsx | S | P2 | propus | ideation | 2026-10-15 |
+| I-634 | „Ce zicea Busola când l-ai pornit” pe cartela botului (LASĂ-L / ATENȚIE / contra, din jurnalul stărilor) lângă profitul de acum — înveți pe boții TĂI dacă pornirea contra Busolei te costă | busola/cron/masoara.ts + urca-boti.ts (stareLaPornire din jurnal-stari.json), src/motor/dinRadar.ts, src/ui/Acum.tsx | M | P2 | propus | ideation | 2026-10-15 |
+| I-635 | Urcarea boților tace ⇒ Discord: după 3 eșecuri la rând ale sarcinii „Busola Boti” (login Cloudflare expirat, wrangler picat) UN mesaj, și unul la revenire — completează I-509 pentru sarcina de 2 min | busola/cron/urca-boti.ts, cron/discord.ts (webhookBusola), cron/stare | S | P3 | propus | ideation | 2026-10-15 |
+| I-636 | Radarul trimite boții direct în worker-ul Busolei (POST cu cheia în antet) ⇒ botul apare în secunde, fără wrangler și fără sarcina de 2 min | crypto/scripts/colector.mjs (scriePentruBusola), busola/cron/worker.ts (ruta de scriere), probe/boti-telefon.ts | M | P4 | propus | ideation | 2026-10-15 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6301,3 +6306,37 @@ Lentile: Trader — Trend are intrare, dar n-are ieșire și nici bilanț măsur
 - **Impact:** verdictul ajunge la tine fără să-l cauți.
 - **Riscuri/dependențe:** nimic nou pe Discord până la 12 ferestre (≈ 1 an).
 - **Fișiere:** tools/trend-12-1-bilant.mjs, .github/workflows/trend-12-1-bilant.yml, crypto/scripts/colector.mjs (raportul de duminică).
+#### I-632 · Busola → Radar de pe cartela botului · [S] · P2 · propus
+- **Problema/golul:** în „Boții tăi” vezi „IEȘIT DIN GRID” sau „ATENȚIE”, dar pentru stop, lichidare, grafic și Consilier trebuie să deschizi Radarul și să cauți botul de mână; legătura există doar invers (I-582).
+- **Soluția:** sub fiecare bot deschis, lângă „Deschide X în Busola”, un buton „Deschide botul în Radar ↗” cu moneda lui (aceeași `legaturaRadar` folosită deja în fila Grid). Pe un dispozitiv fără Tailscale butonul spune că merge doar pe telefonul și PC-ul lui.
+- **Impact:** de la „Busola zice ceva” la „ce fac cu botul” într-o atingere.
+- **Riscuri/dependențe:** adresa Radarului merge doar prin Tailscale; tabloul trebuie să primească moneda din adresă.
+- **Fișiere:** busola/src/ui/Acum.tsx, busola/src/ui/FiltruGrid.tsx (legaturaRadar), crypto/public/app.js (citirea monedei din adresă, dacă lipsește).
+
+#### I-633 · Botul închis rămâne 2 h cu rezultatul · [S] · P2 · propus
+- **Problema/golul:** de la 1.59.2 un bot închis dispare din Busola în 2–4 min, fără urmă; „Niciun bot deschis” arată la fel ca o listă căzută, iar rezultatul îl cauți în Pionex.
+- **Soluția:** fișierul Radarului are deja închișii (cu `inchis` și `pnlPct`); urcarea pune și boții închiși în ultimele 2 h, iar „Boții tăi” îi arată gri, sub cei deschiși: „MARSCOIN · închis acum 12 min · +1,3%”.
+- **Impact:** confirmarea că oprirea a ajuns, și rezultatul pe loc.
+- **Riscuri/dependențe:** `deCeUrc` trebuie să urce și când un închis iese din fereastra de 2 h; garda „masurat.json fără boți” rămâne (totul doar în `boti-<cheie>`).
+- **Fișiere:** busola/cron/botiRapid.ts, cron/urca-boti.ts, cron/masoara.ts, src/sursa/boti.ts, src/ui/Acum.tsx, probe/boti-rapid.ts.
+
+#### I-634 · „Ce zicea Busola când l-ai pornit” · [M] · P2 · propus
+- **Problema/golul:** cartela botului spune ce crede Busola ACUM; nu spune dacă l-ai pornit cu ea sau contra ei, deși jurnalul stărilor (de la 03.10) știe — iar bilanțul pe boți (I-573) e doar agregat.
+- **Soluția:** la urcare, fiecare bot deschis primește starea Busolei de la pornire (cea mai apropiată notare de cel mult `ORE_STARE_LA_PORNIRE` înainte, din `jurnal-stari.json`); cartela arată „la pornire: ATENȚIE — acum +2,7%”. Fără stare ⇒ „la pornire: nemăsurat”.
+- **Impact:** vezi pe boții tăi, unul câte unul, dacă pornirile contra Busolei te costă; e ipoteză, verdictul rămâne la bilanțul pe zile.
+- **Riscuri/dependențe:** sarcina de 2 min citește un fișier de ~1 MB doar când urcă (nu la fiecare rulare); boții de dinainte de 03.10 = „nemăsurat”.
+- **Fișiere:** busola/cron/urca-boti.ts, cron/masoara.ts, src/motor/dinRadar.ts, src/sursa/boti.ts, src/ui/Acum.tsx.
+
+#### I-635 · Urcarea boților tace ⇒ Discord · [S] · P3 · propus
+- **Problema/golul:** dacă login-ul Cloudflare expiră, sarcina de 2 min pică în tăcere; vezi doar rândul galben, și doar dacă deschizi Busola.
+- **Soluția:** `urca-boti.ts` numără eșecurile la rând în `cron/stare`; la al 3-lea trimite UN mesaj pe Discord (webhook-ul Busolei existent), iar la prima reușită după, „merge din nou”.
+- **Impact:** știi că lista de pe telefon nu mai e adevărată înainte să te bazezi pe ea.
+- **Riscuri/dependențe:** fără webhook ⇒ doar în jurnal; I-509 rămâne pentru măsurarea orară.
+- **Fișiere:** busola/cron/urca-boti.ts, cron/discord.ts.
+
+#### I-636 · Radarul trimite boții direct în Busola · [M] · P4 · propus
+- **Problema/golul:** lanțul e Radar → fișier → sarcina de 2 min → wrangler → KV; 2–4 min și un proces Node la fiecare urcare.
+- **Soluția:** colectorul face POST la worker-ul Busolei cu cheia boților în antet, la fiecare schimbare; worker-ul scrie în KV. Sarcina „Busola Boti” devine rezervă.
+- **Impact:** botul apare în secunde; mai puțin de pornit pe PC.
+- **Riscuri/dependențe:** rută de SCRIERE publică pe worker (cheia = singura apărare, deci limită de mărime și format strict); două depozite (copie de lucru în `crypto`); câștigul față de 2–4 min e mic.
+- **Fișiere:** crypto/scripts/colector.mjs (scriePentruBusola), busola/cron/worker.ts, busola/probe/boti-telefon.ts.
