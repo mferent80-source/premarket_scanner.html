@@ -22,20 +22,40 @@
       "extra": "2 warning-uri",
       "_file_age": 0.0,
       "data_date": "2026-10-14"
+    },
+    "ndx": {
+      "score": 53.6,
+      "zone": "Healthy",
+      "exposure": "75-90%",
+      "weakest": "momentum MM50 (44.7%)",
+      "trend": "in scadere (-2.1)",
+      "extra": ">MM200 59.6% | >MM50 44.7%",
+      "_file_age": 0.0,
+      "data_date": "2026-10-14"
+    },
+    "r2k": {
+      "score": 28.7,
+      "zone": "Weakening",
+      "exposure": "40-60%",
+      "weakest": "momentum MM50 (20.2%)",
+      "trend": "in scadere (-5.1)",
+      "extra": ">MM200 34.3% | >MM50 20.2%",
+      "_file_age": 0.0,
+      "data_date": "2026-10-14"
     }
   },
   "master": {
-    "score": -4,
+    "score": -5,
     "stance": "RISK-OFF",
     "action": "Prezervare capital; fara pozitii noi speculative; asteapta stabilizare.",
-    "confidence": "MEDIE - acoperire partiala sau consens insuficient",
+    "confidence": "RIDICATA - dimensiunile sunt aliniate",
     "conflict": false,
     "net_ceiling": 40,
     "scorecard": [
       [
-        "Breadth participare (2/4 surse valide)",
+        "Breadth participare (4/4 surse valide)",
         0,
-        "Mixt / racire (idx 32.6, min 32.6)"
+        "Mixt / racire (idx 43.1, min 28.7)"
       ],
       [
         "Market timing (distribution days)",
@@ -50,28 +70,38 @@
       [
         "New Highs - New Lows",
         0,
-        "37\u25b2/24\u25bc (net +13), mixt"
+        "41\u25b2/26\u25bc (net +15), mixt"
       ],
       [
         "Intermarket / macro",
         0,
         "Macro neutru/mixt (VIX term 0.898)"
+      ],
+      [
+        "Small-caps",
+        -1,
+        "raman in urma (risk-off incipient)"
       ]
     ],
     "reconciliation": [
       "Dimensiunile converg - verdict cu incredere mai mare."
     ],
     "pos": 0,
-    "neg": 2
+    "neg": 3
   },
   "analysis": {
     "verdict": "Mixt / racire",
     "action": "Semnale mixte. Redu marimea pozitiilor noi, prioritizeaza calitatea.",
-    "flags": [],
+    "flags": [
+      [
+        "smallcap_lag",
+        "\u26a0\ufe0f Small-caps 28.7 raman in urma \u2192 apetit de risc in scadere"
+      ]
+    ],
     "regime": "mixed",
-    "idx_avg": 32.6,
-    "min": 32.6,
-    "max": 44.6
+    "idx_avg": 43.1,
+    "min": 28.7,
+    "max": 53.6
   },
   "detail": {
     "net_ceiling": 40,
@@ -84,10 +114,21 @@
       [
         "Broad2800",
         80
+      ],
+      [
+        "Nasdaq*",
+        90
+      ],
+      [
+        "Small-cap*",
+        60
       ]
     ],
     "diagnosis": [
-      "Piata larga (~2800 actiuni): 44.6 (Neutral). Veriga slaba: Historical Context (21)."
+      "Large-cap: S&P 32.6 (Weakening), Nasdaq 53.6 \u2014 slabesc. Momentum S&P (8/200MA): 15.",
+      "Piata larga (~2800 actiuni): 44.6 (Neutral). Veriga slaba: Historical Context (21).",
+      "Small-caps (R2K* 28.7): raman in urma (risk-off incipient). Veriga slaba: momentum MM50 (20.2%).",
+      "Dinamica: Nasdaq* in scadere (-2.1); Small-cap* in scadere (-5.1)."
     ],
     "playbook": [
       "Plafonul combinat de context este 40%; riscul personal se verifica separat in Guardrail.",
@@ -96,9 +137,10 @@
     ],
     "watch": [
       "Broad2800: peste 45 \u2192 iese din 'ingust'; sub 30 \u2192 risk-off.",
+      "R2K*: sub 35.1 \u2192 small-caps lag (risk-off incipient); peste 51.1 \u2192 conduc.",
       "S&P: peste 60 \u2192 Healthy (upgrade); sub 40 \u2192 Weakening (alerta)."
     ],
-    "confidence": "MEDIE (spread 12.0 \u2014 divergenta moderata)",
-    "spread": 12.0
+    "confidence": "SCAZUTA (spread 24.9 \u2014 surse in dezacord, semnalul e fragil)",
+    "spread": 24.9
   }
 }
