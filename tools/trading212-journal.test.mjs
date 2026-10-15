@@ -138,3 +138,17 @@ for(const [state,caption] of [[{syncStatus:'loading',syncError:null},/Actualizar
  const data={accounts:{live:{...account([{...fill,ticker:'UHS_US_EQ',side:'SELL',realized:3}]),...state}}},v=journalView(data),before=JSON.stringify(v.data);
  assert.match(v.host.innerHTML,caption);assert.doesNotMatch(v.host.innerHTML,/Istoricul disponibil a fost parcurs integral/);assert.match(v.host.innerHTML,/<td>UHS_US_EQ<\/td><td>SELL<\/td>/);assert.match(v.host.innerHTML,/<td>3 EUR<\/td>/);assert.doesNotMatch(v.host.innerHTML,/execuții incompatibile/);v.change('t212JournalSide','SELL','change');assert.equal(JSON.stringify(v.data),before);
 });
+
+// 15.10.2026 (el: „de ce apar doar cumpărările și nu și vânzările”; contul lui: BUY 1365, SELL 0, respinse 1118):
+// Trading 212 trimite vânzările cu cantitate negativă, iar validExecution cerea quantity>0 ⇒ toate vânzările erau respinse tăcut.
+test('o vânzare Trading 212 cu cantitate negativă intră în jurnal ca SELL cu cantitatea pozitivă',()=>{
+ const j=setup(),sale={...fill,id:'s1',side:'SELL',quantity:-2,price:240,realized:12};
+ const r=j.merge('live:a','live',[fill,sale],null,fill.date,{restart:true});
+ assert.equal(r.count,2);assert.equal(r.rejected,0);assert.equal(r.complete,true);
+ const stored=j.read().accounts['live:a'].items.find(x=>x.id==='s1');assert.equal(stored.side,'SELL');assert.equal(stored.quantity,2);assert.equal(stored.realized,12);
+});
+test('cantitățile ambigue rămân respinse: cumpărare negativă, zero sau sens lipsă',()=>{
+ const j=setup();
+ const r=j.merge('live:a','live',[{...fill,id:'b-neg',quantity:-1},{...fill,id:'s-zero',side:'SELL',quantity:0},{...fill,id:'no-side',side:null,quantity:-1}],null,fill.date,{restart:true});
+ assert.equal(r.count,0);assert.equal(r.rejected,3);assert.equal(r.complete,false);
+});
