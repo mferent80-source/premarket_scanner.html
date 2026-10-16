@@ -9,7 +9,7 @@ import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { motor, adu, aduCache, universScanner, clasifica } from './clasificator-date.mjs';
 import { univers } from './clasificator-univers.mjs';
-import { ISTORIC, regim, ziua, adauga, citeste, bilantDoua } from './clasificator-jurnal.mjs';
+import { ISTORIC, regim, ziua, adauga, citeste, bilantDoua, mesajZilnic, schimbari } from './clasificator-jurnal.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 
 export const FISIER = 'candidate-engine/generated/clasificator.json', VERSIUNE = 'clasificator-robot-v1';
@@ -74,9 +74,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (n < Math.ceil(j.simboluri * 0.5)) { console.error('Prea puține simboluri clasificate; fișierul vechi rămâne.'); process.exit(1); }
   console.log('Jurnal: ' + j.jurnal.zileNotate + ' zile notate · ' + j.jurnal.zileVerificate + ' verificate · ' + j.jurnal.mesaj);
   if (!process.argv.includes('--uscat')) { writeFileSync(FISIER, JSON.stringify(j) + '\n'); writeFileSync(ISTORIC, istoricText); }
-  // Discord doar când se schimbă verdictul jurnalului (în probă → ține / nu ține).
-  const inainte = vechi?.jurnal?.verdict, acum = j.jurnal.verdict;
-  if (process.env.DISCORD_WEBHOOK && inainte && inainte !== acum && !process.argv.includes('--uscat')) {
-    try { const r = await fetch(process.env.DISCORD_WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: '**Clasificatorul — jurnalul de noapte: verdict nou** · ' + j.jurnal.mesaj + ' (' + j.jurnal.zileSeparate + ' zile separate)' }), signal: AbortSignal.timeout(20000) }); console.log('Discord: ' + r.status); } catch (e) { console.log('Discord: ' + e.message); }
+  // Discord: un mesaj la orice schimbare de verdict (cele 4) și, I-657, rezumatul zilnic DOAR când un verdict e pozitiv.
+  const trimite = async (content) => { try { const r = await fetch(process.env.DISCORD_WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content }), signal: AbortSignal.timeout(20000) }); console.log('Discord: ' + r.status); } catch (e) { console.log('Discord: ' + e.message); } };
+  if (process.env.DISCORD_WEBHOOK && !process.argv.includes('--uscat')) {
+    const sch = schimbari(vechi, j); if (sch.length) await trimite('**Clasificatorul — verdict nou** · ' + sch.join(' · ') + ' · ' + j.jurnal.mesaj);
+    const zi = mesajZilnic(j); if (zi && vechi?.asOf !== j.asOf) await trimite(zi);
   }
 }

@@ -15,3 +15,9 @@ test('I-637: clasificatorul e în registru, dar NU în modelele verdictului (cel
  assert.equal(F.LEDGER.classifier,C.VERSION);assert.equal(Object.hasOwn(F.VERSIONS,'classifier'),false);
  const bad={model:'classifier',modelVersion:'holdings-clf-v1',trainedAt:1,state:'x',source:{},estimate:{classIndex:2,baselineClass:1}};assert.equal(F.project(bad,{scope:'a',ticker:'T',symbol:'T',currency:'USD',kind:'synthetic'},2),null);
 });
+test('urcarea motorului nu pierde registrul: intrările v3 / v4 ale clasificatorului rămân valide ca istoric',()=>{
+ const e={scope:'account',ticker:'TEST_US_EQ',symbol:'TEST',currency:'USD',kind:'market'},t=Date.parse('2026-10-02T13:30:00Z'),at=t+8*3600000;
+ const r=F.project({model:'classifier',modelVersion:C.VERSION,trainedAt:at-1000,state:'no-edge',source:{t,asOf:'2026-10-02',timezone:'America/New_York',closeMinutes:960,close:100,atrPct:1},estimate:{classIndex:2,baselineClass:1,probabilities:[.2,.3,.5]}},e,at);
+ for(const v of ['holdings-clf-v3','holdings-clf-v4']){const old=JSON.parse(JSON.stringify(r));old.modelVersion=v;assert.equal(F.validEntry(old,e,at),true,v);}
+ const bad=JSON.parse(JSON.stringify(r));bad.modelVersion='holdings-clf-v1';assert.equal(F.validEntry(bad,e,at),false);
+});

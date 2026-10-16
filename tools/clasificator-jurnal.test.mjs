@@ -13,7 +13,7 @@ test('I-643: prima notare a zilei rămâne înghețată; a doua rulare din aceea
 });
 
 test('I-643: verificarea după 5 sesiuni: clasa reală (±1 ATR) și banii unei cumpărări, doar pe închideri neschimbate', () => {
-  const b = Array.from({ length: 20 }, (_, i) => ({ t: zi(i), o: 100, h: 101, l: 99.5, c: 100 }));
+  const b = Array.from({ length: 20 }, (_, i) => ({ t: zi(i), o: 100, h: 101, l: 99.5, c: 100, v: 2e6 }));
   b[8].c = 103; // +3% în 5 sesiuni, ATR 2% ⇒ +1,5 ATR ⇒ Long
   const L = [{ asOf: dateOf(zi(3)), regim: 'jos', voturi: { A: { k: 2, p: [0.1, 0.2, 0.7], c: 100, a: 2, r5: 0, pr: [0.3, 0.4, 0.3] } } },
     { asOf: dateOf(zi(17)), voturi: { A: { k: 2, p: [0.1, 0.2, 0.7], c: 100, a: 2, r5: 0, pr: [0.3, 0.4, 0.3] } } }, // prea recent
@@ -49,4 +49,19 @@ test('bilanțul lunar: descriptiv, pe luna votului; clasamentele au Holm separat
   const z = [{ asOf: '2026-10-20', rows: [{ s: 'A', y: 2, p: [0.1, 0.1, 0.8], pr: [0.3, 0.4, 0.3], mom: [0.1, 0.8, 0.1], pnl: 1 }] }, { asOf: '2026-11-03', rows: [{ s: 'A', y: 0, p: [0.8, 0.1, 0.1], pr: [0.3, 0.4, 0.3], mom: [0.1, 0.8, 0.1], pnl: -1 }] }];
   const l = lunar(z); assert.deepEqual(l.map((x) => x.luna), ['2026-10', '2026-11']); assert.ok(l[0].vsFrecvente > 0); assert.equal(l[0].clasament, null);
   const r = bilantDoua([], {}, dateOf); assert.equal(r.b5.clasament.alfa, 0.025); assert.equal(r.b20.clasament.alfa, 0.025);
+});
+test('I-659: costul după lichiditate — praguri scrise dinainte, aceeași regulă ca în motor', async () => {
+  const { costFor } = await import('./clasificator-jurnal.mjs');
+  const vm = await import('node:vm'), { readFileSync } = await import('node:fs'), c = {}; vm.createContext(c);
+  for (const f of ['holdings-neural', 'holdings-neural-evaluation', 'holdings-classifier']) vm.runInContext(readFileSync('lib/' + f + '.js', 'utf8'), c);
+  const bars = (dv) => Array.from({ length: 30 }, (_, i) => ({ c: 100, v: dv / 100 }));
+  for (const [dv, cost] of [[2e9, 0.35], [5e8, 0.4], [5e7, 0.6], [1e6, 1.1]]) { assert.ok(Math.abs(costFor(bars(dv), 25) - cost) < 1e-12, String(dv)); assert.ok(Math.abs(c.HoldingsClassifier.costFor(bars(dv), 25) - cost) < 1e-12, 'motor ' + dv); }
+});
+test('I-657: rezumatul zilnic tace până la un verdict pozitiv; schimbările de verdict se văd', async () => {
+  const { mesajZilnic, schimbari } = await import('./clasificator-jurnal.mjs');
+  const j = { asOf: '2027-05-10', jurnal: { verdict: 'in-proba', clasament: { verdict: 'in-proba' } }, jurnal20: { verdict: 'in-proba', clasament: { verdict: 'in-proba' } }, clasament: [{ s: 'A' }, { s: 'B' }], clasament20: [{ s: 'B' }] };
+  assert.equal(mesajZilnic(j), null);
+  const j2 = { ...j, jurnal: { verdict: 'in-proba', clasament: { verdict: 'ordoneaza' } } };
+  assert.match(mesajZilnic(j2), /verdict pozitiv pe: clasamentul pe 5 sesiuni[\s\S]*Primele 10 \(5 sesiuni\): A, B ★/);
+  assert.deepEqual(schimbari(j, j2), ['clasamentul pe 5: in-proba → ordoneaza']);
 });

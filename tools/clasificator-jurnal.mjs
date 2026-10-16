@@ -8,6 +8,8 @@ export const PRAG = Object.freeze({ zileSeparate: 30, castig: 0.02, alfa: 0.05, 
 // I-649 (scris înaintea datelor): primele 10 după probabilitatea „Long” a votului (egalitate ⇒ alfabetic), față de media universului
 // în aceeași zi, după costuri; doar zile cu ≥20 de acțiuni verificate; „ordonează” = diferența medie > 0 cu p<0,05 după ≥30 de zile separate.
 const H = 5, r4 = (v) => Math.round(v * 1e4) / 1e4;
+// I-659: aceeași regulă de cost ca motorul (HoldingsClassifier.costFor); testul le compară.
+export function costFor(bars, i) { let s = 0, n = 0; for (let k = Math.max(0, i - 19); k <= i; k++) { s += bars[k].c * bars[k].v; n++; } const dv = n ? s / n : 0; return 0.3 + (dv >= 1e9 ? 0.05 : dv >= 1e8 ? 0.1 : dv >= 2e7 ? 0.3 : 0.8); }
 
 /** Regimul pieței în ziua votului (închiderea SPY față de media ei de 200 de zile, ambele știute la închidere). */
 export function regim(spy, asOf, dateOf) {
@@ -48,7 +50,7 @@ export function verifica(linii, serii, dateOf, { orizont = H, prag = 1, cheie = 
       const move = (b[i + orizont].c / b[i].c - 1) * 100 / v.a, y = move <= -prag ? 0 : move >= prag ? 2 : 1;
       const entry = b[i + 1].o, stop = entry - v.a / 100 * b[i].c; let out = null;
       for (let k = i + 1; k <= i + orizont && out === null; k++) { if (k > i + 1 && b[k].o <= stop) out = b[k].o; else if (b[k].l <= stop) out = stop; }
-      rows.push({ s, y, p: v.p, pr: v.pr, mom: momentum(v.r5, v.a), k: v.k, pnl: ((out ?? b[i + orizont].c) / entry - 1) * 100 - PRAG.cost });
+      rows.push({ s, y, p: v.p, pr: v.pr, mom: momentum(v.r5, v.a), k: v.k, pnl: ((out ?? b[i + orizont].c) / entry - 1) * 100 - costFor(b, i) });
     }
     if (rows.length) zile.push({ asOf: L.asOf, regim: L.regim, rows });
   }
@@ -89,6 +91,19 @@ export function bilant(linii, zileVerificate, { alfa = PRAG.alfa, distanta = PRA
   if (ordine[1] && ordine[0][1].verdict === 'tine') felii[ordine[1][0]] = judeca(sep.filter((z) => z.regim === ordine[1][0]), alfa);
   const mesaj = tot.verdict === 'in-proba' ? `În probă: ${tot.zileSeparate} din ${PRAG.zileSeparate} de zile separate verificate; verdictul vine după.` : tot.verdict === 'tine' ? 'Ține: votul bate ambele repere pe zile noi, după prag și test.' : 'Nu ține: pe zile noi votul nu bate ambele repere cu pragul scris dinainte.';
   return { prag: PRAG, alfa, zileNotate: linii.length, zileVerificate: zileVerificate.length, ...tot, mesaj, regim: felii, clasament: clasament(sep, alfaClasament), lunar: lunar(zileVerificate) };
+}
+/** I-657: mesajul zilnic există DOAR când un verdict e pozitiv (ține / ordonează); altfel null (robotul tace). */
+export function mesajZilnic(j) {
+  const poz = [['ținta de 5 sesiuni', j.jurnal?.verdict === 'tine'], ['clasamentul pe 5 sesiuni', j.jurnal?.clasament?.verdict === 'ordoneaza'], ['ținta de 20 de sesiuni', j.jurnal20?.verdict === 'tine'], ['clasamentul pe 20 de sesiuni', j.jurnal20?.clasament?.verdict === 'ordoneaza']].filter((x) => x[1]).map((x) => x[0]);
+  if (!poz.length) return null;
+  const a = new Set((j.clasament || []).slice(0, 10).map((x) => x.s)), b = new Set((j.clasament20 || []).slice(0, 10).map((x) => x.s));
+  const top = (j.clasament || []).slice(0, 10).map((x) => x.s + (b.has(x.s) ? ' ★' : '')).join(', ');
+  return `**Clasificator · ${j.asOf}** — verdict pozitiv pe: ${poz.join(', ')}.\nPrimele 10 (5 sesiuni): ${top || '—'}.\nInformativ, nu ordin; verdictul se poate schimba — robotul trimite mesaj și atunci.`;
+}
+/** Schimbările de verdict (toate patru) față de rularea trecută, pentru un singur mesaj de schimbare. */
+export function schimbari(vechi, j) {
+  const v = (x) => [x?.jurnal?.verdict, x?.jurnal?.clasament?.verdict, x?.jurnal20?.verdict, x?.jurnal20?.clasament?.verdict], n = ['ținta de 5', 'clasamentul pe 5', 'ținta de 20', 'clasamentul pe 20'], a = v(vechi), b = v(j);
+  return n.map((nume, i) => (a[i] && b[i] && a[i] !== b[i] ? `${nume}: ${a[i]} → ${b[i]}` : null)).filter(Boolean);
 }
 /** I-650: două ținte ⇒ Holm pe 2: amândouă la α/2; dacă una „ține”, cealaltă se rejudecă la α. */
 export function bilantDoua(linii, serii, dateOf) {
