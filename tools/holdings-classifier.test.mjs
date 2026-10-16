@@ -78,3 +78,17 @@ test('parametrii afișați sunt verificați; ponderile pădurii vin doar din ad�
  const bad2=plain(noiseReport);bad2.algos.svm.params.temperature=3;assert.equal(C.valid(bad2),false);
  const f=noiseReport.algos.forest;assert.ok(Math.abs(f.importance.reduce((a,b)=>a+b,0)-1)<1e-9);
 });
+
+test('I-642: rezultatul unei cumpărări — intrare la deschiderea următoare, stop la 1 ATR, gol sub stop la deschidere, minus 0,4%',()=>{
+ const i=700,j=i-199,r=data.rows[j],entry=bars[i+1].o,stop=entry-data.observations[j].x[8]/100*bars[i].c;let out=null;
+ for(let k=i+1;k<=i+5&&out===null;k++){const b=bars[k];if(k>i+1&&b.o<=stop)out=b.o;else if(b.l<=stop)out=stop;}
+ assert.ok(Math.abs(r.pnl-(((out??bars[i+5].c)/entry-1)*100-.4))<1e-9);
+ // Gol sub stop: deschiderea zilei a 3-a cade cu 20% ⇒ ieșire la deschidere, nu la stop.
+ const b2=bars.map(b=>({...b}));for(let k=i+3;k<b2.length;k++){for(const f of ['o','h','l','c'])b2[k][f]*=.8;}
+ const d2=C.dataset(b2.slice(0,i+30),now),e2=b2[i+1].o;assert.ok(Math.abs(d2.rows[j].pnl-((b2[i+3].o/e2-1)*100-.4))<1e-9);
+});
+
+test('I-642: banii se adună pe orizonturi separate, pe toate ferestrele; mereu Long ca reper',()=>{
+ const m=noiseReport.walk.money;assert.ok(m.always.n>=50);for(const a of C.ALGOS){const x=m[a.id];assert.ok(x.long.n+x.short.n<=m.always.n);if(x.long.n){assert.ok(Number.isFinite(x.long.mean)&&x.long.win>=0&&x.long.win<=1);}}
+ const bad=plain(noiseReport);bad.walk.money.vote.long.mean=99;assert.equal(C.valid(bad),false);
+});
