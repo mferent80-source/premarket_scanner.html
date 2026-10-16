@@ -17,7 +17,7 @@ export async function ruleaza({ c = motor('.', ['lib/desk-classifier.js']), simb
   for (const [k, s] of simboluri.entries()) {
     try {
       const src = sursa ? await sursa(s) : c.DailySeries.read(await adu(s), s, now);
-      entries[s] = D.compact(s, src, clasifica(c, src.bars, { now }), now); serii[s] = { bars: src.bars };
+      entries[s] = D.compact(s, src, clasifica(c, src.bars, { now }), now); serii[s] = { bars: c.HoldingsBars.prepare(src.bars).bars };
       log(`${k + 1}/${simboluri.length} ${s} ${entries[s].state}`);
     } catch (e) { picate.push({ simbol: s, motiv: String(e && e.message || e).slice(0, 120) }); log(`${k + 1}/${simboluri.length} ${s} ✗ ${e && e.message}`); }
   }

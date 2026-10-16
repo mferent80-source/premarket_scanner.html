@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 export function motor(radacina = '.', extra = []) {
   const c = { console, Intl, Date, Math, JSON };
   c.window = c; vm.createContext(c);
-  for (const f of ['lib/exchange-calendar.js', 'lib/daily-series.js', 'lib/holdings-neural.js', 'lib/holdings-neural-evaluation.js', 'lib/holdings-classifier.js', ...extra])
+  for (const f of ['lib/exchange-calendar.js', 'lib/daily-series.js', 'lib/holdings-bars.js', 'lib/holdings-neural.js', 'lib/holdings-neural-evaluation.js', 'lib/holdings-classifier.js', ...extra])
     vm.runInContext(readFileSync(radacina + '/' + f, 'utf8'), c, { filename: f });
   return c;
 }
@@ -64,9 +64,11 @@ export function universScanner(radacina = '.') {
 
 /** Clasificarea unui simbol: seria → DailySeries → dataset → evaluate; `mascheaza` = indicii de indicatori puși pe 0 (ablație). */
 export function clasifica(c, bars, { now = Date.now(), mascheaza = [] } = {}) {
-  const C = c.HoldingsClassifier, ascuns = new Set(mascheaza), m = (x) => (ascuns.size ? x.map((v, j) => (ascuns.has(j) ? 0 : v)) : x);
+  const C = c.HoldingsClassifier, ascuns = new Set(mascheaza), m = (x) => (ascuns.size ? x.map((v, j) => (ascuns.has(j) ? 0 : v)) : x), prep = c.HoldingsBars.prepare(bars);
+  bars = prep.bars;
   const d = C.dataset(bars, now), data = { rows: d.rows.map((r) => ({ ...r, x: m(r.x) })), latest: m(d.latest) }, last = bars.at(-1);
   const r = C.evaluate(data, { t: last.t, close: last.c, x: data.latest });
   if (!C.valid(r)) throw new Error('Raport neverificabil');
+  r.historyCut = prep.cut;
   return r;
 }
