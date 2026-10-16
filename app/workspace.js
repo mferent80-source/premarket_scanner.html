@@ -4,7 +4,7 @@
  if(!routes)return;
  function tools(){
   const grid=$('toolGrid');if(!grid)return;
-  const items=routes.all.filter(x=>x.group==='MODULE ACTIVE'),q=fold($('toolSearch').value.trim()),visible=items.filter(x=>fold(x.n+' '+x.description).includes(q));
+  const items=routes.all.filter(x=>x.group==='MODULE ACTIVE'||x.u==='desk/'),q=fold($('toolSearch').value.trim()),visible=items.filter(x=>fold(x.n+' '+x.description).includes(q));
   grid.innerHTML=visible.map(x=>'<article class="tool-card"><span class="tool-marker">'+esc(x.u==='candidate-engine/'?'MOTOR ORIGINAL':x.u.startsWith('journal/')?'JURNAL & CAPITAL':'INSTRUMENT ACTIV')+'</span><h2>'+esc(x.n)+'</h2><p>'+esc(x.description)+'</p><a href="'+esc(routes.url(x.u))+'" data-route="'+esc(x.u)+'">Deschide <span aria-hidden="true">→</span></a></article>').join('');
   $('toolCount').textContent=visible.length+' / '+items.length+' instrumente';$('toolEmpty').hidden=!!visible.length;
  }
