@@ -15,3 +15,8 @@ test('I-644: salt prea recent ⇒ mesaj clar, nu „istoric invalid”', () => {
   const b = serie(1000, { 950: 0.7 }); assert.throws(() => B.prepare(b), /lasă doar 50 sesiuni după el; modelele cer 510/);
 });
 test('I-644: un salt de exact 25% nu taie (pragul e „peste”)', () => { const b = serie(900, { 400: 1.25 }); assert.equal(B.prepare(b).cut, null); });
+test('I-653: din mesajul de așteptare, sesiunile lipsă și data estimată (doar zile lucrătoare)', () => {
+  const vineri = Date.UTC(2026, 9, 16, 22), w = B.waitInfo('Ultimul salt peste 25% (2024-11-06, +31,1%) lasă doar 486 sesiuni după el; modelele cer 510.', vineri);
+  assert.equal(w.sessions, 24); assert.equal(w.date, '2026-11-19'); assert.equal(w.label, '19.11');
+  assert.equal(B.waitInfo('Istoric invalid'), null);
+});

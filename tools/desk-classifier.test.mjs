@@ -25,3 +25,11 @@ test('intrare stricată sau fără direcție: semn neutru, lista nu cade',()=>{
  const bad=entry('A',.001);bad.algos.vote.support=null;const D=setup({A:bad,B:entry('B',.5,'no-edge')});D.setList(['A','B']);
  assert.equal(D.chip('A'),'');assert.match(D.chip('B'),/>—</);
 });
+test('I-653: picatele robotului nu se mai calculează pe telefon și spun din ce zi revin', () => {
+  const store = {}, c = { localStorage: { getItem: () => null, setItem: () => {} }, DailySeries: { expected: () => '2026-10-15' } }; c.window = c; vm.createContext(c);
+  for (const name of ['holdings-bars', 'holdings-neural', 'holdings-neural-evaluation', 'holdings-classifier', 'desk-classifier']) vm.runInContext(readFileSync('lib/' + name + '.js', 'utf8'), c);
+  const D = c.TTDeskClassifier, A = entry('A', .5, 'no-edge');
+  D.acceptRobot({ version: 'clasificator-robot-v1', motor: c.HoldingsClassifier.VERSION, generat: 'x', entries: { A }, picate: [{ simbol: 'COIN', motiv: 'Ultimul salt peste 25% (2024-11-06, +31,1%) lasă doar 486 sesiuni după el; modelele cer 510.' }, { simbol: 'X', motiv: 'Yahoo 404' }] });
+  assert.match(D.chip('COIN'), /⏳ \d\d\.\d\d/); assert.match(D.chip('X'), />!</); assert.equal(D.status('COIN').phase, 'error');
+  assert.match(D.panel('COIN'), /Revine estimat din <b>\d{4}-\d\d-\d\d<\/b> \(încă 24 sesiuni\)/);
+});
