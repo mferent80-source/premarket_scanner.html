@@ -1,0 +1,34 @@
+/* 16.10.2026 — Acțiuni Europa în stilul „Astăzi”: aceeași paletă și litere, titlul paginii primul (verdictul era inserat deasupra lui),
+   iar verdictul lizibil în tema deschisă — panoul comun citește --text/--panel2, pagina le numește --ink/--raised, așa că pe fundal alb
+   ieșea text aproape alb și plăci bleumarin. Doar aspectul: conținutul, id-urile și scanarea rămân neatinse. Se încarcă ULTIMA. */
+:root{--bg:#0b1015;--panel:#101820;--raised:#141f29;--line:#24313c;--ink:#eff6f8;--muted:#9baab5;--green:#8de2bf;--amber:#e9c58c;--red:#f0a7aa;--blue:#a9c6f1}
+:root[data-theme=light]{--bg:#f3f6f6;--panel:#fff;--raised:#edf3f3;--line:#cbd7da;--ink:#162e35;--muted:#516974;--green:#176a51;--amber:#825d20;--red:#a93b45;--blue:#315d8f}
+body{font-size:14.5px}
+main{display:flex;flex-direction:column;padding:25px clamp(16px,2.4vw,34px) 40px}
+main>*{order:2}
+main>.page-head,main>.market-strip,main>.progress{order:0}
+main>.tt-verdict{order:1}
+
+/* verdictul: culorile paginii, nu rezervele închise ale panoului comun */
+main>.tt-verdict{--text:var(--ink);--panel2:var(--raised);--line:var(--line);--muted:var(--muted);--green:var(--green);--amber:var(--amber);--red:var(--red);
+ margin:0 0 18px;border-radius:10px;border-width:1px;border-left-width:3px;box-shadow:none;padding:18px 20px;background:var(--panel);color:var(--ink);font-family:var(--tt-sans,system-ui,sans-serif)}
+main>.tt-verdict :is(h2,h3){letter-spacing:-.025em}
+main>.tt-verdict button{font-family:inherit}
+
+/* antetul: ca la Astăzi */
+.kicker{display:block;font:500 12.5px/1.5 var(--tt-sans,system-ui,sans-serif);letter-spacing:.01em;color:var(--muted);text-transform:lowercase}
+.kicker::first-letter{text-transform:uppercase}
+.page-head h1{font-size:clamp(27px,2.55vw,36px);font-weight:600;letter-spacing:-.045em;line-height:1.25}
+.page-head{align-items:flex-end;margin-bottom:18px}
+.primary{font-weight:600;border-radius:8px}
+:root:not([data-theme=light]) .primary{color:#0b1015}
+.market-strip{border-radius:10px;margin-bottom:6px}
+.market-strip small{font-size:12px;color:var(--muted)}
+.context-panel,.history-panel,.detail,.stock,.scan-details{border-radius:10px}
+.category-tabs button{border-radius:8px;min-height:52px}
+.category-tabs button.active{background:color-mix(in srgb,var(--green) 10%,var(--panel))}
+.filters select,.filters input{min-height:44px;border-radius:8px}
+
+@media(max-width:760px){
+ main{padding:18px 16px 30px}
+}
