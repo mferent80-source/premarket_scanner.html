@@ -65,25 +65,38 @@ function judeca(zile, alfa = PRAG.alfa) {
   return { zileSeparate: n, verdict, vsFrecvente: f, vsMomentum: m, bani: bani(zile) };
 }
 export function primele(rows, n = PRAG.top) { return rows.slice().sort((a, b) => b.p[2] - a.p[2] || (a.s < b.s ? -1 : 1)).slice(0, n); }
-function clasament(zile) {
+function clasament(zile, alfa = PRAG.alfa) {
   const d = zile.filter((z) => z.rows.length >= PRAG.minimZi).map((z) => { const top = primele(z.rows), m = (xs) => xs.reduce((a, r) => a + r.pnl, 0) / xs.length; return m(top) - m(z.rows); });
-  const t = test(d), verdict = t.n < PRAG.zileSeparate ? 'in-proba' : t.medie > 0 && t.p < PRAG.alfa ? 'ordoneaza' : 'nu-ordoneaza';
+  const t = test(d), verdict = t.n < PRAG.zileSeparate ? 'in-proba' : t.medie > 0 && t.p < alfa ? 'ordoneaza' : 'nu-ordoneaza';
   const mesaj = verdict === 'in-proba' ? `Clasamentul: ${t.n} din ${PRAG.zileSeparate} de zile separate; verdictul vine după.` : verdict === 'ordoneaza' ? 'Clasamentul ordonează: primele 10 bat media universului după costuri, pe zile noi.' : 'Clasamentul nu ordonează: primele 10 nu bat media universului cu pragul scris dinainte.';
-  return { zileSeparate: t.n, verdict, medie: t.medie, p: t.p, mesaj };
+  return { zileSeparate: t.n, verdict, medie: t.medie, p: t.p, alfa, mesaj };
+}
+/* Bilanțul lunar (descriptiv: toate zilele verificate, suprapuse, pe luna votului) — nu e verdict, verdictul rămâne pe zile separate. */
+export function lunar(zile) {
+  const ll = (p, y) => -Math.log(Math.max(1e-12, p[y])), luni = new Map();
+  for (const z of zile) { const k = z.asOf.slice(0, 7); if (!luni.has(k)) luni.set(k, []); luni.get(k).push(z); }
+  return [...luni.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([luna, zs]) => {
+    const m = (f) => zs.reduce((s, z) => s + z.rows.reduce((a, r) => a + f(r), 0) / z.rows.length, 0) / zs.length;
+    const cl = zs.filter((z) => z.rows.length >= PRAG.minimZi).map((z) => { const t = primele(z.rows), mm = (xs) => xs.reduce((a, r) => a + r.pnl, 0) / xs.length; return mm(t) - mm(z.rows); });
+    return { luna, zile: zs.length, vsFrecvente: m((r) => ll(r.pr, r.y) - ll(r.p, r.y)), vsMomentum: m((r) => ll(r.mom, r.y) - ll(r.p, r.y)), clasament: cl.length ? cl.reduce((a, b) => a + b, 0) / cl.length : null };
+  });
 }
 /** Bilanțul: pe toate zilele separate + pe regim (Holm pe 2 felii: prima la α/2, a doua la α). */
-export function bilant(linii, zileVerificate, { alfa = PRAG.alfa, distanta = PRAG.distanta } = {}) {
+export function bilant(linii, zileVerificate, { alfa = PRAG.alfa, distanta = PRAG.distanta, alfaClasament = PRAG.alfa } = {}) {
   const sep = separa(zileVerificate, distanta), tot = judeca(sep, alfa), felii = {};
   for (const r of ['sus', 'jos']) felii[r] = judeca(sep.filter((z) => z.regim === r), alfa / 2);
   const ordine = Object.entries(felii).filter(([, x]) => x.verdict !== 'in-proba').sort((a, b) => Math.min(a[1].vsFrecvente.p, a[1].vsMomentum.p) - Math.min(b[1].vsFrecvente.p, b[1].vsMomentum.p));
   if (ordine[1] && ordine[0][1].verdict === 'tine') felii[ordine[1][0]] = judeca(sep.filter((z) => z.regim === ordine[1][0]), alfa);
   const mesaj = tot.verdict === 'in-proba' ? `În probă: ${tot.zileSeparate} din ${PRAG.zileSeparate} de zile separate verificate; verdictul vine după.` : tot.verdict === 'tine' ? 'Ține: votul bate ambele repere pe zile noi, după prag și test.' : 'Nu ține: pe zile noi votul nu bate ambele repere cu pragul scris dinainte.';
-  return { prag: PRAG, alfa, zileNotate: linii.length, zileVerificate: zileVerificate.length, ...tot, mesaj, regim: felii, clasament: clasament(sep) };
+  return { prag: PRAG, alfa, zileNotate: linii.length, zileVerificate: zileVerificate.length, ...tot, mesaj, regim: felii, clasament: clasament(sep, alfaClasament), lunar: lunar(zileVerificate) };
 }
 /** I-650: două ținte ⇒ Holm pe 2: amândouă la α/2; dacă una „ține”, cealaltă se rejudecă la α. */
 export function bilantDoua(linii, serii, dateOf) {
   const z5 = verifica(linii, serii, dateOf), z20 = verifica(linii, serii, dateOf, { orizont: 20, prag: 2, cheie: 'voturi20' }), o20 = { distanta: 21 };
-  let b5 = bilant(linii, z5, { alfa: PRAG.alfa / 2 }), b20 = bilant(linii, z20, { ...o20, alfa: PRAG.alfa / 2 });
-  if (b5.verdict === 'tine') b20 = bilant(linii, z20, { ...o20, alfa: PRAG.alfa }); else if (b20.verdict === 'tine') b5 = bilant(linii, z5, { alfa: PRAG.alfa });
+  const A = PRAG.alfa, run = (z, o, aT, aC) => bilant(linii, z, { ...o, alfa: aT, alfaClasament: aC });
+  let a5 = A / 2, a20 = A / 2, c5 = A / 2, c20 = A / 2, b5 = run(z5, {}, a5, c5), b20 = run(z20, o20, a20, c20);
+  if (b5.verdict === 'tine') a20 = A; else if (b20.verdict === 'tine') a5 = A;
+  if (b5.clasament.verdict === 'ordoneaza') c20 = A; else if (b20.clasament.verdict === 'ordoneaza') c5 = A;
+  if (a5 !== A / 2 || a20 !== A / 2 || c5 !== A / 2 || c20 !== A / 2) { b5 = run(z5, {}, a5, c5); b20 = run(z20, o20, a20, c20); }
   return { b5, b20 };
 }

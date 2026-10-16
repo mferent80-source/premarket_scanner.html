@@ -88,7 +88,7 @@ header h1{
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🩺 Suite Health <span class="ver-badge" id="verBadge">v18</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🩺 Suite Health <span class="ver-badge" id="verBadge">v19</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <button class="nav-link" id="btnRunAll">▶ Rulează toate testele</button>
   <button class="nav-link" id="btnReport" title="Copiază starea tuturor verificărilor ca raport text — lipește-l în Claude Code și el ia măsurile">📋 Raport pt Claude</button>
   <a class="nav-link" href="../">← Hub</a>
@@ -201,9 +201,9 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
 <script src="../lib/capital-desk.js?v=fx-20261002"></script>
 <script src="../lib/ai.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/suite-version.js?v=929"></script>
+<script src="../lib/suite-version.js?v=930"></script>
 <script src="../lib/quote-bus.js?v=752"></script>
-<script src="../lib/price-day.js?v=929"></script>
+<script src="../lib/price-day.js?v=930"></script>
 <script src="../lib/macro-context.js?v=619"></script>
 <script src="../lib/app-routes.js?v=26.10.15.1800"></script>
 <script src="../lib/hub-state.js?v=26.10.14.1739"></script>
@@ -695,6 +695,9 @@ async function checkDecisionClassifier(){
   if(j.jurnal&&typeof j.jurnal.mesaj==='string')lines.push('Jurnalul de noapte: notate '+esc(j.jurnal.zileNotate)+' · separate verificate '+esc(j.jurnal.zileSeparate)+' · '+esc(j.jurnal.mesaj));
   if(j.jurnal&&j.jurnal.clasament&&typeof j.jurnal.clasament.mesaj==='string')lines.push(esc(j.jurnal.clasament.mesaj)+(Array.isArray(j.clasament)?' Primele 3 azi: '+j.clasament.slice(0,3).map(x=>esc(x.s)).join(', ')+'.':''));
   if(j.jurnal20&&typeof j.jurnal20.mesaj==='string')lines.push('Ținta pe 20 de sesiuni: '+esc(Object.keys(j.tinta20&&j.tinta20.entries||{}).length)+' acțiuni · '+esc(j.jurnal20.mesaj));
+  const lun=j.jurnal&&Array.isArray(j.jurnal.lunar)?j.jurnal.lunar.slice(-1)[0]:null,sg=v=>v==null?'—':(v>0?'+':'')+Number(v).toLocaleString('ro-RO',{minimumFractionDigits:3,maximumFractionDigits:3});
+  if(lun)lines.push('Bilanț lunar '+esc(lun.luna)+' (descriptiv, zile suprapuse): '+esc(lun.zile)+' zile verificate · votul față de frecvențe '+sg(lun.vsFrecvente)+', față de momentum '+sg(lun.vsMomentum)+' (plus = votul mai bun) · primele 10 față de univers '+(lun.clasament==null?'—':sg(lun.clasament)+'%')+'.');
+  else if(j.jurnal)lines.push('Bilanț lunar: apare după primele zile verificate (5 sesiuni după prima notare).');
   if(j.motor)lines.push('Motor: '+esc(j.motor)+(window.HoldingsClassifier&&HoldingsClassifier.VERSION!==j.motor?' · <span class="warn">altul decât al paginii</span>':'')+'.');
   $('bDClf').innerHTML=lines.join('<br>');
 }
@@ -740,7 +743,7 @@ $('foot').textContent = 'verificările gratuite au rulat la deschidere · cele c
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = 'tt-v929';
+  const swVer = 'tt-v930';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
@@ -749,7 +752,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v929';
+  var PAGE_VER = 'tt-v930';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

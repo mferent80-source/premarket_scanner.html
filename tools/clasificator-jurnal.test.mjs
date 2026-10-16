@@ -44,3 +44,9 @@ test('I-650: Holm pe două ținte — o țintă care ține o lasă pe cealaltă 
   const { bilantDoua } = await import('./clasificator-jurnal.mjs');
   const r = bilantDoua([], {}, dateOf); assert.equal(r.b5.alfa, 0.025); assert.equal(r.b20.alfa, 0.025); assert.equal(r.b20.verdict, 'in-proba');
 });
+test('bilanțul lunar: descriptiv, pe luna votului; clasamentele au Holm separat de ținte', async () => {
+  const { lunar, bilantDoua } = await import('./clasificator-jurnal.mjs');
+  const z = [{ asOf: '2026-10-20', rows: [{ s: 'A', y: 2, p: [0.1, 0.1, 0.8], pr: [0.3, 0.4, 0.3], mom: [0.1, 0.8, 0.1], pnl: 1 }] }, { asOf: '2026-11-03', rows: [{ s: 'A', y: 0, p: [0.8, 0.1, 0.1], pr: [0.3, 0.4, 0.3], mom: [0.1, 0.8, 0.1], pnl: -1 }] }];
+  const l = lunar(z); assert.deepEqual(l.map((x) => x.luna), ['2026-10', '2026-11']); assert.ok(l[0].vsFrecvente > 0); assert.equal(l[0].clasament, null);
+  const r = bilantDoua([], {}, dateOf); assert.equal(r.b5.clasament.alfa, 0.025); assert.equal(r.b20.clasament.alfa, 0.025);
+});
