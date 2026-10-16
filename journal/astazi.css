@@ -11,7 +11,7 @@ body.cap-journal{
  --bg:#f3f6f6;--panel:#fff;--panel2:#edf3f3;--panel3:#f6f9f9;--b1:#cbd7da;--b2:#e2e9eb;--t1:#162e35;--t2:#3d5661;--t3:#516974;
  --accent:#176a51;--bull-s:#176a51;--bear-s:#a93b45;--warn:#825d20;--purple:#315d8f;--jr-accent-bg:#e1f0e9;--jr-accent-line:#bcd8ca;
  --faint:#607884;--mint-soft:#e1f0e9;--amber-soft:#f6ecd9;--red-soft:#f8e5e6}
-body.cap-journal>*{width:100%;max-width:1510px;margin-left:auto!important;margin-right:auto!important}
+body.cap-journal>*{width:100%;max-width:none;margin-left:auto!important;margin-right:auto!important}
 
 /* antetul primul (ca la Astăzi), verdictul sub el; doar ordinea vizuală, elementele rămân la locul lor în pagină */
 body.cap-journal>header.cap-header{order:1;display:flex;align-items:center;justify-content:flex-start;gap:10px 10px;flex-wrap:wrap;margin:0;padding:10px 0;border:0;box-shadow:none;z-index:20;
@@ -60,3 +60,39 @@ body.cap-journal td{font-size:12px;font-variant-numeric:tabular-nums}
  body.cap-journal .jr-ctx-strip>*:nth-child(n+3){border-top:1px solid var(--b1)!important}}
 @media(max-width:600px){body.cap-journal{padding:14px 16px 90px;gap:12px}body.cap-journal .panel{padding:15px}body.cap-journal section.tt-verdict{padding:15px}
  body.cap-journal .jr-tab{padding:7px 9px}}
+/* 16.10.2026: execuțiile Trading 212 încap în panou — tabelul avea min-width fix, toate celulele nowrap în mono, iar „Comisioane / FX”
+   (o propoziție: „FX neverificat · Costuri neverificate · relay fără defalcare”) ieșea din cadru, tăiată. Cifrele rămân pe un rând, textul se rupe. */
+body.cap-journal #t212Journal table{display:table;width:100%!important;min-width:0!important;table-layout:auto}
+body.cap-journal #t212Journal th,body.cap-journal #t212Journal td{padding:12px 10px;white-space:nowrap}
+body.cap-journal #t212Journal td:last-child,body.cap-journal #t212Journal th:last-child{white-space:normal;text-align:left;font-family:var(--sans);font-size:12.5px!important;line-height:1.45;min-width:170px;color:var(--t2)}
+/* pe telefon execuțiile ca un card: eticheta deasupra fiecărei valori, comisioanele pe tot rândul; capul de tabel rămâne pentru cititoarele de ecran */
+@media(max-width:760px){
+ body.cap-journal #t212Journal>div{max-height:70vh!important}
+ body.cap-journal #t212Journal>div>table,body.cap-journal #t212Journal>div>table tbody,body.cap-journal #t212Journal>div>table tr,body.cap-journal #t212Journal>div>table td{display:block;width:100%}
+ body.cap-journal #t212Journal>div>table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+ body.cap-journal #t212Journal>div>table tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;padding:14px 4px;border-bottom:1px solid var(--b2)}
+ body.cap-journal #t212Journal>div>table td{padding:0!important;border:0;text-align:left!important;white-space:normal;min-width:0;overflow-wrap:anywhere}
+ body.cap-journal #t212Journal>div>table td::before{display:block;font:500 11.5px/1.4 var(--sans);color:var(--t3);margin-bottom:2px}
+ body.cap-journal #t212Journal>div>table td:nth-child(1)::before{content:"Data"}
+ body.cap-journal #t212Journal>div>table td:nth-child(2)::before{content:"Ticker"}
+ body.cap-journal #t212Journal>div>table td:nth-child(3)::before{content:"Operație"}
+ body.cap-journal #t212Journal>div>table td:nth-child(4)::before{content:"Cantitate"}
+ body.cap-journal #t212Journal>div>table td:nth-child(5)::before{content:"Preț"}
+ body.cap-journal #t212Journal>div>table td:nth-child(6)::before{content:"P&L broker"}
+ body.cap-journal #t212Journal>div>table td:nth-child(7)::before{content:"Valoare netă broker"}
+ body.cap-journal #t212Journal>div>table td:nth-child(8)::before{content:"Comisioane / FX"}
+ body.cap-journal #t212Journal>div>table td:last-child{grid-column:1/-1;min-width:0}
+ body.cap-journal #t212Journal details table,body.cap-journal #t212Journal details table tbody,body.cap-journal #t212Journal details table tr,body.cap-journal #t212Journal details table td{display:block;width:100%!important;min-width:0!important}
+ body.cap-journal #t212Journal details table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+ body.cap-journal #t212Journal details table tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;padding:14px 4px;border-bottom:1px solid var(--b2)}
+ body.cap-journal #t212Journal details table td{padding:0!important;border:0;text-align:left!important;white-space:normal;min-width:0;overflow-wrap:anywhere}
+ body.cap-journal #t212Journal details table td::before{display:block;font:500 11.5px/1.4 var(--sans);color:var(--t3);margin-bottom:2px}
+ body.cap-journal #t212Journal details table td:nth-child(1)::before{content:"Ticker"}
+ body.cap-journal #t212Journal details table td:nth-child(2)::before{content:"Intrare"}
+ body.cap-journal #t212Journal details table td:nth-child(3)::before{content:"Ieșire"}
+ body.cap-journal #t212Journal details table td:nth-child(4)::before{content:"Cantitate"}
+ body.cap-journal #t212Journal details table td:nth-child(5)::before{content:"Preț intrare → ieșire"}
+ body.cap-journal #t212Journal details table td:nth-child(6)::before{content:"P&L brut"}
+ body.cap-journal #t212Journal details table td:nth-child(7)::before{content:"Diferență valori nete broker · FIFO"}
+ body.cap-journal #t212Journal details table td:nth-child(5),body.cap-journal #t212Journal details table td:last-child{grid-column:1/-1}
+}

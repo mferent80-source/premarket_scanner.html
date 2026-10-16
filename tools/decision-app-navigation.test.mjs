@@ -176,9 +176,10 @@ test('paginile vii: întoarcerea la o pagină deschisă nu o reîncarcă și o p
 });
 test('paginile vii: peste limită iese cea mai veche pagină, Astăzi rămâne',()=>{
  const b=boot(),today=b.elements.frame;const open=u=>{b.send({ttOpenModule:u});return b.elements.frame;};
- const hold=open('holdings/');open('journal/');open('scanner-verdicts/');open('health/');
+ // 16.10.2026: 6 pe desktop (4 pe telefon) — Astăzi, Piață, Portofoliu și Jurnal rămân vii; a 7-a pagină o scoate pe cea mai veche
+ const hold=open('holdings/');open('journal/');open('scanner-verdicts/');open('health/');open('candidate-engine/');assert.notEqual(hold.removed,true,'la 6 pagini nu iese nimic');open('desk/');
  assert.equal(hold.removed,true,'Portofoliul, cea mai veche, a ieșit');assert.notEqual(today.removed,true,'Astăzi rămâne');
- assert.equal(b.elements.__frames.filter(f=>!f.removed).length,4);
+ assert.equal(b.elements.__frames.filter(f=>!f.removed).length,6);
 });
 test('paginile vii: o predare cu aceeași adresă reîncarcă pagina (planul nu rămâne cu analiza veche)',()=>{
  const b=boot(),go=()=>b.send({ttOpenModule:'smart-trade-long/',ttQuery:'symbol=CAT&mode=reversal'});
@@ -194,4 +195,12 @@ test('paginile vii: răspunsul conectorului ajunge la Astăzi și când e parcat
  const b=boot();loadChildDocument(b);b.send({ttOpenModule:'holdings/'});b.messages.child.length=0;
  b.events.message({origin:b.ctx.location.origin,source:b.elements.brokerFrame.contentWindow,data:{ttBrokerRefresh:{state:'ready'}}});
  assert.ok(b.messages.child.some(m=>m.data.ttBrokerRefresh&&m.data.ttBrokerRefresh.state==='ready'));
+});
+// 16.10.2026: „Jurnalul tot se resetează” — butonul Jurnal din meniu ducea mereu la #exec și muta fila aleasă (pagina rămânea vie, dar sărea pe Execuții, sus).
+test('întoarcerea din meniu păstrează fila Jurnalului aleasă de utilizator',()=>{
+ const b=boot('?module=journal%2F%23exec');
+ b.send({ttModuleState:{module:'journal/',hash:'#portfolio'}});assert.equal(new URL(b.ctx.location.href).searchParams.get('module'),'journal/#portfolio');
+ b.send({ttOpenModule:'today/'});assert.equal(new URL(b.ctx.location.href).searchParams.get('module'),'today/');
+ b.send({ttOpenModule:'journal/'});assert.equal(new URL(b.ctx.location.href).searchParams.get('module'),'journal/#portfolio');
+ b.send({ttOpenModule:'journal/#capital'});assert.equal(new URL(b.ctx.location.href).searchParams.get('module'),'journal/#capital');
 });
