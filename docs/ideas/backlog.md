@@ -3354,11 +3354,11 @@ pe un singur chart.
 | I-646 | Cardul clasificatorului pliat când n-are avantaj: un singur rând („fără avantaj dovedit · 0/3 ferestre”), detaliile la cerere — în Portofoliu și în fila AI din Planuri; se deschide singur doar la „experimental” | holdings/classifier.js, lib/desk-classifier.js, holdings/neural.css, desk/layout.css | S | P2 | făcut 2026-10-16 (5220dfe6) | ideation | 2026-10-16 |
 | I-647 | Rezultatele pe regim: testul și jurnalul (I-643) despărțite pe SPY peste / sub media de 200 de zile — IPOTEZĂ: un tipar ascuns în medie poate exista doar într-un regim; de probat cu corecția pentru cele 2 felii | tools/clasificator-univers.mjs, tools/clasificator-bilant.mjs (I-643), tools/trend-12-1-lib.mjs (regim) | M | P2 | făcut 2026-10-16 (a24e2de5) | ideation | 2026-10-16 |
 | I-648 | Procentele votului calibrate sau etichetate „necalibrat”: fiabilitatea pe validare (ECE, cu pragul de zgomot) și o temperatură pentru vot; azi „Long 41%” arată ca o probabilitate fără să fi fost verificat ca una | lib/holdings-classifier.js, holdings/classifier.js, lib/desk-classifier.js | M | P3 | făcut 2026-10-16 (5220dfe6) | ideation | 2026-10-16 |
-| I-649 | Clasamentul pe vot: în fiecare noapte cele ~53 de acțiuni ordonate după probabilitatea „Long”; jurnalul măsoară primele 10 față de media universului la 5 sesiuni, cu costuri — un avantaj RELATIV poate exista și când clasificarea absolută nu are (pragul scris dinainte) | tools/clasificator-jurnal.mjs, tools/clasificator-robot.mjs, lib/desk-classifier.js | M | P1 | propus | ideation | 2026-10-16 |
-| I-650 | A doua țintă, una singură și scrisă dinainte: ±2 ATR la 20 de sesiuni (orizontul pe care I-609 / I-622 îl dau ca probat pentru momentum), lângă cea de 5 sesiuni; încercările numărate (2) și Holm — IPOTEZĂ | lib/holdings-classifier.js (eticheta parametrizată), tools/clasificator-robot.mjs, tools/clasificator-jurnal.mjs | M | P2 | propus | ideation | 2026-10-16 |
-| I-651 | Contextul pieței ca indicatori: SPY față de media de 200 de zile, randamentul SPY pe 20 de zile și volatilitatea lui, la închiderea zilei (știute la vot) — azi fiecare acțiune e judecată ca și cum piața n-ar exista; probat cu ablația I-640 înainte de a rămâne | lib/holdings-classifier.js, tools/clasificator-date.mjs, tools/clasificator-ablatie.mjs | M | P2 | propus | ideation | 2026-10-16 |
-| I-652 | Pragul de 510 sesiuni pentru seriile tăiate după salt: întâi proba (aceleași acțiuni fără salt, tăiate artificial la 400 / 450 / 510 — se schimbă verdictele?), apoi, doar dacă ține, pragul mai mic pentru seriile tăiate ⇒ COIN, U, ENPH revin mai devreme | lib/holdings-bars.js, tools/clasificator-ablatie.mjs (variantă de lungime) | S | P2 | propus | ideation | 2026-10-16 |
-| I-653 | Candidatul fără clasificare spune de ce și când revine: în Planuri, semnul gol devine „⏳ din 12.11” (data la care istoricul de după salt ajunge la 510 sesiuni), cu motivul în titlu — azi 14 din 67 de candidați au semnul gol, fără explicație | lib/desk-classifier.js, lib/holdings-bars.js (data estimată) | S | P3 | propus | ideation | 2026-10-16 |
+| I-649 | Clasamentul pe vot: în fiecare noapte cele ~53 de acțiuni ordonate după probabilitatea „Long”; jurnalul măsoară primele 10 față de media universului la 5 sesiuni, cu costuri — un avantaj RELATIV poate exista și când clasificarea absolută nu are (pragul scris dinainte) | tools/clasificator-jurnal.mjs, tools/clasificator-robot.mjs, lib/desk-classifier.js | M | P1 | făcut 2026-10-16 (c2bdfcea) | ideation | 2026-10-16 |
+| I-650 | A doua țintă, una singură și scrisă dinainte: ±2 ATR la 20 de sesiuni (orizontul pe care I-609 / I-622 îl dau ca probat pentru momentum), lângă cea de 5 sesiuni; încercările numărate (2) și Holm — IPOTEZĂ | lib/holdings-classifier.js (eticheta parametrizată), tools/clasificator-robot.mjs, tools/clasificator-jurnal.mjs | M | P2 | făcut 2026-10-16 (dd6ae60a) | ideation | 2026-10-16 |
+| I-651 | Contextul pieței ca indicatori: SPY față de media de 200 de zile, randamentul SPY pe 20 de zile și volatilitatea lui, la închiderea zilei (știute la vot) — azi fiecare acțiune e judecată ca și cum piața n-ar exista; probat cu ablația I-640 înainte de a rămâne | lib/holdings-classifier.js, tools/clasificator-date.mjs, tools/clasificator-ablatie.mjs | M | P2 | probat 2026-10-16, NU trece (dd6ae60a) | ideation | 2026-10-16 |
+| I-652 | Pragul de 510 sesiuni pentru seriile tăiate după salt: întâi proba (aceleași acțiuni fără salt, tăiate artificial la 400 / 450 / 510 — se schimbă verdictele?), apoi, doar dacă ține, pragul mai mic pentru seriile tăiate ⇒ COIN, U, ENPH revin mai devreme | lib/holdings-bars.js, tools/clasificator-ablatie.mjs (variantă de lungime) | S | P2 | probat 2026-10-16: pragul e structural, rămâne (94c2eee9) | ideation | 2026-10-16 |
+| I-653 | Candidatul fără clasificare spune de ce și când revine: în Planuri, semnul gol devine „⏳ din 12.11” (data la care istoricul de după salt ajunge la 510 sesiuni), cu motivul în titlu — azi 14 din 67 de candidați au semnul gol, fără explicație | lib/desk-classifier.js, lib/holdings-bars.js (data estimată) | S | P3 | făcut 2026-10-16 (94c2eee9) | ideation | 2026-10-16 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6467,37 +6467,44 @@ Lentile: Trader — tot ce s-a măsurat azi spune „fără avantaj”; singura 
 
 Lentile: Trader — 8 modele + clasificatorul dau verdict pe 53 din 67 de acțiuni, dar toate spun „fără avantaj” pe direcția absolută la 5 sesiuni; întrebarea utilă devine „care acțiuni RELATIV” și „pe ce orizont”. Designer — cei 14 candidați fără clasificare au semnul gol, fără motiv. Inginer — pragul de 510 sesiuni și eticheta de 5 sesiuni sunt moștenite, niciodată probate pentru clasificator. Automator — robotul are deja tot universul în fiecare noapte: clasamentul transversal nu cere date noi. Legate (nu repetate): I-609 / I-622 (orizontul de 20–60 de zile pentru Trend 12 luni).
 
-#### I-649 · Clasamentul pe vot · [M] · P1 · propus
+#### I-649 · Clasamentul pe vot · [M] · P1 · făcut 2026-10-16 (c2bdfcea)
 - **Problema/golul:** clasificatorul e judecat absolut (Long / Hold / Short pe fiecare acțiune); un model fără avantaj absolut poate totuși ordona bine acțiunile între ele — iar pentru tine (doar cumpărări, T212) contează „ce cumpăr din listă”.
 - **Soluția:** robotul ordonează zilnic acțiunile după probabilitatea „Long” a votului și notează în jurnal primele 10; după 5 sesiuni măsoară randamentul lor (aceeași regulă: intrare la deschidere, stop 1 ATR, costuri 0,4%) față de media întregului univers în aceeași zi. Prag scris ACUM: după ≥30 de zile separate, diferența medie > 0 cu p<0,05 ⇒ „ordonează”; altfel „nu ordonează”. În Planuri: locul candidatului în clasament.
 - **Impact:** singura formă în care modelele actuale ar putea ajuta deja o decizie reală (alegerea dintre candidați).
 - **Riscuri/dependențe:** zilele se suprapun ⇒ doar zile separate; aceleași 10 acțiuni multe zile la rând ⇒ dovada e pe zile, nu pe acțiuni.
 - **Fișiere:** tools/clasificator-jurnal.mjs, tools/clasificator-robot.mjs, lib/desk-classifier.js.
 
-#### I-650 · A doua țintă: 20 de sesiuni · [M] · P2 · propus
+#### I-650 · A doua țintă: 20 de sesiuni · [M] · P2 · făcut 2026-10-16 (dd6ae60a)
 - **Problema/golul:** eticheta de 5 sesiuni (±1 ATR) e moștenită de la modelele vechi; I-622 arată că pentru momentum orizontul probat e 20–60 de zile, iar 5 zile e zgomot.
 - **Soluția:** o singură țintă în plus, scrisă dinainte: ±2 ATR la 20 de sesiuni, același clasificator, aceleași verificări; raportul și jurnalul o judecă separat, cu încercările numărate (2 ținte ⇒ Holm). Nu se caută alte orizonturi.
 - **Impact:** închide sau deschide întrebarea „poate e orizontul greșit” cu o singură încercare cinstită.
 - **Riscuri/dependențe:** pe 20 de sesiuni sunt de 4 ori mai puține orizonturi separate ⇒ verdictul vine mai greu; IPOTEZĂ.
 - **Fișiere:** lib/holdings-classifier.js, tools/clasificator-robot.mjs, tools/clasificator-jurnal.mjs.
 
-#### I-651 · Contextul pieței ca indicatori · [M] · P2 · propus
+#### I-651 · Contextul pieței ca indicatori · [M] · P2 · probat 2026-10-16, NU trece (dd6ae60a)
 - **Problema/golul:** cei 18 indicatori privesc doar acțiunea; o scădere de piață mută toate acțiunile odată.
 - **Soluția:** trei indicatori de context, la închiderea zilei votului: SPY față de media de 200 de zile, randamentul SPY pe 20 de zile, volatilitatea SPY; intră doar dacă ablația (I-640, aceleași ferestre) arată că ajută, altfel se scot și se notează încercarea.
 - **Impact:** dacă tiparul există doar „cu piața”, aici apare.
 - **Riscuri/dependențe:** SPY se descarcă o dată pe noapte (robotul îl ia deja pentru regim); în pagină trebuie adus și el.
 - **Fișiere:** lib/holdings-classifier.js, tools/clasificator-date.mjs, tools/clasificator-ablatie.mjs.
 
-#### I-652 · Pragul de 510 pentru seriile tăiate · [S] · P2 · propus
+#### I-652 · Pragul de 510 pentru seriile tăiate · [S] · P2 · probat 2026-10-16: pragul e structural, rămâne (94c2eee9)
 - **Problema/golul:** 14 acțiuni așteaptă 510 sesiuni după salt (COIN mai are 24); pragul vine de la mărimile seturilor modelelor vechi, nu dintr-o probă.
 - **Soluția:** întâi proba: acțiunile fără salt tăiate artificial la 400 / 450 / 510 sesiuni — se schimbă stările și erorile față de istoricul întreg? Doar dacă rămân la fel, seriile tăiate primesc pragul mai mic; altfel rămâne 510 și se notează de ce.
 - **Impact:** mai multe acțiuni cu verdict, fără să slăbească testele.
 - **Riscuri/dependențe:** seturi mai mici ⇒ teste mai slabe; de aceea proba înainte.
 - **Fișiere:** lib/holdings-bars.js, tools/clasificator-ablatie.mjs.
 
-#### I-653 · Candidatul fără clasificare spune de ce și când revine · [S] · P3 · propus
+#### I-653 · Candidatul fără clasificare spune de ce și când revine · [S] · P3 · făcut 2026-10-16 (94c2eee9)
 - **Problema/golul:** în Planuri, cei 14 candidați fără clasificare au semnul gol; nu știi dacă e o eroare sau o așteptare.
 - **Soluția:** semnul „⏳” cu data estimată la care istoricul de după salt ajunge la 510 sesiuni (din numărul de sesiuni rămase) și motivul în titlu; panoul AI spune același lucru.
 - **Impact:** știi că e o așteptare cu dată, nu o defecțiune.
 - **Riscuri/dependențe:** data e estimată pe zile lucrătoare (sărbătorile o pot muta cu o zi-două).
 - **Fișiere:** lib/desk-classifier.js, lib/holdings-bars.js.
+
+**Rezultate I-649..I-653 (16.10.2026):**
+- I-652: pragul de 510 e structural (199 de sesiuni de încălzire pentru EMA200 + minimum 300 de exemple; HMM / Isolation 600) — sub el modelele nu se slăbesc, se opresc. Rămâne.
+- I-653: candidații fără clasificare arată „⏳ dd.mm” (data estimată) sau „!”; picatele robotului nu se mai recalculează pe telefon.
+- I-649: clasamentul pe vot pornit (locul în Planuri); verdictul după 30 de zile separate cu ≥20 de acțiuni.
+- I-650: ținta ±2 ATR la 20 de sesiuni: 48 de acțiuni, 0 experimentale; jurnalul o judecă de la notarea din 16.10; Holm pe 2 ținte.
+- I-651: contextul SPY: −0,0022 la mediană, ajută la 57% din acțiuni ⇒ sub regula scrisă (≥0,005 și ≥60%) ⇒ nu e folosit. Încercări pe indicatori: 6.
