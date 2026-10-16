@@ -30,6 +30,8 @@ jobs:
       - name: Clasificarea universului
         run: node tools/clasificator-robot.mjs
       - name: Garda de formă a fișierului publicat
+        env:
+          GARDA_FISIER: '1'   # după generare: și motorul trebuie să fie cel al paginii
         run: node --test tools/clasificator-robot.test.mjs
       - name: Salvează fișierul
         run: |

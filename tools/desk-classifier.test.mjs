@@ -7,7 +7,7 @@ function setup(entries){
  for(const name of ['holdings-neural','holdings-neural-evaluation','holdings-classifier','desk-classifier'])vm.runInContext(readFileSync('lib/'+name+'.js','utf8'),c);return c.TTDeskClassifier;
 }
 const algo=(p,k=2)=>({support:k===2?[.1,.2,.7]:[.4,.35,.25],classIndex:k,loss:1,balanced:.4,wins:3,holmPass:true,p});
-const entry=(symbol,p,state='research')=>({version:'holdings-clf-v3',symbol,asOf:'2026-10-15',timezone:'America/New_York',closeMinutes:960,close:100,trainedAt:1,state,message:'m',maxZ:1,money:{long:{n:3,mean:.5,median:.4,win:.66},short:{n:0,mean:null,median:null,win:null},always:{n:40,mean:.1,median:.05,win:.5}},refs:{constant:{loss:1.05,balanced:.33},momentum:{loss:1.2,balanced:.4}},algos:{boost:algo(p),forest:algo(p),svm:algo(p),vote:algo(p)}});
+const entry=(symbol,p,state='research')=>({version:'holdings-clf-v4',symbol,asOf:'2026-10-15',timezone:'America/New_York',closeMinutes:960,close:100,trainedAt:1,state,message:'m',maxZ:1,money:{long:{n:3,mean:.5,median:.4,win:.66},short:{n:0,mean:null,median:null,win:null},always:{n:40,mean:.1,median:.05,win:.5}},refs:{constant:{loss:1.05,balanced:.33},momentum:{loss:1.2,balanced:.4}},algos:{boost:algo(p),forest:algo(p),svm:algo(p),vote:algo(p)}});
 
 test('I-639: pe o listă de 10, un p de 0,03 nu mai trece (prag 2/10 × 10% = 0,02); un p de 0,001 trece (Benjamini-Hochberg, 10%)',()=>{
  const xs={};['A','B','C','D','E','F','G','H','I','J'].forEach((s,i)=>xs[s]=entry(s,i===0?.001:i===1?.03:.6));const D=setup(xs);

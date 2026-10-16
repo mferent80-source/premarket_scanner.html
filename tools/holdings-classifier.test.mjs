@@ -92,3 +92,12 @@ test('I-642: banii se adună pe orizonturi separate, pe toate ferestrele; mereu 
  const m=noiseReport.walk.money;assert.ok(m.always.n>=50);for(const a of C.ALGOS){const x=m[a.id];assert.ok(x.long.n+x.short.n<=m.always.n);if(x.long.n){assert.ok(Number.isFinite(x.long.mean)&&x.long.win>=0&&x.long.win<=1);}}
  const bad=plain(noiseReport);bad.walk.money.vote.long.mean=99;assert.equal(C.valid(bad),false);
 });
+
+test('I-648: temperatura votului aleasă pe validare; ECE pe test cu pragul de zgomot; eticheta nu poate fi falsificată',()=>{
+ const v=noiseReport.algos.vote,c=v.calibration;assert.ok(C.CONFIG.voteTemperatures.includes(v.params.temperature));assert.equal(c.temperature,v.params.temperature);
+ assert.ok(c.ece>=0&&c.floor>0);assert.equal(c.ok,c.ece<=c.floor+.02);assert.match(C.calibrationText(c),c.ok?/verificate pe test/:/necalibrate/);
+ const bad=plain(noiseReport);bad.algos.vote.calibration.ok=!bad.algos.vote.calibration.ok;assert.equal(C.valid(bad),false);
+ // Testul nu alege temperatura: schimbarea exemplelor de test nu o mută.
+ const parts=C.split(noiseData.rows),a=C.fitPartitions(parts,{t:noise.at(-1).t,close:noise.at(-1).c,x:noiseData.latest}),changed=plain(parts);changed.test.forEach(r=>r.x[1]+=100);
+ assert.equal(C.fitPartitions(changed,{t:noise.at(-1).t,close:noise.at(-1).c,x:noiseData.latest}).algos.vote.params.temperature,a.algos.vote.params.temperature);
+});

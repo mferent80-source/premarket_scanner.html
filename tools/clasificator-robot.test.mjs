@@ -19,7 +19,9 @@ test('I-638: robotul clasifică, rezumă ca pagina și pune pe listă ce pică',
   const stricat = JSON.parse(JSON.stringify(j)); stricat.entries.A.algos.vote.support = [1, 1, 1]; assert.notDeepEqual(valideaza(stricat), []);
 });
 
-test('garda: fișierul publicat (dacă există) are forma bună și motorul paginii', () => {
+// Înainte de generare (și în suita locală) doar forma; motorul paginii se cere doar DUPĂ generare (GARDA_FISIER=1 în workflow),
+// altfel o urcare de versiune a motorului ar opri robotul înainte să refacă fișierul.
+test('garda: fișierul publicat (dacă există) are forma bună (și, după generare, motorul paginii)', () => {
   if (!existsSync(FISIER)) return;
-  const c = motor('.'); assert.deepEqual(valideaza(JSON.parse(readFileSync(FISIER, 'utf8')), c.HoldingsClassifier.VERSION), []);
+  const c = motor('.'); assert.deepEqual(valideaza(JSON.parse(readFileSync(FISIER, 'utf8')), process.env.GARDA_FISIER ? c.HoldingsClassifier.VERSION : undefined), []);
 });
