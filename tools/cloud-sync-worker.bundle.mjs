@@ -127,7 +127,7 @@ return globalThis.TradeEvidenceSchema;
 })();
 const TTCloudModel=(()=>{
 
-const KEYS=Object.freeze(['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_trading212_fills_v1','tt_trading212_portfolio_v1','tt_trading212_account_history_v1','tt_trading212_cash_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','cloud_credentials','tt_europe_signals_v1','tt_europe_risk_settings_v1',globalThis.TradeEvidenceSchema.KEY,...Array.from({length:64},(_,i)=>globalThis.TradeEvidenceSchema.KEY+':'+i.toString(16).padStart(2,'0'))]);
+const KEYS=Object.freeze(['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_trading212_fills_v1','tt_trading212_portfolio_v1','tt_trading212_account_history_v1','tt_trading212_cash_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','cloud_credentials','tt_europe_signals_v1','tt_europe_risk_settings_v1',globalThis.TradeEvidenceSchema.KEY,...Array.from({length:64},(_,i)=>globalThis.TradeEvidenceSchema.KEY+':'+i.toString(16).padStart(2,'0')),...Array.from({length:64},(_,i)=>'tt_holdings_forecast_sync_v1:'+i.toString(16).padStart(2,'0'))]);
 // Captures are immutable. Fixed buckets keep each encrypted record below the
 // service limit without discarding older analyses or changing their local identity.
 const EvidenceSchema=globalThis.TradeEvidenceSchema,EVIDENCE_KEY=EvidenceSchema.KEY;
@@ -155,6 +155,49 @@ function evidenceStore(storage){
 const EvidenceCloud=Object.freeze({KEY:EVIDENCE_KEY,keys:evidenceKeys,bucket,isKey:k=>k===EVIDENCE_KEY||evidenceKeys.includes(k),isBucket:k=>evidenceKeys.includes(k),createStore:evidenceStore,resolve:(key,base,local,remote,choice)=>evidenceMerge(key,base,local,remote,choice)});
 const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
+/* 16.10.2026: registrul de învățare al Portofoliului (estimări păstrate la timp + rezultatele verificate) circulă între dispozitive. Estimările se
+   împart pe identificator în 64 de pachete (un registru de poziție poate depăși cu timpul limita de 1 MB a unei înregistrări). Estimarea originală
+   nu se schimbă; rezultatul verificat vine din copia verificată cel mai recent; nimic nu se șterge, deci nu există conflicte. */
+const FORECAST_PREFIX='tt_holdings_forecast_sync_v1:',FORECAST_LEDGER='tt_holdings_forecast_v1:',FORECAST_VERSION='forecast-sync-v1';
+const forecastKeys=Object.freeze(KEYS.filter(k=>k.startsWith(FORECAST_PREFIX)));
+function forecastBucket(ledger,id){const s=String(ledger)+'|'+String(id);let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return forecastKeys[(h>>>0)%64];}
+// în cloud circulă ultimele 90 de zile (pe zi întreagă UTC, aceeași pe ambele dispozitive); pe dispozitiv rămâne tot istoricul
+const FORECAST_DAYS=90,FORECAST_BYTES=900000;
+const forecastCutoff=(now=Date.now())=>Math.floor(now/86400000)*86400000-FORECAST_DAYS*86400000;
+const forecastEntry=r=>object(r)&&typeof r.id==='string'&&r.id.length>0&&r.id.length<=400&&object(r.source)&&Number.isFinite(r.source.t);
+function validateForecast(key,value){
+ if(!object(value)||value.version!==FORECAST_VERSION||!object(value.ledgers))throw Error('invalid_forecast_ledger');
+ for(const [k,d] of Object.entries(value.ledgers)){if(!k.startsWith(FORECAST_LEDGER)||k.length>600||!object(d)||typeof d.version!=='string'||!Array.isArray(d.entries)||d.entries.length>20000||!d.entries.every(r=>forecastEntry(r)&&forecastBucket(k,r.id)===key)||new Set(d.entries.map(r=>r.id)).size!==d.entries.length)throw Error('invalid_forecast_ledger');}
+}
+const forecastOriginal=r=>{const x={...r};delete x.outcome;delete x.verification;return canonical(x);};
+/* Regula nu depinde de ordine (merge(a,b) ≡ merge(b,a)), altfel două dispozitive și-ar rescrie la nesfârșit aceeași estimare. Ca în
+   HoldingsForecastStorage.merge: originalul nu se amestecă, verificarea mai recentă câștigă, rezultate diferite ⇒ „neverificabil”. */
+const smaller=(a,b)=>canonical(a)<=canonical(b)?a:b;
+function pickForecast(x,r){
+ if(forecastOriginal(x)!==forecastOriginal(r)){const cx=Number(x.capturedAt??x.source.t),cr=Number(r.capturedAt??r.source.t);return cr<cx?r:cx<cr?x:smaller(x,r);}
+ const vx=Number(x.verification?.checkedAt)||0,vr=Number(r.verification?.checkedAt)||0,ver=vr>vx?r.verification:vx>vr?x.verification:smaller(x.verification??null,r.verification??null);
+ if(x.outcome&&r.outcome&&canonical(x.outcome.path)!==canonical(r.outcome.path)){const ox=Number(x.outcome.checkedAt)||0,or=Number(r.outcome.checkedAt)||0,keep=or<ox?r:ox<or?x:smaller(x,r);
+  return {...keep,verification:{...(ver||{}),state:'unverifiable',checkedAt:Math.max(vx,vr),reason:'Rezultate diferite între copii; rezultatul original este păstrat.'}};}
+ const outcome=x.outcome&&r.outcome?smaller(x.outcome,r.outcome):x.outcome||r.outcome,out={...x,verification:ver};if(outcome)out.outcome=outcome;else delete out.outcome;if(ver==null)delete out.verification;return out;
+}
+function mergeForecastLedger(a,b){
+ if(!a)return b;if(!b)return a;if(a.version!==b.version)return a.version>b.version?a:b;const rows=new Map(a.entries.map(r=>[r.id,r]));
+ for(const r of b.entries){const x=rows.get(r.id);rows.set(r.id,x?pickForecast(x,r):r);}
+ return {version:a.version,entries:[...rows.values()].sort((p,q)=>p.source.t-q.source.t||p.id.localeCompare(q.id))};
+}
+// valoarea din cloud: doar fereastra de 90 de zile și sub plafonul unui pachet (cele mai vechi ies primele, la fel pe ambele dispozitive)
+function forecastCloudValue(ledgers,now=Date.now()){
+ const cut=forecastCutoff(now),out={};for(const [k,d] of Object.entries(ledgers)){const entries=d.entries.filter(r=>r.source.t>=cut);if(entries.length)out[k]={version:d.version,entries};}
+ const keys=Object.keys(out).sort();let value=keys.length?{version:FORECAST_VERSION,ledgers:Object.fromEntries(keys.map(k=>[k,out[k]]))}:undefined;
+ while(value&&new TextEncoder().encode(JSON.stringify(value)).length>FORECAST_BYTES){let old=null;for(const k of Object.keys(value.ledgers)){const r=value.ledgers[k].entries[0];if(r&&(!old||r.source.t<old.r.source.t||r.source.t===old.r.source.t&&(k+r.id)<(old.k+old.r.id)))old={k,r};}
+  if(!old)break;value.ledgers[old.k].entries.shift();if(!value.ledgers[old.k].entries.length)delete value.ledgers[old.k];if(!Object.keys(value.ledgers).length)value=undefined;}
+ return value;
+}
+function forecastMerge(key,base,local,remote){
+ const ledgers={};for(const v of [base,local,remote]){if(v==null)continue;validateForecast(key,v);for(const [k,d] of Object.entries(v.ledgers))ledgers[k]=mergeForecastLedger(ledgers[k],d);}
+ return {value:forecastCloudValue(ledgers),conflicts:[]};
+}
+const ForecastCloud=Object.freeze({PREFIX:FORECAST_PREFIX,LEDGER:FORECAST_LEDGER,VERSION:FORECAST_VERSION,keys:forecastKeys,isBucket:k=>forecastKeys.includes(k),bucket:forecastBucket,mergeLedger:mergeForecastLedger,merge:forecastMerge,validate:validateForecast,cloudValue:forecastCloudValue,cutoff:forecastCutoff});
 const categories=['growth','earlyLong','reversal','earlyReversal'];
 const date=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&Number.isFinite(Date.parse(x+'T00:00:00Z'))&&new Date(x+'T00:00:00Z').toISOString().slice(0,10)===x;
 function validateEuropeHistory(value){
@@ -220,6 +263,7 @@ function merge(base,local,remote,path=''){
 }
 function mergeRecord(key,base,local,remote){
  if(EvidenceCloud.isKey(key))return evidenceMerge(key,base,local,remote);
+ if(forecastKeys.includes(key))return forecastMerge(key,base,local,remote);
  if(key==='tt_europe_signals_v1')return mergeEuropeHistory(base,local,remote);
  // Risk limits are one coherent policy; do not mix budgets from two devices.
  if(key==='tt_europe_risk_settings_v1'){if(equal(local,remote)||equal(local,base)||equal(remote,base))return merge(base,local,remote,key);return {value:local,conflicts:[key]};}
@@ -250,6 +294,7 @@ function validateValue(key,value){
  if(!KEYS.includes(key))throw Error('invalid_key');
  if(value===null)return true;
  if(EvidenceCloud.isKey(key))validateEvidence(key,value);
+ else if(forecastKeys.includes(key))validateForecast(key,value);
  else if(key==='tt_europe_signals_v1')validateEuropeHistory(value);
  else if(key==='tt_europe_risk_settings_v1'){
   if(!object(value)||!['EUR','USD','GBP','CHF','DKK','RON'].includes(value.currency)||typeof value.fractional!=='boolean'||!['budget','loss','fees','entry'].every(k=>['string','number'].includes(typeof value[k])&&String(value[k]).trim()!==''&&Number.isFinite(Number(value[k])))||Number(value.budget)<=0||Number(value.loss)<=0||Number(value.loss)>Number(value.budget)||Number(value.fees)<0||Number(value.entry)<=0)throw Error('invalid_value');
@@ -270,7 +315,7 @@ function validateValue(key,value){
 }
 
 
-return {KEYS,merge,mergeRecord,validateValue,EvidenceCloud};
+return {KEYS,merge,mergeRecord,validateValue,EvidenceCloud,ForecastCloud};
 })();
 const TTPrivateStore=(()=>{
 
@@ -404,7 +449,7 @@ async function runMonitors(env,deps,upstream=fetch,now=Date.now()){
 return {MONITOR_KEY,HEARTBEAT_KEY,monitorScope,monitorRules,schedulerStatus,handleMonitor,runMonitors};
 })();
 const TTCloudWorker=(()=>{
-const {KEYS,validateValue}=TTCloudModel;const {handle:brokerHandle}=TTBrokerRelay;const {handleMonitor,runMonitors,schedulerStatus}=TTCloudMonitor;const {handlePush,pushReceipt}=TTCloudPush;const {handleAudit}=TTCloudAudit;
+const {KEYS,validateValue,ForecastCloud}=TTCloudModel;const {handle:brokerHandle}=TTBrokerRelay;const {handleMonitor,runMonitors,schedulerStatus}=TTCloudMonitor;const {handlePush,pushReceipt}=TTCloudPush;const {handleAudit}=TTCloudAudit;
 const ORIGIN='https://mferent80-source.github.io',E=new TextEncoder(),D=new TextDecoder();
 const b64=b=>{const bytes=new Uint8Array(b);let text='';for(let i=0;i<bytes.length;i+=32768)text+=String.fromCharCode(...bytes.subarray(i,i+32768));return btoa(text).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');};
 const bytes=s=>{if(typeof s!=='string'||s.length>2000000||!/^[A-Za-z0-9_-]+$/.test(s))throw Error('invalid_encoding');const binary=atob(s.replace(/-/g,'+').replace(/_/g,'/')),out=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)out[i]=binary.charCodeAt(i);return out;};
@@ -467,9 +512,10 @@ async function handleCloud(request,env,upstream=fetch){
    if(query.length){
     if(query.length!==1)return reply({error:'invalid_query'},400);
     const [name,key]=query[0];
-    if(name==='index'&&key==='1'){
+    // index=1: aplicațiile vechi, care opresc sincronizarea la o cheie necunoscută; index=2 include registrul de învățare
+    if(name==='index'&&(key==='1'||key==='2')){
      const rows=await db.prepare('SELECT key,revision,updated FROM cloud_records WHERE subject=?').bind(subject).all(),records={};
-     for(const row of rows.results)if(KEYS.includes(row.key))records[row.key]={revision:row.revision,updated:row.updated};
+     for(const row of rows.results)if(KEYS.includes(row.key)&&(key==='2'||!ForecastCloud.isBucket(row.key)))records[row.key]={revision:row.revision,updated:row.updated};
      return reply({protocol:'tt-cloud-records-v2',records});
     }
     if(name!=='key'||!KEYS.includes(key))return reply({error:'invalid_query'},400);
@@ -477,7 +523,7 @@ async function handleCloud(request,env,upstream=fetch){
     if(row)records[key]={revision:row.revision,updated:row.updated,value:await unseal(row.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+key+'|'+row.revision)};
     return reply({records});
    }
-   const rows=await db.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=?').bind(subject).all(),records={};for(const r of rows.results){if(!KEYS.includes(r.key))continue;records[r.key]={revision:r.revision,updated:r.updated,value:await unseal(r.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+r.key+'|'+r.revision)};}return reply({records});
+   const rows=await db.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=?').bind(subject).all(),records={};for(const r of rows.results){if(!KEYS.includes(r.key)||ForecastCloud.isBucket(r.key))continue;records[r.key]={revision:r.revision,updated:r.updated,value:await unseal(r.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+r.key+'|'+r.revision)};}return reply({records});
   }
   if(url.pathname==='/api/cloud/record'&&request.method==='PUT'){
    const b=await body(request);validateValue(b.key,b.value);if(!Number.isSafeInteger(b.revision)||b.revision<0)return reply({error:'invalid_revision'},400);

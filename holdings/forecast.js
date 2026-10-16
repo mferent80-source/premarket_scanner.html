@@ -5,6 +5,7 @@ const legacy={getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.set
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=(v,d=1)=>Number.isFinite(v)?v.toLocaleString('ro-RO',{maximumFractionDigits:d,minimumFractionDigits:d}):'—';
 const NAMES={neural:'Neural · MLP',boosting:'Gradient Boosting',quantile:'Regresie cu cuantile',hmm:'HMM · regimuri',isolation:'Isolation Forest',garch:'GARCH(1,1) · volatilitate',knn:'KNN · vecini istorici',verdict:'Verdict final cumulat'},CLASSES=['Declin','Mixt','Avans'];
 const store=()=>context.demo?demo:real;
+try{const syncChannel=new BroadcastChannel('tt-holdings-forecast-sync-v1');syncChannel.onmessage=()=>{realStorage.invalidate?.();};}catch{}
 function identity(p){const m=context.model(p);return {scope:context.scope,ticker:p.ticker,symbol:context.symbol(p),currency:m?.currency||context.reference?.(p)?.currency||p.instrumentCurrency,kind:context.demo?'synthetic':'market'};}
 function snapshot(p){const e=identity(p);return {identity:e,asOf:context.model(p)?.asOf||null,ledger:store().read(e),check:checks.get(F.key(e))||null,storage:context.demo?{state:'demo'}:realStorage.status?.(F.key(e))};}
 async function restore(p){if(!context||!p||context.demo)return;const e=identity(p);if(!F.identity(e))return;await Promise.all([...[F.key(e),g.HoldingsForecastBackup?.archiveKey(e),g.HoldingsLearning?.key(e),g.HoldingsAutoLearning?.key(e)].filter(Boolean).map(k=>realStorage.load?.(k)),g.HoldingsStrategyUI?.restore(p,{identity:e})]);}

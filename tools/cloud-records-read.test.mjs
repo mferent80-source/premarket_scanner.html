@@ -112,7 +112,7 @@ test('a corrupt selected packet returns a sanitized failure with CORS',async t=>
 
 test('records queries reject unknown, repeated or mixed parameters',async t=>{
  const s=setup(t);
- for(const query of ['?unknown=1','?index=','?index=0','?index=2','?index=1&index=1','?index=1&unknown=1','?key=','?key=not_allowed','?key=__audit_receipts_v1','?key=tt_theme&key=tt_theme','?key=tt_theme&key=tt_journal_v1','?key=tt_theme&unknown=1','?index=1&key=tt_theme']){
+ for(const query of ['?unknown=1','?index=','?index=0','?index=3','?index=1&index=1','?index=1&unknown=1','?key=','?key=not_allowed','?key=__audit_receipts_v1','?key=tt_theme&key=tt_theme','?key=tt_theme&key=tt_journal_v1','?key=tt_theme&unknown=1','?index=1&key=tt_theme']){
   const response=await s.get(query);
   assert.equal(response.status,400,query);cors(response);
   assert.deepEqual(await response.json(),{error:'invalid_query'},query);
@@ -163,4 +163,12 @@ test('a valid near-limit journal survives encrypted storage and a selected read'
  const result=await selected.json();
  assert.deepEqual(result.records[key].value,value);
  assert.equal(result.records[key].revision,1);
+});
+test('registrul de învățare apare în index doar pentru aplicațiile noi (index=2); cele vechi și încărcarea completă nu îl văd',async t=>{
+ const s=setup(t),K='tt_holdings_forecast_sync_v1:00';
+ await s.record('tt_theme','dark');await s.record(K,{version:'forecast-sync-v1',ledgers:{}});
+ const old=await (await s.get('?index=1')).json(),fresh=await (await s.get('?index=2')).json(),all=await (await s.get('')).json();
+ assert.deepEqual(Object.keys(old.records),['tt_theme'],'aplicația veche nu vede cheia nouă (s-ar opri)');
+ assert.deepEqual(Object.keys(fresh.records).sort(),[K,'tt_theme'].sort());
+ assert.equal(Object.hasOwn(all.records,K),false);assert.equal(Object.hasOwn(all.records,'tt_theme'),true);
 });
