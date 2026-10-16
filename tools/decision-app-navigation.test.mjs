@@ -4,10 +4,11 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const html=fs.readFileSync(new URL('../app/index.html',import.meta.url),'utf8');
 const script=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].find(m=>m[2].includes('var GROUPS='))[2];
+function classes(){const set=new Set();return {add:k=>set.add(k),remove:k=>set.delete(k),contains:k=>set.has(k),toggle:(k,on)=>{const v=on===undefined?!set.has(k):!!on;if(v)set.add(k);else set.delete(k);return v;}};}
 function boot(search='',savedModule=null){
- const elements={},events={},messages={child:[],broker:[]},child={postMessage:(data,origin)=>messages.child.push({data,origin})},brokerChild={postMessage:(data,origin)=>messages.broker.push({data,origin})},storage=new Map(savedModule?[['tt_app_active_v1',savedModule]]:[]);
- const el=id=>elements[id]||(elements[id]={value:'',hidden:false,dataset:{},contentWindow:id==='brokerFrame'?brokerChild:child,contains:()=>false,querySelectorAll:()=>[],getAttribute(k){return this[k]||null;},setAttribute(k,v){this[k]=v;},focus(){},blur(){}});
- const document={documentElement:{dataset:{appVersion:"release-test"}},getElementById:el,addEventListener(){}};
+ const frames=[],elements={},events={},messages={child:[],broker:[]},child={postMessage:(data,origin)=>messages.child.push({data,origin})},brokerChild={postMessage:(data,origin)=>messages.broker.push({data,origin})},storage=new Map(savedModule?[['tt_app_active_v1',savedModule]]:[]);
+ const el=id=>elements[id]||(elements[id]={value:'',hidden:false,dataset:{},contentWindow:id==='brokerFrame'?brokerChild:child,contains:()=>false,querySelectorAll:()=>[],getAttribute(k){return this[k]||null;},setAttribute(k,v){this[k]=v;},removeAttribute(k){delete this[k];},classList:classes(),parentNode:{insertBefore(x){frames.push(x);}},remove(){this.removed=true;},focus(){},blur(){}});
+ const document={documentElement:{dataset:{appVersion:"release-test"}},getElementById:el,addEventListener(){},createElement:()=>({value:'',hidden:false,dataset:{},contentWindow:child,contains:()=>false,querySelectorAll:()=>[],getAttribute(k){return this[k]||null;},setAttribute(k,v){this[k]=v;},removeAttribute(k){delete this[k];},classList:classes(),parentNode:{insertBefore(x){frames.push(x);}},remove(){this.removed=true;},focus(){},blur(){}})};
  const location={origin:'https://example.test',href:'https://example.test/project/app/'+search,search};
  const route=(state,url)=>{location.href=url;location.search=new URL(url).search;};
  const ctx={document,location,history:{state:null,pushed:[],replaceState(state,_,url){this.state=state;route(state,url);},pushState(state,_,url){this.state=state;this.pushed.push({state,url});route(state,url);}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},navigator:{onLine:true},addEventListener:(n,f)=>events[n]=f,Intl,Date,URLSearchParams,URL};
@@ -15,6 +16,8 @@ function boot(search='',savedModule=null){
  vm.runInNewContext(fs.readFileSync(new URL('../lib/app-routes.js',import.meta.url),'utf8'),ctx);
  vm.runInNewContext(fs.readFileSync(new URL('../lib/app-search.js',import.meta.url),'utf8'),ctx);
  vm.runInNewContext(script,ctx);
+ // paginile vii: elements.frame = cadrul activ (marcat de aplicație cu data-tt-active)
+ const original=elements.frame;if(!frames.includes(original))frames.unshift(original);Object.defineProperty(elements,'frame',{configurable:true,get(){return frames.find(f=>f.dataset&&f.dataset.ttActive==='1'&&!f.removed)||original;}});elements.__frames=frames;
  return {elements,storage,messages,send:data=>events.message({origin:ctx.location.origin,source:elements.brokerFrame.hidden===false?brokerChild:child,data}),events,ctx};
 }
 function link(href,attributes={}){
@@ -37,7 +40,7 @@ test('all module routes exist and inline app scripts compile',()=>{const b=boot(
 test('journal opens execution tab and support routes use app pages',()=>{const b=boot();b.send({ttOpenModule:'journal/'});assert.equal(b.elements.frame.src,'../journal/?app=decision-mobile-v2&v=release-test#exec');b.send({ttOpenModule:'guide/'});assert.equal(b.elements.frame.src,'../app/coach/?app=decision-mobile-v2&v=release-test');b.send({ttOpenModule:'health/'});assert.equal(b.elements.frame.src,'../health/?app=decision-mobile-v2&v=release-test');});
 test('Europe home link returns to Today in the existing workspace',()=>{const b=boot('?module=europe-stocks%2F'),child=loadChildDocument(b);assert.equal(child.click(link('../app/')),true);assert.match(b.elements.frame.src,/^\.\.\/today\/\?app=/);assert.equal(b.elements.pageName.textContent,'Astăzi');});
 
-test('broker frame persists across module navigation without restarting connection',()=>{const b=boot();const initial=b.elements.brokerFrame.src;b.send({ttOpenModule:'broker/'});assert.equal(b.elements.brokerFrame.src,initial);assert.equal(b.elements.brokerFrame.hidden,false);assert.equal(b.elements.frame.hidden,true);b.send({ttOpenModule:'journal/'});assert.equal(b.elements.brokerFrame.hidden,true);assert.equal(b.elements.brokerFrame.src,initial);b.send({ttOpenModule:'broker/'});assert.equal(b.elements.brokerFrame.src,initial);});
+test('broker frame persists across module navigation without restarting connection',()=>{const b=boot();const initial=b.elements.brokerFrame.src;b.send({ttOpenModule:'broker/'});assert.equal(b.elements.brokerFrame.src,initial);assert.equal(b.elements.brokerFrame.hidden,false);assert.equal(b.elements.frame.classList.contains('parked'),true,'paginile rămân vii, parcate sub conector');b.send({ttOpenModule:'journal/'});assert.equal(b.elements.brokerFrame.hidden,true);assert.equal(b.elements.brokerFrame.src,initial);b.send({ttOpenModule:'broker/'});assert.equal(b.elements.brokerFrame.src,initial);});
 
 test('only the active Today document can request a refresh from the persistent broker',()=>{
  const b=boot(),src=b.elements.brokerFrame.src;
@@ -166,3 +169,29 @@ test('saved unavailable modules recover to Today with an explicit status instead
 test('primary risk navigation canonicalizes old Governor and capital aliases',()=>{const b=boot();b.send({ttOpen:'governor/'});assert.equal(b.elements.pageName.textContent,'Risc & capital');assert.match(b.elements.frame.src,/#desk$/);b.send({ttOpen:'equity/'});assert.equal(b.elements.pageName.textContent,'Mișcări de capital');assert.match(b.elements.frame.src,/#capital$/);});
 
 test('retired modules never replace the active frame or expose a search destination',()=>{const b=boot();for(const route of b.ctx.TTAppRoutes.retired){const before=b.elements.frame.src;b.send({ttOpenModule:route});assert.equal(b.elements.frame.src,before);}b.elements.search.value='MFX';b.elements.search.oninput();assert.match(b.elements.palette.innerHTML,/Niciun rezultat/);});
+test('paginile vii: întoarcerea la o pagină deschisă nu o reîncarcă și o parchează pe cealaltă',()=>{
+ const b=boot(),today=b.elements.frame;loadChildDocument(b);assert.equal(today._ttLoaded,true);
+ b.send({ttOpenModule:'holdings/'});const hold=b.elements.frame;assert.notEqual(hold,today);assert.match(hold.src,/holdings\/\?app=/);assert.equal(today.classList.contains('parked'),true);assert.equal(today.inert,true);
+ b.send({ttOpenModule:'today/'});assert.equal(b.elements.frame,today);assert.equal(today._ttLoaded,true,'fără reîncărcare');assert.equal(today.classList.contains('parked'),false);assert.equal(hold.classList.contains('parked'),true);
+});
+test('paginile vii: peste limită iese cea mai veche pagină, Astăzi rămâne',()=>{
+ const b=boot(),today=b.elements.frame;const open=u=>{b.send({ttOpenModule:u});return b.elements.frame;};
+ const hold=open('holdings/');open('journal/');open('scanner-verdicts/');open('health/');
+ assert.equal(hold.removed,true,'Portofoliul, cea mai veche, a ieșit');assert.notEqual(today.removed,true,'Astăzi rămâne');
+ assert.equal(b.elements.__frames.filter(f=>!f.removed).length,4);
+});
+test('paginile vii: o predare cu aceeași adresă reîncarcă pagina (planul nu rămâne cu analiza veche)',()=>{
+ const b=boot(),go=()=>b.send({ttOpenModule:'smart-trade-long/',ttQuery:'symbol=CAT&mode=reversal'});
+ go();loadChildDocument(b);assert.equal(b.elements.frame._ttLoaded,true);
+ b.send({ttOpenModule:'today/'});go();assert.equal(b.elements.frame._ttLoaded,false,'aceeași interogare ⇒ reîncărcare');
+});
+test('paginile vii: pagina află când e parcată și când revine',()=>{
+ const b=boot();loadChildDocument(b);b.messages.child.length=0;
+ b.send({ttOpenModule:'holdings/'});assert.ok(b.messages.child.some(m=>m.data.ttShellVisible===false));
+ b.messages.child.length=0;b.send({ttOpenModule:'today/'});assert.ok(b.messages.child.some(m=>m.data.ttShellVisible===true));
+});
+test('paginile vii: răspunsul conectorului ajunge la Astăzi și când e parcată',()=>{
+ const b=boot();loadChildDocument(b);b.send({ttOpenModule:'holdings/'});b.messages.child.length=0;
+ b.events.message({origin:b.ctx.location.origin,source:b.elements.brokerFrame.contentWindow,data:{ttBrokerRefresh:{state:'ready'}}});
+ assert.ok(b.messages.child.some(m=>m.data.ttBrokerRefresh&&m.data.ttBrokerRefresh.state==='ready'));
+});

@@ -15,10 +15,10 @@ const candidate={symbol:'QCOM',mode:'momentum',currency:'USD',region:'US',action
 async function boot({search='?symbol=QCOM&mode=momentum&ticket=1&handoff=1',hash='',cache=null,quota=true,governor='TRADE',page='desk',standalone=false,durable=null,planRows=null}={}){
   let clock=NOW,writes=0;const nodes={},events={},timeouts=[],intervals=[],messages=[];
   class Clock extends Date {constructor(...args){super(...(args.length?args:[clock]));}static now(){return clock;}}
-  function node(id){return nodes[id]||(nodes[id]={value:'',textContent:'',innerHTML:'',open:false,hidden:false,dataset:{},style:{setProperty(){}},classList:{toggle(){},remove(){},add(){}},querySelectorAll:()=>[],contains:()=>false,focus(){},blur(){},showModal(){this.open=true;this.opens=(this.opens||0)+1;},close(){this.open=false;}});}
+  function node(id){return nodes[id]||(nodes[id]={value:'',textContent:'',innerHTML:'',open:false,hidden:false,dataset:{},style:{setProperty(){}},classList:(()=>{const set=new Set();return {toggle:(k,on)=>{const v=on===undefined?!set.has(k):!!on;if(v)set.add(k);else set.delete(k);return v;},remove:k=>set.delete(k),add:k=>set.add(k),contains:k=>set.has(k)};})(),removeAttribute(k){delete this[k];},setAttribute(k,v){this[k]=v;},parentNode:{insertBefore(){}},remove(){this.removed=true;},querySelectorAll:()=>[],contains:()=>false,focus(){},blur(){},showModal(){this.open=true;this.opens=(this.opens||0)+1;},close(){this.open=false;}});}
   const parent={postMessage:(data,origin)=>messages.push({data,origin})};
   const localStorage={getItem:key=>key==="tt_trade_plans_v1"&&planRows?JSON.stringify(planRows):key.startsWith('ce_results_')&&cache?JSON.stringify(cache):null,setItem(){writes++;if(quota)throw new DOMException('quota','QuotaExceededError');}};
-  const ctx={Date:Clock,URLSearchParams,URL,Intl,DOMException,console,document:{getElementById:node,querySelectorAll:()=>[],addEventListener(){},activeElement:null,hidden:false,documentElement:{dataset:{appVersion:'test'}}},location:{origin:'https://example.test',href:'https://example.test/project/'+page+'/',search,hash},localStorage,parent,addEventListener:(n,fn)=>events[n]=fn,setTimeout:(fn,ms)=>{timeouts.push({fn,ms});return timeouts.length;},clearTimeout(){},setInterval:(fn,ms)=>{intervals.push({fn,ms});},GV:{status:()=>({verdict:governor,reasons:[],openCount:0,budgetLeftUsd:200,maxLossWeekUsd:300,weekPnl:0,cfg:{maxOpenPositions:4}})},TTBreadth:{load:async()=>null}};
+  const ctx={Date:Clock,URLSearchParams,URL,Intl,DOMException,console,document:{getElementById:node,createElement:()=>{const id='__frame'+Object.keys(nodes).length,n=node(id);n.contentWindow={postMessage:(data,origin)=>messages.push({data,origin,frame:id})};return n;},querySelectorAll:()=>[],addEventListener(){},activeElement:null,hidden:false,documentElement:{dataset:{appVersion:'test'}}},location:{origin:'https://example.test',href:'https://example.test/project/'+page+'/',search,hash},localStorage,parent,addEventListener:(n,fn)=>events[n]=fn,setTimeout:(fn,ms)=>{timeouts.push({fn,ms});return timeouts.length;},clearTimeout(){},setInterval:(fn,ms)=>{intervals.push({fn,ms});},GV:{status:()=>({verdict:governor,reasons:[],openCount:0,budgetLeftUsd:200,maxLossWeekUsd:300,weekPnl:0,cfg:{maxOpenPositions:4}})},TTBreadth:{load:async()=>null}};
   ctx.window=ctx;if(standalone)ctx.parent=ctx;
   vm.createContext(ctx);vm.runInContext(daily+handoff,ctx);
   if(page==='desk'){
@@ -97,9 +97,10 @@ test('saving a calculated plan must not claim persistence when quota refuses it'
   const b=await boot();b.send({ttPlanCandidate:candidate});await b.nodes.ticketSave.onclick();assert.match(b.nodes.ticketVerdict.textContent,/SALVARE RESPINSĂ/);assert.doesNotMatch(b.nodes.ticketVerdict.textContent,/PLAN SALVAT/);
 });
 test('shell forwards the validated snapshot once after Desk loads',async()=>{
-  const b=await boot({page:'app'}),sender=b.nodes.frame.contentWindow;
+  const b=await boot({page:'app'});let sender=b.nodes.frame.contentWindow;
   b.send({ttOpenModule:'desk/',ttQuery:'symbol=QCOM&mode=momentum&ticket=1&handoff=1',ttPlanCandidate:{...candidate,apiKey:'secret'}},b.ctx.location.origin,sender);
-  assert.equal(b.writes,2);assert.match(b.nodes.frame.src,/desk\/\?.*handoff=1/);
+  // paginile vii: Plan se deschide în cadrul lui, marcat activ de aplicație
+  const desk=Object.values(b.nodes).find(n=>n.dataset&&n.dataset.ttActive==='1');assert.equal(b.writes,2);assert.match(desk.src,/desk\/\?.*handoff=1/);sender=desk.contentWindow;
   b.nodes.brokerFrame.onload.call(b.nodes.brokerFrame);assert.equal(b.messages.length,0);
   b.send({ttPlanReady:{symbol:'QCOM',mode:'momentum'}},b.ctx.location.origin,sender);assert.equal(b.messages.length,1);assert.equal(b.messages[0].data.ttPlanCandidate.symbol,'QCOM');assert.equal(b.messages[0].data.ttPlanCandidate.apiKey,undefined);
   b.send({ttPlanReady:{symbol:'QCOM',mode:'momentum'}},b.ctx.location.origin,sender);assert.equal(b.messages.length,1);
