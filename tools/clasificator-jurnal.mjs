@@ -4,7 +4,9 @@
 //   „ține” = eroarea votului mai mică cu ≥0,02 decât AMBELE repere (frecvențele claselor și momentum), cu p<0,05 față de fiecare;
 //   altfel „nu ține”. Pe regim (SPY peste / sub media de 200 de zile) același calcul, cu corecția Holm pentru cele 2 felii.
 export const ISTORIC = 'candidate-engine/generated/clasificator-istoric.jsonl';
-export const PRAG = Object.freeze({ zileSeparate: 30, castig: 0.02, alfa: 0.05, distanta: 6, cost: 0.4, marja: 0.1 });
+export const PRAG = Object.freeze({ zileSeparate: 30, castig: 0.02, alfa: 0.05, distanta: 6, cost: 0.4, marja: 0.1, top: 10, minimZi: 20 });
+// I-649 (scris înaintea datelor): primele 10 după probabilitatea „Long” a votului (egalitate ⇒ alfabetic), față de media universului
+// în aceeași zi, după costuri; doar zile cu ≥20 de acțiuni verificate; „ordonează” = diferența medie > 0 cu p<0,05 după ≥30 de zile separate.
 const H = 5, r4 = (v) => Math.round(v * 1e4) / 1e4;
 
 /** Regimul pieței în ziua votului (închiderea SPY față de media ei de 200 de zile, ambele știute la închidere). */
@@ -57,6 +59,13 @@ function judeca(zile, alfa = PRAG.alfa) {
   const verdict = n < PRAG.zileSeparate ? 'in-proba' : f.medie >= PRAG.castig && m.medie >= PRAG.castig && f.p < alfa && m.p < alfa ? 'tine' : 'nu-tine';
   return { zileSeparate: n, verdict, vsFrecvente: f, vsMomentum: m, bani: bani(zile) };
 }
+export function primele(rows, n = PRAG.top) { return rows.slice().sort((a, b) => b.p[2] - a.p[2] || (a.s < b.s ? -1 : 1)).slice(0, n); }
+function clasament(zile) {
+  const d = zile.filter((z) => z.rows.length >= PRAG.minimZi).map((z) => { const top = primele(z.rows), m = (xs) => xs.reduce((a, r) => a + r.pnl, 0) / xs.length; return m(top) - m(z.rows); });
+  const t = test(d), verdict = t.n < PRAG.zileSeparate ? 'in-proba' : t.medie > 0 && t.p < PRAG.alfa ? 'ordoneaza' : 'nu-ordoneaza';
+  const mesaj = verdict === 'in-proba' ? `Clasamentul: ${t.n} din ${PRAG.zileSeparate} de zile separate; verdictul vine după.` : verdict === 'ordoneaza' ? 'Clasamentul ordonează: primele 10 bat media universului după costuri, pe zile noi.' : 'Clasamentul nu ordonează: primele 10 nu bat media universului cu pragul scris dinainte.';
+  return { zileSeparate: t.n, verdict, medie: t.medie, p: t.p, mesaj };
+}
 /** Bilanțul: pe toate zilele separate + pe regim (Holm pe 2 felii: prima la α/2, a doua la α). */
 export function bilant(linii, zileVerificate) {
   const sep = separa(zileVerificate), tot = judeca(sep), felii = {};
@@ -64,5 +73,5 @@ export function bilant(linii, zileVerificate) {
   const ordine = Object.entries(felii).filter(([, x]) => x.verdict !== 'in-proba').sort((a, b) => Math.min(a[1].vsFrecvente.p, a[1].vsMomentum.p) - Math.min(b[1].vsFrecvente.p, b[1].vsMomentum.p));
   if (ordine[1] && ordine[0][1].verdict === 'tine') felii[ordine[1][0]] = judeca(sep.filter((z) => z.regim === ordine[1][0]), PRAG.alfa);
   const mesaj = tot.verdict === 'in-proba' ? `În probă: ${tot.zileSeparate} din ${PRAG.zileSeparate} de zile separate verificate; verdictul vine după.` : tot.verdict === 'tine' ? 'Ține: votul bate ambele repere pe zile noi, după prag și test.' : 'Nu ține: pe zile noi votul nu bate ambele repere cu pragul scris dinainte.';
-  return { prag: PRAG, zileNotate: linii.length, zileVerificate: zileVerificate.length, ...tot, mesaj, regim: felii };
+  return { prag: PRAG, zileNotate: linii.length, zileVerificate: zileVerificate.length, ...tot, mesaj, regim: felii, clasament: clasament(sep) };
 }

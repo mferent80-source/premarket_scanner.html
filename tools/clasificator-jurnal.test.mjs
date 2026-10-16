@@ -34,3 +34,9 @@ test('I-647: regimul din SPY față de media de 200 de zile; feliile au verdictu
   const spy = Array.from({ length: 260 }, (_, i) => ({ t: zi(i), c: 100 + i })); assert.equal(regim(spy, dateOf(zi(250)), dateOf), 'sus'); assert.equal(regim(spy, dateOf(zi(100)), dateOf), null);
   const r = bilant([], zile(6 * 80, true)); assert.equal(r.regim.sus.verdict, 'tine'); assert.equal(r.regim.jos.verdict, 'tine');
 });
+test('I-649: clasamentul — primele 10 după „Long” față de media universului; „ordonează” doar după prag', () => {
+  const zi30 = (n, bun) => Array.from({ length: n }, (_, i) => ({ asOf: dateOf(zi(i)), regim: 'sus', rows: Array.from({ length: 25 }, (_, k) => ({ s: 'S' + k, y: 1, p: [0.3, 0.4, 0.3 + k / 100], pr: [0.3, 0.4, 0.3], mom: [0.1, 0.8, 0.1], k: 1, pnl: (bun ? k / 10 : 0) + ((i * 7 + k * 3) % 5) / 10 })) }));
+  assert.equal(bilant([], zi30(6 * 20, true)).clasament.verdict, 'in-proba');
+  assert.equal(bilant([], zi30(6 * 40, true)).clasament.verdict, 'ordoneaza');
+  assert.equal(bilant([], zi30(6 * 40, false)).clasament.verdict, 'nu-ordoneaza');
+});

@@ -30,6 +30,8 @@ export async function ruleaza({ c = motor('.', ['lib/desk-classifier.js']), simb
   const dateOf = (t) => c.DailySeries.date(t, 'America/New_York');
   if (comun) { try { comunRez = univers(c, serii, { now, log, spy, dateOf }); } catch (e) { comunRez = { eroare: String(e && e.message || e).slice(0, 160) }; log('model comun ✗ ' + comunRez.eroare); } }
   const j = { version: VERSIUNE, motor: C.VERSION, generat: new Date(now).toISOString(), asOf, simboluri: simboluri.length, entries, picate, univers: comunRez };
+  // I-649: clasamentul zilei după probabilitatea „Long” a votului (aceeași regulă ca în jurnal).
+  j.clasament = Object.values(entries).map((e) => ({ s: e.symbol, p: e.algos.vote.support[2] })).sort((a, b) => b.p - a.p || (a.s < b.s ? -1 : 1)).map((x, i) => ({ loc: i + 1, s: x.s, long: Math.round(x.p * 1e4) / 1e4 }));
   // I-643: linia zilei (prima notare rămâne), apoi verificarea voturilor cu 5 sesiuni încheiate și bilanțul.
   const text = adauga(istoric, ziua(j, regim(spy, asOf, dateOf))), linii = citeste(text);
   j.jurnal = bilant(linii, verifica(linii, intregi, dateOf));
