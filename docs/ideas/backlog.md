@@ -3365,6 +3365,12 @@ pe un singur chart.
 | I-657 | Rezumatul zilnic DOAR după verdict: când jurnalul spune „ține” sau „ordonează”, robotul trimite zilnic pe Discord primele 10 (★) cu verdictul lângă; până atunci nimic — să nu primești în fiecare zi semnale nedovedite | tools/clasificator-robot.mjs, .github/workflows/clasificator.yml | S | P2 | făcut 2026-10-16 (a58340b2) | ideation | 2026-10-16 |
 | I-658 | Universul robotului lărgit la cele 600 de acțiuni ale robotului Trend (univers-sua.json, ≥2 mld. $): clasament din 600 în loc de 53, modelul comun cu ~10× mai multe date — rulat o dată pe noapte, cu limită de timp | tools/clasificator-robot.mjs, tools/clasificator-date.mjs, .github/workflows/clasificator.yml | L | P3 | făcut 2026-10-16 (f76f2bfe) | ideation | 2026-10-16 |
 | I-659 | Costul după lichiditate: spread estimat din preț și volumul mediu în dolari (acțiunile mici / subțiri plătesc mai mult), în loc de 0,4% fix pentru toate — banii, jurnalul și clasamentul mai aproape de realitate | lib/holdings-classifier.js (buy), tools/clasificator-jurnal.mjs | M | P3 | făcut 2026-10-16 (a58340b2) | ideation | 2026-10-16 |
+| I-660 | Jurnalul judecă doar voturile motorului de acum: fiecare linie are deja versiunea motorului, dar bilanțul le amestecă (15.10 e v4, de azi v5) ⇒ verdictul numără doar zilele versiunii curente și afișează „numărătoarea a repornit la v5 din <dată>” — fără asta, orice urcare de motor contaminează proba | tools/clasificator-jurnal.mjs (verifica / bilant / bilantDoua), lib/desk-classifier.js, health/index.html | S | P1 | propus | ideation | 2026-10-16 |
+| I-661 | Înghețarea motorului cât durează proba: o gardă în suită care cere ca orice schimbare a lui lib/holdings-classifier.js să urce versiunea ȘI să fie scrisă într-un registru de versiuni (data, motivul) — schimbările mici, nevăzute, sunt cel mai sigur mod de a strica o probă de 7 luni | tools/holdings-classifier.test.mjs (garda), docs/clasificator-versiuni.md (nou) | S | P1 | propus | ideation | 2026-10-16 |
+| I-662 | Jurnalul pe fișiere lunare: de azi ~525 de voturi pe zi ⇒ ~70 KB pe zi, ~15 MB în 7 luni într-un singur fișier rescris și publicat în fiecare noapte; câte un fișier pe lună (citite toate la bilanț) ține commit-urile mici și pagina rapidă | tools/clasificator-jurnal.mjs, tools/clasificator-robot.mjs, .github/workflows/clasificator.yml | S | P2 | propus | ideation | 2026-10-16 |
+| I-663 | Raportul la verdict, scris de robot: în ziua în care o probă ajunge la 30 de zile separate, robotul scrie docs/clasificator-verdict-<lună>.md (ținte, clasamente, bani, pe tip de piață, versiunea motorului) și trimite pe Discord legătura — un singur loc de citit când vine momentul | tools/clasificator-robot.mjs, tools/clasificator-jurnal.mjs | M | P2 | propus | ideation | 2026-10-16 |
+| I-664 | Health: durata ultimei rulări a robotului și cât a clasificat din univers, cu galben peste 45 de minute (limita e 55) — azi a durat 39 min 42 s; dacă Yahoo încetinește, robotul taie din univers fără să știi | tools/clasificator-robot.mjs (durata în fișier), health/index.html | S | P3 | propus | ideation | 2026-10-16 |
+| I-665 | Acțiunile listate de curând (8 azi, sub 510 sesiuni) arată și ele „⏳ din <dată>” ca cele cu salt, iar cele 2 cu date stricate apar cu numele în Health — ca nimic din univers să nu lipsească fără motiv | lib/holdings-bars.js (waitInfo), lib/desk-classifier.js, health/index.html | S | P4 | propus | ideation | 2026-10-16 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6567,3 +6573,49 @@ Lentile: Trader — totul e în probă (verdict peste ~7 luni); ce poate ajuta a
 - I-657: rezumatul zilnic pe Discord tace până la un verdict pozitiv; mesaj la orice schimbare de verdict.
 - I-659: cost dus-întors = FX 0,3% + spread după lichiditate (ipoteză scrisă); motor v5; registrul păstrează v3 / v4.
 - I-658: prima rulare completă în Actions: 39 min 42 s, 616 acțiuni, 525 clasificate (81 salt recent, 8 istoric scurt, 2 date stricate), clasament 525 / 496, fișierul pentru telefon 281 KB; modelul comun pe 150: tot fără avantaj (0/3, p 0,34).
+
+## 16.10.2026 (noaptea, runda 5) — după universul de 600 (f76f2bfe): integritatea probei
+
+Lentile: Trader — de acum valoarea stă în proba de 7 luni; ce o poate strica e mai periculos decât orice funcție nouă. Designer — rezultatul va veni într-o zi anume; trebuie un singur loc de citit atunci. Inginer — jurnalul amestecă versiunile motorului (15.10 = v4, de azi v5) și crește cu ~70 KB pe zi într-un singur fișier. Automator — robotul poate tăia din univers dacă se apropie de limita de timp, fără semnal. Recomandare: după I-660 / I-661, fără funcții noi în motor până la primele verdicte (fiecare schimbare repornește numărătoarea).
+
+#### I-660 · Jurnalul judecă doar versiunea curentă a motorului · [S] · P1 · propus
+- **Problema/golul:** fiecare linie din jurnal are câmpul `motor`, dar `verifica` / `bilant` îl ignoră; ziua de 15.10 (v4, cost fix 0,4%) va fi numărată la un loc cu zilele v5. Orice urcare viitoare de motor ar amesteca din nou.
+- **Soluția:** bilanțul folosește doar liniile cu motorul curent; mesajul spune „numărătoarea a repornit la holdings-clf-v5 din 16.10”; liniile vechi rămân în jurnal (istoric), dar nu intră în verdict. Aceeași regulă pentru ținta de 20 și clasamente.
+- **Impact:** verdictul de peste 7 luni va fi despre UN model, nu despre un amestec.
+- **Riscuri/dependențe:** o urcare de motor înseamnă de acum o numărătoare de la zero — de aceea I-661.
+- **Fișiere:** tools/clasificator-jurnal.mjs, lib/desk-classifier.js, health/index.html.
+
+#### I-661 · Motorul înghețat cât durează proba · [S] · P1 · propus
+- **Problema/golul:** o schimbare mică în lib/holdings-classifier.js fără urcare de versiune ar schimba voturile în tăcere, iar jurnalul n-ar ști.
+- **Soluția:** o gardă în suită: amprenta fișierului motorului e legată de VERSION într-un registru `docs/clasificator-versiuni.md` (versiune, dată, motiv, amprentă); dacă fișierul se schimbă fără versiune nouă și rând nou în registru, testul pică. Plus amprenta rezultatelor pe 3 acțiuni (ca la refactorizarea din 16.10).
+- **Impact:** proba nu poate fi stricată din greșeală; orice schimbare voită lasă urmă și repornește numărătoarea vizibil.
+- **Riscuri/dependențe:** testul trebuie actualizat la fiecare urcare voită (asta e chiar scopul).
+- **Fișiere:** tools/holdings-classifier.test.mjs, docs/clasificator-versiuni.md (nou).
+
+#### I-662 · Jurnalul pe fișiere lunare · [S] · P2 · propus
+- **Problema/golul:** de azi ~525 de voturi pe zi (~70 KB); un singur fișier rescris în fiecare noapte ajunge la ~15 MB în 7 luni, publicat pe Pages și rescris în fiecare commit.
+- **Soluția:** `clasificator-istoric-AAAA-LL.jsonl`, câte unul pe lună; robotul adaugă doar la luna curentă și citește toate la bilanț; fișierul de azi devine prima lună.
+- **Impact:** commit-uri mici, istoric git curat, citire rapidă.
+- **Riscuri/dependențe:** mutarea fișierului de azi o singură dată, cu proba că nicio linie nu se pierde.
+- **Fișiere:** tools/clasificator-jurnal.mjs, tools/clasificator-robot.mjs, .github/workflows/clasificator.yml.
+
+#### I-663 · Raportul la verdict, scris de robot · [M] · P2 · propus
+- **Problema/golul:** verdictul va apărea într-o noapte, peste ~7 luni, împrăștiat în Planuri, Health și Discord.
+- **Soluția:** în noaptea în care o probă ajunge la 30 de zile separate, robotul scrie un raport (ținte 5 / 20, clasamente, bani după costuri, pe tip de piață, versiunea motorului, câte încercări au fost în total) și trimite legătura pe Discord.
+- **Impact:** decizia „îl folosesc sau nu” se ia citind un singur document, scris după reguli fixate dinainte.
+- **Riscuri/dependențe:** după I-660 (altfel raportul ar amesteca versiuni).
+- **Fișiere:** tools/clasificator-robot.mjs, tools/clasificator-jurnal.mjs.
+
+#### I-664 · Durata robotului în Health · [S] · P3 · propus
+- **Problema/golul:** limita de 55 de minute taie din univers fără semnal dacă Yahoo încetinește.
+- **Soluția:** robotul scrie în fișier durata și câte acțiuni au rămas netratate pe timp; Health le arată, galben peste 45 de minute sau la orice „timp depășit”.
+- **Impact:** afli înainte ca proba să piardă acțiuni.
+- **Riscuri/dependențe:** niciunul — doar citire.
+- **Fișiere:** tools/clasificator-robot.mjs, health/index.html.
+
+#### I-665 · Nimic lipsă fără motiv · [S] · P4 · propus
+- **Problema/golul:** cele 8 acțiuni listate de curând nu au data la care revin, iar cele 2 cu date stricate nu apar nicăieri cu numele.
+- **Soluția:** `waitInfo` recunoaște și „sub 510 sesiuni” (data din câte sesiuni lipsesc); Health listează pe scurt simbolurile cu date stricate.
+- **Impact:** știi pentru fiecare acțiune din univers de ce lipsește și până când.
+- **Riscuri/dependențe:** data e estimată pe zile lucrătoare.
+- **Fișiere:** lib/holdings-bars.js, lib/desk-classifier.js, health/index.html.
