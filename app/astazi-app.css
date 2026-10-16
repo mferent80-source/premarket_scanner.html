@@ -1,0 +1,29 @@
+/* 16.10.2026 — Coach, Starea datelor și Cont & sincronizare în stilul „Astăzi”: aceeași paletă și litere (IBM Plex Sans), titlul paginii
+   primul și verdictul după el (era inserat deasupra titlului), eticheta de sus discretă, butoanele de acțiune în scris normal.
+   Doar aspectul: conținutul, id-urile și logica paginilor rămân neatinse. Se încarcă ULTIMA. */
+:root{--bg:#0b1015;--panel:#101820;--line:#24313c;--ink:#eff6f8;--text:#eff6f8;--muted:#9baab5;--green:#8de2bf;--amber:#e9c58c;--red:#f0a7aa}
+:root[data-theme=light]{--bg:#f3f6f6;--panel:#fff;--line:#cbd7da;--ink:#162e35;--text:#162e35;--muted:#516974;--green:#176a51;--amber:#825d20;--red:#a93b45}
+body{background:var(--bg);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14.5px}
+main{display:flex;flex-direction:column;padding:25px clamp(16px,2.4vw,34px) 40px}
+main>*{order:2}
+main>header,main>.eyebrow,main>h1,main>h1+p{order:0}
+main>.tt-verdict{order:1;margin:0 0 18px;border-radius:10px;border-width:1px;border-left-width:3px;box-shadow:none}
+
+/* antetul */
+main>header{align-items:flex-end;margin-bottom:18px}
+h1{font-size:clamp(27px,2.55vw,36px);font-weight:600;letter-spacing:-.045em;line-height:1.25}
+.kicker{display:block;font:500 12.5px/1.5 "IBM Plex Sans",system-ui,sans-serif;letter-spacing:.01em;color:var(--muted);text-transform:lowercase}
+.kicker::first-letter{text-transform:uppercase}
+/* „ACELAȘI CONT · PC & TELEFON”: rămâne scris cum e (PC), doar discret */
+main>.eyebrow{display:block;font:500 12px/1.5 "IBM Plex Sans",system-ui,sans-serif;letter-spacing:.06em;color:var(--muted)}
+.primary{display:inline-block;text-transform:lowercase;border-radius:8px;font-weight:600}
+.primary::first-letter{text-transform:uppercase}
+:root:not([data-theme=light]) .primary{color:#0b1015}
+
+/* panouri */
+.card,section.panel,.status{border-radius:10px}
+.card{border-color:var(--line)}
+
+@media(max-width:760px){
+ main{padding:18px 16px 30px}
+}
