@@ -1,0 +1,50 @@
+name: Clasificator Long / Hold / Short (noaptea, pentru Planuri)
+
+# 16.10.2026 (I-638): clasifică universul scannerului cu același motor ca pagina (lib/holdings-classifier.js) și scrie
+# candidate-engine/generated/clasificator.json; Planuri îl citește întâi și calculează pe telefon doar ce lipsește.
+# Două încercări: după închiderea US și dimineața (Actions întârzie rulările; Yahoo poate da bara zilei târziu).
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 23 * * 1-5'   # UTC, după închiderea de la 20:00 UTC și după robotul Trend (22:40)
+    - cron: '40 3 * * 2-6'    # a doua încercare
+
+permissions:
+  contents: write
+
+jobs:
+  clasifica:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: trading-tools-clasificator
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --test tools/holdings-classifier.test.mjs tools/clasificator-robot.test.mjs
+      - name: Clasificarea universului
+        run: node tools/clasificator-robot.mjs
+      - name: Garda de formă a fișierului publicat
+        run: node --test tools/clasificator-robot.test.mjs
+      - name: Salvează fișierul
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add candidate-engine/generated/clasificator.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data(clasificator): clasificarea de noapte [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Discord la eșec
+        if: failure()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          [ -n "$DISCORD_WEBHOOK" ] || exit 0
+          node -e "const m={content:'**Robotul Clasificator a PICAT** · rularea '+process.argv[1]+'\n'+process.argv[2]+'\nPlanuri calculează pe telefon până la o rulare bună.'};fetch(process.env.DISCORD_WEBHOOK,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(m)}).then(r=>console.log('Discord: '+r.status)).catch(e=>console.log('Discord: '+e.message))" "${{ github.run_number }}" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
