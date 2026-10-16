@@ -9,15 +9,17 @@ import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { motor, adu, aduCache, universScanner, clasifica } from './clasificator-date.mjs';
 import { univers } from './clasificator-univers.mjs';
+import { ISTORIC, regim, ziua, adauga, citeste, verifica, bilant } from './clasificator-jurnal.mjs';
+import { readFileSync, existsSync } from 'node:fs';
 
 export const FISIER = 'candidate-engine/generated/clasificator.json', VERSIUNE = 'clasificator-robot-v1';
 
-export async function ruleaza({ c = motor('.', ['lib/desk-classifier.js']), simboluri = universScanner('.'), sursa, now = Date.now(), log = () => {}, comun = true } = {}) {
-  const C = c.HoldingsClassifier, D = c.TTDeskClassifier, entries = {}, picate = [], serii = {};
+export async function ruleaza({ c = motor('.', ['lib/desk-classifier.js']), simboluri = universScanner('.'), sursa, now = Date.now(), log = () => {}, comun = true, spy = null, istoric = '' } = {}) {
+  const C = c.HoldingsClassifier, D = c.TTDeskClassifier, entries = {}, picate = [], serii = {}, intregi = {};
   for (const [k, s] of simboluri.entries()) {
     try {
       const src = sursa ? await sursa(s) : c.DailySeries.read(await adu(s), s, now);
-      entries[s] = D.compact(s, src, clasifica(c, src.bars, { now }), now); serii[s] = { bars: c.HoldingsBars.prepare(src.bars).bars };
+      entries[s] = D.compact(s, src, clasifica(c, src.bars, { now }), now); serii[s] = { bars: c.HoldingsBars.prepare(src.bars).bars }; intregi[s] = src.bars;
       log(`${k + 1}/${simboluri.length} ${s} ${entries[s].state}`);
     } catch (e) { picate.push({ simbol: s, motiv: String(e && e.message || e).slice(0, 120) }); log(`${k + 1}/${simboluri.length} ${s} ✗ ${e && e.message}`); }
   }
@@ -25,8 +27,13 @@ export async function ruleaza({ c = motor('.', ['lib/desk-classifier.js']), simb
   const asOf = Object.entries(zile).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? 1 : -1))[0]?.[0] || null;
   // I-641: modelul comun pe toate simbolurile clasificate, cu dovada pe zile; dacă pică, fișierul rămâne valabil fără el.
   let comunRez = null;
-  if (comun) { try { comunRez = univers(c, serii, { now, log }); } catch (e) { comunRez = { eroare: String(e && e.message || e).slice(0, 160) }; log('model comun ✗ ' + comunRez.eroare); } }
-  return { version: VERSIUNE, motor: C.VERSION, generat: new Date(now).toISOString(), asOf, simboluri: simboluri.length, entries, picate, univers: comunRez };
+  const dateOf = (t) => c.DailySeries.date(t, 'America/New_York');
+  if (comun) { try { comunRez = univers(c, serii, { now, log, spy, dateOf }); } catch (e) { comunRez = { eroare: String(e && e.message || e).slice(0, 160) }; log('model comun ✗ ' + comunRez.eroare); } }
+  const j = { version: VERSIUNE, motor: C.VERSION, generat: new Date(now).toISOString(), asOf, simboluri: simboluri.length, entries, picate, univers: comunRez };
+  // I-643: linia zilei (prima notare rămâne), apoi verificarea voturilor cu 5 sesiuni încheiate și bilanțul.
+  const text = adauga(istoric, ziua(j, regim(spy, asOf, dateOf))), linii = citeste(text);
+  j.jurnal = bilant(linii, verifica(linii, intregi, dateOf));
+  return { ...j, istoricText: text };
 }
 
 /** Garda de formă a fișierului publicat; întoarce lista problemelor (goală = bun). */
@@ -51,10 +58,19 @@ export function valideaza(j, motorVersiune) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const i = process.argv.indexOf('--cache'), dir = i > 0 ? process.argv[i + 1] : null; // doar pentru rulări locale repetate
-  const c = motor('.', ['lib/desk-classifier.js']), j = await ruleaza({ c, log: console.log, ...(dir ? { sursa: async (s) => c.DailySeries.read(await aduCache(s, dir), s) } : {}) }), probleme = valideaza(j, c.HoldingsClassifier.VERSION), n = Object.keys(j.entries).length;
+  const c = motor('.', ['lib/desk-classifier.js']), vechi = existsSync(FISIER) ? (() => { try { return JSON.parse(readFileSync(FISIER, 'utf8')); } catch { return null; } })() : null;
+  let spy = null; try { spy = dir ? await aduCache('SPY', dir) : await adu('SPY'); } catch (e) { console.log('SPY indisponibil: ' + e.message); }
+  const istoric = existsSync(ISTORIC) ? readFileSync(ISTORIC, 'utf8') : '';
+  const { istoricText, ...j } = await ruleaza({ c, log: console.log, spy, istoric, ...(dir ? { sursa: async (s) => c.DailySeries.read(await aduCache(s, dir), s) } : {}) }), probleme = valideaza(j, c.HoldingsClassifier.VERSION), n = Object.keys(j.entries).length;
   console.log(`\n${n} din ${j.simboluri} clasificate · EOD ${j.asOf} · picate ${j.picate.length} · experimentale ${Object.values(j.entries).filter((e) => e.state === 'research').length}`);
   if (probleme.length) { console.error('Fișier respins: ' + probleme.slice(0, 10).join(' · ')); process.exit(1); }
   // Prea puține ⇒ rețea / Yahoo picat: nu înlocuiesc fișierul bun de ieri cu unul aproape gol.
   if (n < Math.ceil(j.simboluri * 0.5)) { console.error('Prea puține simboluri clasificate; fișierul vechi rămâne.'); process.exit(1); }
-  if (!process.argv.includes('--uscat')) writeFileSync(FISIER, JSON.stringify(j) + '\n');
+  console.log('Jurnal: ' + j.jurnal.zileNotate + ' zile notate · ' + j.jurnal.zileVerificate + ' verificate · ' + j.jurnal.mesaj);
+  if (!process.argv.includes('--uscat')) { writeFileSync(FISIER, JSON.stringify(j) + '\n'); writeFileSync(ISTORIC, istoricText); }
+  // Discord doar când se schimbă verdictul jurnalului (în probă → ține / nu ține).
+  const inainte = vechi?.jurnal?.verdict, acum = j.jurnal.verdict;
+  if (process.env.DISCORD_WEBHOOK && inainte && inainte !== acum && !process.argv.includes('--uscat')) {
+    try { const r = await fetch(process.env.DISCORD_WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: '**Clasificatorul — jurnalul de noapte: verdict nou** · ' + j.jurnal.mesaj + ' (' + j.jurnal.zileSeparate + ' zile separate)' }), signal: AbortSignal.timeout(20000) }); console.log('Discord: ' + r.status); } catch (e) { console.log('Discord: ' + e.message); }
+  }
 }

@@ -28,6 +28,8 @@ jobs:
           node-version: '20'
       - run: node --test tools/holdings-classifier.test.mjs tools/clasificator-robot.test.mjs
       - name: Clasificarea universului
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}   # doar la schimbarea verdictului jurnalului (I-643)
         run: node tools/clasificator-robot.mjs
       - name: Garda de formă a fișierului publicat
         env:
@@ -37,7 +39,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add candidate-engine/generated/clasificator.json
+          git add candidate-engine/generated/clasificator.json candidate-engine/generated/clasificator-istoric.jsonl
           if ! git diff --cached --quiet; then
             git commit -m 'data(clasificator): clasificarea de noapte [skip ci]'
             git pull --rebase origin main
