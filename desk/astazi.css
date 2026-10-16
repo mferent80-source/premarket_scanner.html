@@ -1,0 +1,48 @@
+/* 16.10.2026 — Planuri în stilul „Astăzi”: pagina pe toată lățimea (ca Radarul), cele trei stări din antet ca banda „pe scurt”,
+   etichetele mici și butoanele de acțiune în scriere normală (nu MAJUSCULE mono), lista semnalelor întreagă (nu tăiată la 560 px).
+   Doar aspectul: conținutul, id-urile și logica paginii rămân neatinse. Se încarcă ULTIMA. */
+html body .desk{width:auto;max-width:none;margin:25px clamp(16px,2.4vw,34px) 40px}
+
+/* etichetele: ca „Piața”, „Contul”, „Idei” din Astăzi */
+.desk .eyebrow,.ticket .eyebrow{display:block;font:500 12.5px/1.5 var(--tt-sans,system-ui,sans-serif);letter-spacing:.01em;color:var(--muted);text-transform:lowercase}
+.desk .eyebrow::first-letter,.ticket .eyebrow::first-letter{text-transform:uppercase}
+.desk :is(.metric,.levels,.story-points,.broker-performance-summary,.focus-levels,.score) small,.desk .confidence>span,.desk .mini-title,.desk .idea-title>span{font:500 12.5px/1.45 var(--tt-sans,system-ui,sans-serif);letter-spacing:0;color:var(--muted);text-transform:lowercase}
+.desk :is(.metric,.levels,.story-points,.broker-performance-summary,.focus-levels,.score) small::first-letter,.desk .confidence>span::first-letter,.desk .mini-title::first-letter,.desk .idea-title>span::first-letter{text-transform:uppercase}
+.desk :is(.metric,.levels,.story-points,.broker-performance-summary,.focus-levels,.score) small{display:block}
+.desk .idea-title>span{display:inline-block}
+/* cu nume proprii și abrevieri (Trading 212 Invest, T212, P&L, RS): rămân cum sunt scrise */
+.desk #performanceScope{text-transform:none}
+.desk .confidence>span{display:inline-block}
+/* „← Înapoi la listă” e doar pentru telefon: nu primește display aici */
+.desk .desk-back{text-transform:none}
+.desk .mini-title{display:block}
+
+/* butoanele de acțiune: „Deschide scannerul →”, nu „DESCHIDE SCANNERUL →” (rândurile cu simboluri rămân cum sunt) */
+.desk :is(.primary,.link,.head>button,.tabs>button,#trackEntry,.performance-sync,#queueExport,#queueMore),.desk .statusbar>button,.ticket :is(.primary,.link){display:inline-block;text-transform:lowercase}
+.desk :is(.primary,.link,.head>button,.tabs>button,#trackEntry,.performance-sync,#queueExport,#queueMore)::first-letter,.desk .statusbar>button::first-letter,.ticket :is(.primary,.link)::first-letter{text-transform:uppercase}
+.desk .head>button{font-weight:500;color:var(--green)}
+
+/* antetul: titlul și butonul pe primul rând, cele trei stări într-o bandă dedesubt */
+.desk .brief{grid-template-columns:minmax(0,1fr) auto;align-items:end;row-gap:18px}
+.desk .brief>div:first-child{grid-column:1;grid-row:1;min-width:0}
+.desk .brief>.primary{grid-column:2;grid-row:1;align-self:end}
+.desk .brief h1{font-size:clamp(27px,2.55vw,36px);letter-spacing:-.045em}
+.desk .proof{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.desk .proof>div{display:grid;grid-template-columns:8px minmax(0,1fr);grid-template-areas:"i s" "b b";align-items:center;gap:6px 9px;padding:16px 18px;border-right:1px solid var(--line);min-width:0}
+.desk .proof>div:last-child{border-right:0}
+.desk .proof>div>i{grid-area:i}
+.desk .proof>div>span{grid-area:s;font-size:12.5px;color:var(--muted)}
+.desk .proof>div>b{grid-area:b;font-size:17px;font-weight:600;letter-spacing:-.01em;text-align:left;overflow-wrap:anywhere}
+
+/* lista semnalelor întreagă pe ecran lat (avea max-height 560 px și tăia al 7-lea candidat) */
+@media(min-width:1181px){.desk .rows{max-height:none}}
+
+@media(max-width:760px){
+ html body .desk{margin:18px 16px 28px}
+ .desk .brief{grid-template-columns:1fr}
+ .desk .brief>.primary{grid-column:1;grid-row:3;justify-self:stretch}
+ .desk .proof{grid-template-columns:1fr}
+ .desk .proof>div{border-right:0;border-bottom:1px solid var(--line);grid-template-columns:8px minmax(0,1fr) auto;grid-template-areas:"i s b"}
+ .desk .proof>div:last-child{border-bottom:0}
+ .desk .proof>div>b{text-align:right;font-size:15px}
+}
