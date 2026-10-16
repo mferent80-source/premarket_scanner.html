@@ -3359,12 +3359,12 @@ pe un singur chart.
 | I-651 | Contextul pieței ca indicatori: SPY față de media de 200 de zile, randamentul SPY pe 20 de zile și volatilitatea lui, la închiderea zilei (știute la vot) — azi fiecare acțiune e judecată ca și cum piața n-ar exista; probat cu ablația I-640 înainte de a rămâne | lib/holdings-classifier.js, tools/clasificator-date.mjs, tools/clasificator-ablatie.mjs | M | P2 | probat 2026-10-16, NU trece (dd6ae60a) | ideation | 2026-10-16 |
 | I-652 | Pragul de 510 sesiuni pentru seriile tăiate după salt: întâi proba (aceleași acțiuni fără salt, tăiate artificial la 400 / 450 / 510 — se schimbă verdictele?), apoi, doar dacă ține, pragul mai mic pentru seriile tăiate ⇒ COIN, U, ENPH revin mai devreme | lib/holdings-bars.js, tools/clasificator-ablatie.mjs (variantă de lungime) | S | P2 | probat 2026-10-16: pragul e structural, rămâne (94c2eee9) | ideation | 2026-10-16 |
 | I-653 | Candidatul fără clasificare spune de ce și când revine: în Planuri, semnul gol devine „⏳ din 12.11” (data la care istoricul de după salt ajunge la 510 sesiuni), cu motivul în titlu — azi 14 din 67 de candidați au semnul gol, fără explicație | lib/desk-classifier.js, lib/holdings-bars.js (data estimată) | S | P3 | făcut 2026-10-16 (94c2eee9) | ideation | 2026-10-16 |
-| I-654 | Planuri în meniul principal (lângă Portofoliu), nu doar în Instrumente — azi semnul clasificatorului și planul de intrare sunt la două clicuri și „ascunse” | lib/app-routes.js (lista principală), app/index.html | S | P2 | propus | ideation | 2026-10-16 |
-| I-655 | Lista din Planuri: comutator „doar ★” și ordonare după locul în clasament (pe lângă scor) — azi lista e doar după scorul tehnic | desk/index.html (renderSignals), lib/desk-classifier.js | S | P3 | propus | ideation | 2026-10-16 |
-| I-656 | Locul în clasamentul robotului și pentru pozițiile din Portofoliu (când simbolul e în universul scannerului) + mențiunea „în ultimele 10” — informativ, pe cardul clasificatorului | holdings/classifier.js, lib/desk-classifier.js (loadRobot refolosit) | S | P2 | propus | ideation | 2026-10-16 |
-| I-657 | Rezumatul zilnic DOAR după verdict: când jurnalul spune „ține” sau „ordonează”, robotul trimite zilnic pe Discord primele 10 (★) cu verdictul lângă; până atunci nimic — să nu primești în fiecare zi semnale nedovedite | tools/clasificator-robot.mjs, .github/workflows/clasificator.yml | S | P2 | propus | ideation | 2026-10-16 |
-| I-658 | Universul robotului lărgit la cele 600 de acțiuni ale robotului Trend (univers-sua.json, ≥2 mld. $): clasament din 600 în loc de 53, modelul comun cu ~10× mai multe date — rulat o dată pe noapte, cu limită de timp | tools/clasificator-robot.mjs, tools/clasificator-date.mjs, .github/workflows/clasificator.yml | L | P3 | propus | ideation | 2026-10-16 |
-| I-659 | Costul după lichiditate: spread estimat din preț și volumul mediu în dolari (acțiunile mici / subțiri plătesc mai mult), în loc de 0,4% fix pentru toate — banii, jurnalul și clasamentul mai aproape de realitate | lib/holdings-classifier.js (buy), tools/clasificator-jurnal.mjs | M | P3 | propus | ideation | 2026-10-16 |
+| I-654 | Planuri în meniul principal (lângă Portofoliu), nu doar în Instrumente — azi semnul clasificatorului și planul de intrare sunt la două clicuri și „ascunse” | lib/app-routes.js (lista principală), app/index.html | S | P2 | făcut 2026-10-16 (fdddab1a) | ideation | 2026-10-16 |
+| I-655 | Lista din Planuri: comutator „doar ★” și ordonare după locul în clasament (pe lângă scor) — azi lista e doar după scorul tehnic | desk/index.html (renderSignals), lib/desk-classifier.js | S | P3 | făcut 2026-10-16 (fdddab1a) | ideation | 2026-10-16 |
+| I-656 | Locul în clasamentul robotului și pentru pozițiile din Portofoliu (când simbolul e în universul scannerului) + mențiunea „în ultimele 10” — informativ, pe cardul clasificatorului | holdings/classifier.js, lib/desk-classifier.js (loadRobot refolosit) | S | P2 | făcut 2026-10-16 (fdddab1a) | ideation | 2026-10-16 |
+| I-657 | Rezumatul zilnic DOAR după verdict: când jurnalul spune „ține” sau „ordonează”, robotul trimite zilnic pe Discord primele 10 (★) cu verdictul lângă; până atunci nimic — să nu primești în fiecare zi semnale nedovedite | tools/clasificator-robot.mjs, .github/workflows/clasificator.yml | S | P2 | făcut 2026-10-16 (a58340b2) | ideation | 2026-10-16 |
+| I-658 | Universul robotului lărgit la cele 600 de acțiuni ale robotului Trend (univers-sua.json, ≥2 mld. $): clasament din 600 în loc de 53, modelul comun cu ~10× mai multe date — rulat o dată pe noapte, cu limită de timp | tools/clasificator-robot.mjs, tools/clasificator-date.mjs, .github/workflows/clasificator.yml | L | P3 | făcut 2026-10-16 (f76f2bfe) | ideation | 2026-10-16 |
+| I-659 | Costul după lichiditate: spread estimat din preț și volumul mediu în dolari (acțiunile mici / subțiri plătesc mai mult), în loc de 0,4% fix pentru toate — banii, jurnalul și clasamentul mai aproape de realitate | lib/holdings-classifier.js (buy), tools/clasificator-jurnal.mjs | M | P3 | făcut 2026-10-16 (a58340b2) | ideation | 2026-10-16 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6519,44 +6519,51 @@ Lentile: Trader — 8 modele + clasificatorul dau verdict pe 53 din 67 de acțiu
 
 Lentile: Trader — totul e în probă (verdict peste ~7 luni); ce poate ajuta acum e să NU acționezi pe zgomot și să vezi pozițiile tale în același clasament. Designer — Planuri, unde stă semnul, e ascuns în Instrumente; lista nu se poate filtra după ★. Inginer — universul de 600 de acțiuni (univers-sua.json) există deja, robotul folosește doar 67; costul de 0,4% e același pentru NVDA și pentru o acțiune subțire. Automator — Discord la schimbarea verdictului există deja (I-643); lipsește doar rezumatul zilnic, care trebuie să aștepte verdictul. Excluse: „Discord la verdict” (făcut în I-643).
 
-#### I-654 · Planuri în meniul principal · [S] · P2 · propus
+#### I-654 · Planuri în meniul principal · [S] · P2 · făcut 2026-10-16 (fdddab1a)
 - **Problema/golul:** Planuri (cu semnele clasificatorului și planul de intrare) se deschide doar din Instrumente; e pagina pe care o folosești înaintea unei intrări.
 - **Soluția:** intrarea „Planuri” în lista principală a meniului (după Portofoliu), cu aceeași iconiță; rămâne și în Instrumente.
 - **Impact:** un clic în loc de două, pe telefon și pe PC.
 - **Riscuri/dependențe:** meniul de jos de pe telefon are loc puțin — acolo rămâne în „Mai multe”.
 - **Fișiere:** lib/app-routes.js, app/index.html.
 
-#### I-655 · Filtru „doar ★” și ordonare după clasament · [S] · P3 · propus
+#### I-655 · Filtru „doar ★” și ordonare după clasament · [S] · P3 · făcut 2026-10-16 (fdddab1a)
 - **Problema/golul:** lista e ordonată doar după scorul tehnic; ★ și locul în clasament se văd doar citind fiecare rând.
 - **Soluția:** comutator „doar ★” și ordonare „după clasament” lângă căutare; ținute minte pe aparat.
 - **Impact:** vezi dintr-o privire candidații pe care și scannerul, și clasificatorul îi pun sus — informativ până la verdict.
 - **Riscuri/dependențe:** nu trebuie să ascundă candidații fără clasificare fără să spună câți.
 - **Fișiere:** desk/index.html (renderSignals), lib/desk-classifier.js.
 
-#### I-656 · Pozițiile tale în același clasament · [S] · P2 · propus
+#### I-656 · Pozițiile tale în același clasament · [S] · P2 · făcut 2026-10-16 (fdddab1a)
 - **Problema/golul:** clasamentul e doar pentru candidați; pentru o acțiune pe care o ai deja nu vezi unde stă față de restul.
 - **Soluția:** cardul clasificatorului din Portofoliu citește fișierul robotului și arată „locul X din 53 pe 5 sesiuni · Y pe 20” când simbolul e în univers, plus „în ultimele 10” când e cazul (informativ).
 - **Impact:** o poziție care cade constant în coada clasamentului merită revizuită — după verdict, nu înainte.
 - **Riscuri/dependențe:** doar pentru simbolurile din universul scannerului (pozițiile nu sunt trimise nicăieri; depozitul e public).
 - **Fișiere:** holdings/classifier.js, lib/desk-classifier.js.
 
-#### I-657 · Rezumatul zilnic, doar după verdict · [S] · P2 · propus
+#### I-657 · Rezumatul zilnic, doar după verdict · [S] · P2 · făcut 2026-10-16 (a58340b2)
 - **Problema/golul:** un mesaj zilnic cu „primele 10” ar împinge spre acțiuni pe baza unui clasament încă nedovedit.
 - **Soluția:** robotul trimite zilnic pe Discord primele 10 (cu ★) DOAR când jurnalul a dat verdictul „ține” sau „ordonează” pe ținta respectivă; până atunci tace. Mesajul are verdictul și data lui.
 - **Impact:** automatizare fără zgomot: apare singură în ziua în care are sens.
 - **Riscuri/dependențe:** dacă verdictul trece ulterior în „nu ține”, mesajele se opresc și se trimite unul de oprire.
 - **Fișiere:** tools/clasificator-robot.mjs, .github/workflows/clasificator.yml.
 
-#### I-658 · Universul de 600 de acțiuni · [L] · P3 · propus
+#### I-658 · Universul de 600 de acțiuni · [L] · P3 · făcut 2026-10-16 (f76f2bfe)
 - **Problema/golul:** clasamentul alege primele 10 din 53; modelul comun are ~50 de acțiuni.
 - **Soluția:** robotul folosește universul robotului Trend (600 de acțiuni ≥2 mld. $, reîmprospătat zilnic); clasificarea pe acțiune rămâne aceeași, modelul comun se antrenează pe mai multe date; limită de timp în workflow și reluare de unde a rămas.
 - **Impact:** clasament mai fin și o probă mai puternică (mai multe acțiuni pe zi ⇒ media zilei mai stabilă).
 - **Riscuri/dependențe:** ~45–60 de minute pe noapte în Actions; mai multe cereri la Yahoo (pauze între ele); fișierul crește (~1 MB).
 - **Fișiere:** tools/clasificator-robot.mjs, tools/clasificator-date.mjs, .github/workflows/clasificator.yml.
 
-#### I-659 · Costul după lichiditate · [M] · P3 · propus
+#### I-659 · Costul după lichiditate · [M] · P3 · făcut 2026-10-16 (a58340b2)
 - **Problema/golul:** costul de 0,4% dus-întors e același pentru NVDA și pentru o acțiune cu volum mic; pe acțiunile subțiri banii par mai buni decât ar fi.
 - **Soluția:** costul = FX T212 (0,3%) + un spread estimat din preț și volumul mediu în dolari pe 20 de zile (praguri simple, scrise dinainte); folosit în „banii” clasificatorului, în jurnal și în clasament.
 - **Impact:** rezultatele în bani nu mai favorizează acțiunile pe care nu le-ai putea cumpăra la prețul afișat.
 - **Riscuri/dependențe:** pragurile de spread sunt estimări (ipoteză); se notează ca atare.
 - **Fișiere:** lib/holdings-classifier.js (buy), tools/clasificator-jurnal.mjs.
+
+**Rezultate I-654..I-659 (16.10.2026):**
+- I-654: Planuri în meniul principal (după Portofoliu), rămâne și în Instrumente.
+- I-655 / I-656: „doar ★” și „după clasament” în Planuri; locul în clasament și pe cardul din Portofoliu.
+- I-657: rezumatul zilnic pe Discord tace până la un verdict pozitiv; mesaj la orice schimbare de verdict.
+- I-659: cost dus-întors = FX 0,3% + spread după lichiditate (ipoteză scrisă); motor v5; registrul păstrează v3 / v4.
+- I-658: prima rulare completă în Actions: 39 min 42 s, 616 acțiuni, 525 clasificate (81 salt recent, 8 istoric scurt, 2 date stricate), clasament 525 / 496, fișierul pentru telefon 281 KB; modelul comun pe 150: tot fără avantaj (0/3, p 0,34).
