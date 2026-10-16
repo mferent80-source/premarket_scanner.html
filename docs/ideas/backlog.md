@@ -3342,6 +3342,12 @@ pe un singur chart.
 | I-634 | „Ce zicea Busola când l-ai pornit” pe cartela botului (LASĂ-L / ATENȚIE / contra, din jurnalul stărilor) lângă profitul de acum — înveți pe boții TĂI dacă pornirea contra Busolei te costă | busola/cron/masoara.ts + urca-boti.ts (stareLaPornire din jurnal-stari.json), src/motor/dinRadar.ts, src/ui/Acum.tsx | M | P2 | făcut 2026-10-15 (Busola 1.60.0) | ideation | 2026-10-15 |
 | I-635 | Urcarea boților tace ⇒ Discord: după 3 eșecuri la rând ale sarcinii „Busola Boti” (login Cloudflare expirat, wrangler picat) UN mesaj, și unul la revenire — completează I-509 pentru sarcina de 2 min | busola/cron/urca-boti.ts, cron/discord.ts (webhookBusola), cron/stare | S | P3 | făcut 2026-10-15 (Busola 1.60.0) | ideation | 2026-10-15 |
 | I-636 | Radarul trimite boții direct în worker-ul Busolei (POST cu cheia în antet) ⇒ botul apare în secunde, fără wrangler și fără sarcina de 2 min | crypto/scripts/colector.mjs (scriePentruBusola), busola/cron/worker.ts (ruta de scriere), probe/boti-telefon.ts | M | P4 | făcut 2026-10-15 (Busola 1.60.0 + colector v101.121) | ideation | 2026-10-15 |
+| I-637 | Clasificatorul în registrul estimărilor: votul de azi se notează și se verifică după 5 sesiuni, ca la celelalte modele — singura probă pe date care nu existau la antrenare | holdings/classifier.js, holdings/forecast.js, lib/holdings-forecast.js, lib/holdings-performance.js | M | P1 | propus | ideation | 2026-10-16 |
+| I-638 | Robotul de noapte clasifică tot universul scannerului (GitHub Actions, ca trend-12-1) și scrie un JSON; Planuri îl citește pe loc, telefonul nu mai calculează | tools/clasificator-robot.mjs (nou), .github/workflows/clasificator.yml (nou), lib/desk-classifier.js | M | P2 | propus | ideation | 2026-10-16 |
+| I-639 | Corecția pe listă în Planuri: 10 candidați × 4 modele = 40 de încercări; „experimental” doar după corecția pe toată lista (Benjamini-Hochberg), nu doar pe cele 4 ale unui simbol | lib/desk-classifier.js, desk/index.html | S | P1 | propus | ideation | 2026-10-16 |
+| I-640 | „Aduc ceva indicatorii noi?” — proba cinstită 10 față de 18 indicatori (MACD, SMA, suport/rezistență scoși pe rând), pe aceleași ferestre, cu numărul de încercări scris | lib/holdings-classifier.js, tools/clasificator-ablatie.mjs (nou) | M | P2 | propus | ideation | 2026-10-16 |
+| I-641 | Un model antrenat pe tot universul (nu pe un singur simbol): ~90 de acțiuni × 5 ani în loc de ~500 de exemple — IPOTEZĂ, de probat pe zile (nu pe simboluri) înainte de a înlocui modelul pe simbol | lib/holdings-classifier.js, tools/clasificator-robot.mjs (I-638) | L | P2 | propus | ideation | 2026-10-16 |
+| I-642 | Clasa în bani: ce ar fi adus „Long” / „Short” cu costurile T212 (FX 0,15 %) și stop la 1 ATR, pe testul existent, lângă acuratețe — acuratețea nu spune dacă merită | lib/holdings-classifier.js, holdings/classifier.js | M | P2 | propus | ideation | 2026-10-16 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6340,3 +6346,49 @@ Lentile: Trader — Trend are intrare, dar n-are ieșire și nici bilanț măsur
 - **Impact:** botul apare în secunde; mai puțin de pornit pe PC.
 - **Riscuri/dependențe:** rută de SCRIERE publică pe worker (cheia = singura apărare, deci limită de mărime și format strict); două depozite (copie de lucru în `crypto`); câștigul față de 2–4 min e mic.
 - **Fișiere:** crypto/scripts/colector.mjs (scriePentruBusola), busola/cron/worker.ts, busola/probe/boti-telefon.ts.
+
+## 16.10.2026 — idei după Clasificatorul Long / Hold / Short (Decision App, a0ee4bf8)
+
+Lentile: Trader — clasificatorul arată „fără avantaj” pe AAPL/MSFT, iar singura dovadă care ar conta (rezultatele de după antrenare) nu se strânge nicăieri. Designer — semnul din Planuri e mic și corect, dar lista nu se poate ordona după el. Inginer — motorul rulează și în Node (testele o dovedesc), deci poate rula și ca robot. Automator — fiecare telefon recalculează aceiași 10 candidați. Excluse: nimic din backlog nu acoperea clasificatorul.
+
+#### I-637 · Clasificatorul în registrul estimărilor · [M] · P1 · propus
+- **Problema/golul:** clasificatorul e scos intenționat din registrul estimărilor (ca să nu schimbe verdictul cumulat). Așa, nu se adună nicio dovadă pe zile de după antrenare, iar testul pe istoric e tot ce avem.
+- **Soluția:** la fiecare raport nou, votul (și cei trei algoritmi) se notează în registru cu ora, închiderea și EOD-ul; după 5 sesiuni se verifică automat, cu aceeași regulă de fereastră (23:00 → 16:30 RO). În „Performanța AI” apare un rând separat pentru clasificator; verdictul cumulat rămâne neschimbat.
+- **Impact:** după ~40 de verificări pe zile diferite vezi dacă clasificatorul ține în realitate sau doar pe istoric (proba prospectivă).
+- **Riscuri/dependențe:** registrul se sincronizează PC ⇆ telefon în pachete (64 de chei); un model în plus crește volumul; pragurile de „merge / nu merge” se scriu ÎNAINTE de prima verificare.
+- **Fișiere:** holdings/classifier.js, holdings/forecast.js, lib/holdings-forecast.js, lib/holdings-performance.js.
+
+#### I-638 · Robotul de noapte pentru clasificator · [M] · P2 · propus
+- **Problema/golul:** în Planuri fiecare candidat cere 5 ani de date și 6–10 s de calcul pe telefon, la fiecare deschidere după o sesiune nouă.
+- **Soluția:** un workflow după închidere (modelul `trend-12-1.yml`, 22:40 UTC + reîncercare) rulează `lib/holdings-classifier.js` în Node pe universul scannerului și scrie un JSON cu rezumatul pe simbol; Planuri îl citește întâi și calculează local doar ce lipsește.
+- **Impact:** semnele apar instant; o singură sursă pentru toate aparatele; bateria telefonului scutită.
+- **Riscuri/dependențe:** Yahoo din Actions poate întârzia bara zilei (de aceea reîncercarea de la 03:10); fișierul trebuie datat pe EOD și refuzat dacă e vechi.
+- **Fișiere:** tools/clasificator-robot.mjs (nou), .github/workflows/clasificator.yml (nou), lib/desk-classifier.js.
+
+#### I-639 · Corecția pe toată lista în Planuri · [S] · P1 · propus
+- **Problema/golul:** Holm corectează doar cele 4 modele ale unui simbol. Cu 10 candidați afișați sunt 40 de încercări, deci un „experimental” poate apărea din noroc pe unul din ei.
+- **Soluția:** pe lista afișată, valorile p ale votului se corectează împreună (Benjamini-Hochberg, 10 %); semnul colorat apare doar pentru cele care trec și corecția pe listă; titlul semnului spune câte încercări au fost.
+- **Impact:** previne exact „am găsit unul bun” în fiecare zi din noroc.
+- **Riscuri/dependențe:** lista se schimbă la fiecare scanare ⇒ corecția se recalculează la afișare, nu se salvează.
+- **Fișiere:** lib/desk-classifier.js, desk/index.html.
+
+#### I-640 · Aduc ceva indicatorii noi? · [M] · P2 · propus
+- **Problema/golul:** cei 8 indicatori noi (MACD, SMA, suport/rezistență) au intrat pentru că i-ai cerut, nu pentru că s-a arătat că ajută; pe istoricele cu zgomot ar putea doar adăuga zgomot.
+- **Soluția:** o unealtă care rulează același clasificator cu 10, cu 18 și cu fiecare familie scoasă pe rând, pe aceleași ferestre și simboluri, și scrie diferența de loss pe orizonturi separate plus numărul de variante încercate (pentru corecție).
+- **Impact:** știi ce indicatori merită ținuți; dacă niciunul nu ajută, o spui cinstit pe card.
+- **Riscuri/dependențe:** fiecare variantă e o încercare în plus — se raportează toate, inclusiv cele picate.
+- **Fișiere:** lib/holdings-classifier.js (lista de indicatori parametrizată), tools/clasificator-ablatie.mjs (nou).
+
+#### I-641 · Un model pe tot universul · [L] · P2 · propus
+- **Problema/golul:** pe un singur simbol sunt ~500 de exemple de antrenare, puține pentru arbori și SVM; de aceea iese aproape mereu „la nivelul ghicitului”.
+- **Soluția:** antrenare comună pe ~90 de acțiuni × 5 ani (indicatorii sunt deja relativi: %, ATR, RSI), cu împărțirea pe DATE (toate simbolurile în aceeași fereastră de timp) și estimare pe simbolul cerut. IPOTEZĂ: de probat pe zile, nu pe simboluri, înainte de a înlocui modelul pe simbol.
+- **Impact:** mai multe date ⇒ șansa reală de a găsi un tipar care se repetă între acțiuni.
+- **Riscuri/dependențe:** 90 de acțiuni în aceeași zi NU sunt 90 de dovezi (regula „pe zile”); prea greu pentru telefon ⇒ depinde de I-638.
+- **Fișiere:** lib/holdings-classifier.js, tools/clasificator-robot.mjs.
+
+#### I-642 · Clasa în bani · [M] · P2 · propus
+- **Problema/golul:** acuratețea și loss-ul spun cât de des ghicește clasa, nu dacă ar fi adus bani după costuri.
+- **Soluția:** pe același test, pentru fiecare zi cu „Long” (sau „Short”) clar, randamentul pe 5 sesiuni cu stop la 1 ATR, minus costul T212 (FX 0,15 % dus-întors) și un derapaj; rezultatul (medie, mediana, câte zile) lângă acuratețe, separat pe ferestre.
+- **Impact:** decizia de folosire se ia pe bani, nu pe procente de clasificare.
+- **Riscuri/dependențe:** zilele se suprapun ⇒ doar orizonturi separate la medie; stopul sărit de gap trebuie socotit la deschidere.
+- **Fișiere:** lib/holdings-classifier.js, holdings/classifier.js.
