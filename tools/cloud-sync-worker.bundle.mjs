@@ -501,7 +501,8 @@ async function handleCloud(request,env,upstream=fetch){
   }
   const authorization=request.headers.get('Authorization')||'';if(!/^Bearer [A-Za-z0-9_-]{43}$/.test(authorization))return reply({error:'session_required'},401);
   const sessionHash=await hash(authorization.slice(7)),session=await db.prepare('SELECT subject,email,expires FROM cloud_sessions WHERE hash=?').bind(sessionHash).first();if(!session||session.expires<=now)return reply({error:'session_expired'},401);
-  const subject=session.subject;if(await limited('session:'+sessionHash,120))return reply({error:'rate_limited'},429);
+  // 16.10.2026: 146 de chei sincronizate (registrul de învățare + analizele, câte 64 de pachete) ⇒ o deschidere proaspătă citește peste 120 pe minut.
+  const subject=session.subject;if(await limited('session:'+sessionHash,600))return reply({error:'rate_limited',retryAfter:60-Math.floor(now)%60},429);
   if(url.pathname==='/api/cloud/session'&&request.method==='DELETE'){await db.prepare('DELETE FROM cloud_sessions WHERE hash=?').bind(sessionHash).run();return reply({ok:true});}
   if(url.pathname==='/api/cloud/session'&&request.method==='GET')return reply({subject,email:session.email,expires:session.expires});
   if(['/api/cloud/push','/api/cloud/push/test'].includes(url.pathname)){const r=await handlePush({request,subject,env,deps:{seal,unseal},parseBody:body,upstream});return reply(r.body,r.status);}
