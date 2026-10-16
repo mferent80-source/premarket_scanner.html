@@ -1,0 +1,44 @@
+/* 16.10.2026 — paginile vechi ale suitei (Shadow, Health) în stilul „Astăzi”: aceeași paletă și litere (IBM Plex Sans), antetul cu
+   fundal plin și titlul mare, panourile și cardurile cu bordură fină (fără banda verde groasă de sus), textul cardurilor în scris
+   obișnuit, nu monospațiat mic; antetul primul și verdictul după el. Se încarcă ULTIMA, doar pe paginile care o cer.
+   Doar aspectul: conținutul, id-urile și logica paginilor rămân neatinse. */
+:root[data-theme="light"],:root[data-theme="light"] body.suite-page{
+ --bg:#f3f6f6;--bg-grad:none;--bg1:#fff;--bg2:#fff;--bg3:#fff;--bg4:#edf3f3;--panel:#fff;--panel2:#edf3f3;--panel3:#f6f9f9;
+ --b1:#cbd7da;--b2:#e2e9eb;--br:#e2e9eb;--br2:#cbd7da;--br-l:#edf3f3;--border:#cbd7da;--border-soft:#e2e9eb;
+ --t1:#162e35;--t2:#3d5661;--t3:#516974;--text:#162e35;--muted:#516974;--text-dim:#607884;
+ --topbar-bg:#f3f6f6;--topbar-shadow:none}
+:root:not([data-theme="light"]),:root:not([data-theme="light"]) body.suite-page{
+ --bg:#0b1015;--bg-grad:none;--bg1:#101820;--bg2:#101820;--bg3:#101820;--bg4:#141f29;--panel:#101820;--panel2:#141f29;--panel3:#0e1620;
+ --b1:#24313c;--b2:#1b2731;--br:#1b2731;--br2:#24313c;--br-l:#1b2731;--border:#24313c;--border-soft:#1b2731;
+ --t1:#eff6f8;--t2:#c2ced5;--t3:#9baab5;--text:#eff6f8;--muted:#9baab5;--text-dim:#6f8391;
+ --topbar-bg:#0b1015;--topbar-shadow:none}
+html,body.suite-page{background:var(--bg)!important}
+body.suite-page{color:var(--t1);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+ display:flex;flex-direction:column;padding-inline:clamp(16px,2.4vw,34px)!important}
+body.suite-page>*{order:2}
+body.suite-page>header.suite-cockpit{order:0}
+body.suite-page>.tt-verdict{order:1}
+
+/* antetul: fundal plin (gradientul semitransparent cu !important din suite-ui lăsa textul de dedesubt să se vadă la derulare), titlul mare */
+html:root body.suite-page>header.suite-cockpit{background:var(--bg)!important;border:0!important;border-radius:0!important;box-shadow:none!important;
+ padding:22px 0 14px!important;margin:0 0 6px!important;gap:10px!important;flex-wrap:wrap}
+body.suite-page>header.suite-cockpit h1{font:600 clamp(27px,2.55vw,36px)/1.25 "IBM Plex Sans",system-ui,sans-serif!important;letter-spacing:-.045em;color:var(--t1)!important;
+ background:none!important;-webkit-text-fill-color:currentColor!important;margin:0 auto 0 0!important;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+body.suite-page>header.suite-cockpit .nav-link{min-height:44px;display:inline-flex;align-items:center;border-radius:8px!important;font-family:inherit!important;font-weight:500!important}
+
+/* panouri și carduri */
+body.suite-page .panel,body.suite-page .chk{border:1px solid var(--b1)!important;border-radius:10px!important;box-shadow:none!important;background:var(--panel)}
+body.suite-page .chk{border-top-width:1px!important;padding:16px 18px!important}
+body.suite-page .chk-body{font-family:inherit!important;font-size:13.5px!important;line-height:1.6!important;color:var(--t2)}
+body.suite-page .chk-sub{font-family:inherit!important;font-size:12px!important}
+body.suite-page .chk-btn{min-height:36px;border-radius:8px;font-family:inherit}
+body.suite-page .chk-group{font-weight:500}
+body.suite-page>.tt-verdict{margin:0 0 16px;border-radius:10px}
+body.suite-page textarea,body.suite-page input,body.suite-page select{border-radius:8px}
+/* butoanele .btn (Import linii JSON, Log shadow) aveau text negru pe fundal transparent: invizibile în tema închisă */
+body.suite-page .btn{color:var(--t1);background:var(--panel2);border:1px solid var(--b1);border-radius:8px;min-height:40px;padding:0 14px;font-weight:600;font-family:inherit;cursor:pointer}
+
+@media(max-width:760px){
+ body.suite-page{padding-inline:16px!important}
+ body.suite-page>header.suite-cockpit{padding:16px 0 10px!important}
+}
