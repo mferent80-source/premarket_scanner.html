@@ -3348,6 +3348,12 @@ pe un singur chart.
 | I-640 | „Aduc ceva indicatorii noi?” — proba cinstită 10 față de 18 indicatori (MACD, SMA, suport/rezistență scoși pe rând), pe aceleași ferestre, cu numărul de încercări scris | lib/holdings-classifier.js, tools/clasificator-ablatie.mjs (nou) | M | P2 | făcut 2026-10-16 (0485e90e) | ideation | 2026-10-16 |
 | I-641 | Un model antrenat pe tot universul (nu pe un singur simbol): ~90 de acțiuni × 5 ani în loc de ~500 de exemple — IPOTEZĂ, de probat pe zile (nu pe simboluri) înainte de a înlocui modelul pe simbol | lib/holdings-classifier.js, tools/clasificator-robot.mjs (I-638) | L | P2 | făcut 2026-10-16 (0485e90e) | ideation | 2026-10-16 |
 | I-642 | Clasa în bani: ce ar fi adus „Long” / „Short” cu costurile T212 (FX 0,15 %) și stop la 1 ATR, pe testul existent, lângă acuratețe — acuratețea nu spune dacă merită | lib/holdings-classifier.js, holdings/classifier.js | M | P2 | făcut 2026-10-16 (b154d2c0) | ideation | 2026-10-16 |
+| I-643 | Jurnalul de noapte al votului: robotul își notează votul pe toate acțiunile, îl verifică singur după 5 sesiuni și scrie un bilanț săptămânal „ține / nu ține” cu pragul scris ACUM — proba pe zile noi nu mai depinde de deschiderea aplicației | tools/clasificator-robot.mjs, tools/clasificator-bilant.mjs (nou), candidate-engine/generated/clasificator-istoric.jsonl (nou), .github/workflows/clasificator.yml | M | P1 | propus | ideation | 2026-10-16 |
+| I-644 | Acțiunile cu salt mare (27 din 67: META, NFLX, PLTR, SMCI…) intră în clasificator: ziua saltului și cele 5 sesiuni de după ies din antrenare, în loc ca tot istoricul să fie refuzat — doar pentru clasificator, modelele vechi neatinse | lib/holdings-classifier.js (dataset propriu, fără garda comună) | M | P1 | propus | ideation | 2026-10-16 |
+| I-645 | Starea robotului clasificatorului în Health: când a rulat, pe ce EOD, câte acțiuni clasificate / picate și verdictul modelului comun — azi afli că a picat doar din Discord | health/index.html (+ lib-ul de verificări Health), candidate-engine/generated/clasificator.json | S | P2 | propus | ideation | 2026-10-16 |
+| I-646 | Cardul clasificatorului pliat când n-are avantaj: un singur rând („fără avantaj dovedit · 0/3 ferestre”), detaliile la cerere — în Portofoliu și în fila AI din Planuri; se deschide singur doar la „experimental” | holdings/classifier.js, lib/desk-classifier.js, holdings/neural.css, desk/layout.css | S | P2 | propus | ideation | 2026-10-16 |
+| I-647 | Rezultatele pe regim: testul și jurnalul (I-643) despărțite pe SPY peste / sub media de 200 de zile — IPOTEZĂ: un tipar ascuns în medie poate exista doar într-un regim; de probat cu corecția pentru cele 2 felii | tools/clasificator-univers.mjs, tools/clasificator-bilant.mjs (I-643), tools/trend-12-1-lib.mjs (regim) | M | P2 | propus | ideation | 2026-10-16 |
+| I-648 | Procentele votului calibrate sau etichetate „necalibrat”: fiabilitatea pe validare (ECE, cu pragul de zgomot) și o temperatură pentru vot; azi „Long 41%” arată ca o probabilitate fără să fi fost verificat ca una | lib/holdings-classifier.js, holdings/classifier.js, lib/desk-classifier.js | M | P3 | propus | ideation | 2026-10-16 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6398,3 +6404,49 @@ Lentile: Trader — clasificatorul arată „fără avantaj” pe AAPL/MSFT, iar
 - I-641: modelul comun (40 de acțiuni, 1050 de zile, ~25.000 de exemple) iese „fără avantaj”: 0/3 ferestre, p 0,81 pe zile. Mai multe date nu au adus un tipar care se repetă.
 - I-638: robotul a rulat în Actions în 2 min 27 s (c28bdf13); de acum Planuri citesc clasificarea gata făcută.
 - I-637: votul intră în registru de la prima clasificare în fereastra de notare; verdictul despre „ține în realitate” vine după ~40 de verificări pe zile diferite.
+
+## 16.10.2026 (seara) — idei după livrarea I-637..I-642 (clasificatorul fără avantaj, robotul de noapte)
+
+Lentile: Trader — tot ce s-a măsurat azi spune „fără avantaj”; singura dovadă care mai poate schimba verdictul e proba pe zile noi, iar azi ea depinde de deschiderea Portofoliului. Designer — un card mare plin de cifre pentru un rezultat „fără avantaj” e zgomot pe ecran. Inginer — garda moștenită „salt peste 25%” scoate 40% din univers; motorul rulează deja în Node. Automator — robotul rulează zilnic, dar nu-și verifică singur votul și starea lui nu apare nicăieri în aplicație. Context: I-500..I-503 (rețele pe crypto, măsurate 02.10) au ieșit tot „nu trece” — lecția: proba înainte de alt model.
+
+#### I-643 · Jurnalul de noapte al votului · [M] · P1 · propus
+- **Problema/golul:** registrul (I-637) notează votul doar pentru pozițiile din Portofoliu și doar dacă pagina e deschisă în fereastra de notare. Robotul calculează zilnic 40 de voturi și le aruncă a doua zi.
+- **Soluția:** robotul adaugă votul zilei (simbol, EOD, clasă, procente, starea) într-un jurnal `clasificator-istoric.jsonl`; la fiecare rulare verifică voturile de acum 5 sesiuni cu închiderile reale. Un bilanț săptămânal (modelul `trend-12-1-bilant`) socotește pe ZILE separate (o zi = media acțiunilor ei, zilele la ≥6 sesiuni distanță): eroarea față de frecvențe și momentum, banii zilelor „Long”. Pragul se scrie ACUM: verdict abia după ≥30 de zile separate (~7 luni); „ține” = câștig de loss ≥0,02 cu p<0,05; altfel „nu ține”. Discord doar la schimbarea verdictului.
+- **Impact:** proba prospectivă se strânge singură, pe tot universul, indiferent dacă deschizi aplicația.
+- **Riscuri/dependențe:** încet prin natura lui (o dovadă pe zi); jurnalul crește ~40 de rânduri pe zi (păstrat compact); bara zilei poate întârzia ⇒ verificarea doar pe sesiuni încheiate.
+- **Fișiere:** tools/clasificator-robot.mjs, tools/clasificator-bilant.mjs (nou), candidate-engine/generated/clasificator-istoric.jsonl (nou), .github/workflows/clasificator.yml.
+
+#### I-644 · Acțiunile cu salt mare intră în clasificator · [M] · P1 · propus
+- **Problema/golul:** `HoldingsNeural.dataset` refuză tot istoricul la orice zi cu salt peste 25% ⇒ 27 din 67 de acțiuni (META, NFLX, PLTR, SMCI, COIN…) nu sunt clasificate deloc, exact cele mai mișcate din scanner.
+- **Soluția:** clasificatorul primește verificarea lui proprie a barelor: saltul nu mai refuză seria, ci ziua saltului și cele 5 sesiuni de după ies din antrenare și din test (indicatorii lor ar fi deformați), iar cardul spune „N zile scoase pentru salturi”. Modelele vechi și garda lor rămân neatinse.
+- **Impact:** clasificatorul vede tot universul scannerului; modelul comun (I-641) primește +27 de acțiuni.
+- **Riscuri/dependențe:** un split neajustat de furnizor ar trece drept salt (de aceea ziua iese); motorul urcă versiunea (rapoartele vechi se refac singure).
+- **Fișiere:** lib/holdings-classifier.js.
+
+#### I-645 · Starea robotului în Health · [S] · P2 · propus
+- **Problema/golul:** dacă robotul pică, Planuri calculează tăcut pe telefon; afli doar din Discord.
+- **Soluția:** un rând în Health: ultima rulare, EOD-ul fișierului față de sesiunea așteptată, câte clasificate / picate, verdictul modelului comun; galben când fișierul e mai vechi de o sesiune.
+- **Impact:** știi dacă semnele din Planuri vin de la robot sau de pe telefon.
+- **Riscuri/dependențe:** doar citire; aceeași regulă de prospețime ca `fresh()` din desk-classifier.
+- **Fișiere:** health/index.html (+ verificările Health), candidate-engine/generated/clasificator.json.
+
+#### I-646 · Cardul pliat când n-are avantaj · [S] · P2 · propus
+- **Problema/golul:** cardul arată tabelul celor 4 algoritmi, banii, indicatorii — chiar când concluzia e „fără avantaj”. Mult de citit pentru „nimic dovedit”.
+- **Soluția:** la „fără direcție susținută” / „fără avantaj”, cardul se pliază într-un rând cu concluzia și „detalii ›”; se deschide singur doar la „experimental”. Nimic nu dispare, doar se pliază.
+- **Impact:** ecranul arată întâi ce contează; cifrele rămân la un clic.
+- **Riscuri/dependențe:** regula „inventarul numără ce EXISTĂ” — totul rămâne în pagină, pliat.
+- **Fișiere:** holdings/classifier.js, lib/desk-classifier.js, holdings/neural.css, desk/layout.css.
+
+#### I-647 · Rezultatele pe regim · [M] · P2 · propus
+- **Problema/golul:** testul amestecă perioade de piață pe creștere și pe scădere; un tipar care există doar într-una se pierde în medie.
+- **Soluția:** zilele de test (modelul comun) și cele din jurnal (I-643) se despart după SPY peste / sub media de 200 de zile (funcția `regim` din trend-12-1-lib); fiecare felie cu eroarea ei față de frecvențe și cu corecția pentru 2 felii. IPOTEZĂ.
+- **Impact:** dacă tiparul există doar într-un regim, se vede; dacă nu, se închide și întrebarea asta.
+- **Riscuri/dependențe:** feliile au jumătate din zile ⇒ mai puțină putere; regimul se citește din ziua de dinainte (fără privit în viitor).
+- **Fișiere:** tools/clasificator-univers.mjs, tools/clasificator-bilant.mjs, tools/trend-12-1-lib.mjs.
+
+#### I-648 · Procentele calibrate sau etichetate · [M] · P3 · propus
+- **Problema/golul:** „Long 41%” arată ca o probabilitate; votul e o medie de trei modele necalibrate.
+- **Soluția:** pe validare: diagrama de fiabilitate și ECE (cu pragul de zgomot pentru eșantionul mic), apoi o temperatură pentru vot aleasă tot pe validare; dacă ECE rămâne peste zgomot, procentele primesc eticheta „necalibrat”.
+- **Impact:** procentele spun ce par să spună, sau spun clar că nu.
+- **Riscuri/dependențe:** ~400 de exemple de validare pe simbol ⇒ ECE zgomotos; modelul comun are mai multe date.
+- **Fișiere:** lib/holdings-classifier.js, holdings/classifier.js, lib/desk-classifier.js.
