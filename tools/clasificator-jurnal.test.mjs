@@ -40,3 +40,7 @@ test('I-649: clasamentul — primele 10 după „Long” față de media univers
   assert.equal(bilant([], zi30(6 * 40, true)).clasament.verdict, 'ordoneaza');
   assert.equal(bilant([], zi30(6 * 40, false)).clasament.verdict, 'nu-ordoneaza');
 });
+test('I-650: Holm pe două ținte — o țintă care ține o lasă pe cealaltă la α, altfel amândouă la α/2', async () => {
+  const { bilantDoua } = await import('./clasificator-jurnal.mjs');
+  const r = bilantDoua([], {}, dateOf); assert.equal(r.b5.alfa, 0.025); assert.equal(r.b20.alfa, 0.025); assert.equal(r.b20.verdict, 'in-proba');
+});

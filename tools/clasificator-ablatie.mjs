@@ -6,7 +6,7 @@
 // ATENȚIE: simbolurile au aceleași zile ⇒ nu sunt dovezi independente; comparația e descriptivă, iar numărul de variante e scris.
 //   node tools/clasificator-ablatie.mjs [--simboluri AAPL,MSFT] [--iesire docs/clasificator-ablatie]
 import { writeFileSync } from 'node:fs';
-import { motor, aduCache, universScanner, clasifica } from './clasificator-date.mjs';
+import { motor, aduCache, universScanner, clasifica, contextSpy } from './clasificator-date.mjs';
 
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
 const VARIANTE = [
@@ -15,14 +15,18 @@ const VARIANTE = [
   { id: 'faraMACD', nume: 'Fără MACD', ascunde: [10, 11] },
   { id: 'faraSMA', nume: 'Fără SMA20 / SMA50', ascunde: [12, 13] },
   { id: 'faraSR', nume: 'Fără suport / rezistență', ascunde: [14, 15, 16, 17] },
+  // I-651 (regula scrisă înaintea probei): contextul SPY rămâne doar dacă mediana scade loss-ul cu ≥0,005 ȘI ajută la ≥60% din acțiuni.
+  { id: 'cuContext', nume: 'Cu contextul pieței (SPY)', ascunde: [], context: true },
 ];
 const c = motor('.'), C = c.HoldingsClassifier, simboluri = (arg('--simboluri') || universScanner('.').join(',')).split(',').filter(Boolean), iesire = arg('--iesire', 'docs/clasificator-ablatie-' + new Date().toISOString().slice(0, 10));
-const rezultate = {}, picate = [], cache = arg('--cache', null), acum = Number(arg('--acum', Date.now()));
+const rezultate = {}, picate = [], cache = arg('--cache', null), acum = Number(arg('--acum', Date.now())), alese = arg('--variante', null);
+if (alese) { const ids = alese.split(','); for (let i = VARIANTE.length - 1; i >= 0; i--) if (!ids.includes(VARIANTE[i].id)) VARIANTE.splice(i, 1); }
+const dateOf = (t) => c.DailySeries.date(t, 'America/New_York'), ctx = VARIANTE.some((v) => v.context) ? contextSpy(await aduCache('SPY', cache), dateOf) : null;
 for (const [k, s] of simboluri.entries()) {
   try {
     const serie = c.DailySeries.read(await aduCache(s, cache), s, acum), rand = { asOf: serie.asOf, variante: {} };
     for (const v of VARIANTE) {
-      const r = clasifica(c, serie.bars, { now: acum, mascheaza: v.ascunde }), w = r.walk, vote = w.summary ? w.summary.vote : null;
+      const r = clasifica(c, serie.bars, { now: acum, mascheaza: v.ascunde, spec: v.context ? { context: ctx, dateOf } : {} }), w = r.walk, vote = w.summary ? w.summary.vote : null;
       rand.variante[v.id] = { loss: vote ? vote.nonOverlap.test.loss : r.algos.vote.nonOverlap.loss, frecvente: vote ? vote.nonOverlap.constant.loss : r.references.nonOverlap.constant.loss, n: vote ? vote.nonOverlap.test.n : r.algos.vote.nonOverlap.n, ferestre: vote ? vote.wins : 0, stare: C.assess(r).state, bani: w.money.vote.long };
     }
     rezultate[s] = rand; // doar după ce toate variantele au mers

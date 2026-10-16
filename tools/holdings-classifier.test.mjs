@@ -101,3 +101,17 @@ test('I-648: temperatura votului aleasă pe validare; ECE pe test cu pragul de z
  const parts=C.split(noiseData.rows),a=C.fitPartitions(parts,{t:noise.at(-1).t,close:noise.at(-1).c,x:noiseData.latest}),changed=plain(parts);changed.test.forEach(r=>r.x[1]+=100);
  assert.equal(C.fitPartitions(changed,{t:noise.at(-1).t,close:noise.at(-1).c,x:noiseData.latest}).algos.vote.params.temperature,a.algos.vote.params.temperature);
 });
+
+test('I-650: ținta ±2 ATR la 20 de sesiuni — etichetele din viitorul corect, raport valid, fără avantaj pe mers aleator',()=>{
+ const d=C.dataset(noise,now,{horizon:20,atr:2}),i=500,r=d.rows[i-199],x=r.x,move=(noise[i+20].c/noise[i].c-1)*100/x[8];
+ assert.equal(r.y,move<=-2?0:move>=2?2:1);assert.equal(r.end,noise[i+20].t);assert.equal(d.rows.at(-1).end,noise.at(-1).t);
+ const rep=C.evaluate(d,{t:noise.at(-1).t,close:noise.at(-1).c,x:d.latest});assert.equal(C.valid(rep),true);assert.equal(rep.horizon,20);assert.deepEqual(plain(rep.spec),{horizon:20,atr:2,context:false});
+ assert.notEqual(C.assess(rep).state,'research');const bad=plain(rep);bad.spec.horizon=7;assert.equal(C.valid(bad),false);
+ assert.throws(()=>C.dataset(noise,now,{horizon:10}),/nu sunt acceptate/);
+});
+test('I-651: contextul pieței se adaugă la sfârșit, doar din zilele cu context; ziua de azi trebuie să-l aibă',()=>{
+ const dateOf=t=>new Date(t).toISOString().slice(0,10),ctx=new Map(noise.map(b=>[dateOf(b.t),[1,2,3]]));
+ const d=C.dataset(noise,now,{context:ctx,dateOf});assert.equal(d.latest.length,C.FEATURES.length+3);assert.deepEqual(plain(d.latest.slice(-3)),[1,2,3]);
+ const rep=C.evaluate(d,{t:noise.at(-1).t,close:noise.at(-1).c,x:d.latest});assert.equal(C.valid(rep),true);assert.equal(rep.features.length,21);
+ ctx.delete(dateOf(noise.at(-1).t));assert.throws(()=>C.dataset(noise,now,{context:ctx,dateOf}),/Contextul pieței/);
+});

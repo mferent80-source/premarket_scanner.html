@@ -62,11 +62,23 @@ export function universScanner(radacina = '.') {
   return [...m[1].matchAll(/'([^']+)'|"([^"]+)"/g)].map((x) => x[1] || x[2]);
 }
 
+/** I-651: contextul pieței pe zile, doar din închiderile SPY de până în ziua respectivă: [față de media 200 %, randament 20 z %, volatilitate 20 z %]. */
+export function contextSpy(spy, dateOf) {
+  const m = new Map(); if (!Array.isArray(spy)) return m;
+  for (let i = 200; i < spy.length; i++) {
+    let s = 0; for (let k = i - 199; k <= i; k++) s += spy[k].c;
+    const r = []; for (let k = i - 19; k <= i; k++) r.push(Math.log(spy[k].c / spy[k - 1].c));
+    const mu = r.reduce((a, b) => a + b, 0) / r.length, sd = Math.sqrt(r.reduce((a, b) => a + (b - mu) ** 2, 0) / (r.length - 1));
+    m.set(dateOf(spy[i].t), [(spy[i].c / (s / 200) - 1) * 100, (spy[i].c / spy[i - 20].c - 1) * 100, sd * 100]);
+  }
+  return m;
+}
+
 /** Clasificarea unui simbol: seria → DailySeries → dataset → evaluate; `mascheaza` = indicii de indicatori puși pe 0 (ablație). */
-export function clasifica(c, bars, { now = Date.now(), mascheaza = [] } = {}) {
+export function clasifica(c, bars, { now = Date.now(), mascheaza = [], spec = {} } = {}) {
   const C = c.HoldingsClassifier, ascuns = new Set(mascheaza), m = (x) => (ascuns.size ? x.map((v, j) => (ascuns.has(j) ? 0 : v)) : x), prep = c.HoldingsBars.prepare(bars);
   bars = prep.bars;
-  const d = C.dataset(bars, now), data = { rows: d.rows.map((r) => ({ ...r, x: m(r.x) })), latest: m(d.latest) }, last = bars.at(-1);
+  const d = C.dataset(bars, now, spec), data = { rows: d.rows.map((r) => ({ ...r, x: m(r.x) })), latest: m(d.latest), spec: d.spec }, last = bars.at(-1);
   const r = C.evaluate(data, { t: last.t, close: last.c, x: data.latest });
   if (!C.valid(r)) throw new Error('Raport neverificabil');
   r.historyCut = prep.cut;
