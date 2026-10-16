@@ -1,0 +1,59 @@
+/* 15.10.2026 — Jurnalul în stilul „Astăzi”: aceeași paletă și litere (IBM Plex Sans, cifrele în Plex Mono), antetul deasupra
+   verdictului, plăcile de context ca banda reperelor, filele ca un comutator, panouri cu bordură fină, tabelele derulabile pe
+   telefon. Doar aspectul: conținutul, id-urile și logica paginii rămân neatinse. Se încarcă ULTIMA. */
+body.cap-journal{
+ --bg:#0b1015;--panel:#101820;--panel2:#141f29;--panel3:#0e1620;--b1:#24313c;--b2:#1b2731;--t1:#eff6f8;--t2:#c2ced5;--t3:#9baab5;
+ --accent:#8de2bf;--bull-s:#8de2bf;--bear-s:#f0a7aa;--warn:#e9c58c;--purple:#a9c6f1;--jr-accent-bg:#172e2a;--jr-accent-line:#2c5247;
+ --faint:#6f8391;--mint-soft:#172e2a;--amber-soft:#30261a;--red-soft:#33191d;
+ --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+ font:14px/1.5 var(--sans);display:flex;flex-direction:column;gap:16px;padding:25px clamp(16px,2.4vw,34px) 28px}
+:root[data-theme="light"] body.cap-journal{
+ --bg:#f3f6f6;--panel:#fff;--panel2:#edf3f3;--panel3:#f6f9f9;--b1:#cbd7da;--b2:#e2e9eb;--t1:#162e35;--t2:#3d5661;--t3:#516974;
+ --accent:#176a51;--bull-s:#176a51;--bear-s:#a93b45;--warn:#825d20;--purple:#315d8f;--jr-accent-bg:#e1f0e9;--jr-accent-line:#bcd8ca;
+ --faint:#607884;--mint-soft:#e1f0e9;--amber-soft:#f6ecd9;--red-soft:#f8e5e6}
+body.cap-journal>*{width:100%;max-width:1510px;margin-left:auto!important;margin-right:auto!important}
+
+/* antetul primul (ca la Astăzi), verdictul sub el; doar ordinea vizuală, elementele rămân la locul lor în pagină */
+body.cap-journal>header.cap-header{order:1;display:flex;align-items:center;justify-content:flex-start;gap:10px 10px;flex-wrap:wrap;margin:0;padding:0;background:none;border:0;box-shadow:none}
+body.cap-journal>section.tt-verdict{order:2;margin:0}
+body.cap-journal>.cap-wrap{order:3;margin-top:0!important}
+body.cap-journal>:not(header):not(section.tt-verdict):not(.cap-wrap){order:4}
+body.cap-journal header.cap-header h1{font-size:clamp(27px,2.55vw,36px);font-weight:600;letter-spacing:-.045em;line-height:1.25;margin:0;margin-right:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+body.cap-journal header.cap-header .ver-badge{font:400 10px/1.5 var(--mono);letter-spacing:.06em;color:var(--faint);background:none;border:1px solid var(--b1);border-radius:999px;padding:1px 7px}
+body.cap-journal header.cap-header .cap-reconcile{font:500 11.5px var(--sans);border-radius:999px;padding:3px 10px;background:var(--mint-soft);color:var(--accent);border:0}
+body.cap-journal header.cap-header .cap-reconcile:not(.ok){background:var(--amber-soft);color:var(--warn)}
+body.cap-journal header.cap-header details>summary,body.cap-journal header.cap-header>a,body.cap-journal header.cap-header>button{min-height:44px;display:inline-flex;align-items:center;padding:0 13px;border:1px solid var(--b1);border-radius:7px;background:var(--panel2);color:var(--t1);font-size:12px;text-decoration:none}
+
+/* verdictul: panou ca în Astăzi, culoarea stării păstrată pe marginea din stânga */
+body.cap-journal section.tt-verdict{border-radius:10px;border-width:1px;border-left-width:3px;background:var(--panel);box-shadow:none;padding:18px 20px}
+body.cap-journal section.tt-verdict h2,body.cap-journal section.tt-verdict h3{letter-spacing:-.025em}
+
+/* filele: comutator */
+body.cap-journal .jr-tabs{display:flex;gap:2px;padding:3px;border:1px solid var(--b1);border-radius:7px;background:var(--bg);margin:0 0 12px;overflow-x:auto}
+body.cap-journal .jr-tab{flex:1 1 auto;min-height:38px;border:0;border-radius:5px;background:transparent;color:var(--t3);font:500 12px var(--sans);padding:7px 12px;white-space:nowrap;box-shadow:none}
+body.cap-journal .jr-tab.active,body.cap-journal .jr-tab[aria-selected="true"]{background:var(--mint-soft);color:var(--accent);border:0;box-shadow:none}
+
+/* plăcile de context: banda reperelor din Astăzi */
+body.cap-journal .jr-ctx-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;background:var(--panel);border:1px solid var(--b1);border-radius:10px;overflow:hidden;margin:0 0 16px}
+body.cap-journal .jr-ctx-strip>*{background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:15px 17px!important;min-width:0}
+body.cap-journal .jr-ctx-strip>*+*{border-left:1px solid var(--b1)!important}
+body.cap-journal .jr-ctx-strip b,body.cap-journal .jr-ctx-strip strong,body.cap-journal .jr-ctx-strip .v,body.cap-journal .jr-ctx-strip [class*="val"]{font-family:var(--mono);font-weight:400;letter-spacing:-.04em}
+
+/* panourile */
+body.cap-journal .panel{background:var(--panel);border:1px solid var(--b1);border-radius:10px;box-shadow:none;padding:20px}
+body.cap-journal .panel h2,body.cap-journal .panel h3{font-size:17px;font-weight:600;letter-spacing:-.025em}
+body.cap-journal .panel h4{font-size:14px;font-weight:600}
+body.cap-journal input,body.cap-journal select,body.cap-journal textarea{border-radius:7px;border:1px solid var(--b1);background:var(--panel);color:var(--t1)}
+body.cap-journal button{border-radius:7px}
+body.cap-journal :focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+
+/* tabelele: cifrele în mono, derulare proprie când nu încap (pe telefon pagina nu mai iese din ecran) */
+body.cap-journal table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-collapse:collapse}
+body.cap-journal th{font:500 11px var(--sans);color:var(--t3);white-space:nowrap}
+body.cap-journal td{font-size:12px;font-variant-numeric:tabular-nums}
+
+@media(max-width:800px){body.cap-journal .jr-ctx-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.cap-journal .jr-ctx-strip>*+*{border-left:0!important}body.cap-journal .jr-ctx-strip>*:nth-child(even){border-left:1px solid var(--b1)!important}
+ body.cap-journal .jr-ctx-strip>*:nth-child(n+3){border-top:1px solid var(--b1)!important}}
+@media(max-width:600px){body.cap-journal{padding:14px 16px 90px;gap:12px}body.cap-journal .panel{padding:15px}body.cap-journal section.tt-verdict{padding:15px}
+ body.cap-journal .jr-tab{padding:7px 9px}}
