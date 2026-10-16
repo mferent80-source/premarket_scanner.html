@@ -60,3 +60,9 @@ test('reparația respectă reantrenarea automată oprită',async()=>{
  s.c.HoldingsHMMUI.inspect=()=>({usable:false,record:{},assessment:{state:'stale'}});
  await s.c.HoldingsAutoLearningUI.tick();assert.equal(s.counts().loads,1);
 });
+test('notarea de pe PC: pozițiile rămase de lucru pentru EOD-ul așteptat (fereastra se închide doar la 0)',async()=>{
+ const s=await setup();assert.equal(s.c.HoldingsAutoLearningUI.pending(),0,'după antrenare nu mai e nimic de lucru');
+ const k=s.c.HoldingsAutoLearning.key(s.identity),st=JSON.parse(s.saved.get(k));s.saved.set(k,JSON.stringify({...st,phase:'running'}));
+ assert.equal(s.c.HoldingsAutoLearningUI.pending(),1,'o poziție încă în lucru');
+ s.saved.set(k,JSON.stringify({...st,enabled:false,phase:'running'}));assert.equal(s.c.HoldingsAutoLearningUI.pending(),0,'reantrenarea oprită nu ține fereastra deschisă');
+});
