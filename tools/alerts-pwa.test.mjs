@@ -8,6 +8,12 @@ import { dirname, join } from 'node:path';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pngSize = (f) => { const b = readFileSync(join(ROOT, 'alerts', f)); assert.equal(b.toString('ascii', 1, 4), 'PNG', f + ' nu e PNG'); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
 
+test('în aplicația Android „Alerte” (TWA) meniul comun al Decision App se ascunde; în browser rămâne', () => {
+  const h = readFileSync(join(ROOT, 'alerts/index.html'), 'utf8');
+  assert.match(h, /android-app:\\\/\\\/ro\\\.mau\\\.tradingtools\\\.alerte/, 'recunoaște pornirea din aplicația Android');
+  assert.match(h, /html\[data-alerte-app\] #tt-dock-wrap/, 'ascunde bara de jos');
+  assert.ok(h.indexOf('data-alerte-app') < h.indexOf('<script src="../nav.js'), 'marcajul se pune înainte să se încarce meniul');
+});
 test('manifestul Alertelor: aplicație proprie, cu scope pe alerts/', () => {
   const m = JSON.parse(readFileSync(join(ROOT, 'alerts/manifest.webmanifest'), 'utf8'));
   assert.equal(m.short_name, 'Alerte');
