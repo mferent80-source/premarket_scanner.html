@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ro" data-app-version="26.10.18.0200">
+<html lang="ro" data-app-version="26.10.18.0230">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="../lib/plex.css?v=825">
 <script src="../lib/theme.js?v=825"></script>
-<link rel="stylesheet" href="layout.css?v=26.10.18.0200">
+<link rel="stylesheet" href="layout.css?v=26.10.18.0230">
 </head>
 <body>
 <div class="app">
@@ -22,7 +22,7 @@
   </aside>
   <section class="workspace">
     <header class="topbar">
-      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.18.0200</span></small><b id="pageName">Astăzi</b></div>
+      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.18.0230</span></small><b id="pageName">Astăzi</b></div>
       <div class="account-state"><button class="google-account" id="googleAccount" data-state="checking" title="Deschide Cont & sincronizare"><i aria-hidden="true"></i><span id="googleAccountLabel" aria-live="polite">Verific Google…</span></button><button class="sync-state" id="syncStatus" data-state="checking" aria-live="polite">Verific sincronizarea</button><small class="sync-error-detail" id="syncErrorDetail" role="status" hidden></small></div>
       <div class="spacer"></div><button class="app-update" data-update hidden>Actualizează</button>
       <input class="search" id="search" aria-label="Caută module, tickere, dețineri și jurnal" aria-controls="palette" aria-expanded="false" placeholder="Caută · Ctrl K" autocomplete="off">
@@ -38,8 +38,8 @@
 <dialog id="installHelp" class="mobile-menu install-help" aria-labelledby="installTitle"><div class="mobile-menu-head"><h2 id="installTitle">Instalează Trading Tools</h2><button class="mobile-menu-close" id="closeInstallHelp" aria-label="Închide instrucțiunile">×</button></div><p>Pe Android, deschide aplicația în <b>Chrome</b> sau <b>Samsung Internet</b>, apoi alege din meniul browserului <b>Instalează aplicația</b> sau <b>Adaugă la ecranul de pornire</b>.</p><p>Pe iPhone: Safari → Partajează → Adaugă pe ecranul principal.</p><p>Dacă ai deschis linkul în ChatGPT, alege mai întâi deschiderea în browser.</p><p>Scanările și datele actualizate necesită internet.</p></dialog>
 <div class="palette" id="palette" hidden></div>
 <script src="../lib/exchange-calendar.js?v=26.10.09.2330"></script><script src="../lib/daily-series.js?v=26.10.09.2330"></script>
-<script src="../lib/holdings-forecast.js?v=26.10.18.0200"></script>
-<script src="../lib/holdings-forecast-storage.js?v=26.10.18.0200"></script>
+<script src="../lib/holdings-forecast.js?v=26.10.18.0230"></script>
+<script src="../lib/holdings-forecast-storage.js?v=26.10.18.0230"></script>
 <script src="../lib/holdings-forecast-monitor.js?v=26.10.08.1527"></script>
 <script src="../lib/decision-validation.js?v=26.10.08.1850"></script>
 <script src="../lib/decision-verdict.js?v=26.10.09.2242"></script><script src="../lib/decision-bridge.js?v=26.10.08.1850"></script>
@@ -50,16 +50,16 @@
 <script src="../lib/journal.js?v=26.10.08.1527"></script>
 <script src="../lib/trading212-snapshot.js?v=26.10.08.1527"></script>
 <script src="../lib/trading212-performance.js?v=26.10.15.0547"></script>
-<script src="../lib/trading212-capital.js?v=26.10.18.0200"></script>
+<script src="../lib/trading212-capital.js?v=26.10.18.0230"></script>
 <script src="../lib/governor.js?v=26.10.08.1527"></script>
 <script src="../lib/trade-evidence-schema.js?v=26.10.09.2330"></script>
-<script src="../lib/evidence-vault.js?v=26.10.18.0200"></script><script src="../lib/trade-evidence.js?v=26.10.18.0200"></script>
-<script src="../lib/trade-evidence-auto.js?v=26.10.18.0200"></script>
+<script src="../lib/evidence-vault.js?v=26.10.18.0230"></script><script src="../lib/trade-evidence.js?v=26.10.18.0230"></script>
+<script src="../lib/trade-evidence-auto.js?v=26.10.18.0230"></script>
 <script src="../lib/holding-handoff.js"></script>
-<script src="../lib/app-routes.js?v=26.10.18.0200"></script>
+<script src="../lib/app-routes.js?v=26.10.18.0230"></script>
 <script src="failure-info.js?v=26.10.15.0547"></script>
-<script src="../lib/holdings-model-storage.js?v=26.10.18.0200"></script>
-<script src="../lib/storage-hygiene.js?v=26.10.18.0200"></script>
+<script src="../lib/holdings-model-storage.js?v=26.10.18.0230"></script>
+<script src="../lib/storage-hygiene.js?v=26.10.18.0230"></script>
 <script>/* 15.10.2026: rapoartele vechi ale modelelor din Portofoliu ies din spațiul local la pornire; sincronizarea are din nou loc. */setTimeout(function(){try{var m=window.HoldingsModelStorage&&window.HoldingsModelStorage.migrateAll;if(m)m().then(function(r){if(r&&r.moved){try{sessionStorage.setItem('tt_reports_moved_v1',JSON.stringify({at:Date.now(),moved:r.moved,chars:r.chars}));}catch(_){}console.info('[Decision] rapoarte mutate în IndexedDB:',r.moved,'·',Math.round(r.chars/1000)+' mii caractere eliberate');}}).catch(function(){}).then(function(){/* plasa de siguranță: peste 80% din spațiul local se șterg doar cache-urile care se refac singure */var c=null;try{c=window.TTStorageHygiene&&window.TTStorageHygiene.clean();if(c){sessionStorage.setItem('tt_storage_hygiene_v1',JSON.stringify({at:Date.now(),cleaned:c.cleaned,freed:c.freed,ratio:c.after.ratio}));if(c.cleaned)console.info('[Decision] cache regenerabil șters:',c.cleaned,'chei ·',Math.round(c.freed/1000)+' mii caractere');}}catch(_){}try{document.querySelectorAll('iframe').forEach(function(f){try{f.contentWindow.postMessage({ttStorageHygiene:true},location.origin);}catch(_){}});}catch(_){}if(window.TTCloud&&window.TTCloud.sync)window.TTCloud.sync();});}catch(_){}},2500);</script>
 <script src="../lib/app-search.js?v=26.10.15.0547"></script>
 <script>
@@ -236,11 +236,11 @@
   if(unavailableInitial){var notice=document.getElementById('routeNotice');if(notice){notice.hidden=false;notice.textContent='Destinația salvată nu mai este disponibilă în meniul activ. Am deschis '+all.find(function(x){return x.u===active;}).n+'.';}}
 })();
 </script>
-<script src="../lib/breadth-daily.js?v=26.10.18.0200"></script>
+<script src="../lib/breadth-daily.js?v=26.10.18.0230"></script>
 <script>document.addEventListener('tt-breadth-daily',function(e){var s=e.detail,n=document.getElementById('breadthDailyState');n.hidden=s.status==='disabled';n.textContent=TTBreadthDaily.message(s);});TTBreadthDaily.start();</script>
 <script src="install.js?v=phone-20261003"></script>
-<script src="version.js?v=26.10.18.0200"></script>
-<script src="../lib/trading212-vault.js?v=26.10.05.2201"></script><script src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=26.10.18.0200"></script>
+<script src="version.js?v=26.10.18.0230"></script>
+<script src="../lib/trading212-vault.js?v=26.10.05.2201"></script><script src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=26.10.18.0230"></script>
 </body>
 </html>
 
