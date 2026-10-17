@@ -16,7 +16,7 @@ test('variantele: −5% implicit; după agitație = 2 × ATR, între 3% și 8%; 
   let p = S.propuneri({ intrare: 100, acum: 102, atr: 1.2 }); assert.equal(p[0].id, 'fix'); assert.equal(p[0].implicit, true); assert.ok(Math.abs(p[0].stop - 95) < 1e-9);
   assert.equal(p[1].pct, 3); assert.equal(p[1].limitat, 'min');
   p = S.propuneri({ intrare: 100, acum: 102, atr: 2.5 }); assert.equal(p[1].pct, 5); assert.equal(p[1].limitat, null);
-  p = S.propuneri({ intrare: 100, acum: 90, atr: 6 }); assert.equal(p[1].pct, 8); assert.equal(p[1].limitat, 'max'); assert.equal(p[0].subPret, true, 'acum 90 < stop 95');
+  p = S.propuneri({ intrare: 100, acum: 90, atr: 6 }); assert.equal(p[1].pct, 8); assert.equal(p[1].limitat, 'max'); assert.equal(p[0].subPret, false, '18.10: acum 90 e sub −5% de la intrare ⇒ stopul se pune de la prețul de acum (85,5), nu peste el'); assert.ok(Math.abs(p[0].stop - 85.5) < 1e-9);
   assert.equal(S.propuneri({ intrare: 100, atr: null }).length, 1, 'fără bare: doar −5%');
 });
 test('salvarea în Portofoliu: stopul apare în teze (cheia scope|ticker, cu istoric și oră) și alerta „fără stop” dispare', () => {
@@ -64,4 +64,11 @@ test('18.10: fără preț mediu în copia contului — intrarea estimată din va
   const html = S.render([{ ticker: 'X_US_EQ', quantity: 1 }], {}); assert.match(html, /Nu pot calcula stopul/);
   const h2 = S.render([p], {}); assert.match(h2, /\(estimat\)/); assert.match(h2, /data-stop-var="fix"/);
   const s = mem(); assert.equal(S.salveaza({ scope: 'l', poz: { ticker: 'MU_US_EQ', currentPrice: 1050 }, stop: 990, storage: s }), null, 'fără preț mediu și fără monedă în copie: tot se salvează (USD)');
+});
+test('18.10: poziția deja sub −5% de la intrare ⇒ stopul de la PREȚUL DE ACUM; altfel de la intrare', () => {
+  const jos = S.propuneri({ intrare: 411.11, acum: 327.35, atr: 3.75 }); // WDC din poza lui
+  assert.equal(jos[0].dinAcum, true); assert.ok(Math.abs(jos[0].stop - 327.35 * 0.95) < 1e-9); assert.equal(jos[0].subPret, false); assert.match(jos[0].titlu, /de la prețul de acum/);
+  assert.ok(Math.abs(jos[1].stop - 327.35 * 0.925) < 1e-9);
+  const sus = S.propuneri({ intrare: 100, acum: 97 }); assert.equal(sus[0].dinAcum, false); assert.equal(sus[0].stop, 95);
+  assert.match(S.render([{ ticker: 'WDC_US_EQ', quantity: 1, averagePrice: 411.11, currentPrice: 327.35, instrumentCurrency: 'USD' }], {}), /Poziția e deja −20,4% de la intrare/);
 });

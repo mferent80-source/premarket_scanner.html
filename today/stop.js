@@ -11,7 +11,7 @@
   function date() { const snap = window.T212Snapshot?.read?.('live'); return snap ? { scope: snap[0], snapshot: snap[1] } : null; }
   function desen() {
     const d = date(); if (!d) { host.innerHTML = ''; return; }
-    const poz = S.faraStop(d.snapshot, stops(d.scope)); host.innerHTML = S.render(poz, { atr, ultim, alese, stare: [stare, poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul.') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
+    const poz = S.faraStop(d.snapshot, stops(d.scope)); host.innerHTML = S.render(poz, { atr, ultim, alese, stare: [stare, poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul (luni–vineri, 08:00–22:00; în rest tace).') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
     const fetchStock = window.D?.fetchStock; if (typeof fetchStock !== 'function') return;
     for (const p of poz) { const s = S.symYahoo(p.ticker); if (!s || cerut.has(s)) continue; cerut.add(s);
       fetchStock(s, { range: '3mo', interval: '1d', ttl: 21600 }).then((b) => { atr[s] = S.atrPct(b); const c = Array.isArray(b) ? b.filter((x) => Number.isFinite(x?.c) && x.c > 0).at(-1)?.c : null; ultim[s] = c ?? null; }, () => { atr[s] = null; ultim[s] = null; }).then(desen); }
