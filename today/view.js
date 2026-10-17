@@ -146,11 +146,12 @@
   let limitaLuna=null;try{limitaLuna=g.MonthlyLimit?g.MonthlyLimit.text(g.MonthlyLimit.stare()):null;}catch(_){limitaLuna=null;}
   if(limitaLuna&&limitaLuna.grav>=3)pozitii.unshift({grav:limitaLuna.grav,text:limitaLuna.text,ruta:'journal/#raport',eticheta:'Vezi raportul ↗'});
   if(pozitii.length)title='Ce necesită atenție';
-  const rows=pozitii.slice(0,5).map(a=>[a.text,a.ruta||'holdings/',a.eticheta||'Vezi poziția ↗',null]).concat([[text,route,label,null]]);if(pozitii.length>5)rows.splice(5,0,['Încă '+(pozitii.length-5)+' semnale pe poziții, în Portofoliu.','holdings/','Portofoliu ↗',null]);if(!scannerReports().some(r=>r?.items?.length))rows.push(['Nicio scanare salvată în cele două motoare.','candidate-engine/','Deschide scanner ↗',selectedQuery()]);
-  put('attentionStrip',rows.map((r,i)=>'<div class="attention-row"><p>'+(i===0?'<strong>'+esc(title)+'</strong> ':'')+esc(r[0])+'</p><a href="'+appURL(r[1],r[3]||'')+'">'+esc(r[2])+'</a></div>').join(''));
+  const rows=pozitii.slice(0,5).map(a=>[a.text,a.sever?'#stopPanel':(a.ruta||'holdings/'),a.sever?'Pune stopul ↓':(a.eticheta||'Vezi poziția ↗'),null,a.sever]).concat([[text,route,label,null]]);if(pozitii.length>5)rows.splice(5,0,['Încă '+(pozitii.length-5)+' semnale pe poziții, în Portofoliu.','holdings/','Portofoliu ↗',null]);if(!scannerReports().some(r=>r?.items?.length))rows.push(['Nicio scanare salvată în cele două motoare.','candidate-engine/','Deschide scanner ↗',selectedQuery()]);
+  put('attentionStrip',rows.map((r,i)=>'<div class="attention-row'+(r[4]?' sever':'')+'"><p>'+(i===0?'<strong>'+esc(title)+'</strong> ':'')+esc(r[0])+'</p><a href="'+(String(r[1]).charAt(0)==='#'?esc(r[1]):appURL(r[1],r[3]||''))+'">'+esc(r[2])+'</a></div>').join(''));
  }
  /* I-692: limita / rezultatul lunii schimbate în Jurnal, Planuri sau de pagina contului (alt cadru al aplicației) ⇒ rândul de atenție se reface */
- g.addEventListener?.('storage',e=>{if(e.key==='tt_journal_settings_v1'||e.key==='tt_journal_luna_t212_v1')try{renderAttention();}catch(_){}});
+ g.addEventListener?.('storage',e=>{if(e.key==='tt_journal_settings_v1'||e.key==='tt_journal_luna_t212_v1'||e.key==='tt_holdings_theses_v1')try{renderAttention();}catch(_){}});
+ g.addEventListener?.('tt-stop-salvat',()=>{try{renderAttention();}catch(_){}});
  function scannerReports(){const R=g.ScannerResults;let a=null,b=null;try{a=R?.primary()||null;}catch(_){}try{b=R?.independent()||null;}catch(_){}return [a,b];}
  function pill(text,kind){return '<span class="pill '+kind+'">'+esc(text)+'</span>';}
  function renderBrief(){

@@ -87,7 +87,8 @@
     if (!report || !Array.isArray(report.rows)) { host.innerHTML = J.render({ tr: [], toate: [], perioada: st.perioada, stare: 'Istoricul Trading 212 nu poate fi citit.' }); bannerGovernor(); return; }
     let curs = null; try { curs = await window.JournalReview?.cursFile?.(); } catch (_) { curs = null; }
     const c = J.calatorii(report.rows, { curs, moneda: report.currency });
-    baza = { ...c, rows: J.stopuriR(c.rows, { analize: analize(report), teze: teze(report.scope), deschisa: c.deschisa }) };
+    let istoricStop = {}; try { istoricStop = window.StopSetter ? window.StopSetter.istoric(JSON.parse(localStorage.getItem('tt_holdings_theses_v1') || '{}'), report.scope) : {}; } catch (_) { istoricStop = {}; }
+    baza = { ...c, rows: J.stopuriR(c.rows, { analize: analize(report), teze: teze(report.scope), deschisa: c.deschisa, istoricStop }) };
     if (ML && report.rows.length) ML.salveazaLuna(ML.dinExecutii(report.rows, { moneda: c.moneda })); // I-692: rezultatul lunii, pentru Astăzi și Planuri
     stare = report.state === 'partial' ? 'Istoricul importat e parțial: o parte din execuții lipsesc sau au fost respinse.' : report.state === 'error' ? (report.reason || '') : '';
     if (report.state === 'missing') stare = report.reason || '';
