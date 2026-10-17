@@ -6,7 +6,7 @@ import {resolve} from 'node:path';
 // to prepare the single-file Worker for Cloudflare's dashboard editor.
 const modules=[
  {path:'../lib/trading212-model.mjs',name:'TTBrokerModel',exports:['number','summary','position','historyItem'],imports:[],bindings:''},
- {path:'./trading212-worker.mjs',name:'TTBrokerRelay',exports:['ROUTES','nextCursor','handle'],imports:["import {summary, position, historyItem} from '../lib/trading212-model.mjs';"],bindings:'const {summary,position,historyItem}=TTBrokerModel;'},
+ {path:'./trading212-worker.mjs',name:'TTBrokerRelay',exports:['ROUTES','nextCursor','STOP_ROUTE','STOP_CONFIRM','roundStop','roundQuantity','handle'],imports:["import {summary, position, historyItem} from '../lib/trading212-model.mjs';"],bindings:'const {summary,position,historyItem}=TTBrokerModel;'},
  {path:'../lib/trade-evidence-schema.js',name:'TTEvidenceSchema',exports:[],imports:[],bindings:'',result:'globalThis.TradeEvidenceSchema'},
  {path:'../lib/cloud-sync-model.mjs',name:'TTCloudModel',exports:['KEYS','merge','mergeRecord','validateValue','EvidenceCloud','ForecastCloud'],imports:["import './trade-evidence-schema.js';"],bindings:''},
  {path:'../lib/cloud-private-store.mjs',name:'TTPrivateStore',exports:['readPrivate','writePrivate'],imports:[],bindings:''},

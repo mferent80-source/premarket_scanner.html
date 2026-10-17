@@ -4,6 +4,8 @@
   'use strict';
   const S = window.StopSetter, host = document.getElementById('stopPanel'); if (!S || !host) return;
   const atr = {}, ultim = {}, alese = {}; let stare = '', cerut = new Set(), discord = '';
+  // 18.10.2026: ordinul de stop REAL în Trading 212 (lib/t212-orders.js) — butonul apare doar cu conexiunea salvată pe dispozitiv; confirmare în pagină
+  let ordine = null, confirm = null, trimitOrdin = false;
   // alarma pe Discord (worker-ul Paznicului) află ce poziții au stop: lista pleacă la fiecare schimbare
   const MES = { 'fara-cheie': 'Alarma pe Discord nu știe de stopurile tale: pune cheia de citire în Alerte (pe acest dispozitiv).', 'cheie-gresita': 'Alarma pe Discord: cheia de citire din Alerte nu e bună.', retea: 'Alarma pe Discord: lista stopurilor n-a putut fi trimisă acum (rețea); se reîncearcă.' };
   function trimite(fortat) { S.trimiteLista({ fortat }).then((r) => { const m = MES[r.stare] || ''; if (m !== discord) { discord = m; desen(); } }); }
@@ -19,7 +21,7 @@
     const d = date(); if (!d) { host.innerHTML = ''; return; }
     const scris = {}; host.querySelectorAll('[data-stop-ticker]').forEach((a) => { scris[a.dataset.stopTicker] = { alt: a.querySelector('[data-stop-alt]')?.value || '', tinta: a.querySelector('[data-stop-tinta]')?.value || '' }; });
     const activ = document.activeElement && host.contains(document.activeElement) ? { tk: document.activeElement.closest('[data-stop-ticker]')?.dataset.stopTicker, camp: document.activeElement.hasAttribute('data-stop-alt') ? 'data-stop-alt' : document.activeElement.hasAttribute('data-stop-tinta') ? 'data-stop-tinta' : null } : null;
-    const poz = S.faraStop(d.snapshot, stops(d.scope)); host.innerHTML = S.render(poz, { atr, ultim, alese, stare: [stare, poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul (luni–vineri, 08:00–22:00; în rest tace).') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
+    const poz = S.faraStop(d.snapshot, stops(d.scope)); host.innerHTML = S.render(poz, { atr, ultim, alese, ordine, confirm, trimite: trimitOrdin, stare: [stare, poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul (luni–vineri, 08:00–22:00; în rest tace).') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
     host.querySelectorAll('[data-stop-ticker]').forEach((a) => { const v = scris[a.dataset.stopTicker]; if (!v) return; const x = a.querySelector('[data-stop-alt]'), y = a.querySelector('[data-stop-tinta]'); if (x) x.value = v.alt; if (y) y.value = v.tinta; });
     if (activ && activ.tk && activ.camp) host.querySelector('[data-stop-ticker="' + CSS.escape(activ.tk) + '"] [' + activ.camp + ']')?.focus();
     const fetchStock = window.D?.fetchStock; if (typeof fetchStock !== 'function') return;
@@ -29,16 +31,32 @@
   host.addEventListener('click', (ev) => {
     const art = ev.target.closest('[data-stop-ticker]'); if (!art) return; const tk = art.dataset.stopTicker, v = ev.target.closest('[data-stop-var]');
     if (v) { alese[tk] = v.dataset.stopVar; art.querySelectorAll('[data-stop-var]').forEach((b) => b.setAttribute('aria-checked', String(b === v))); return; }
-    if (!ev.target.closest('[data-stop-save]')) return;
+    if (ev.target.closest('[data-stop-t212-nu]')) { confirm = null; desen(); return; }
+    if (ev.target.closest('[data-stop-t212-da]')) { trimiteOrdin(); return; }
+    const vreaOrdin = !!ev.target.closest('[data-stop-t212]');
+    if (!vreaOrdin && !ev.target.closest('[data-stop-save]')) return;
     const d = date(), poz = d && (d.snapshot.positions || []).find((p) => p.ticker === tk); if (!poz) return;
     const alt = Number(art.querySelector('[data-stop-alt]')?.value), ales = art.querySelector(`[data-stop-var="${alese[tk] || 'fix'}"]`) || art.querySelector('[data-stop-var]');
     const stop = alt > 0 ? alt : Number(ales?.dataset.stopPret), tv = art.querySelector('[data-stop-tinta]')?.value, tinta = tv ? Number(tv) : null;
     const sy = S.symYahoo(tk), px = S.preturi(poz, sy ? ultim[sy] : null);
+    if (vreaOrdin) { const r = window.T212Orders?.rezumat(poz, stop, px.acum); if (!r) { stare = '⚠ Alege o variantă de stop sau scrie stopul, apoi apasă din nou.'; confirm = null; } else { confirm = { ...r, scope: d.scope, tinta, intrare: px.intrare }; stare = ''; } desen(); return; }
     const err = S.salveaza({ scope: d.scope, poz: { ...poz, averagePrice: px.intrare ?? poz.averagePrice, currentPrice: px.acum ?? poz.currentPrice }, stop, tinta });
     stare = err ? '⚠ ' + err : '✓ Stopul pentru ' + tk.replace(/_US_EQ$|_[A-Z]{2}_EQ$/, '') + ' e salvat în Portofoliu.';
     desen(); window.dispatchEvent(new Event('tt-stop-salvat')); if (!err) trimite(true);
   });
+  async function trimiteOrdin() {
+    if (trimitOrdin || !confirm || !window.T212Orders) return; const c = confirm; trimitOrdin = true; desen();
+    const r = await window.T212Orders.pune({ ticker: c.ticker, quantity: c.qty, stopPrice: c.stop }); trimitOrdin = false; confirm = null;
+    if (r.ok) {
+      const d = date(), poz = d && (d.snapshot.positions || []).find((p) => p.ticker === c.ticker);
+      const err = poz ? S.salveaza({ scope: c.scope, poz: { ...poz, averagePrice: c.intrare ?? poz.averagePrice, currentPrice: r.data.currentPrice || c.acum || poz.currentPrice }, stop: r.data.stopPrice, tinta: c.tinta }) : 'poziția nu mai e în copia contului';
+      stare = '✓ Ordinul STOP pentru ' + c.simbol + ' e în Trading 212 (stop ' + r.data.stopPrice + (r.data.status ? ', ' + r.data.status : '') + ').' + (err ? ' Nu l-am putut salva și în Portofoliu: ' + err : ' L-am salvat și în Portofoliu.');
+      window.dispatchEvent(new Event('tt-stop-salvat')); trimite(true);
+    } else stare = '⚠ ' + r.mesaj;
+    desen();
+  }
   window.addEventListener('storage', (e) => { if (e.key === 'tt_holdings_theses_v1' || e.key === 'tt_trading212_portfolio_v1') { desen(); trimite(false); } });
+  if (window.T212Orders) window.T212Orders.disponibil().then((r) => { ordine = r; desen(); });
   desen(); trimite(false); pozaExterna(); setInterval(() => { if (!document.hidden) pozaExterna(); }, 300000);
   setTimeout(desen, 4000); // copia contului poate sosi după prima citire (pagina contului din fundal)
 })();
