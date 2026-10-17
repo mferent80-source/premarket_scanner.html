@@ -26,20 +26,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: node --test tools/holdings-classifier.test.mjs tools/clasificator-robot.test.mjs
+      - run: node --test tools/holdings-classifier.test.mjs tools/clasificator-robot.test.mjs tools/clasificator-jurnal.test.mjs
       - name: Clasificarea universului
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}   # doar la schimbarea verdictului jurnalului (I-643)
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}   # schimbarea verdictului, raportul la verdict (I-663), rezumatul doar după verdict
         run: node tools/clasificator-robot.mjs
       - name: Garda de formă a fișierului publicat
         env:
-          GARDA_FISIER: '1'   # după generare: și motorul trebuie să fie cel al paginii
+          GARDA_FISIER: '1'   # după generare: și motorul trebuie să fie cel al paginii; jurnalul doar crește (I-669)
         run: node --test tools/clasificator-robot.test.mjs
       - name: Salvează fișierul
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add candidate-engine/generated/clasificator.json candidate-engine/generated/clasificator-istoric.jsonl
+          git add candidate-engine/generated/clasificator.json candidate-engine/generated/clasificator-jurnal
+          git add docs/clasificator-verdict-*.md 2>/dev/null || true   # I-663: raportul, doar în noaptea verdictului
           if ! git diff --cached --quiet; then
             git commit -m 'data(clasificator): clasificarea de noapte [skip ci]'
             git pull --rebase origin main
@@ -51,4 +52,31 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
           [ -n "$DISCORD_WEBHOOK" ] || exit 0
-          node -e "const m={content:'**Robotul Clasificator a PICAT** · rularea '+process.argv[1]+'\n'+process.argv[2]+'\nPlanuri calculează pe telefon până la o rulare bună.'};fetch(process.env.DISCORD_WEBHOOK,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(m)}).then(r=>console.log('Discord: '+r.status)).catch(e=>console.log('Discord: '+e.message))" "${{ github.run_number }}" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          MOTIV=$(cat clasificator-motiv.txt 2>/dev/null || echo 'Cauza: vezi jurnalul rulării.')   # I-666: cauza, scrisă de robot
+          node -e "const m={content:'**Robotul Clasificator a PICAT** · rularea '+process.argv[1]+'\n'+process.argv[2]+'\n'+process.argv[3]+'\nPlanuri calculează pe telefon până la o rulare bună.'};fetch(process.env.DISCORD_WEBHOOK,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(m)}).then(r=>console.log('Discord: '+r.status)).catch(e=>console.log('Discord: '+e.message))" "${{ github.run_number }}" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "$MOTIV"
+  # I-674: motorul al doilea (o copie înghețată în tools/motoare/<versiune>/, altă versiune decât pagina) notează doar jurnalul lui,
+  # în paralel; fără copie, pasul iese imediat. Scrie doar în dosarul motorului lui, deci nu se ciocnește cu robotul principal.
+  umbra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    concurrency:
+      group: trading-tools-clasificator-umbra
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Motorul al doilea
+        run: node tools/clasificator-robot.mjs --umbra
+      - name: Salvează jurnalul lui
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add candidate-engine/generated/clasificator-jurnal
+          if ! git diff --cached --quiet; then
+            git commit -m 'data(clasificator): jurnalul motorului al doilea [skip ci]'
+            for i in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && break; sleep 10; done
+          fi

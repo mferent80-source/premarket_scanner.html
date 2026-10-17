@@ -4,11 +4,12 @@
 import vm from 'node:vm';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 
-export function motor(radacina = '.', extra = []) {
+/** inlocuiri: { 'lib/holdings-classifier.js': 'tools/motoare/<versiune>/holdings-classifier.js' } — motorul al doilea (I-674). */
+export function motor(radacina = '.', extra = [], inlocuiri = {}) {
   const c = { console, Intl, Date, Math, JSON };
   c.window = c; vm.createContext(c);
   for (const f of ['lib/exchange-calendar.js', 'lib/daily-series.js', 'lib/holdings-bars.js', 'lib/holdings-neural.js', 'lib/holdings-neural-evaluation.js', 'lib/holdings-classifier.js', ...extra])
-    vm.runInContext(readFileSync(radacina + '/' + f, 'utf8'), c, { filename: f });
+    vm.runInContext(readFileSync(radacina + '/' + (inlocuiri[f] || f), 'utf8'), c, { filename: inlocuiri[f] || f });
   return c;
 }
 
@@ -46,6 +47,15 @@ export async function adu(symbol, { range = '5y', fetchImpl = fetch } = {}) {
     } catch (e) { ultima = e; await pauza(1500); }
   }
   throw ultima || new Error('Yahoo indisponibil');
+}
+
+/** I-675: martorul — închiderile zilnice de la Nasdaq (a doua sursă, doar pentru comparație). Întoarce { 'AAAA-LL-ZZ': close }. */
+export async function aduNasdaq(symbol, de, { fetchImpl = fetch } = {}) {
+  const r = await fetchImpl('https://api.nasdaq.com/api/quote/' + encodeURIComponent(symbol) + '/historical?assetclass=stocks&fromdate=' + de + '&limit=30', { headers: { 'user-agent': 'Mozilla/5.0', accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
+  if (!r.ok) throw new Error('Nasdaq ' + r.status);
+  const rows = (await r.json())?.data?.tradesTable?.rows; if (!Array.isArray(rows)) throw new Error('Nasdaq: fără date pentru ' + symbol);
+  const out = {}; for (const x of rows) { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(x.date || ''), c = Number(String(x.close || '').replace(/[$,]/g, '')); if (m && c > 0) out[m[3] + '-' + m[1] + '-' + m[2]] = c; }
+  return out;
 }
 
 /** Seria unui simbol, cu cache opțional pe disc ({bars, meta}) — pentru probe repetate fără a cere de mai multe ori aceleași date. */

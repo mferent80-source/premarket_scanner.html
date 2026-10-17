@@ -1,0 +1,30 @@
+name: Clasificator — câinele de pază (pornește robotul dacă n-a notat sesiunea)
+
+# I-667 (17.10.2026): GitHub poate sări o rulare programată (17.10: a doua încercare n-a pornit deloc) și atunci nu pleacă
+# nici mesajul de eșec. Dimineața, de 4 ori, verifică fișierul robotului; dacă lipsește ultima sesiune și nimic nu rulează,
+# pornește robotul o singură dată pe sesiune și scrie pe Discord.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '10 5,7,9,11 * * 2-6'   # UTC, marți–sâmbătă dimineața (după rulările de noapte ale robotului)
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  paza:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verifică și, la nevoie, pornește robotul
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: node tools/clasificator-paza.mjs
