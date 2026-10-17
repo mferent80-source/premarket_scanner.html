@@ -202,7 +202,7 @@ test('workspace tab keys select the correct panel and preserve one keyboard entr
     assert.equal(document.querySelectorAll('.jr-pane').filter(p => !p.hidden).length,1);
   };
   check('desk');
-  for (const [key,expected] of [['ArrowRight','setup'],['End','capital'],['ArrowRight','desk'],['ArrowLeft','capital'],['Home','desk']]) {
+  for (const [key,expected] of [['ArrowRight','setup'],['End','capital'],['ArrowRight','raport'],['ArrowRight','desk'],['ArrowLeft','raport'],['ArrowLeft','capital'],['Home','raport']]) { // 17.10: „Raport” e prima filă
     const event = {type:'keydown',key};
     active()[0].dispatchEvent(event);
     assert.equal(event.defaultPrevented,true);

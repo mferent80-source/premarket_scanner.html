@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../lib/plex.css?v=743">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=678">
 <link rel="stylesheet" href="../lib/capital-ui.css?v=678">
-<script src="../lib/suite-version.js?v=945"></script>
+<script src="../lib/suite-version.js?v=946"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -298,7 +298,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
 
 <div class="jr-workspace">
   <div class="jr-tabs" role="tablist" aria-label="Secțiuni jurnal">
-    <button type="button" class="jr-tab active" data-jtab="desk" role="tab" aria-selected="true" id="jrTabDesk" aria-controls="jpaneDesk" tabindex="0">Risc & capital <span class="jr-warn" id="jrTabDeskWarn" style="display:none">!</span></button>
+    <button type="button" class="jr-tab active" data-jtab="raport" role="tab" aria-selected="true" id="jrTabRaport" aria-controls="jpaneRaport" tabindex="0">Raport</button>
+    <button type="button" class="jr-tab" data-jtab="desk" role="tab" aria-selected="false" id="jrTabDesk" aria-controls="jpaneDesk" tabindex="-1">Risc & capital <span class="jr-warn" id="jrTabDeskWarn" style="display:none">!</span></button>
     <button type="button" class="jr-tab" data-jtab="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="jpaneSetup" id="jrTabSetup">Drafturi</button>
     <button type="button" class="jr-tab" data-jtab="exec" role="tab" aria-selected="false" tabindex="-1" aria-controls="jpaneExec" id="jrTabExec">Execuții <span class="jr-warn" id="jrTabExecWarn" style="display:none">!</span></button>
     <button type="button" class="jr-tab" data-jtab="portfolio" role="tab" aria-selected="false" tabindex="-1" aria-controls="jpanePortfolio" id="jrTabPortfolio">Portofoliu · risc <span class="jr-warn" id="jrTabPfWarn" style="display:none">!</span></button>
@@ -307,7 +308,13 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <div id="jrCtxStrip" class="jr-ctx-strip" aria-label="Context workspace"></div>
 </div>
 
-<div id="jpaneDesk" class="jr-pane active" data-jpane="desk" role="tabpanel" aria-labelledby="jrTabDesk">
+<div id="jpaneRaport" class="jr-pane active" data-jpane="raport" role="tabpanel" aria-labelledby="jrTabRaport">
+<!-- 17.10.2026: raportul de execuție (lib/journal-report.js + report.js), totul la vedere; „Bilanțul tău” mutat aici din Execuții, neschimbat -->
+<div id="jrrRaport" aria-live="polite"></div>
+<section class="panel jrv" id="jrvBilant" aria-label="Bilanțul tău"><p class="jrv-note">Se citesc execuțiile…</p></section>
+</div><!-- /jpaneRaport -->
+
+<div id="jpaneDesk" class="jr-pane" data-jpane="desk" role="tabpanel" aria-labelledby="jrTabDesk" hidden>
 
 <section class="desk-rail panel" id="desk">
   <div class="jr-section-heading"><h2>Risc & capital · limite și disciplină</h2><button class="btn ghost" id="btnDeskRefresh" type="button" title="Recalculează verdictul Risk Desk">Recalculează verdictul</button></div>
@@ -438,7 +445,6 @@ tr.openrow{background:rgba(91,176,255,.06)}
 </div><!-- /jpaneSetup -->
 
 <div id="jpaneExec" class="jr-pane" data-jpane="exec" role="tabpanel" aria-labelledby="jrTabExec" hidden>
-<section class="panel jrv" id="jrvBilant" aria-label="Bilanțul tău"><p class="jrv-note">Se citesc execuțiile…</p></section>
 
 <section class="panel"><h2>Execuții Trading 212 · import automat</h2><p>Execuțiile BUY/SELL raportate de broker. P&amp;L în moneda brokerului; nu sunt incluse în statisticile USD ale planurilor manuale. Stopul și R nu sunt inventate.</p>
 <p>Vânzările brokerului apar aici ca <strong>SELL</strong>. Secțiunea „Închise” de mai jos aparține jurnalului manual.</p>
@@ -662,7 +668,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/trading212-context.js?v=26.10.15.0547"></script>
 <script src="../lib/execution-review.js?v=26.10.03.2316"></script><script src="../lib/trading212-journal.js?v=26.10.15.2310"></script>
 <script src="../lib/journal.js?v=26.10.04.0102"></script>
-<script src="../lib/suite-version.js?v=945"></script>
+<script src="../lib/suite-version.js?v=946"></script>
 <script src="../lib/journal-insights.js?v=625"></script>
 <script src="../lib/tracker.js?v=26.10.04.0102"></script>
 <script src="../lib/telegram.js?v=625"></script>
@@ -1722,8 +1728,8 @@ else if (JR.syncAllFromTracker && JR.reconcileTracker) {
 }
 function setJTab(name, options){
   options = options || {};
-  const valid = { desk: 1, setup: 1, exec: 1, capital: 1, portfolio: 1 };
-  if (!valid[name]) name = 'desk';
+  const valid = { raport: 1, desk: 1, setup: 1, exec: 1, capital: 1, portfolio: 1 };
+  if (!valid[name]) name = 'raport';
   const changed = jTabInitialized && jTab !== name;
   jTab = name;
   jTabInitialized = true;
@@ -1814,9 +1820,9 @@ renderReconcileChip();
 try { renderAll(); } catch (e) { console.error('renderAll', e); }
 function hashToJTab(h){
   const x = (h || '').replace('#', '').split('&')[0];
-  if (x === 'capital' || x === 'exec' || x === 'desk' || x === 'portfolio' || x === 'setup') return x;
+  if (x === 'raport' || x === 'capital' || x === 'exec' || x === 'desk' || x === 'portfolio' || x === 'setup') return x;
   if (x === 'journal') return 'setup';
-  return 'desk';
+  return 'raport';
 }
 function consumeSetupExecPrefill(){
   let raw = null;
@@ -1867,7 +1873,7 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = 'tt-v945';
+  var ver = 'tt-v946';
   var full = window.SUITE_VERSION || 'tt-v625-2026-07-12';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
@@ -1893,13 +1899,15 @@ document.addEventListener('click', ev => {
   }
 })();
 </script>
+<script src="../lib/trade-evidence-schema.js?v=26.10.09.2330"></script><script src="../lib/evidence-vault.js?v=26.10.15.1930"></script><script src="../lib/trade-evidence.js?v=26.10.15.1930"></script>
 <script src="../lib/market-verdict.js?v=26.10.17.1800"></script><script src="../lib/journal-review.js?v=26.10.17.1810"></script><script src="review.js?v=26.10.17.1800"></script>
+<link rel="stylesheet" href="report.css?v=26.10.17.2100"><script src="../lib/journal-report.js?v=26.10.17.2100"></script><script src="report.js?v=26.10.17.2100"></script>
 <script src="../nav.js?v=26.10.15.1830" data-nav-root="../"></script>
 <!-- tt:sw-guard:start -->
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v945';
+  var PAGE_VER = 'tt-v946';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
