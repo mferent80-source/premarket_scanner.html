@@ -41,3 +41,8 @@ test('garda: fișierul publicat (dacă există) are forma bună; istoricul doar 
   const azi = existsSync(ISTORIC) ? readFileSync(ISTORIC, 'utf8').replace(/\r\n/g, '\n') : ''; assert.ok(azi.startsWith(vechi), 'istoricul verdictului a fost rescris, nu doar crescut');
   assert.ok(citesteIstoric(azi).every((l) => /^\d{4}-\d{2}-\d{2}$/.test(l.asOf)));
 });
+test('I-686: cursul BNR din fișierul anual — lei pentru o unitate, multiplicatorul împărțit', async () => {
+  const { cursDin } = await import('./verdict-piata-robot.mjs');
+  const x = cursDin('<DataSet><Body><Cube date="2026-10-16"><Rate currency="EUR">5.3368</Rate><Rate currency="USD">4.7430</Rate><Rate currency="HUF" multiplier="100">1.3</Rate></Cube></Body></DataSet>');
+  assert.equal(x['2026-10-16'].EUR, 5.3368); assert.equal(x['2026-10-16'].USD, 4.743); assert.equal(x['2026-10-16'].HUF, undefined);
+});

@@ -140,7 +140,10 @@
   else if(ui.market?.items?.some(x=>!finite(x.price)&&x.state!=='loading')){text='Unele cotații nu au putut fi confirmate. Sursele disponibile rămân vizibile; lipsurile nu devin zero.';route='scanner-verdicts/';label='Vezi Piață ↗';}
   else if(ui.busy){text='Citesc sursele publice și registrul local. Ora ultimei citiri a contului rămâne afișată separat.';}
   else{title='Înainte de decizie';text='Verifică știrile, riscul și prețul executabil. Datele EOD și copiile locale nu sunt cotații live.';route='journal/#desk';label='Verifică riscul ↗';}
-  const rows=[[text,route,label,null]];if(!scannerReports().some(r=>r?.items?.length))rows.push(['Nicio scanare salvată în cele două motoare.','candidate-engine/','Deschide scanner ↗',selectedQuery()]);
+  // I-683: întâi alertele pe pozițiile reale (fără stop, rezultate în ≤3 zile, pierdere mare, concentrare, mișcare neobișnuită); rândul general rămâne după ele.
+  let pozitii=[];try{const TA=g.TodayAttention,vix=(ui.market?.items||[]).find(x=>x.symbol==='^VIX'),pos=ui.account?.state==='ready'?(ui.account.positions||[]):[];if(TA&&pos.length)pozitii=TA.alerte({positions:pos,stops:TA.stopuri(ui.account?.scope),earnings:verdictExtra.earnings,serii:verdictExtra.expunere?.serii||null,grupuri:verdictExtra.expunere?.grupuri||null,miscare:finite(vix?.price)?vix.price/Math.sqrt(252):null});}catch(_){pozitii=[];}
+  if(pozitii.length)title='Ce necesită atenție';
+  const rows=pozitii.slice(0,5).map(a=>[a.text,'holdings/','Vezi poziția ↗',null]).concat([[text,route,label,null]]);if(pozitii.length>5)rows.splice(5,0,['Încă '+(pozitii.length-5)+' semnale pe poziții, în Portofoliu.','holdings/','Portofoliu ↗',null]);if(!scannerReports().some(r=>r?.items?.length))rows.push(['Nicio scanare salvată în cele două motoare.','candidate-engine/','Deschide scanner ↗',selectedQuery()]);
   put('attentionStrip',rows.map((r,i)=>'<div class="attention-row"><p>'+(i===0?'<strong>'+esc(title)+'</strong> ':'')+esc(r[0])+'</p><a href="'+appURL(r[1],r[3]||'')+'">'+esc(r[2])+'</a></div>').join(''));
  }
  function scannerReports(){const R=g.ScannerResults;let a=null,b=null;try{a=R?.primary()||null;}catch(_){}try{b=R?.independent()||null;}catch(_){}return [a,b];}
@@ -185,11 +188,11 @@
  }
  function verdictEarnings(){
   const MV=g.MarketVerdict;if(verdictExtra.earnings||!g.HoldingsEvents?.fetchEvents||!MV)return;const pos=(ui.account?.positions||[]).filter(p=>MV.symbolOf(p)).sort((a,b)=>(b.value||0)-(a.value||0)).slice(0,6);if(!pos.length)return;verdictExtra.earnings=[];
-  Promise.allSettled(pos.map(p=>g.HoldingsEvents.fetchEvents(MV.symbolOf(p)))).then(rs=>{verdictExtra.earnings=rs.filter(r=>r.status==='fulfilled'&&r.value?.earnings?.date).map(r=>({symbol:r.value.symbol,date:r.value.earnings.date}));renderVerdict();});
+  Promise.allSettled(pos.map(p=>g.HoldingsEvents.fetchEvents(MV.symbolOf(p)))).then(rs=>{verdictExtra.earnings=rs.filter(r=>r.status==='fulfilled'&&r.value?.earnings?.date).map(r=>({symbol:r.value.symbol,date:r.value.earnings.date}));renderVerdict();renderAttention();});
  }
  function verdictExpunere(){ // I-678: beta portofoliului, o dată, după ce sunt citite pozițiile și seria SPY
   const MV=g.MarketVerdict,spy=(ui.market?.items||[]).find(x=>x.symbol==='SPY'),pos=ui.account?.positions||[];if(verdictExtra.expAsked||!MV||spy?.state!=='ready'||!pos.length)return;verdictExtra.expAsked=true;
-  MV.expunere({positions:pos,total:ui.account?.total,currency:ui.account?.currency,spyPoints:spy.points}).then(e=>{verdictExtra.expunere=e;renderVerdict();});
+  MV.expunere({positions:pos,total:ui.account?.total,currency:ui.account?.currency,spyPoints:spy.points}).then(e=>{verdictExtra.expunere=e;renderVerdict();renderAttention();});
  }
  function renderVerdict(){
   const host=$('marketVerdict'),MV=g.MarketVerdict;if(!host||!MV)return;verdictLoad();verdictEarnings();verdictExpunere();

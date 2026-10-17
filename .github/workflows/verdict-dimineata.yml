@@ -1,0 +1,27 @@
+name: Verdictul pieței — rezumatul de dimineață pe Discord
+
+# I-684 (17.10.2026): înainte de deschiderea SUA, în zilele de bursă: verdictul notat noaptea, ce s-a schimbat, evenimentele zilei,
+# marile companii, futures. Doar trimite; nu scrie nimic în depozit. Zilele fără bursă (sărbători SUA) ies fără mesaj.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 12 * * 1-5'   # 12:00 UTC = 15:00 vara / 14:00 iarna la București, înainte de 13:30 / 14:30 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  rezumat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Rezumatul
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: node tools/verdict-dimineata.mjs

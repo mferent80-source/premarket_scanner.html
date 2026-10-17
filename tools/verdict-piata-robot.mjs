@@ -15,6 +15,13 @@ import { tcdf } from './clasificator-jurnal.mjs';
 
 export const FISIER = 'candidate-engine/generated/verdict-piata.json', ISTORIC = 'candidate-engine/generated/verdict-piata-istoric.jsonl', VERSIUNE = 'verdict-piata-v1';
 export const PROBA = Object.freeze({ orizont: 5, minimPeGrup: 20, alfa: 0.05, protocol: '2026-10-17' });
+export const CURS = 'candidate-engine/generated/curs-bnr.json';
+/** I-686: cursul oficial BNR (lei pentru o unitate; multiplicatorul se împarte), din fișierele anuale curs.bnr.ro. Doar EUR / USD / GBP / CHF. */
+export function cursDin(xml) {
+  const out = {}, cubes = String(xml || '').matchAll(/<Cube date="(\d{4}-\d{2}-\d{2})">([\s\S]*?)<\/Cube>/g);
+  for (const [, d, body] of cubes) { const zi = {}; for (const [, attrs, v] of body.matchAll(/<Rate([^>]*)>([\d.]+)<\/Rate>/g)) { const c = /currency="([A-Z]{3})"/.exec(attrs)?.[1], m = Number(/multiplier="(\d+)"/.exec(attrs)?.[1] || 1); if (['EUR', 'USD', 'GBP', 'CHF'].includes(c) && fin(Number(v))) zi[c] = Number(v) / m; } if (Object.keys(zi).length) out[d] = zi; }
+  return out;
+}
 const fin = Number.isFinite;
 
 export function motorVerdict(radacina = '.') {
@@ -95,6 +102,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   console.log(`Verdict ${j.asOf}: ${j.label} (scor ${j.score}, ${j.citite} din 6) · regim macro ${j.regim?.treapta?.cod || '—'} · mari ${j.rezultateMari.length} · istoric ${j.istoric.length} · ${j.proba.mesaj}`);
   if (j.citite < 3) { console.error('Prea puține surse citite; fișierul vechi rămâne.'); process.exit(1); }
   if (!process.argv.includes('--uscat')) { writeFileSync(FISIER, JSON.stringify(j) + '\n'); if (linie) appendFileSync(ISTORIC, JSON.stringify(linie) + '\n'); }
+  // I-686: cursul BNR pe anul curent și pe cel trecut (pentru raportul fiscal din Jurnal); dacă BNR nu răspunde, fișierul vechi rămâne.
+  try {
+    const an = new Date().getUTCFullYear(), curs = {};
+    for (const y of [an - 1, an]) { const r = await fetch(`https://curs.bnr.ro/files/xml/years/nbrfxrates${y}.xml`, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(20000) }); if (r.ok) Object.assign(curs, cursDin(await r.text())); }
+    const n = Object.keys(curs).length; console.log('Cursul BNR: ' + n + ' zile');
+    if (n > 50 && !process.argv.includes('--uscat')) writeFileSync(CURS, JSON.stringify({ sursa: 'curs.bnr.ro', generat: new Date().toISOString(), curs }) + '\n');
+  } catch (e) { console.log('Cursul BNR ✗ ' + e.message); }
   // Discord: doar la schimbarea etichetei față de sesiunea precedentă notată
   if (process.env.DISCORD_WEBHOOK && !process.argv.includes('--uscat') && vechi?.label && vechi.asOf !== j.asOf && vechi.label !== j.label) {
     const T = { favorabil: 'Favorabil', neutru: 'Neutru', prudent: 'Prudent', defensiv: 'Defensiv' };
