@@ -3395,12 +3395,12 @@ pe un singur chart.
 | I-687 | Corelația pozițiilor între ele (90 de zile): „NVDA, AMD și AVGO se mișcă împreună — e un singur pariu de 38% din cont”; pe Astăzi lângă beta (I-678) și în Portofoliu | lib/market-verdict.js (expunere), holdings/ (Portofoliu), today/view.js | M | P2 | făcut 2026-10-17 (59c5cd7a) | ideation | 2026-10-17 |
 | I-688 | Bilanțul săptămânii în Jurnal (sâmbăta): cât a câștigat / pierdut contul față de S&P ajustat cu beta, cea mai bună și cea mai slabă poziție, câte intrări au respectat regulile (riscul pe trade, stop pus, verdictul zilei) — o pagină scurtă de citit în weekend | journal/, desk/analytics.js / desk/account-performance.js (refolosite), lib/market-verdict.js | M | P2 | făcut 2026-10-17 (59c5cd7a) | ideation | 2026-10-17 |
 | I-689 | Health: toți roboții de noapte într-un singur tabel (Clasificator, Verdictul pieței, Trend 12 luni, Market Breadth, Price Alerts, calendarul Europa) — ultima rulare reușită, ce a picat, cât e de vechi fișierul fiecăruia — din API-ul public GitHub, o singură cerere | health/index.html | S | P3 | făcut 2026-10-17 (59c5cd7a) | ideation | 2026-10-17 |
-| I-690 | Eticheta pe tranzacție în Raport (fomo, prea devreme, fără plan, revenge, execuție bună…) + „cât te-a costat fiecare greșeală” pe execuțiile Trading 212 | lib/journal-report.js, journal/report.js, lib/journal.js | M | P1 | propus | ideation | 2026-10-17 |
-| I-691 | Planul față de execuție: tranzacțiile intrate după o analiză salvată — ieșit la țintă / între stop și țintă / sub stop (stop nerespectat), cât din țintă ai prins | lib/journal-report.js, lib/trade-evidence.js | M | P1 | propus | ideation | 2026-10-17 |
-| I-692 | Limita lunară care oprește, nu doar arată: depășită ⇒ banner în Planuri și pe Astăzi + Governor trece la „pauză” până luna viitoare (informativ, regula ta scrisă dinainte) | journal/report.js, desk/, lib/governor.js, today/view.js | S | P1 | propus | ideation | 2026-10-17 |
-| I-693 | Cât de sigur e rezultatul tău: intervalul de încredere al speranței pe tranzacție (bootstrap pe tranzacții) + Monte Carlo „într-o serie proastă (5%) din următoarele 50 scazi X lei” + câte tranzacții mai trebuie | lib/journal-report.js | M | P2 | propus | ideation | 2026-10-17 |
-| I-694 | Tu față de S&P în aceleași zile: pentru fiecare tranzacție, ce ar fi făcut SPY între intrare și ieșire ⇒ „ai bătut piața în X din N tranzacții, plusul tău real e Y lei” | lib/journal-report.js, journal/report.js | M | P2 | propus | ideation | 2026-10-17 |
-| I-695 | „Ce-ar fi fost dacă” pe tranzacțiile tale: 3 reguli simple refăcute pe barele zilnice (stop la −1 R, prag la +3%, ieșire după N zile) ⇒ rezultatul cu fiecare regulă, ca ipoteză de verificat înainte | lib/journal-report.js | L | P3 | propus | ideation | 2026-10-17 |
+| I-690 | Eticheta pe tranzacție în Raport (fomo, prea devreme, fără plan, revenge, execuție bună…) + „cât te-a costat fiecare greșeală” pe execuțiile Trading 212 | lib/journal-report.js, journal/report.js, lib/journal.js | M | P1 | făcut | ideation | 2026-10-17 |
+| I-691 | Planul față de execuție: tranzacțiile intrate după o analiză salvată — ieșit la țintă / între stop și țintă / sub stop (stop nerespectat), cât din țintă ai prins | lib/journal-report.js, lib/trade-evidence.js | M | P1 | făcut | ideation | 2026-10-17 |
+| I-692 | Limita lunară care oprește, nu doar arată: depășită ⇒ banner în Planuri și pe Astăzi + Governor trece la „pauză” până luna viitoare (informativ, regula ta scrisă dinainte) | journal/report.js, desk/, lib/governor.js, today/view.js | S | P1 | făcut | ideation | 2026-10-17 |
+| I-693 | Cât de sigur e rezultatul tău: intervalul de încredere al speranței pe tranzacție (bootstrap pe tranzacții) + Monte Carlo „într-o serie proastă (5%) din următoarele 50 scazi X lei” + câte tranzacții mai trebuie | lib/journal-report.js | M | P2 | făcut | ideation | 2026-10-17 |
+| I-694 | Tu față de S&P în aceleași zile: pentru fiecare tranzacție, ce ar fi făcut SPY între intrare și ieșire ⇒ „ai bătut piața în X din N tranzacții, plusul tău real e Y lei” | lib/journal-report.js, journal/report.js | M | P2 | făcut | ideation | 2026-10-17 |
+| I-695 | „Ce-ar fi fost dacă” pe tranzacțiile tale: 3 reguli simple refăcute pe barele zilnice (stop la −1 R, prag la +3%, ieșire după N zile) ⇒ rezultatul cu fiecare regulă, ca ipoteză de verificat înainte | lib/journal-report.js | L | P3 | făcut | ideation | 2026-10-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6864,44 +6864,46 @@ Lentile: Trader — aplicația spune cum e piața, dar nu încă ce înseamnă p
 - I-682 / I-686 / I-688 Jurnal → Execuții: „Bilanțul tău” la vedere (lib/journal-review.js + journal/review.js); probat live cu execuții de probă: săptămâna, tabelul pe tipul de zi, raportul fiscal în lei (curs BNR din curs.bnr.ro, 447 de zile, scris de robotul verdictului) + CSV.
 - I-685 Planuri: rândul cu verdictul zilei în ticket (informativ). I-684: verdict-dimineata.yml (12:00 UTC, tace în zilele fără bursă — probat sâmbătă). I-689: tabelul tuturor roboților în Health (9 roboți).
 
-#### I-690 · Eticheta pe tranzacție + costul greșelilor · [M] · P1 · propus
+#### I-690 · Eticheta pe tranzacție + costul greșelilor · [M] · P1 · făcut 2026-10-17 (66488b07)
 - **Problema/golul:** Raportul arată CE s-a întâmplat (rata, R, zilele), nu DE CE. Jurnalul manual vechi are etichete (lib/journal.js: fomo, chase, early-exit, revenge, no-plan, good-exec) și raportul lor lunar (I-153, făcut), dar execuțiile Trading 212, singurele pe care le folosești, nu pot fi etichetate.
 - **Soluția:** în lista „Tranzacțiile închise” din Raport, pe fiecare rând, 1–3 etichete la un apăsat (aceeași listă ca jurnalul manual, plus „am respectat planul”), ținute pe id-ul vânzării. Un tabel nou, „Ce te-a costat”: pe fiecare etichetă, câte tranzacții, rezultatul total și mediu, R mediu. Rândurile neetichetate se numără la vedere („23 fără etichetă”).
 - **Impact:** găsești greșeala care costă cel mai mult (de exemplu „revenge: −1.240 lei în 6 tranzacții”). E cea mai directă cale de a reduce pierderile.
 - **Riscuri/dependențe:** etichetele trebuie să ajungă și pe PC (sincronizarea contului: o cheie nouă, ca jurnalul manual). Puse după rezultat, sunt subiective ⇒ data etichetării se notează.
 - **Fișiere atinse:** lib/journal-report.js, journal/report.js, lib/journal.js (lista etichetelor), sincronizarea contului.
 
-#### I-691 · Planul față de execuție · [M] · P1 · propus
+#### I-691 · Planul față de execuție · [M] · P1 · făcut 2026-10-17 (66488b07)
 - **Problema/golul:** „Analize înaintea intrării” (lib/trade-evidence.js) păstrează stopul ȘI ținta planificate, legate de execuții prin buyIds / sellIds. Raportul folosește azi doar stopul (R). Nu spune dacă ai ieșit unde plănuiseși.
 - **Soluția:** o secțiune „Planul față de execuție”. Pentru fiecare tranzacție cu analiză salvată: ieșit la / peste țintă, între stop și țintă (ieșire manuală), sub stop (stop nerespectat sau gap), plus procentul din drumul până la țintă prins. Totalurile pe cele 4 grupe, cu rezultatul fiecăreia.
 - **Impact:** arată dacă problema e analiza (ținte nerealiste) sau execuția (ieși prea devreme / ții sub stop). Sunt două reparații diferite.
 - **Riscuri/dependențe:** puține tranzacții au analiză salvată (fereastra de 30 de minute) ⇒ n mic, deci textul „descriptiv”. Merge doar cu analizele salvate în Desk.
 - **Fișiere atinse:** lib/journal-report.js, journal/report.js; citește lib/trade-evidence.js (record.stop / target).
 
-#### I-692 · Limita lunară care oprește · [S] · P1 · propus
+#### I-692 · Limita lunară care oprește · [S] · P1 · făcut 2026-10-17 (66488b07)
 - **Problema/golul:** limita lunară e acum în Raport (I-5 din runda „Raport”), dar o vezi doar dacă deschizi Jurnalul. Exact în luna proastă nu-l deschizi. Planurile (desk/) calculează mărimea poziției fără să știe de ea.
 - **Soluția:** când limita lunii e atinsă sau trece de 75%, apare un banner în Planuri, lângă mărimea poziției, și pe Astăzi („Ai pierdut 820 din 1.000 lei luna asta”). La depășire, Governor arată „pauză până la 1 noiembrie”. Informativ: nu blochează brokerul, e regula ta scrisă dinainte.
 - **Impact:** previne cea mai scumpă greșeală, cea de după o lună proastă. E P1 pentru că mută raportul din „privit după” în „oprit înainte”.
 - **Riscuri/dependențe:** rezultatul lunii vine din execuțiile Trading 212 de pe dispozitiv; fără import recent ⇒ „neverificat”, nu „ok” (I-612). Pragul 75% e o alegere a lui.
 - **Fișiere atinse:** journal/report.js (limita: tt_journal_limita_luna_v1), desk/ (ticket), today/view.js, lib/governor.js.
 
-#### I-693 · Cât de sigur e rezultatul tău · [M] · P2 · propus
+#### I-693 · Cât de sigur e rezultatul tău · [M] · P2 · făcut 2026-10-17 (66488b07)
 - **Problema/golul:** Raportul dă o singură cifră a speranței (de exemplu +6,7 lei pe tranzacție) și nota „cifrele descriu, nu dovedesc”. Nu spune cât de departe poate fi adevărul, nici cât de rău poate merge o serie.
 - **Soluția:** speranța cu intervalul de 90% (bootstrap pe tranzacții: 5.000 de extrageri, mulberry32), de exemplu „+6,7 lei (între −4,1 și +17,9)”. Monte Carlo pe ordinea tranzacțiilor: scăderea maximă tipică și cea din cele 5% serii proaste pentru următoarele 50 de tranzacții. „Câte tranzacții mai trebuie” ca intervalul să nu mai cuprindă zero, la aceeași medie și împrăștiere.
 - **Impact:** știi dacă ai un avantaj sau doar noroc, și cât capital să ții pentru seria proastă.
 - **Riscuri/dependențe:** bootstrapul presupune tranzacții independente; seriile (I-4 obiceiuri) le pot lega ⇒ textul o spune. Cifrele sunt descriptive, nu un test de avantaj pe date noi.
 - **Fișiere atinse:** lib/journal-report.js, journal/report.js.
 
-#### I-694 · Tu față de S&P în aceleași zile · [M] · P2 · propus
+#### I-694 · Tu față de S&P în aceleași zile · [M] · P2 · făcut 2026-10-17 (66488b07)
 - **Problema/golul:** un câștig de +3% într-o săptămână în care S&P a urcat 4% e de fapt o pierdere față de piață. Raportul nu face diferența, iar Bilanțul arată S&P doar pe săptămână, nu pe tranzacție.
 - **Soluția:** pentru fiecare tranzacție, randamentul SPY între ziua intrării și ziua ieșirii (barele SPY pe care pagina le are deja). „Ai bătut piața în X din N tranzacții; plusul tău peste piață e Y lei.” O coloană nouă în listă și un rând în cifrele perioadei.
 - **Impact:** separă priceperea de vântul pieței. Dacă plusul vine doar din piață, e mai simplu să ții un ETF.
 - **Riscuri/dependențe:** SPY e reperul potrivit doar pentru acțiunile din SUA; pentru cele europene se folosește alt indice sau se arată „—”. Beta-ul acțiunii nu e ajustat (se scrie).
 - **Fișiere atinse:** lib/journal-report.js, journal/report.js.
 
-#### I-695 · „Ce-ar fi fost dacă” pe tranzacțiile tale · [L] · P3 · propus
+#### I-695 · „Ce-ar fi fost dacă” pe tranzacțiile tale · [L] · P3 · făcut 2026-10-17 (66488b07)
 - **Problema/golul:** semnalele din Raport („ții pierzătoarele de 2× mai mult”, „pierzătoare care au fost pe plus cu peste 3%”) sugerează reguli, dar nu arată ce ar fi schimbat ele.
 - **Soluția:** 3 reguli fixe, refăcute pe barele zilnice ale fiecărei tranzacții din SUA: stop la −1 R (unde R e cunoscut), mutarea stopului pe prag după +3%, ieșire după N zile. Rezultatul cu fiecare regulă, lângă cel real.
 - **Impact:** o regulă de execuție aleasă pe date, nu pe impresie.
 - **Riscuri/dependențe:** ipoteză, nu dovadă: regulile sunt alese DUPĂ ce s-au văzut tranzacțiile ⇒ se judecă doar pe tranzacțiile de după alegere (proba înainte, prag scris). Barele zilnice nu arată ordinea în zi (gap, maxim înainte de minim), deci folosesc varianta prudentă. 3 reguli = 3 încercări, numărate.
 - **Fișiere atinse:** lib/journal-report.js, journal/report.js.
+
+**Rezultate I-690..I-695 (17.10.2026, 66488b07):** toate în Jurnal → Raport; limita lunară și pe Astăzi (primul rând de atenție), în ticketul Planurilor și în Risc & capital. Etichetele și limita se sincronizează prin setările jurnalului; rezultatul lunii rămâne local pe fiecare dispozitiv (altfel conflict de sincronizare — prins de revizie). Probat cap-coadă cu 600 de execuții în magazia reală: opriri ≤ 138 ms.
