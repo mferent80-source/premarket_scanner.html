@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 
-const c = {}; vm.createContext(c); vm.runInContext(readFileSync('lib/market-verdict.js', 'utf8'), c); const MV = c.MarketVerdict;
+const c = { URL }; vm.createContext(c); vm.runInContext(readFileSync('lib/market-verdict.js', 'utf8'), c); const MV = c.MarketVerdict;
 const serie = (n, f) => Array.from({ length: n }, (_, i) => ({ at: i, value: f(i) }));
 const piata = (sus) => ({ items: [
   { symbol: 'SPY', state: 'ready', price: sus ? 120 : 80, asOf: '2026-10-16', points: serie(260, () => 100), indicators: {} },
