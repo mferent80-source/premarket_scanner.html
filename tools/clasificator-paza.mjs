@@ -6,6 +6,8 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { motor } from './clasificator-date.mjs';
+import { PROBA, incarca } from './clasificator-jurnal.mjs';
+import { readdirSync } from 'node:fs';
 
 export const WORKFLOW = 'clasificator.yml', BOT = 'github-actions[bot]';
 /** Decizia: 'ok' (sesiunea e notată) · 'ruleaza' (o rulare e în curs) · 'deja' (am pornit-o o dată pentru sesiunea asta) · 'porneste'.
@@ -20,6 +22,8 @@ export function decide({ asOf, asteptata, rulari = [], dupa }) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const c = motor('.'); let s; try { s = c.ExchangeCalendar.latest(Date.now(), 'US'); } catch (e) { console.log('Calendarul nu poate spune sesiunea: ' + e.message); process.exit(0); }
   const j = existsSync('candidate-engine/generated/clasificator.json') ? JSON.parse(readFileSync('candidate-engine/generated/clasificator.json', 'utf8')) : {};
+  // Revizia din 17.10: când pagina are alt motor decât cel în probă, proba vine din jobul „umbra” — verific și linia ei din jurnal.
+  if (c.HoldingsClassifier.VERSION !== PROBA) { const z = incarca({ existsSync, readdirSync, readFileSync }, '.').voturi.filter((l) => l.motor === PROBA).map((l) => l.asOf).sort().at(-1) || null; if (!z || !j.asOf || z < j.asOf) j.asOf = z; }
   const repo = process.env.GITHUB_REPOSITORY, h = { authorization: 'Bearer ' + process.env.GH_TOKEN, accept: 'application/vnd.github+json', 'x-github-api-version': '2022-11-28' };
   const api = (p, o = {}) => fetch('https://api.github.com/repos/' + repo + p, { ...o, headers: { ...h, ...(o.headers || {}) }, signal: AbortSignal.timeout(20000) });
   const rulari = (await (await api(`/actions/workflows/${WORKFLOW}/runs?per_page=20`)).json()).workflow_runs || [];

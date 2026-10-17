@@ -12,6 +12,7 @@ import { pathToFileURL } from 'node:url';
 import { motor, adu, aduCache, aduNasdaq, universScanner, clasifica } from './clasificator-date.mjs';
 import { univers } from './clasificator-univers.mjs';
 import { PROBA, regim, ziua, adauga, incarca, incheie, deScris, sesiuniDupa, bilantDoua, nopti, mesajZilnic, schimbari, raportVerdict } from './clasificator-jurnal.mjs';
+import { amprentaFisier, inlocuiriDin, inregistrat } from './clasificator-amprenta.mjs';
 
 export const FISIER = 'candidate-engine/generated/clasificator.json', VERSIUNE = 'clasificator-robot-v1', COMUN_MAX = 150, MOTOARE = 'tools/motoare';
 /** I-658: universul robotului = cele ~600 de acțiuni ale robotului Trend (univers-sua.json, după capitalizare) + scannerul (US_CORE). */
@@ -28,11 +29,11 @@ export function dosarUmbra(radacina = '.', versiuneaPaginii) {
 }
 const dorm = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function ruleaza({ c = motor('.', ['lib/desk-classifier.js']), simboluri = universScanner('.'), scanner = null, cap = new Map(), sursa, now = Date.now(), log = () => {}, comun = true, spy = null, jurnal = { voturi: [], rezultate: [] }, minute = Infinity, pauza = 0, reia = { asteapta: 15, incercari: 3 }, umbra = false, martor = null } = {}) {
+export async function ruleaza({ c = motor('.', ['lib/desk-classifier.js']), simboluri = universScanner('.'), scanner = null, cap = new Map(), sursa, now = Date.now(), log = () => {}, comun = true, spy = null, jurnal = { voturi: [], rezultate: [] }, minute = Infinity, pauza = 0, reia = { asteapta: 15, incercari: 3 }, umbra = false, martor = null, aduSpy = null } = {}) {
   const C = c.HoldingsClassifier, D = c.TTDeskClassifier, cal = c.ExchangeCalendar, entries = {}, picate = [], serii = {}, intregi = {}, entries20 = {}, start = Date.now();
   const dateOf = (t) => c.DailySeries.date(t, 'America/New_York'), scurs = () => (Date.now() - start) / 60000;
   // Pentru rezultate contează doar sesiunile încheiate; o serie „veche” (bara zilei întârzie) e bună pentru zilele trecute.
-  const incheiate = (raw) => { let lim; try { lim = cal.latest(now, 'US').day; } catch { return raw; } return raw.filter((b) => dateOf(b.t) <= lim); };
+  const incheiate = (raw) => { let lim; try { lim = cal.latest(now, 'US').day; } catch { return raw; } const zile = new Map(); for (const b of raw) { const d = dateOf(b.t); if (d > lim || cal.session('US', d).state === 'closed') continue; if (!zile.has(d) || zile.get(d).t < b.t) zile.set(d, b); } return [...zile.values()].sort((x, y) => x.t - y.t); };
   const citesteSerie = async (s) => { if (sursa) return sursa(s); const raw = await adu(s); try { return c.DailySeries.read(raw, s, now); } catch (e) { e.bare = incheiate(raw); throw e; } };
   const una = async (s, k) => {
     try {
@@ -66,8 +67,9 @@ export async function ruleaza({ c = motor('.', ['lib/desk-classifier.js']), simb
   const zile = {}; for (const e of Object.values(entries)) zile[e.asOf] = (zile[e.asOf] || 0) + 1;
   const asOf = Object.entries(zile).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? 1 : -1))[0]?.[0] || null;
   const durata = () => ({ minute: Math.round(scurs() * 10) / 10, timpDepasit: picate.filter((p) => p.motiv === TIMP).length, reluari, vechi: vechi().length });
+  if (aduSpy && asOf && !regim(spy, asOf, dateOf)) { try { spy = await aduSpy(); log('SPY reluat pentru regimul zilei.'); } catch (e) { log('SPY tot indisponibil: ' + (e && e.message)); } }
   const linie = ziua({ asOf, generat: new Date(now).toISOString(), motor: C.VERSION, entries, tinta20: { entries: entries20 } }, regim(spy, asOf, dateOf)); // jurnalul notează TOT universul
-  const linii = adauga(jurnal.voturi, linie), nou = linii.length > jurnal.voturi.length ? [linie] : [];
+  const { linii, nou } = adauga(jurnal.voturi, linie); // prima notare rămâne; o rulare ulterioară completează doar acțiunile lipsă
   if (umbra) return { motor: C.VERSION, asOf, simboluri: simboluri.length, clasificate: Object.keys(entries).length, picate, durata: durata(), jurnalNou: { voturi: nou, rezultate: [] } };
 
   // I-641: modelul comun pe primele COMUN_MAX după capitalizare; dacă pică, fișierul rămâne valabil fără el.
@@ -85,7 +87,7 @@ export async function ruleaza({ c = motor('.', ['lib/desk-classifier.js']), simb
   for (const s of lipsa) { if (scurs() > minute + 5) break; try { intregi[s] = (await citesteSerie(s)).bars; } catch (e) { if (e && e.bare) intregi[s] = e.bare; } }
   // I-672: rezultatele înghețate în noaptea în care se încheie orizontul; I-660/668: bilanțul doar pe motorul în probă, notat la timp.
   const rezNoi = incheie(linii, jurnal.rezultate, intregi, dateOf, { sesiuniDupa: sesiuniDupa(cal, now) }), rezultate = jurnal.rezultate.concat(rezNoi);
-  const { b5, b20 } = bilantDoua(linii, rezultate, { motor: PROBA, cal, now });
+  const { b5, b20 } = bilantDoua(linii, rezultate, { motor: PROBA, cal, now, faraUltima: PROBA !== C.VERSION }); // motorul în probă ca al doilea ⇒ ziua lui vine din jobul paralel
   j.jurnal = b5; j.jurnal20 = b20; j.nopti = nopti(linii, cal, now, PROBA); j.durata = durata();
   if (martor) j.martor = await martor(j, intregi, dateOf);
   return { ...j, jurnalNou: { voturi: nou, rezultate: rezNoi } };
@@ -136,18 +138,21 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const i = process.argv.indexOf('--cache'), dir = i > 0 ? process.argv[i + 1] : null, umbra = process.argv.includes('--umbra'), uscat = process.argv.includes('--uscat'); // --cache: doar pentru rulări locale repetate
   const pagina = motor('.').HoldingsClassifier.VERSION, du = umbra ? dosarUmbra('.', pagina) : null;
   if (umbra && !du) { console.log('Fără motor al doilea în ' + MOTOARE + '; nimic de făcut.'); process.exit(0); }
-  const c = du ? motor('.', ['lib/desk-classifier.js'], { 'lib/holdings-classifier.js': du + '/holdings-classifier.js' }) : motor('.', ['lib/desk-classifier.js']);
+  const inloc = du ? inlocuiriDin('.', du) : {}, c = motor('.', ['lib/desk-classifier.js'], inloc), amp = amprentaFisier('.', inloc), bun = inregistrat('.', c.HoldingsClassifier.VERSION, amp);
+  if (!bun) console.error(`Motorul ${c.HoldingsClassifier.VERSION} (amprenta ${amp}) nu e în docs/clasificator-versiuni.md: fișierul se scrie, dar jurnalul NU notează ziua (I-661).`);
   const vechi = existsSync(FISIER) ? (() => { try { return JSON.parse(readFileSync(FISIER, 'utf8')); } catch { return null; } })() : null;
   let spy = null; try { spy = dir ? await aduCache('SPY', dir) : await adu('SPY'); } catch (e) { console.log('SPY indisponibil: ' + e.message); }
   const jurnal = incarca({ existsSync, readdirSync, readFileSync }, '.');
   const U = universRobot('.'), max = Number(process.env.CLASIFICATOR_MAX || 0), sim = max ? U.simboluri.slice(0, max) : U.simboluri;
   const { jurnalNou, ...j } = await ruleaza({ c, simboluri: sim, scanner: U.scanner, cap: U.cap, minute: Number(process.env.CLASIFICATOR_MINUTE || 55), pauza: dir ? 0 : 150, log: console.log, spy, jurnal, umbra,
-    reia: { asteapta: dir ? 0 : 15, incercari: 3 }, martor: dir || umbra ? null : martorNasdaq(U.cap), ...(dir ? { sursa: async (s) => c.DailySeries.read(await aduCache(s, dir), s) } : {}) });
+    reia: { asteapta: dir ? 0 : 15, incercari: 3 }, aduSpy: dir ? null : () => adu('SPY'), martor: dir || umbra ? null : martorNasdaq(U.cap), ...(dir ? { sursa: async (s) => c.DailySeries.read(await aduCache(s, dir), s) } : {}) });
+  if (!bun) jurnalNou.voturi = []; // motor neînregistrat: voturile lui nu intră în probă (rezultatele voturilor vechi se notează în continuare)
   const n = j.clasificate, scrieJurnal = () => { for (const [p, t] of deScris(jurnalNou)) { mkdirSync(dirname(p), { recursive: true }); appendFileSync(p, t); } };
   console.log(`\n${n} din ${j.simboluri} clasificate · EOD ${j.asOf} · picate ${j.picate.length} · ${j.durata.minute} minute · reluări ${j.durata.reluari}` + (umbra ? ` · motorul al doilea ${j.motor}` : ` · experimentale ${Object.values(j.entries).filter((e) => e.state === 'research').length}`));
   // Prea puține ⇒ rețea / Yahoo picat: nu înlocuiesc fișierul bun de ieri cu unul aproape gol; motivul merge pe Discord (pasul de eșec).
   if (n < Math.ceil(j.simboluri * 0.5)) { const m = motivEsec(j); console.error('Prea puține simboluri clasificate; fișierul vechi rămâne. ' + m); writeFileSync('clasificator-motiv.txt', m); process.exit(1); }
-  if (umbra) { if (!uscat) scrieJurnal(); console.log('Jurnalul motorului al doilea: ' + (jurnalNou.voturi.length ? 'ziua ' + j.asOf + ' notată' : 'ziua era deja notată')); process.exit(0); }
+  if (umbra) { if (!bun && process.env.DISCORD_WEBHOOK && !uscat) { try { await fetch(process.env.DISCORD_WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: `**Clasificatorul — motorul al doilea neînregistrat** · ${c.HoldingsClassifier.VERSION} (amprenta ${amp}); ziua ${j.asOf} NU s-a notat.` }), signal: AbortSignal.timeout(20000) }); } catch { /* fără Discord */ } }
+    if (!uscat) scrieJurnal(); console.log('Jurnalul motorului al doilea: ' + (jurnalNou.voturi.length ? 'ziua ' + j.asOf + ' notată' : 'ziua era deja notată')); process.exit(0); }
   const probleme = valideaza(j, c.HoldingsClassifier.VERSION);
   if (probleme.length) { console.error('Fișier respins: ' + probleme.slice(0, 10).join(' · ')); writeFileSync('clasificator-motiv.txt', 'Fișierul generat nu a trecut garda: ' + probleme.slice(0, 3).join(' · ')); process.exit(1); }
   console.log('Jurnal: ' + j.jurnal.zileNotate + ' zile notate · ' + j.jurnal.zileVerificate + ' verificate · rezultate noi ' + jurnalNou.rezultate.length + ' · ' + j.jurnal.mesaj + ' ' + j.jurnal.nota);
@@ -157,6 +162,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   // Discord: un mesaj la orice schimbare de verdict (cele 4), raportul la verdict (I-663) și rezumatul zilnic DOAR când un verdict e pozitiv (I-657).
   const trimite = async (content) => { try { const r = await fetch(process.env.DISCORD_WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content }), signal: AbortSignal.timeout(20000) }); console.log('Discord: ' + r.status); } catch (e) { console.log('Discord: ' + e.message); } };
   if (process.env.DISCORD_WEBHOOK && !uscat) {
+    if (!bun) await trimite(`**Clasificatorul — motor neînregistrat** · ${c.HoldingsClassifier.VERSION} (amprenta ${amp}) nu e în registrul versiunilor; ziua ${j.asOf} NU s-a notat în jurnal. Scrie rândul în docs/clasificator-versiuni.md (sau urcă versiunea).`);
     const sch = schimbari(vechi, j); if (sch.length) await trimite('**Clasificatorul — verdict nou** · ' + sch.join(' · ') + ' · ' + j.jurnal.mesaj);
     if (raport) await trimite('**Clasificatorul — raportul la verdict** (' + j.asOf + '): https://github.com/mferent80-source/premarket_scanner.html/blob/main/' + caleRaport);
     const zi = mesajZilnic(j); if (zi && vechi?.asOf !== j.asOf) await trimite(zi);

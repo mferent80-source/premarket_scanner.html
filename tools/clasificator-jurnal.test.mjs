@@ -9,11 +9,16 @@ const vot = (k, p) => ({ algos: { vote: { classIndex: k, support: p } }, state: 
 const V = (c = 100) => ({ k: 2, p: [0.1, 0.2, 0.7], c, a: 2, r5: 0, pr: [0.3, 0.4, 0.3] });
 const cal = motor('.').ExchangeCalendar;
 
-test('I-643: prima notare a zilei rămâne înghețată pentru fiecare motor; alt motor are linia lui (I-674)', () => {
+test('I-643: prima notare a fiecărei acțiuni rămâne înghețată; o rulare ulterioară completează doar ce lipsea; alt motor are linia lui (I-674)', () => {
   const j = { asOf: '2026-01-10', generat: 'x', motor: 'm', entries: { A: vot(2, [0.1, 0.2, 0.7]) } };
-  const l1 = adauga([], ziua(j, 'sus')), l2 = adauga(l1, ziua({ ...j, entries: { A: vot(0, [0.7, 0.2, 0.1]) } }, 'sus'));
-  assert.equal(l1, l2); assert.equal(l2[0].voturi.A.k, 2); assert.equal(l2[0].regim, 'sus');
-  assert.equal(adauga(l2, ziua({ ...j, motor: 'm2' }, 'sus')).length, 2);
+  const r1 = adauga([], ziua(j, 'sus')), r2 = adauga(r1.linii, ziua({ ...j, entries: { A: vot(0, [0.7, 0.2, 0.1]) } }, 'sus'));
+  assert.equal(r1.nou.length, 1); assert.equal(r2.nou.length, 0); assert.equal(r2.linii[0].voturi.A.k, 2); assert.equal(r2.linii[0].regim, 'sus');
+  const r3 = adauga(r2.linii, ziua({ ...j, generat: 'y', entries: { A: vot(0, [0.7, 0.2, 0.1]), B: vot(1, [0.2, 0.6, 0.2]) } }, 'sus'));
+  assert.deepEqual(Object.keys(r3.nou[0].voturi), ['B']); assert.equal(r3.nou[0].completare, true); assert.equal(r3.nou[0].generat, 'y');
+  assert.equal(adauga(r3.linii, ziua({ ...j, motor: 'm2' }, 'sus')).nou.length, 1);
+  // O zi cu completare = o singură zi la judecată (rândurile ambelor linii).
+  const rez = [{ m: 'm', asOf: '2026-01-10', h: 5, s: 'A', y: 2, pnl: 1 }, { m: 'm', asOf: '2026-01-10', h: 5, s: 'B', y: 1, pnl: 0 }];
+  const z = zileDin(r3.linii, rez); assert.equal(z.length, 1); assert.deepEqual(z[0].rows.map((x) => x.s), ['A', 'B']);
 });
 
 test('I-672: rezultatul se îngheață la încheierea orizontului; un split nu-l schimbă; delistata iese la ultima închidere; fără serie ⇒ nejudecat', () => {
@@ -62,9 +67,17 @@ test('I-662 + I-669: fișiere pe motor și lună; scrierea e doar la coadă; cit
   const j = incarca(mock, '.'); assert.equal(j.voturi.length, 2); assert.equal(j.rezultate.length, 1); assert.equal(j.voturi[0].asOf, '2026-10-16');
 });
 
-test('I-671: testul pe toate zilele — la decalaj 0 e testul obișnuit; suprapunerea mărește eroarea', () => {
-  const xs = Array.from({ length: 200 }, (_, i) => 0.01 + 0.05 * Math.sin(i / 3)), a = testNW(xs, 0), b = testNW(xs, 5);
-  assert.equal(a.n, 200); assert.ok(b.p > a.p, 'zilele suprapuse (autocorelate) cer mai multă prudență');
+test('I-671 (revizia 17.10): testul pe 8 perioade cu pauze — perioade egale, pauzele lăsate deoparte, t cu 7 grade de libertate', async () => {
+  const { tcdf, tq } = await import('./clasificator-jurnal.mjs');
+  assert.ok(Math.abs(tcdf(1.895, 7) - 0.95) < 1e-3); assert.ok(Math.abs(tq(0.975, 7) - 2.365) < 1e-3);
+  const xs = Array.from({ length: 180 }, (_, i) => 0.01 + 0.05 * Math.sin(i / 3)), r = testNW(xs, { pauza: 4 });
+  assert.equal(r.grupe, 8); assert.equal(r.zilePeGrupa, Math.floor((180 - 4 * 7) / 8)); assert.ok(r.p > 0 && r.p < 1);
+  assert.equal(testNW(xs.slice(0, 20), { pauza: 4 }).p, 1, 'prea puține zile pentru 8 perioade ⇒ nicio concluzie');
+});
+test('verdictul se dă o singură dată, pe primele zile (eșantion fix); zilele de după sunt doar descriptive', () => {
+  const rea = zile(180, false), buna = zile(200, true).map((z, i) => ({ ...z, asOf: dateOf(zi(400 + i)) }));
+  const r = bilant([], rea.concat(buna)); assert.equal(r.verdict, 'nu-tine'); assert.equal(r.zileTest, 380); assert.deepEqual(r.verdictPe, [rea[0].asOf, rea.at(-1).asOf]);
+  assert.equal(r.dupaVerdict.zile, 200); assert.ok(r.dupaVerdict.vsFrecvente > 0, 'zilele bune de după apar, dar nu schimbă verdictul');
 });
 
 const zile = (n, bun) => Array.from({ length: n }, (_, i) => ({ asOf: dateOf(zi(i)), regim: i < n / 2 ? 'sus' : 'jos', rows: [0, 1, 2].map((y) => ({ y, p: bun ? [0, 1, 2].map((k) => (k === y ? 0.8 : 0.1)) : [0.3, 0.4, 0.3], pr: [0.3, 0.4, 0.3], mom: [0.1, 0.8, 0.1], k: 2, pnl: 0.5 })) }));
@@ -85,7 +98,7 @@ test('I-649: clasamentul — primele 10 după „Long” față de media univers
   assert.equal(bilant([], zi30(200, true)).clasament.verdict, 'ordoneaza');
   assert.equal(bilant([], zi30(200, false)).clasament.verdict, 'nu-ordoneaza');
 });
-test('I-650: Holm pe două ținte — amândouă la α/2; ținta de 20 cere 252 de zile, decalaj 20', () => {
+test('I-650: Holm pe două ținte — amândouă la α/2; ținta de 20 cere 252 de zile', () => {
   const r = bilantDoua([], []); assert.equal(r.b5.alfa, 0.025); assert.equal(r.b20.alfa, 0.025); assert.equal(r.b20.verdict, 'in-proba'); assert.equal(r.b20.zileMinime, 252); assert.equal(r.b5.zileMinime, 180);
   assert.equal(r.b5.clasament.alfa, 0.025); assert.equal(r.b20.clasament.alfa, 0.025);
 });

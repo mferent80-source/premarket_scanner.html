@@ -1,8 +1,11 @@
 // I-643 + I-647 (16.10.2026) — jurnalul de noapte al votului: robotul își notează votul pe fiecare acțiune, îl verifică singur
 // pe închiderile reale și scrie un bilanț. Pragul e scris ÎNAINTEA oricărui rezultat (protocolul: docs/clasificator-protocol.md).
-// 17.10.2026 — protocolul revizuit înaintea primului rezultat al motorului în probă (I-671, puterea calculată pe istoric):
-//   toate zilele verificate intră în test (nu una din 6), cu eroarea Newey-West pentru zilele suprapuse (decalaj = orizontul);
-//   verdict abia după ≥180 de zile verificate la ținta de 5 sesiuni și ≥252 la ținta de 20;
+// 17.10.2026 — protocolul revizuit înaintea primului rezultat al motorului în probă (I-671, puterea calculată pe istoric; revizia
+//   de cod a arătat prin simulare că Newey-West cu decalaj = orizontul respinge în 9–12% din cazuri la 5% nominal ⇒ înlocuit):
+//   zilele verificate se împart în 8 perioade egale, cu h−1 zile lăsate deoparte între ele (orizonturile nu se suprapun);
+//   testul t pe cele 8 medii (7 grade de libertate) ține 4–6% la 5% nominal în simulare;
+//   verdictul se dă O SINGURĂ dată, pe primele ≥180 de zile verificate la ținta de 5 sesiuni și ≥252 la ținta de 20 (eșantion fix:
+//   zilele de după verdict sunt doar descriptive, ca recalcularea zilnică să nu umfle eroarea);
 //   „ține” = eroarea votului mai mică cu ≥0,02 decât AMBELE repere (frecvențele claselor și momentum), cu p<α față de fiecare;
 //   altfel „nu ține”. Pe regim (SPY peste / sub media de 200 de zile) același calcul, cu corecția Holm pentru cele 2 felii.
 // Jurnalul (I-660 / I-662 / I-672 / I-674): un dosar pe versiunea motorului, câte un fișier pe lună pentru voturi și pentru
@@ -10,7 +13,7 @@
 export const DIR = 'candidate-engine/generated/clasificator-jurnal';
 export const ISTORIC = 'candidate-engine/generated/clasificator-istoric.jsonl'; // fișierul vechi (până la 17.10), mutat în DIR
 export const PROBA = 'holdings-clf-v5';
-export const PRAG = Object.freeze({ zileMinime: 180, zileMinime20: 252, decalaj: 5, decalaj20: 20, castig: 0.02, alfa: 0.05, marja: 0.1, top: 10, minimZi: 20, asteptare: 10, rezerva: 0.05 });
+export const PRAG = Object.freeze({ zileMinime: 180, zileMinime20: 252, grupe: 8, castig: 0.02, alfa: 0.05, marja: 0.1, top: 10, minimZi: 20, asteptare: 10, rezerva: 0.05 });
 // I-649 (scris înaintea datelor): primele 10 după probabilitatea „Long” a votului (egalitate ⇒ alfabetic), față de media universului
 // în aceeași zi, după costuri; doar zile cu ≥20 de acțiuni verificate; „ordonează” = diferența medie > 0 cu p<α după numărul minim de zile.
 const TINTE = [{ h: 5, prag: 1, cheie: 'voturi' }, { h: 20, prag: 2, cheie: 'voturi20' }];
@@ -37,10 +40,16 @@ export function ziua(j, reg) {
   if (j.tinta20?.entries) l.voturi20 = voturiDin(j.tinta20.entries); // I-650
   return l;
 }
-/** Prima notare a zilei rămâne pentru fiecare motor (a doua rulare din aceeași zi nu o rescrie: votul e înghețat). */
+/** Prima notare a fiecărei acțiuni rămâne (votul e înghețat). O rulare ulterioară din aceeași zi adaugă doar acțiunile care
+ *  lipseau (linie de completare, separată, cu ora ei — contează doar dacă și ea e la timp). Întoarce { linii, nou }. */
 export function adauga(linii, linie) {
-  if (!linie || !linie.asOf || !linie.motor || !Object.keys(linie.voturi || {}).length || linii.some((l) => l.asOf === linie.asOf && l.motor === linie.motor)) return linii;
-  return linii.concat(linie);
+  if (!linie || !linie.asOf || !linie.motor || !Object.keys(linie.voturi || {}).length) return { linii, nou: [] };
+  const ale = linii.filter((l) => l.asOf === linie.asOf && l.motor === linie.motor);
+  if (!ale.length) return { linii: linii.concat(linie), nou: [linie] };
+  const are = (ch) => new Set(ale.flatMap((l) => Object.keys(l[ch] || {}))), rest = (ch) => { const a = are(ch); return Object.fromEntries(Object.entries(linie[ch] || {}).filter(([s]) => !a.has(s))); };
+  const v = rest('voturi'), v20 = rest('voturi20'); if (!Object.keys(v).length && !Object.keys(v20).length) return { linii, nou: [] };
+  const c = { ...linie, voturi: v, ...(linie.voturi20 ? { voturi20: v20 } : {}), completare: true };
+  return { linii: linii.concat(c), nou: [c] };
 }
 export function citeste(text) { return String(text || '').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean); }
 const momentum = (r5, a) => { const d = r5 / a, k = d <= -1 ? 0 : d >= 1 ? 2 : 1; return [0, 1, 2].map((i) => (i === k ? 0.8 : 0.1)); };
@@ -104,38 +113,50 @@ export function incheie(linii, rezultate, serii, dateOf, { sesiuniDupa = () => I
 }
 /** Zilele de judecat: votul înghețat + rezultatul înghețat; o zi = acțiunile ei cu rezultat. */
 export function zileDin(linii, rezultate, { h = 5, cheie = 'voturi' } = {}) {
-  const R = new Map(rezultate.filter((r) => r.h === h).map((r) => [cheieR(r.m, r.asOf, r.h, r.s), r])), zile = [];
+  const R = new Map(rezultate.filter((r) => r.h === h).map((r) => [cheieR(r.m, r.asOf, r.h, r.s), r])), peZi = new Map();
   for (const L of linii) {
-    const rows = [];
-    for (const [s, v] of Object.entries(L[cheie] || {})) { const x = R.get(cheieR(L.motor, L.asOf, h, s)); if (x && !x.nejudecat) rows.push({ s, y: x.y, p: v.p, pr: v.pr, mom: momentum(v.r5, v.a), k: v.k, pnl: x.pnl }); }
-    if (rows.length) zile.push({ asOf: L.asOf, regim: L.regim, rows });
+    const z = peZi.get(L.asOf) || { asOf: L.asOf, regim: L.regim, rows: [] }; if (!z.regim && L.regim) z.regim = L.regim;
+    for (const [s, v] of Object.entries(L[cheie] || {})) { const x = R.get(cheieR(L.motor, L.asOf, h, s)); if (x && !x.nejudecat) z.rows.push({ s, y: x.y, p: v.p, pr: v.pr, mom: momentum(v.r5, v.a), k: v.k, pnl: x.pnl }); }
+    peZi.set(L.asOf, z);
   }
-  return zile.sort((a, b) => (a.asOf < b.asOf ? -1 : 1));
+  return [...peZi.values()].filter((z) => z.rows.length).sort((a, b) => (a.asOf < b.asOf ? -1 : 1));
 }
 
-/* ---------- testul: toate zilele, eroare Newey-West (I-671) ---------- */
-function cdf(z) { const x = Math.abs(z) / Math.SQRT2, t = 1 / (1 + 0.3275911 * x), y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return z >= 0 ? 0.5 * (1 + y) : 0.5 * (1 - y); }
-/** Test unilateral (media > 0) pe zile suprapuse: varianța pe termen lung Newey-West, ponderi Bartlett, decalajul dat. */
-export function test(xs, decalaj = 0) {
-  const n = xs.length; if (n < 2) return { n, medie: n ? xs[0] : null, p: 1 };
-  const m = xs.reduce((a, b) => a + b, 0) / n, g = (k) => { let s = 0; for (let i = k; i < n; i++) s += (xs[i] - m) * (xs[i - k] - m); return s / n; };
-  let v = g(0); for (let k = 1; k <= Math.min(decalaj, n - 1); k++) v += 2 * (1 - k / (decalaj + 1)) * g(k);
-  v = v * n / (n - 1); // corecția pentru eșantion mic (la decalaj 0 = varianța obișnuită)
-  return { n, medie: m, p: v <= 1e-18 ? (m > 0 ? 0 : 1) : 1 - cdf(m / Math.sqrt(v / n)) };
+/* ---------- testul: mediile pe 8 perioade, cu pauze între ele (I-671, după revizia din 17.10) ---------- */
+// Repartiția Student (funcția beta incompletă regularizată, fracție continuă — Numerical Recipes); suficientă pentru p-valori.
+function lgamma(x) { const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5]; let y = x, t = x + 5.5; t -= (x + 0.5) * Math.log(t); let s = 1.000000000190015; for (const k of c) s += k / ++y; return -t + Math.log(2.5066282746310005 * s / x); }
+function betacf(a, b, x) { let c = 1, d = 1 - (a + b) * x / (a + 1); d = 1 / (Math.abs(d) < 1e-30 ? 1e-30 : d); let h = d; for (let m = 1; m <= 200; m++) { const m2 = 2 * m; let aa = m * (b - m) * x / ((a - 1 + m2) * (a + m2)); d = 1 + aa * d; d = 1 / (Math.abs(d) < 1e-30 ? 1e-30 : d); c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30; h *= d * c; aa = -(a + m) * (a + b + m) * x / ((a + m2) * (a + 1 + m2)); d = 1 + aa * d; d = 1 / (Math.abs(d) < 1e-30 ? 1e-30 : d); c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30; const del = d * c; h *= del; if (Math.abs(del - 1) < 3e-12) break; } return h; }
+function ibeta(a, b, x) { if (x <= 0) return 0; if (x >= 1) return 1; const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x)); return x < (a + 1) / (a + b + 2) ? bt * betacf(a, b, x) / a : 1 - bt * betacf(b, a, 1 - x) / b; }
+/** P(T ≤ t) pentru Student cu df grade de libertate. */
+export function tcdf(t, df) { const x = df / (df + t * t), q = 0.5 * ibeta(df / 2, 0.5, x); return t >= 0 ? 1 - q : q; }
+/** Cuantila Student (bisecție) — pentru calculul puterii. */
+export function tq(p, df) { let lo = -50, hi = 50; for (let i = 0; i < 200; i++) { const m = (lo + hi) / 2; if (tcdf(m, df) < p) lo = m; else hi = m; } return (lo + hi) / 2; }
+/** Test unilateral (media > 0) pe zile suprapuse: zilele se împart în `grupe` perioade egale, consecutive, cu `pauza` zile lăsate
+ *  deoparte între ele (pauza = orizont − 1 ⇒ rezultatele a două perioade nu se suprapun); test t pe mediile perioadelor. */
+export function test(xs, { grupe = PRAG.grupe, pauza = 0 } = {}) {
+  const n = xs.length, L = Math.floor((n - pauza * (grupe - 1)) / grupe);
+  if (L < 2) return { n, medie: n ? xs.reduce((a, b) => a + b, 0) / n : null, p: 1, grupe: 0 };
+  const ms = []; for (let j = 0; j < grupe; j++) { const st = j * (L + pauza); let s = 0; for (let i = st; i < st + L; i++) s += xs[i]; ms.push(s / L); }
+  const m = ms.reduce((a, b) => a + b, 0) / grupe, v = ms.reduce((a, b) => a + (b - m) ** 2, 0) / (grupe - 1);
+  return { n, medie: m, p: v <= 1e-18 ? (m > 0 ? 0 : 1) : 1 - tcdf(m / Math.sqrt(v / grupe), grupe - 1), grupe, zilePeGrupa: L };
 }
 function bani(zile) { const xs = zile.map((z) => z.rows.filter((r) => { const s = r.p.slice().sort((a, b) => b - a); return r.k === 2 && s[0] - s[1] >= PRAG.marja; }).map((r) => r.pnl)).filter((x) => x.length).map((x) => x.reduce((a, b) => a + b, 0) / x.length); return { zile: xs.length, medie: xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null }; }
-function judeca(zile, { alfa = PRAG.alfa, minim = PRAG.zileMinime, decalaj = PRAG.decalaj } = {}) {
-  const ll = (p, y) => -Math.log(Math.max(1e-12, p[y])), d = (ref) => zile.map((z) => z.rows.reduce((s, r) => s + ll(r[ref], r.y) - ll(r.p, r.y), 0) / z.rows.length);
-  const f = test(d('pr'), decalaj), m = test(d('mom'), decalaj), n = zile.length;
+const media = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+function judeca(zile, { alfa = PRAG.alfa, minim = PRAG.zileMinime, pauza = 0 } = {}) {
+  const n = zile.length, fix = n >= minim ? zile.slice(0, minim) : zile, dupa = zile.slice(fix.length); // verdictul: o singură dată, pe primele `minim` zile
+  const ll = (p, y) => -Math.log(Math.max(1e-12, p[y])), d = (zs, ref) => zs.map((z) => z.rows.reduce((s, r) => s + ll(r[ref], r.y) - ll(r.p, r.y), 0) / z.rows.length);
+  const o = { pauza }, f = test(d(fix, 'pr'), o), m = test(d(fix, 'mom'), o);
   const verdict = n < minim ? 'in-proba' : f.medie >= PRAG.castig && m.medie >= PRAG.castig && f.p < alfa && m.p < alfa ? 'tine' : 'nu-tine';
-  return { zileTest: n, zileMinime: minim, verdict, vsFrecvente: f, vsMomentum: m, bani: bani(zile) };
+  return { zileTest: n, zileMinime: minim, verdict, ...(verdict !== 'in-proba' ? { verdictPe: [fix[0].asOf, fix.at(-1).asOf] } : {}), vsFrecvente: f, vsMomentum: m, bani: bani(fix),
+    dupaVerdict: dupa.length ? { zile: dupa.length, vsFrecvente: media(d(dupa, 'pr')), vsMomentum: media(d(dupa, 'mom')) } : null };
 }
 export function primele(rows, n = PRAG.top) { return rows.slice().sort((a, b) => b.p[2] - a.p[2] || (a.s < b.s ? -1 : 1)).slice(0, n); }
-function clasament(zile, { alfa = PRAG.alfa, minim = PRAG.zileMinime, decalaj = PRAG.decalaj } = {}) {
-  const d = zile.filter((z) => z.rows.length >= PRAG.minimZi).map((z) => { const top = primele(z.rows), m = (xs) => xs.reduce((a, r) => a + r.pnl, 0) / xs.length; return m(top) - m(z.rows); });
-  const t = test(d, decalaj), verdict = t.n < minim ? 'in-proba' : t.medie > 0 && t.p < alfa ? 'ordoneaza' : 'nu-ordoneaza';
+function clasament(zile, { alfa = PRAG.alfa, minim = PRAG.zileMinime, pauza = 0 } = {}) {
+  const toate = zile.filter((z) => z.rows.length >= PRAG.minimZi).map((z) => { const top = primele(z.rows), m = (xs) => xs.reduce((a, r) => a + r.pnl, 0) / xs.length; return m(top) - m(z.rows); });
+  const d = toate.length >= minim ? toate.slice(0, minim) : toate; // eșantion fix, ca la ținte
+  const t = { ...test(d, { pauza }), n: toate.length }, verdict = t.n < minim ? 'in-proba' : t.medie > 0 && t.p < alfa ? 'ordoneaza' : 'nu-ordoneaza';
   const mesaj = verdict === 'in-proba' ? `Clasamentul: ${t.n} din ${minim} de zile verificate; verdictul vine după.` : verdict === 'ordoneaza' ? 'Clasamentul ordonează: primele 10 bat media universului după costuri, pe zile noi.' : 'Clasamentul nu ordonează: primele 10 nu bat media universului cu pragul scris dinainte.';
-  return { zileTest: t.n, zileMinime: minim, verdict, medie: t.medie, p: t.p, alfa, mesaj };
+  return { zileTest: t.n, zileMinime: minim, verdict, medie: t.medie, p: t.p, alfa, mesaj, dupaVerdict: toate.length > d.length ? { zile: toate.length - d.length, medie: media(toate.slice(d.length)) } : null };
 }
 /* Bilanțul lunar (descriptiv: toate zilele verificate, pe luna votului) — nu e verdict. */
 export function lunar(zile) {
@@ -148,19 +169,21 @@ export function lunar(zile) {
   });
 }
 /** Bilanțul: pe toate zilele verificate + pe regim (Holm pe 2 felii: prima la α/2, a doua la α). */
-export function bilant(linii, zileVerificate, { alfa = PRAG.alfa, minim = PRAG.zileMinime, decalaj = PRAG.decalaj, alfaClasament = PRAG.alfa } = {}) {
-  const o = { minim, decalaj }, tot = judeca(zileVerificate, { ...o, alfa }), felii = {};
+export function bilant(linii, zileVerificate, { alfa = PRAG.alfa, minim = PRAG.zileMinime, pauza = 0, alfaClasament = PRAG.alfa } = {}) {
+  const o = { minim, pauza }, tot = judeca(zileVerificate, { ...o, alfa }), felii = {};
   for (const r of ['sus', 'jos']) felii[r] = judeca(zileVerificate.filter((z) => z.regim === r), { ...o, alfa: alfa / 2 });
-  const ordine = Object.entries(felii).filter(([, x]) => x.verdict !== 'in-proba').sort((a, b) => Math.min(a[1].vsFrecvente.p, a[1].vsMomentum.p) - Math.min(b[1].vsFrecvente.p, b[1].vsMomentum.p));
+  const ordine = Object.entries(felii).filter(([, x]) => x.verdict !== 'in-proba').sort((a, b) => Math.max(a[1].vsFrecvente.p, a[1].vsMomentum.p) - Math.max(b[1].vsFrecvente.p, b[1].vsMomentum.p)); // „ambele repere” ⇒ decide p-ul mai mare
   if (ordine[1] && ordine[0][1].verdict === 'tine') felii[ordine[1][0]] = judeca(zileVerificate.filter((z) => z.regim === ordine[1][0]), { ...o, alfa });
   const mesaj = tot.verdict === 'in-proba' ? `În probă: ${tot.zileTest} din ${minim} de zile verificate; verdictul vine după.` : tot.verdict === 'tine' ? 'Ține: votul bate ambele repere pe zile noi, după prag și test.' : 'Nu ține: pe zile noi votul nu bate ambele repere cu pragul scris dinainte.';
-  return { prag: PRAG, alfa, zileNotate: linii.length, zileVerificate: zileVerificate.length, ...tot, mesaj, regim: felii, clasament: clasament(zileVerificate, { ...o, alfa: alfaClasament }), lunar: lunar(zileVerificate) };
+  return { prag: PRAG, alfa, zileNotate: new Set(linii.map((l) => l.asOf)).size, zileVerificate: zileVerificate.length, ...tot, mesaj, regim: felii, clasament: clasament(zileVerificate, { ...o, alfa: alfaClasament }), lunar: lunar(zileVerificate) };
 }
 
 /* ---------- integritatea probei: versiunea, notarea la timp, zilele lipsă (I-660 / I-668 / I-670) ---------- */
 const US = { timezone: 'America/New_York', closeMinutes: 960 }, deschisa = (cal, d) => !['closed', 'unknown'].includes(cal.session('US', d).state);
 /** Linia contează doar dacă a fost notată înainte de deschiderea sesiunii următoare (altfel intrarea ar fi deja în trecut). */
-export function laTimp(L, cal) { if (!cal) return true; const t = Date.parse(L.generat); if (!Number.isFinite(t)) return false; return cal.beforeNextOpen({ ...US, asOf: L.asOf }, t) !== false; }
+export function laTimp(L, cal) { if (!cal) return true; const t = Date.parse(L.generat); if (!Number.isFinite(t)) return false; return cal.beforeNextOpen({ ...US, asOf: L.asOf }, t) !== false; } // null (an fără calendar oficial) ⇒ numărat, dar raportat ca neverificat
+/** true / false / null (null = calendarul oficial nu acoperă anul; garda din suită cere extinderea lui din timp). */
+export function laTimpVerificat(L, cal) { if (!cal) return null; const t = Date.parse(L.generat); if (!Number.isFinite(t)) return false; return cal.beforeNextOpen({ ...US, asOf: L.asOf }, t); }
 /** Sesiunile încheiate de la `de` (inclusiv) până la ultima încheiată acum, după calendarul oficial US. */
 export function sesiuni(cal, de, now) {
   if (!cal || !de) return []; let ultima; try { ultima = cal.latest(now, 'US').day; } catch { return []; }
@@ -169,15 +192,21 @@ export function sesiuni(cal, de, now) {
   return out;
 }
 /** Câte sesiuni încheiate au trecut după ziua votului (pentru așteptarea rezultatelor). */
-export function sesiuniDupa(cal, now) { const memo = new Map(); return (asOf) => { if (!cal) return Infinity; if (!memo.has(asOf)) memo.set(asOf, Math.max(0, sesiuni(cal, asOf, now).filter((d) => d > asOf).length)); return memo.get(asOf); }; }
+export function sesiuniDupa(cal, now) {
+  const memo = new Map(), lucratoare = (asOf) => { let k = 0, t = Date.parse(asOf + 'T12:00:00Z') + 86400000; for (; t < now - 20 * 3600000 && k < 2000; t += 86400000) { const w = new Date(t).getUTCDay(); if (w > 0 && w < 6) k++; } return k; };
+  return (asOf) => { if (!cal) return Infinity; if (!memo.has(asOf)) { const s = sesiuni(cal, asOf, now); memo.set(asOf, s.length ? Math.max(0, s.filter((d) => d > asOf).length) : lucratoare(asOf)); } return memo.get(asOf); }; // fără calendar oficial pentru an ⇒ zile lucrătoare
+}
 /** Rezumatul integrității pentru motorul în probă. */
-export function integritate(linii, rezultate, { motor = PROBA, cal = null, now = Date.now() } = {}) {
-  const ale = linii.filter((L) => L.motor === motor), bune = ale.filter((L) => laTimp(L, cal)), notate = new Set(bune.map((L) => L.asOf));
-  const din = ale.length ? ale.map((L) => L.asOf).sort()[0] : null, lipsa = din ? sesiuni(cal, din, now).filter((d) => !notate.has(d)) : [];
+export function integritate(linii, rezultate, { motor = PROBA, cal = null, now = Date.now(), faraUltima = false } = {}) {
+  const ale = linii.filter((L) => L.motor === motor && !L.completare), bune = ale.filter((L) => laTimp(L, cal)), notate = new Set(bune.map((L) => L.asOf));
+  let lipsa = ale.length ? sesiuni(cal, ale.map((L) => L.asOf).sort()[0], now).filter((d) => !notate.has(d)) : [];
+  const din = ale.length ? ale.map((L) => L.asOf).sort()[0] : null, ultima = sesiuni(cal, din, now).at(-1);
+  if (faraUltima && ultima) lipsa = lipsa.filter((d) => d !== ultima); // motorul în probă rulează în job paralel: ziua de azi vine separat
+  const neverificate = ale.filter((L) => laTimpVerificat(L, cal) === null && cal).length;
   const mele = rezultate.filter((r) => r.m === motor), nej = mele.filter((r) => r.nejudecat), motive = {};
   for (const r of nej) motive[r.nejudecat] = (motive[r.nejudecat] || 0) + 1;
   const alte = [...new Set(linii.filter((L) => L.motor !== motor).map((L) => L.motor))];
-  return { motor, din, alteVersiuni: alte, zileAlte: linii.length - ale.length, tarzii: ale.length - bune.length, lipsa: lipsa.slice(-20), lipsaTotal: lipsa.length,
+  return { motor, din, alteVersiuni: alte, zileAlte: new Set(linii.filter((L) => L.motor !== motor).map((L) => L.motor + L.asOf)).size, tarzii: ale.length - bune.length, neverificate, lipsa: lipsa.slice(-20), lipsaTotal: lipsa.length,
     rezultate: mele.length, nejudecate: nej.length, motive, oprite: mele.filter((r) => r.oprit).length, rezerve: mele.length ? nej.length / mele.length > PRAG.rezerva : false };
 }
 const zz = (d) => d.slice(8, 10) + '.' + d.slice(5, 7);
@@ -189,6 +218,7 @@ export function notaIntegritate(x) {
   else p.push(`Motorul în probă (${x.motor}) nu are încă nicio zi notată.`);
   if (x.lipsaTotal) p.push(`Sesiuni nenotate: ${x.lipsaTotal} (${x.lipsa.map(zz).join(', ')}).`);
   if (x.tarzii) p.push(`${x.tarzii} ${x.tarzii === 1 ? 'zi notată' : 'zile notate'} după deschiderea sesiunii următoare — nu intră în verdict.`);
+  if (x.neverificate) p.push(`${x.neverificate} ${x.neverificate === 1 ? 'zi notată' : 'zile notate'} într-un an fără calendar oficial NYSE — ora notării nu poate fi verificată.`);
   if (x.nejudecate) p.push(`Voturi nejudecate: ${x.nejudecate} din ${x.rezultate}` + (x.rezerve ? ' — peste 5%, verdictul are rezerve.' : '.'));
   return p.join(' ');
 }
@@ -220,7 +250,7 @@ export function raportVerdict(vechi, j) {
   if (!noi.length) return null;
   const f = (v, d = 3) => (v == null || !Number.isFinite(v) ? '—' : (v > 0 ? '+' : '') + v.toLocaleString('ro-RO', { minimumFractionDigits: d, maximumFractionDigits: d }));
   const pv = (v) => (v == null ? '—' : v < 0.001 ? '<0,001' : v.toLocaleString('ro-RO', { maximumFractionDigits: 3 }));
-  const tinta = (z, nume) => z ? [`### ${nume}`, '', `- **Verdict:** ${z.verdict} — ${z.mesaj}`, `- Zile verificate în test: ${z.zileTest} (minim ${z.zileMinime}); notate: ${z.zileNotate}.`,
+  const tinta = (z, nume) => z ? [`### ${nume}`, '', `- **Verdict:** ${z.verdict} — ${z.mesaj}`, `- Zile verificate: ${z.zileTest}; verdictul s-a dat o singură dată, pe primele ${z.zileMinime}` + (z.verdictPe ? ` (${z.verdictPe[0]} – ${z.verdictPe[1]})` : '') + `; notate: ${z.zileNotate}.`,
     `- Votul față de frecvențe: ${f(z.vsFrecvente?.medie)} (p ${pv(z.vsFrecvente?.p)}) · față de momentum: ${f(z.vsMomentum?.medie)} (p ${pv(z.vsMomentum?.p)}) · α ${pv(z.alfa)} · prag ${f(PRAG.castig, 2)}.`,
     `- Bani (Long cu marjă, după costuri): ${z.bani?.zile || 0} zile, media ${z.bani?.medie == null ? '—' : f(z.bani.medie, 2) + '%'} pe tranzacție.`,
     `- Pe regim: peste media de 200 de zile ${z.regim?.sus?.verdict || '—'} (${z.regim?.sus?.zileTest || 0} zile) · sub ${z.regim?.jos?.verdict || '—'} (${z.regim?.jos?.zileTest || 0} zile).`,
@@ -232,14 +262,14 @@ export function raportVerdict(vechi, j) {
 }
 /** I-650: două ținte ⇒ Holm pe 2: amândouă la α/2; dacă una „ține”, cealaltă se rejudecă la α. Se judecă doar motorul în probă,
  *  doar zilele notate la timp, pe rezultatele înghețate. */
-export function bilantDoua(linii, rezultate, { motor = PROBA, cal = null, now = Date.now() } = {}) {
+export function bilantDoua(linii, rezultate, { motor = PROBA, cal = null, now = Date.now(), faraUltima = false } = {}) {
   const bune = linii.filter((L) => L.motor === motor && laTimp(L, cal));
-  const z5 = zileDin(bune, rezultate), z20 = zileDin(bune, rezultate, { h: 20, cheie: 'voturi20' }), o5 = { minim: PRAG.zileMinime, decalaj: PRAG.decalaj }, o20 = { minim: PRAG.zileMinime20, decalaj: PRAG.decalaj20 };
+  const z5 = zileDin(bune, rezultate), z20 = zileDin(bune, rezultate, { h: 20, cheie: 'voturi20' }), o5 = { minim: PRAG.zileMinime, pauza: 4 }, o20 = { minim: PRAG.zileMinime20, pauza: 19 }; // pauza = orizont − 1
   const A = PRAG.alfa, run = (z, o, aT, aC) => bilant(bune, z, { ...o, alfa: aT, alfaClasament: aC });
   let a5 = A / 2, a20 = A / 2, c5 = A / 2, c20 = A / 2, b5 = run(z5, o5, a5, c5), b20 = run(z20, o20, a20, c20);
   if (b5.verdict === 'tine') a20 = A; else if (b20.verdict === 'tine') a5 = A;
   if (b5.clasament.verdict === 'ordoneaza') c20 = A; else if (b20.clasament.verdict === 'ordoneaza') c5 = A;
   if (a5 !== A / 2 || a20 !== A / 2 || c5 !== A / 2 || c20 !== A / 2) { b5 = run(z5, o5, a5, c5); b20 = run(z20, o20, a20, c20); }
-  const integ = integritate(linii, rezultate, { motor, cal, now }), nota = notaIntegritate(integ);
+  const integ = integritate(linii, rezultate, { motor, cal, now, faraUltima }), nota = notaIntegritate(integ);
   return { b5: { ...b5, integritate: integ, nota }, b20: { ...b20, integritate: integ, nota } };
 }

@@ -1,12 +1,15 @@
 // I-661 (17.10.2026) — amprentele motorului Clasificator: a fișierului și a rezultatelor pe serii fixe.
 //   node tools/clasificator-amprenta.mjs   afișează amprentele de scris în docs/clasificator-versiuni.md
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { motor, clasifica } from './clasificator-date.mjs';
 
 const sha = (s) => createHash('sha256').update(s).digest('hex').slice(0, 16);
-export const amprentaFisier = (radacina = '.') => sha(readFileSync(radacina + '/lib/holdings-classifier.js', 'utf8').replace(/\r\n/g, '\n'));
+/** Fișierele care pot schimba voturile (citirea seriei, tăietura după salt, indicatorii, evaluarea, motorul). */
+export const FISIERE = ['lib/daily-series.js', 'lib/holdings-bars.js', 'lib/holdings-neural.js', 'lib/holdings-neural-evaluation.js', 'lib/holdings-classifier.js'];
+/** Amprenta textului lor (CRLF = LF), cu înlocuirile motorului al doilea (tools/motoare/<versiune>/<fișier>). Deterministă pe orice platformă. */
+export const amprentaFisier = (radacina = '.', inlocuiri = {}) => sha(FISIERE.map((f) => f + '\n' + readFileSync(radacina + '/' + (inlocuiri[f] || f), 'utf8').replace(/\r\n/g, '\n')).join('\n'));
 /** Rezultatele motorului pe trei serii fixe (sinusoida demo și două mersuri aleatoare cu generator fix), ambele ținte. */
 export function amprentaRezultate(c = motor('.')) {
   const now = Date.parse('2026-10-07T22:00:00Z'), N = c.HoldingsNeural, serii = [N.demoBars(1, now)];
@@ -19,6 +22,10 @@ export function amprentaRezultate(c = motor('.')) {
   for (const bars of serii) for (const spec of [undefined, { horizon: 20, atr: 2 }]) { try { const x = clasifica(c, bars, { now, spec }); out.push(x.state, ...['boost', 'forest', 'svm', 'vote'].flatMap((k) => x.algos[k].support.map(r4))); } catch (e) { out.push('eroare: ' + (e && e.message)); } } // și refuzul e un rezultat
   return sha(JSON.stringify(out));
 }
+/** Înlocuirile pentru o copie înghețată a motorului: fiecare fișier din FISIERE aflat în dosar îl înlocuiește pe cel curent. */
+export function inlocuiriDin(radacina, dosar) { const o = {}; for (const f of FISIERE) { const x = dosar + '/' + f.split('/').pop(); if (existsSync(radacina + '/' + x)) o[f] = x; } return o; }
+/** I-661: robotul notează în jurnal doar cu un motor înregistrat (versiunea + amprenta fișierelor în docs/clasificator-versiuni.md). */
+export function inregistrat(radacina, versiune, amprenta) { try { return registru(readFileSync(radacina + '/docs/clasificator-versiuni.md', 'utf8')).some((r) => r.versiune === versiune && r.fisier === amprenta); } catch { return false; } }
 /** Rândurile registrului: | versiune | data | amprenta fișierului | amprenta rezultatelor | motivul | */
 export function registru(text) { return text.split('\n').map((l) => l.trim()).filter((l) => /^\| holdings-clf-/.test(l)).map((l) => { const c = l.split('|').slice(1, -1).map((x) => x.trim().replace(/`/g, '')); return { versiune: c[0], data: c[1], fisier: c[2], rezultate: c[3], motiv: c[4] }; }); }
 

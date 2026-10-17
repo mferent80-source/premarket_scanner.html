@@ -8,6 +8,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { motor } from './clasificator-date.mjs';
+import { tq } from './clasificator-jurnal.mjs';
 
 const ll = (p, y) => -Math.log(Math.max(1e-12, p[y]));
 /** z unilateral pentru probabilitatea q (Acklam, eroare < 1e-9 — suficient pentru planificare). */
@@ -46,7 +47,7 @@ export function zilnic(c, serii, { now = Date.now(), spec = {}, log = () => {} }
 }
 
 /** Rezumatul puterii: sd pe zile separate, efectul minim detectabil la 30 de zile și pe toate zilele (Newey-West). */
-export function putere(zile, { distanta = 6, n = 30, alfa = 0.025, castig = 0.02, minim = 20 } = {}) {
+export function putere(zile, { distanta = 6, n = 30, alfa = 0.025, castig = 0.02, minim = 20, zileMinime = 180, pauza = 4, grupe = 8 } = {}) {
   const z = zile.filter((x) => x.n >= minim), sep = z.filter((_, i) => i % distanta === 0), out = {};
   for (const k of ['fr', 'mo', 'cl']) {
     const xs = sep.map((x) => x[k]).filter(Number.isFinite), all = z.map((x) => x[k]).filter(Number.isFinite);
@@ -54,7 +55,9 @@ export function putere(zile, { distanta = 6, n = 30, alfa = 0.025, castig = 0.02
     const sd = sdOf(xs), lrv = neweyWest(all, distanta - 1);
     // Pe toate zilele: varianța pe termen lung / zi ⇒ câte zile „independente” valorează o zi notată.
     const sdAll = Math.sqrt(Math.max(lrv, 1e-12));
-    out[k] = { zileSeparate: xs.length, medieIstoric: mean(xs), sd, mde30: mde(sd, n, alfa), zilePentruCastig: zileNecesare(sd, castig, alfa), toateZilele: { zile: all.length, sdLungTermen: sdAll, zileEchivalente: n * distanta, mdeTot: mde(sdAll, n * distanta, alfa), zilePentruCastig: zileNecesare(sdAll, castig, alfa) } };
+    out[k] = { zileSeparate: xs.length, medieIstoric: mean(xs), sd, mde30: mde(sd, n, alfa), zilePentruCastig: zileNecesare(sd, castig, alfa), toateZilele: { zile: all.length, sdLungTermen: sdAll },
+      // Testul ales (17.10): 8 perioade cu pauze de h−1 zile, t cu 7 grade de libertate; EMD ≈ (t₁₋α + t₀,₈) · sdLT / √(zile folosite).
+      grupe: { zileMinime, pauza, grupe, zileFolosite: zileMinime - pauza * (grupe - 1), mde: (tq(1 - alfa, grupe - 1) + tq(0.8, grupe - 1)) * sdAll / Math.sqrt(zileMinime - pauza * (grupe - 1)) } };
   }
   return { distanta, n, alfa, castig, minim, zileTotal: z.length, ...out };
 }
@@ -65,7 +68,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   for (const f of readdirSync(dir).filter((x) => x.endsWith('.json')).sort().slice(0, max)) { const j = JSON.parse(readFileSync(dir + '/' + f, 'utf8')); serii[f.replace(/\.json$/, '')] = j.bars; }
   const now = Date.parse(arg('--now', new Date().toISOString())), t0 = Date.now();
   const z5 = zilnic(c, serii, { now, log: console.log }), r5 = putere(z5);
-  const z20 = zilnic(c, serii, { now, spec: { horizon: 20, atr: 2 }, log: console.log }), r20 = putere(z20, { distanta: 21 });
+  const z20 = zilnic(c, serii, { now, spec: { horizon: 20, atr: 2 }, log: console.log }), r20 = putere(z20, { distanta: 21, zileMinime: 252, pauza: 19 });
   const rez = { generat: new Date().toISOString(), motor: c.HoldingsClassifier.VERSION, simboluri: Object.keys(serii).length, minute: Math.round((Date.now() - t0) / 600) / 100, tinta5: r5, tinta20: r20 };
   console.log(JSON.stringify(rez, null, 2)); if (out) writeFileSync(out, JSON.stringify(rez, null, 2) + '\n');
 }

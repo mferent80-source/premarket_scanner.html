@@ -50,6 +50,8 @@ test('I-658: universul lărgit — rezumatele complete doar pentru scanner; clas
   assert.equal(j.jurnalNou.voturi[0].motor, c.HoldingsClassifier.VERSION);
   // A doua rulare din aceeași zi nu mai notează (votul e înghețat).
   const j2 = await ruleaza({ c, simboluri: ['A'], sursa, now, comun: false, jurnal: { voturi: j.jurnalNou.voturi, rezultate: [] } }); assert.equal(j2.jurnalNou.voturi.length, 0);
+  // Revizia 17.10: o rulare ulterioară completează acțiunile care lipseau (linie separată, cu ora ei).
+  const j3 = await ruleaza({ c, simboluri: ['A', 'D'], sursa, now, comun: false, jurnal: { voturi: j.jurnalNou.voturi, rezultate: [] } }); assert.deepEqual(Object.keys(j3.jurnalNou.voturi[0].voturi), ['D']); assert.equal(j3.jurnalNou.voturi[0].completare, true);
   const t = await ruleaza({ c, simboluri: ['A', 'B'], sursa, now, comun: false, minute: -1 });
   assert.equal(t.clasificate, 0); assert.match(t.picate[0].motiv, /Timp depășit/); assert.equal(t.durata.timpDepasit, 2);
 });
