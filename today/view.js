@@ -12,7 +12,7 @@
  const dateLabel=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)?x:when(x,true);
  function safeURL(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null;}catch(_){return null;}}
  function appURL(route,query=''){
-  const allowed=['today/','holdings/','broker/','journal/#exec','journal/#desk','candidate-engine/','scanner-verdicts/','app/sync/'];
+  const allowed=['today/','holdings/','broker/','journal/#raport','journal/#exec','journal/#desk','candidate-engine/','scanner-verdicts/','app/sync/'];
   if(!allowed.includes(route))return null;
   const p=new URLSearchParams(query);p.set('module',route);return '../app/?'+p.toString();
  }
@@ -142,10 +142,15 @@
   else{title='Înainte de decizie';text='Verifică știrile, riscul și prețul executabil. Datele EOD și copiile locale nu sunt cotații live.';route='journal/#desk';label='Verifică riscul ↗';}
   // I-683: întâi alertele pe pozițiile reale (fără stop, rezultate în ≤3 zile, pierdere mare, concentrare, mișcare neobișnuită); rândul general rămâne după ele.
   let pozitii=[];try{const TA=g.TodayAttention,vix=(ui.market?.items||[]).find(x=>x.symbol==='^VIX'),pos=ui.account?.state==='ready'?(ui.account.positions||[]):[];if(TA&&pos.length)pozitii=TA.alerte({positions:pos,stops:TA.stopuri(ui.account?.scope),earnings:verdictExtra.earnings,serii:verdictExtra.expunere?.serii||null,grupuri:verdictExtra.expunere?.grupuri||null,miscare:finite(vix?.price)?vix.price/Math.sqrt(252):null});}catch(_){pozitii=[];}
+  /* I-692 (17.10): limita de pierdere pe lună — depășită / peste 75% vine ÎNAINTEA alertelor pe poziții (regula ta, informativ) */
+  let limitaLuna=null;try{limitaLuna=g.MonthlyLimit?g.MonthlyLimit.text(g.MonthlyLimit.stare()):null;}catch(_){limitaLuna=null;}
+  if(limitaLuna&&limitaLuna.grav>=3)pozitii.unshift({grav:limitaLuna.grav,text:limitaLuna.text,ruta:'journal/#raport',eticheta:'Vezi raportul ↗'});
   if(pozitii.length)title='Ce necesită atenție';
-  const rows=pozitii.slice(0,5).map(a=>[a.text,'holdings/','Vezi poziția ↗',null]).concat([[text,route,label,null]]);if(pozitii.length>5)rows.splice(5,0,['Încă '+(pozitii.length-5)+' semnale pe poziții, în Portofoliu.','holdings/','Portofoliu ↗',null]);if(!scannerReports().some(r=>r?.items?.length))rows.push(['Nicio scanare salvată în cele două motoare.','candidate-engine/','Deschide scanner ↗',selectedQuery()]);
+  const rows=pozitii.slice(0,5).map(a=>[a.text,a.ruta||'holdings/',a.eticheta||'Vezi poziția ↗',null]).concat([[text,route,label,null]]);if(pozitii.length>5)rows.splice(5,0,['Încă '+(pozitii.length-5)+' semnale pe poziții, în Portofoliu.','holdings/','Portofoliu ↗',null]);if(!scannerReports().some(r=>r?.items?.length))rows.push(['Nicio scanare salvată în cele două motoare.','candidate-engine/','Deschide scanner ↗',selectedQuery()]);
   put('attentionStrip',rows.map((r,i)=>'<div class="attention-row"><p>'+(i===0?'<strong>'+esc(title)+'</strong> ':'')+esc(r[0])+'</p><a href="'+appURL(r[1],r[3]||'')+'">'+esc(r[2])+'</a></div>').join(''));
  }
+ /* I-692: limita / rezultatul lunii schimbate în Jurnal, Planuri sau de pagina contului (alt cadru al aplicației) ⇒ rândul de atenție se reface */
+ g.addEventListener?.('storage',e=>{if(e.key==='tt_journal_settings_v1'||e.key==='tt_journal_luna_t212_v1')try{renderAttention();}catch(_){}});
  function scannerReports(){const R=g.ScannerResults;let a=null,b=null;try{a=R?.primary()||null;}catch(_){}try{b=R?.independent()||null;}catch(_){}return [a,b];}
  function pill(text,kind){return '<span class="pill '+kind+'">'+esc(text)+'</span>';}
  function renderBrief(){

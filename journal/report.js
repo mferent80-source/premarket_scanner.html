@@ -1,14 +1,16 @@
 /* 17.10.2026 — fila „Raport” din Jurnal: citește execuțiile Trading 212 (T212Performance.read), cursul BNR (robotul), stopurile
-   (analizele salvate înaintea intrării + Portofoliu) și barele zilnice pentru tranzacțiile din SUA; desenează lib/journal-report.js. */
+   (analizele salvate înaintea intrării + Portofoliu), barele zilnice pentru tranzacțiile din SUA și seria SPY; desenează lib/journal-report.js.
+   Etichetele (I-690) și limita lunară (I-692) stau în „Setările jurnalului” (lib/monthly-limit.js), sincronizate între dispozitive. */
 (function () {
   'use strict';
-  const J = window.JournalReport, host = document.getElementById('jrrRaport'); if (!J || !host) return;
-  const K_ST = 'tt_journal_raport_v1', K_LIM = 'tt_journal_limita_luna_v1';
-  const st = { perioada: 365, ticker: '', toateRandurile: false };
+  const J = window.JournalReport, ML = window.MonthlyLimit, host = document.getElementById('jrrRaport'); if (!J || !host) return;
+  const K_ST = 'tt_journal_raport_v1';
+  const st = { perioada: 365, ticker: '', toateRandurile: false, editez: null };
   try { const s = JSON.parse(localStorage.getItem(K_ST) || '{}'); if ([0, 30, 90, 365].includes(s.perioada)) st.perioada = s.perioada; } catch (_) { /* fără preferință */ }
-  let baza = null, stare = '', exStare = '';
+  let baza = null, stare = '', exStare = '', spy = null, spyEsuat = false;
   const ex = new Map(), ratate = new Set(); // ratate: simbolurile fără bare în sesiunea asta (nu se mai cer la fiecare schimbare de perioadă)
-  const limita = () => { try { const v = Number(localStorage.getItem(K_LIM)); return v > 0 ? v : null; } catch (_) { return null; } };
+  const limita = () => (ML ? ML.limita() : null);
+  const harta = () => { const h = ML ? ML.setari().t212Etichete : null; return h && typeof h === 'object' && !Array.isArray(h) ? h : {}; };
   function teze(scope) { try { const t = JSON.parse(localStorage.getItem('tt_holdings_theses_v1') || '{}'), o = {}; for (const [k, v] of Object.entries(t)) { const i = k.indexOf('|'), s = i >= 0 ? k.slice(0, i) : null, tk = i >= 0 ? k.slice(i + 1) : k; const x = Number(v?.stop); if ((!scope || !s || s === scope) && x > 0) o[tk] = x; } return o; } catch (_) { return {}; } }
   function analize(report) {
     const E = window.TradeEvidence; if (!E || !report?.scope) return [];
@@ -16,19 +18,33 @@
   }
   function filtrate() {
     if (!baza) return [];
-    const de = st.perioada ? Date.now() - st.perioada * 86400000 : -Infinity;
-    return baza.rows.filter((x) => x.iesire >= de && (!st.ticker || x.ticker === st.ticker));
+    const de = st.perioada ? Date.now() - st.perioada * 86400000 : -Infinity, h = harta();
+    return J.cuEtichete(baza.rows.filter((x) => x.iesire >= de && (!st.ticker || x.ticker === st.ticker)), h);
+  }
+  // I-692: banner-ul limitei lunare și în fila „Risc & capital” (lângă Governor)
+  function bannerGovernor() {
+    const el = document.getElementById('jrMonthlyLimit'); if (!el || !ML) return;
+    const t = ML.text(ML.stare()); el.hidden = !t; el.className = 'jrr-limita-banner' + (t ? ' grav-' + t.grav : ''); if (el.textContent !== (t ? t.text : '')) el.textContent = t ? t.text : '';
   }
   function desen() {
     const tr = filtrate();
     host.innerHTML = J.render({ tr, toate: baza?.rows || [], moneda: baza?.moneda, perioada: st.perioada, ticker: st.ticker, tickere: baza ? [...new Set(baza.rows.map((x) => x.ticker))].sort() : [],
-      ex, exStare, limita: limita(), stare, faraCumparare: baza?.faraCumparare || 0, alteMonede: baza?.alteMonede || 0, partiale: baza?.partiale || 0, corporative: baza?.corporative || 0, toateRandurile: st.toateRandurile, now: Date.now() });
+      ex, exStare, spy, spyEsuat, limita: limita(), stare, faraCumparare: baza?.faraCumparare || 0, alteMonede: baza?.alteMonede || 0, partiale: baza?.partiale || 0, corporative: baza?.corporative || 0,
+      toateRandurile: st.toateRandurile, editez: st.editez, now: Date.now() });
+    bannerGovernor();
   }
-  // filtre, limită, CSV, tickere — delegat (raportul se redesenează întreg)
+  function puneEticheta(id, k) {
+    if (!ML) return; const h = { ...harta() }, cur = new Set(h[id]?.e || []); if (cur.has(k)) cur.delete(k); else cur.add(k);
+    if (cur.size) h[id] = [...cur].sort(); else delete h[id]; // fără ora scrierii: altfel conflict de sincronizare între dispozitive
+    ML.scrie({ t212Etichete: h });
+  }
+  // filtre, limită, etichete, CSV, tickere — delegat (raportul se redesenează întreg)
   host.addEventListener('click', (ev) => {
-    const p = ev.target.closest('[data-jrr-per]'), t = ev.target.closest('[data-jrr-tk]');
+    const p = ev.target.closest('[data-jrr-per]'), t = ev.target.closest('[data-jrr-tk]'), ed = ev.target.closest('[data-jrr-et-ed]'), et = ev.target.closest('[data-jrr-et]');
     if (p) { st.perioada = Number(p.dataset.jrrPer); try { localStorage.setItem(K_ST, JSON.stringify({ perioada: st.perioada })); } catch (_) { /* doar preferință */ } desen(); barele(); return; }
     if (t) { st.ticker = t.dataset.jrrTk; desen(); host.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    if (et) { puneEticheta(et.dataset.jrrId, et.dataset.jrrEt); desen(); host.querySelector(`[data-jrr-et="${et.dataset.jrrEt}"][data-jrr-id="${CSS.escape(et.dataset.jrrId)}"]`)?.focus(); return; }
+    if (ed) { const id = ed.dataset.jrrEtEd || null; st.editez = st.editez === id ? null : id; if (st.editez && !st.toateRandurile && !filtrate().slice(-15).some((x) => x.id === st.editez)) st.toateRandurile = true; desen(); if (st.editez) host.querySelector('[data-jrr-et][data-jrr-id="' + CSS.escape(st.editez) + '"]')?.focus(); return; }
     if (ev.target.closest('#jrrToate')) { st.toateRandurile = !st.toateRandurile; desen(); return; }
     if (ev.target.closest('#jrrCsv')) {
       const blob = new Blob(['﻿' + J.csv(filtrate(), baza?.moneda || '')], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a');
@@ -37,7 +53,7 @@
   });
   host.addEventListener('change', (ev) => {
     if (ev.target.id === 'jrrTicker') { st.ticker = ev.target.value; desen(); }
-    if (ev.target.id === 'jrrLimita') { const v = Number(ev.target.value); try { if (v > 0) localStorage.setItem(K_LIM, String(v)); else localStorage.removeItem(K_LIM); } catch (_) { /* rămâne pe ecran până la reîncărcare */ } desen(); }
+    if (ev.target.id === 'jrrLimita' && ML) { ML.puneLimita(Number(ev.target.value)); desen(); }
   });
   // atingere / mouse pe grafice: textul din data-tip
   const tip = document.createElement('div'); tip.className = 'jrr-tip'; tip.hidden = true; document.body.appendChild(tip);
@@ -52,9 +68,11 @@
   async function barele() {
     const fetchStock = window.D?.fetchStock; if (!baza || typeof fetchStock !== 'function') return;
     if (bareRuleaza) { bareReia = true; return; } // altă perioadă aleasă în timpul citirii: se reia la final
+    bareRuleaza = true;
+    if (!spy && !spyEsuat) { try { const b = await fetchStock('SPY', { range: '5y', interval: '1d', ttl: 21600 }); if (Array.isArray(b) && b.length) spy = b.map((x) => ({ t: x.t, c: x.c })); else spyEsuat = true; } catch (_) { spyEsuat = true; } desen(); }
     const lipsa = filtrate().filter((x) => x.intrare != null && J.symYahoo(x.ticker) && !ex.has(x.id) && !ratate.has(J.symYahoo(x.ticker))), simboluri = [...new Set(lipsa.map((x) => J.symYahoo(x.ticker)))].slice(0, 40);
-    if (!simboluri.length) return;
-    bareRuleaza = true; exStare = 'Se citesc barele zilnice pentru ' + simboluri.length + ' simboluri…'; desen();
+    if (!simboluri.length) { bareRuleaza = false; if (bareReia) { bareReia = false; barele(); } return; }
+    exStare = 'Se citesc barele zilnice pentru ' + simboluri.length + ' simboluri…'; desen();
     const celMaiVechi = Math.min(...lipsa.map((x) => x.intrare)), range = Date.now() - celMaiVechi > 700 * 86400000 ? '5y' : '2y';
     for (const s of simboluri) {
       try { const b = await fetchStock(s, { range, interval: '1d', ttl: 21600 }); if (Array.isArray(b)) for (const x of lipsa.filter((r) => J.symYahoo(r.ticker) === s)) { const e = J.excursie(x, b); ex.set(x.id, e || { nepotrivit: true }); } else ratate.add(s); } catch (_) { ratate.add(s); }
@@ -66,10 +84,11 @@
     try { await window.T212FillsStore?.ready?.(); } catch (_) { /* citim ce e în registru */ }
     try { await window.TTEvidenceVault?.ready?.(); } catch (_) { /* fără analize: R doar din Portofoliu */ }
     let report = null; try { report = window.T212Performance?.read?.() || null; } catch (_) { report = null; }
-    if (!report || !Array.isArray(report.rows)) { host.innerHTML = J.render({ tr: [], toate: [], perioada: st.perioada, stare: 'Istoricul Trading 212 nu poate fi citit.' }); return; }
+    if (!report || !Array.isArray(report.rows)) { host.innerHTML = J.render({ tr: [], toate: [], perioada: st.perioada, stare: 'Istoricul Trading 212 nu poate fi citit.' }); bannerGovernor(); return; }
     let curs = null; try { curs = await window.JournalReview?.cursFile?.(); } catch (_) { curs = null; }
     const c = J.calatorii(report.rows, { curs, moneda: report.currency });
     baza = { ...c, rows: J.stopuriR(c.rows, { analize: analize(report), teze: teze(report.scope), deschisa: c.deschisa }) };
+    if (ML && report.rows.length) ML.salveazaLuna(ML.dinExecutii(report.rows, { moneda: c.moneda })); // I-692: rezultatul lunii, pentru Astăzi și Planuri
     stare = report.state === 'partial' ? 'Istoricul importat e parțial: o parte din execuții lipsesc sau au fost respinse.' : report.state === 'error' ? (report.reason || '') : '';
     if (report.state === 'missing') stare = report.reason || '';
     if (!curs) stare += (stare ? ' ' : '') + 'Cursul BNR nu e încă publicat de robot: mărimea pozițiilor apare după prima rulare.';
@@ -79,6 +98,10 @@
   incarca();
   // execuțiile stau în IndexedDB (T212FillsStore): după o sincronizare raportul se reface singur
   try { window.T212FillsStore?.subscribe?.(() => incarca()); } catch (_) { /* fără abonare: la reîncărcarea paginii */ }
-  window.addEventListener('storage', (e) => { if (e.key === K_LIM) desen(); });
+  // limita / etichetele schimbate pe alt dispozitiv (sincronizare) sau în altă filă
+  let amanat = false;
+  const ocupat = () => { const a = document.activeElement; return !!(a && host.contains(a) && (a.tagName === 'INPUT' || a.tagName === 'SELECT' || st.editez)); };
+  host.addEventListener('focusout', () => { if (amanat) setTimeout(() => { if (amanat && !ocupat()) { amanat = false; desen(); } }, 0); });
+  window.addEventListener('storage', (e) => { if (e.key !== (ML?.K_SET || 'tt_journal_settings_v1') && e.key !== ML?.K_LUNA) return; bannerGovernor(); if (ocupat()) amanat = true; else desen(); });
   window.JournalReportUI = { reincarca: incarca };
 })();
