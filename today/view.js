@@ -174,7 +174,25 @@
   const hidden=arts.filter(x=>x.hidden).length;more.hidden=!hidden;if(hidden){more.textContent='Încă '+hidden+' ↓';more.setAttribute('aria-label','Arată încă '+hidden+(hidden===1?' articol':' articole'));}
   grid.classList.remove('measuring');
  }
- function render(){renderRefresh();renderAccount();renderMarket();renderChart();renderNews();renderPositions();renderActivity();renderScanners();renderAttention();renderBrief();fitLayout();}
+ /* 17.10.2026 — Verdictul pieței (lib/market-verdict.js, demo aprobat): sectoarele din raportul breadth, regimul macro, calendarul,
+    rezultatele pozițiilor (o dată pe încărcare). Rezumat după reguli fixe, nu predicție. */
+ const verdictExtra={sectors:null,earnings:null,asked:false};
+ function verdictLoad(){
+  if(verdictExtra.asked)return;verdictExtra.asked=true;
+  g.MarketVerdict?.sectors?.().then(s=>{verdictExtra.sectors=s;renderVerdict();});
+ }
+ function verdictEarnings(){
+  if(verdictExtra.earnings||!g.HoldingsEvents?.fetchEvents)return;const pos=(ui.account?.positions||[]).filter(p=>p&&p.symbol).sort((a,b)=>(b.weight||0)-(a.weight||0)).slice(0,6);if(!pos.length)return;verdictExtra.earnings=[];
+  Promise.allSettled(pos.map(p=>g.HoldingsEvents.fetchEvents(p.symbol))).then(rs=>{verdictExtra.earnings=rs.filter(r=>r.status==='fulfilled'&&r.value?.earnings?.date).map(r=>({symbol:r.value.symbol,date:r.value.earnings.date}));renderVerdict();});
+ }
+ function renderVerdict(){
+  const host=$('marketVerdict');if(!host||!g.MarketVerdict)return;verdictLoad();verdictEarnings();
+  let events=[];try{events=g.MCTX?.hardcodedEvents?.()||[];}catch(_){}
+  let regime=null;try{regime=g.MCTX?.regime?.()||null;}catch(_){}
+  try{host.innerHTML=g.MarketVerdict.render(g.MarketVerdict.compute({market:ui.market||{},sectors:verdictExtra.sectors,regime,events,earnings:verdictExtra.earnings,news:ui.news?.items||[],positions:ui.account?.positions||[],now:Date.now()}));}
+  catch(_){host.innerHTML='<p class="mv-empty">Verdictul nu poate fi calculat acum; restul paginii rămâne valabil.</p>';}
+ }
+ function render(){renderVerdict();renderRefresh();renderAccount();renderMarket();renderChart();renderNews();renderPositions();renderActivity();renderScanners();renderAttention();renderBrief();fitLayout();}
  async function load(force=false){
   const generation=++ui.generation;renderSession();ui.busy=true;
   try{ui.model=ui.model||g.TodayDashboardModel?.create();ui.account=ui.model?.account({days:ui.days})||{state:'error',issues:['Adaptorul datelor locale nu este disponibil.']};}catch(_){ui.account={state:'error',issues:['Contul nu a putut fi citit; datele existente sunt păstrate.']};}
