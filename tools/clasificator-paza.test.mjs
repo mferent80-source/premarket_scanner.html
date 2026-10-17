@@ -12,3 +12,7 @@ test('I-667: câinele de pază pornește robotul o singură dată pe sesiune, do
   // O pornire manuală (de om) sau a câinelui pentru sesiunea de ieri nu blochează pornirea de azi.
   assert.equal(decide({ asOf: '2026-10-15', asteptata: '2026-10-16', dupa, rulari: [{ ...a, triggering_actor: { login: 'mferent80-source' } }, { ...a, created_at: '2026-10-16T05:10:00Z' }] }), 'porneste');
 });
+test('câinele păzește ambii roboți de noapte (clasificatorul și verdictul pieței), fiecare cu fișierul și workflow-ul lui', async () => {
+  const { ROBOTI } = await import('./clasificator-paza.mjs');
+  assert.deepEqual(ROBOTI.map((r) => r.workflow), ['clasificator.yml', 'verdict-piata.yml']); assert.ok(ROBOTI.every((r) => r.fisier.startsWith('candidate-engine/generated/')));
+});

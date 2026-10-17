@@ -22,3 +22,9 @@ test('paritate cu Crypto Radar (dacă depozitul crypto e pe acest PC): același 
     const a = R.scor(d), b = C.scor(d); assert.equal(a.scor, b.scor); assert.equal(a.treapta.cod, b.treapta.cod); assert.equal(JSON.stringify(a.semne.map((s) => s.scor)), JSON.stringify(b.semne.map((s) => s.scor)));
   }
 });
+// Amprenta formulei din Crypto Radar (treptele + scor): orice schimbare acolo cere recopierea în lib/macro-regime.js, apoi amprenta nouă aici.
+test('amprenta formulei din Crypto Radar e cea copiată (dacă depozitul crypto e pe acest PC)', { skip: !existsSync('../crypto/public/lib/macro.js') }, async () => {
+  const { createHash } = await import('node:crypto'), s = readFileSync('../crypto/public/lib/macro.js', 'utf8').replace(/\r\n/g, '\n');
+  const seg = s.slice(s.indexOf('const TREPTE'), s.indexOf('const PARTIAL')) + s.slice(s.indexOf('function scor(d)'), s.indexOf('// histerezisul'));
+  assert.equal(createHash('sha256').update(seg.replace(/"/g, "'")).digest('hex').slice(0, 16), '5194fc4c7046a7cf', 'Crypto Radar a schimbat formula regimului macro: recopiază treptele și scor() în lib/macro-regime.js, apoi actualizează amprenta din acest test.');
+});

@@ -10,6 +10,8 @@ import { PROBA, incarca } from './clasificator-jurnal.mjs';
 import { readdirSync } from 'node:fs';
 
 export const WORKFLOW = 'clasificator.yml', BOT = 'github-actions[bot]';
+/** Roboții păziți: fișierul care trebuie să aibă ultima sesiune încheiată și workflow-ul care îl scrie. 17.10: și verdictul pieței. */
+export const ROBOTI = [{ nume: 'Clasificator', fisier: 'candidate-engine/generated/clasificator.json', workflow: 'clasificator.yml' }, { nume: 'Verdictul pieței', fisier: 'candidate-engine/generated/verdict-piata.json', workflow: 'verdict-piata.yml' }];
 /** Decizia: 'ok' (sesiunea e notată) · 'ruleaza' (o rulare e în curs) · 'deja' (am pornit-o o dată pentru sesiunea asta) · 'porneste'.
  *  `dupa` = momentul de la care contează rulările pentru sesiune (închiderea ei). */
 export function decide({ asOf, asteptata, rulari = [], dupa }) {
@@ -21,17 +23,21 @@ export function decide({ asOf, asteptata, rulari = [], dupa }) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const c = motor('.'); let s; try { s = c.ExchangeCalendar.latest(Date.now(), 'US'); } catch (e) { console.log('Calendarul nu poate spune sesiunea: ' + e.message); process.exit(0); }
-  const j = existsSync('candidate-engine/generated/clasificator.json') ? JSON.parse(readFileSync('candidate-engine/generated/clasificator.json', 'utf8')) : {};
+  for (const rob of ROBOTI) await pazeste(rob, c, s);
+}
+async function pazeste(rob, c, s) {
+  const WORKFLOW = rob.workflow;
+  const j = existsSync(rob.fisier) ? (() => { try { return JSON.parse(readFileSync(rob.fisier, 'utf8')); } catch { return {}; } })() : {};
   // Revizia din 17.10: când pagina are alt motor decât cel în probă, proba vine din jobul „umbra” — verific și linia ei din jurnal.
-  if (c.HoldingsClassifier.VERSION !== PROBA) { const z = incarca({ existsSync, readdirSync, readFileSync }, '.').voturi.filter((l) => l.motor === PROBA).map((l) => l.asOf).sort().at(-1) || null; if (!z || !j.asOf || z < j.asOf) j.asOf = z; }
+  if (rob.workflow === 'clasificator.yml' && c.HoldingsClassifier.VERSION !== PROBA) { const z = incarca({ existsSync, readdirSync, readFileSync }, '.').voturi.filter((l) => l.motor === PROBA).map((l) => l.asOf).sort().at(-1) || null; if (!z || !j.asOf || z < j.asOf) j.asOf = z; }
   const repo = process.env.GITHUB_REPOSITORY, h = { authorization: 'Bearer ' + process.env.GH_TOKEN, accept: 'application/vnd.github+json', 'x-github-api-version': '2022-11-28' };
   const api = (p, o = {}) => fetch('https://api.github.com/repos/' + repo + p, { ...o, headers: { ...h, ...(o.headers || {}) }, signal: AbortSignal.timeout(20000) });
   const rulari = (await (await api(`/actions/workflows/${WORKFLOW}/runs?per_page=20`)).json()).workflow_runs || [];
   // O pornire a câinelui după prânzul (UTC) zilei sesiunii contează pentru sesiunea asta: cel mult una pe sesiune.
   const d = decide({ asOf: j.asOf, asteptata: s.day, rulari, dupa: Date.parse(s.day + 'T12:00:00Z') });
-  console.log(`Sesiunea așteptată ${s.day} · fișierul are ${j.asOf || '—'} · decizia: ${d}`);
-  if (d !== 'porneste') process.exit(0);
+  console.log(`${rob.nume}: sesiunea așteptată ${s.day} · fișierul are ${j.asOf || '—'} · decizia: ${d}`);
+  if (d !== 'porneste') return;
   const r = await api(`/actions/workflows/${WORKFLOW}/dispatches`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ref: 'main' }) });
-  console.log('Pornire: ' + r.status); if (r.status !== 204) process.exit(1);
-  if (process.env.DISCORD_WEBHOOK) { try { await fetch(process.env.DISCORD_WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: `**Câinele de pază · Clasificator** — robotul n-a notat sesiunea ${s.day} (ultimul fișier: ${j.asOf || '—'}); l-am pornit acum. Dacă pică și reluarea, vine mesajul lui de eșec.` }), signal: AbortSignal.timeout(20000) }); } catch (e) { console.log('Discord: ' + e.message); } }
+  console.log('Pornire: ' + r.status); if (r.status !== 204) { process.exitCode = 1; return; }
+  if (process.env.DISCORD_WEBHOOK) { try { await fetch(process.env.DISCORD_WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: `**Câinele de pază · ${rob.nume}** — robotul n-a notat sesiunea ${s.day} (ultimul fișier: ${j.asOf || '—'}); l-am pornit acum. Dacă pică și reluarea, vine mesajul lui de eșec.` }), signal: AbortSignal.timeout(20000) }); } catch (e) { console.log('Discord: ' + e.message); } }
 }
