@@ -99,3 +99,8 @@
 /* 17.10: pe telefon, pe fila Raport, panoul de verdict (#ttDecisionVerdict, copil direct al <body> flex) și cel de capital (#capitalRail) coboară sub raport — rămân pe pagină */
 @media (max-width:860px){body.jr-on-raport .cap-wrap{display:flex;flex-direction:column}body.jr-on-raport #capitalRail{order:20}body.jr-on-raport #ttDecisionVerdict{order:30}}
 .jrr-tip{position:fixed;z-index:60;pointer-events:none;white-space:pre-line;background:var(--panel2,#151f2b);border:1px solid var(--b1,#24313f);color:var(--t1,#edf2f6);border-radius:8px;padding:7px 10px;font-size:12px;line-height:1.45;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:260px;font-variant-numeric:tabular-nums}
+/* 18.10.2026 (el, cu poza: „header-ul stă mereu fix și ocupă jumătate de pagină” / „fă să dispară și antetul”):
+   pe telefon antetul Jurnalului („Jurnal · Instrumente · sync OK”, ~139 px) nu mai stă lipit sus — pleacă la derulare (pe PC rămâne lipit, ca pe 16.10);
+   antetul „Bilanțul tău” (~152 px) era lipit din greșeală (regula comună `header` din lib/capital-ui.css) — nu se mai lipește nicăieri. */
+body.cap-journal .jrv-head,body.cap-journal #jrrRaport header{position:static!important;top:auto!important;box-shadow:none!important}
+@media (max-width:860px){body.cap-journal>header.cap-header,body.cap-journal header.cap-header{position:static!important;top:auto!important;box-shadow:none!important}}
