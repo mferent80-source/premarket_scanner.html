@@ -11,7 +11,8 @@ const pngSize = (f) => { const b = readFileSync(join(ROOT, 'alerts', f)); assert
 test('manifestul Alertelor: aplicație proprie, cu scope pe alerts/', () => {
   const m = JSON.parse(readFileSync(join(ROOT, 'alerts/manifest.webmanifest'), 'utf8'));
   assert.equal(m.short_name, 'Alerte');
-  assert.equal(m.start_url, './'); assert.equal(m.scope, './'); assert.equal(m.id, './');
+  assert.equal(m.start_url, './'); assert.equal(m.scope, './');
+  assert.equal(m.id, '/premarket_scanner.html/alerts/'); // 17.10: „./” se rezolva la rădăcina domeniului = identitatea Decision App ⇒ „deja instalată”
   assert.equal(m.display, 'standalone');
   const sizes = m.icons.map((i) => i.sizes);
   assert.ok(sizes.includes('192x192') && sizes.includes('512x512'), 'iconițele 192 și 512 cerute la instalare');
