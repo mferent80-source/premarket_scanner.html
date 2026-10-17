@@ -25,7 +25,7 @@ test('salvarea în Portofoliu: stopul apare în teze (cheia scope|ticker, cu ist
   const t = JSON.parse(s.getItem('tt_holdings_theses_v1'))['live1|AAPL_US_EQ']; assert.equal(t.stop, 190); assert.equal(t.targetPrice, 230); assert.equal(t.history.length, 1);
   assert.ok(TA.stopuri('live1', s).has('AAPL_US_EQ'));
   assert.match(S.salveaza({ scope: 'live1', poz, stop: 250, tinta: 240, storage: s }), /Ținta trebuie să fie peste stop/);
-  assert.match(S.salveaza({ scope: 'live1', poz: { ...poz, instrumentCurrency: null }, stop: 190, storage: s }), /Moneda/);
+  assert.match(S.salveaza({ scope: 'live1', poz: { ...poz, ticker: 'SAP_DE_EQ', instrumentCurrency: null }, stop: 190, storage: s }), /Moneda/); // în afara SUA, moneda trebuie confirmată
   assert.equal(S.faraStop({ positions: [poz, { ...poz, ticker: 'NVDA_US_EQ' }] }, TA.stopuri('live1', s)).length, 1);
 });
 test('avertizarea severă: poziția fără stop e cel mai grav semnal, prima, marcată „sever”', () => {
@@ -55,4 +55,13 @@ test('alarma pe Discord: lista tickerelor CU stop pleacă la worker (cheia de ci
   assert.equal((await S.trimiteLista({ storage: s, fetchImpl: f })).stare, 'neschimbat'); assert.equal(trimise.length, 1);
   assert.equal((await S.trimiteLista({ storage: s, fetchImpl: f, fortat: true })).stare, 'trimis');
   assert.equal((await S.trimiteLista({ storage: s, fetchImpl: async () => ({ ok: false, status: 401 }), fortat: true })).stare, 'cheie-gresita');
+});
+test('18.10: fără preț mediu în copia contului — intrarea estimată din valoare și profit; fără preț de acum — ultima închidere; moneda SUA = USD', () => {
+  const p = { ticker: 'MU_US_EQ', quantity: 2, value: 9600, unrealized: 450, currentPrice: 1050 };
+  const a = S.preturi(p); assert.equal(a.estimat, true); assert.ok(Math.abs(a.intrare - 1050 * 9150 / 9600) < 1e-9);
+  const b = S.preturi({ ...p, currentPrice: null }, 1040); assert.equal(b.acum, 1040); assert.equal(b.acumDinBare, true);
+  assert.equal(S.preturi({ ticker: 'X_US_EQ' }).intrare, null); assert.equal(S.moneda({ ticker: 'MU_US_EQ' }), 'USD'); assert.equal(S.moneda({ ticker: 'SAP_DE_EQ' }), null);
+  const html = S.render([{ ticker: 'X_US_EQ', quantity: 1 }], {}); assert.match(html, /Nu pot calcula stopul/);
+  const h2 = S.render([p], {}); assert.match(h2, /\(estimat\)/); assert.match(h2, /data-stop-var="fix"/);
+  const s = mem(); assert.equal(S.salveaza({ scope: 'l', poz: { ticker: 'MU_US_EQ', currentPrice: 1050 }, stop: 990, storage: s }), null, 'fără preț mediu și fără monedă în copie: tot se salvează (USD)');
 });
