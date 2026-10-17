@@ -3376,6 +3376,11 @@ pe un singur chart.
 | I-668 | Zilele pierdute, numărate, și regula notării la timp: jurnalul are azi o singură linie (15.10, motor v4); rularea v5 din 16.10 18:12 a avut aceeași dată și n-a notat nimic, iar 16.10 lipsește ⇒ Health și Planuri arată „N zile notate, M sesiuni lipsă (16.10 …)”; regulă scrisă dinainte: o linie contează doar dacă a fost notată înainte de deschiderea sesiunii următoare (altfel intrarea ar fi deja în trecut) | tools/clasificator-jurnal.mjs (verifica, bilant), lib/desk-classifier.js, health/index.html | S | P1 | propus | ideation | 2026-10-17 |
 | I-669 | Jurnalul doar crește: o gardă în workflow, înainte de commit, cere ca jurnalul vechi să fie începutul exact al celui nou (nicio linie schimbată sau ștearsă); altfel robotul refuză să salveze — protejează proba de un bug sau de mutarea pe fișiere lunare (I-662) | tools/clasificator-robot.test.mjs (garda GARDA_FISIER), .github/workflows/clasificator.yml | S | P2 | propus | ideation | 2026-10-17 |
 | I-670 | Health: ultimele 10 nopți ale robotului — pentru fiecare sesiune: a rulat / a picat / n-a pornit, câte acțiuni, linia din jurnal notată sau nu; azi ai afla abia deschizând Actions că 16.10 lipsește | health/index.html (citește jurnalul + API-ul public GitHub pentru rulări) | S | P3 | propus | ideation | 2026-10-17 |
+| I-671 | Puterea probei, calculată ACUM (înainte de prima zi v5): cu 30 de zile separate la 6 sesiuni distanță (~180 de sesiuni notate, ~9 luni) și pragul −0,02, cât de mare trebuie să fie avantajul ca proba să-l vadă? Din varianța zilnică din walk-forward ⇒ efectul minim detectabil la 80%; dacă e peste ce e realist, se decide azi (fără date): mai multe zile sau toate zilele cu un test care ține cont de suprapunere, în loc să arunce 5 din 6 | tools/clasificator-jurnal.mjs (PRAG, separa, test), docs/clasificator-putere-2026-10.md (nou) | S | P1 | propus | ideation | 2026-10-17 |
+| I-672 | Rezultatele înghețate la încheiere: azi `verifica` redescarcă seriile peste luni și sare TĂCUT voturile acțiunilor delistate sau cu split (prețul de închidere „revizuit” nu mai bate) ⇒ eroare de supraviețuire chiar în proba înainte; robotul notează rezultatul fiecărui vot în noaptea în care se încheie orizontul (5 / 20 sesiuni) într-un jurnal de rezultate, iar verdictul numără și voturile pierdute, cu motivul | tools/clasificator-jurnal.mjs (verifica), tools/clasificator-robot.mjs, candidate-engine/generated/ (fișier nou de rezultate) | M | P1 | propus | ideation | 2026-10-17 |
+| I-673 | Protocolul probei, înghețat și numărat: un document datat cu ipoteza, pragurile (PRAG), familia de teste (2 ținte × vot + clasament) și registrul tuturor încercărilor de până acum (4 modele, ablația, contextul SPY, modelul comun) + o gardă care pică dacă PRAG se schimbă fără rând nou în document — I-661 îngheață motorul, asta îngheață regulile de judecată | docs/clasificator-protocol.md (nou), tools/clasificator-jurnal.test.mjs | S | P1 | propus | ideation | 2026-10-17 |
+| I-674 | Motorul nou în umbră, nu în locul celui în probă: dacă motorul trebuie schimbat (un bug), robotul notează în jurnal ambele versiuni (v5 rămâne cea judecată, v6 strânge zile în paralel) — o reparație nu mai aruncă lunile de probă strânse | tools/clasificator-robot.mjs, tools/clasificator-jurnal.mjs, lib/holdings-classifier.js (încărcat în două versiuni) | M | P2 | propus | ideation | 2026-10-17 |
+| I-675 | Martorul de date: în fiecare noapte robotul compară închiderea de pe ~20 de acțiuni cu o a doua sursă gratuită și semnalează în Health diferențe peste 0,5% — prinde barele greșite ale Yahoo înainte să intre în jurnal | tools/clasificator-date.mjs, tools/clasificator-robot.mjs, health/index.html | M | P3 | propus | ideation | 2026-10-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6665,3 +6670,44 @@ Lentile: Trader — proba de 7 luni pierde zile pe tăcute exact când nimeni nu
 - **Impact:** vezi dintr-o privire dacă proba merge zi de zi.
 - **Riscuri/dependențe:** API-ul public GitHub (60 de cereri pe oră fără cheie) — o cerere la deschidere.
 - **Fișiere:** health/index.html.
+
+## 17.10.2026 (runda 7) — proba poate vedea ce caută? și poate fi păcălită de date?
+
+Fapte verificate în cod (17.10): `verifica` (tools/clasificator-jurnal.mjs) redescarcă seriile la verificare și sare cu `continue` votul dacă seria lipsește (acțiune delistată) sau dacă închiderea din ziua votului s-a schimbat („istoric revizuit” — se întâmplă la orice split); `separa` păstrează o zi din 6; PRAG = 30 de zile separate, câștig 0,02, alfa 0,05.
+
+Lentile: Trader — o probă de 9 luni care nu poate vedea un avantaj realist e timp pierdut; trebuie știut înainte. Designer — un verdict trebuie să spună câte voturi n-au putut fi judecate și de ce. Inginer — rezultatele depind de cum arată Yahoo peste 9 luni (split-uri, delistări). Automator — notarea rezultatului se poate face în noaptea încheierii, nu la final.
+
+#### I-671 · Puterea probei, calculată acum · [S] · P1 · propus
+- **Problema/golul:** nimeni nu a calculat dacă 30 de zile separate pot detecta un câștig de 0,02 la log-loss cu varianța reală.
+- **Soluția:** varianța diferenței zilnice de log-loss din walk-forward ⇒ efectul minim detectabil (putere 80%, alfa 0,05, Holm pe familie); document scris; dacă proba e prea slabă, se schimbă protocolul ACUM (proba v5 are 0 zile, deci fără să fi văzut date): mai multe zile, sau toate zilele cu test pentru serii suprapuse.
+- **Impact:** știi dinainte dacă un „nu ține” peste 9 luni ar însemna ceva.
+- **Riscuri/dependențe:** varianța din backtest poate fi diferită de cea înainte; se notează ca ipoteză. Se face înainte de I-673 (protocolul îngheață ce iese de aici).
+- **Fișiere:** tools/clasificator-jurnal.mjs, docs/clasificator-putere-2026-10.md.
+
+#### I-672 · Rezultatele înghețate la încheiere · [M] · P1 · propus
+- **Problema/golul:** acțiunile delistate (des după prăbușiri) și cele cu split dispar tăcut din verdict ⇒ proba ar arăta mai bine decât e.
+- **Soluția:** robotul notează în noaptea în care se încheie orizontul rezultatul fiecărui vot (clasa reală, banii după cost) într-un fișier de rezultate care doar crește; verdictul citește rezultatele înghețate și raportează „voturi nejudecate: N (delistate, date lipsă)”.
+- **Impact:** verdictul nu mai depinde de cum arată Yahoo peste luni; supraviețuirea nu mai umflă rezultatul.
+- **Riscuri/dependențe:** voturile unei acțiuni delistate înainte de încheiere se judecă după o regulă scrisă dinainte (ultimul preț, ca ieșire).
+- **Fișiere:** tools/clasificator-jurnal.mjs, tools/clasificator-robot.mjs, candidate-engine/generated/.
+
+#### I-673 · Protocolul probei, înghețat și numărat · [S] · P1 · propus
+- **Problema/golul:** pragurile de judecată stau doar în cod (PRAG); o schimbare mică ar schimba verdictul fără urmă; încercările de până acum nu sunt adunate într-un loc.
+- **Soluția:** docs/clasificator-protocol.md: ipoteza, pragurile, familia de teste, registrul încercărilor (cu rezultatul fiecăreia, și cele picate), data înghețării; garda din suită pică dacă PRAG diferă de document.
+- **Impact:** verdictul se judecă după reguli fixate dinainte, verificabile.
+- **Riscuri/dependențe:** după I-671.
+- **Fișiere:** docs/clasificator-protocol.md, tools/clasificator-jurnal.test.mjs.
+
+#### I-674 · Motorul nou în umbră · [M] · P2 · propus
+- **Problema/golul:** înghețarea motorului nu poate fi totală: un bug real cere reparație, iar azi orice versiune nouă repornește numărătoarea de la zero.
+- **Soluția:** robotul poate rula două versiuni; jurnalul notează voturile ambelor; verdictul rămâne pe versiunea în probă, cea nouă strânge zile alături până o înlocuiește după reguli scrise.
+- **Impact:** o reparație nu mai costă luni de probă.
+- **Riscuri/dependențe:** durata robotului se dublează (azi 40 din 55 de minute) ⇒ umbra doar pe universul scannerului sau după I-664.
+- **Fișiere:** tools/clasificator-robot.mjs, tools/clasificator-jurnal.mjs, lib/holdings-classifier.js.
+
+#### I-675 · Martorul de date · [M] · P3 · propus
+- **Problema/golul:** Yahoo dă uneori bare greșite (2 acțiuni azi „date stricate”); singura sursă nu are martor.
+- **Soluția:** comparația închiderilor pe un eșantion fix cu o a doua sursă gratuită; Health arată diferențele peste 0,5%.
+- **Impact:** o bară greșită se vede înainte să strice o zi din probă.
+- **Riscuri/dependențe:** sursa a doua poate bloca cererile din Actions; doar martor, nu înlocuitor.
+- **Fișiere:** tools/clasificator-date.mjs, tools/clasificator-robot.mjs, health/index.html.
