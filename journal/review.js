@@ -23,7 +23,7 @@
     const stops = J.stopuri(scope); an = J.ani(tx)[0] || new Date().getFullYear();
     stare = tx.length + ' execuții · se citesc seriile pieței…'; sapt = J.saptamana(tx, { stops }); desen();
     const fetchStock = window.D?.fetchStock, serii = {};
-    if (typeof fetchStock === 'function') await Promise.allSettled(['SPY', 'QQQ', '^VIX'].map(async (s) => { try { const b = await fetchStock(s, { range: '5y', interval: '1d', ttl: 6 * 3600000 }); if (Array.isArray(b)) serii[s] = b.map((x) => ({ t: x.t, c: x.c })); } catch (_) { /* fără serie: verdictul parțial nu se poate reface */ } }));
+    if (typeof fetchStock === 'function') await Promise.allSettled(['SPY', 'QQQ', '^VIX'].map(async (s) => { try { const b = await fetchStock(s, { range: '5y', interval: '1d', ttl: 21600 }); if (Array.isArray(b)) serii[s] = b.map((x) => ({ t: x.t, c: x.c })); } catch (_) { /* fără serie: verdictul parțial nu se poate reface */ } }));
     const [robot, c] = await Promise.all([MV?.robotFile ? MV.robotFile() : Promise.resolve(null), J.cursFile()]);
     curs = c; const istoric = robot?.istoric || [];
     sapt = J.saptamana(tx, { stops, istoric, serii }); vt = J.verdictTranzactii(tx, istoric, serii);

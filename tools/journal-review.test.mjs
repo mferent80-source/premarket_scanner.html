@@ -24,16 +24,18 @@ test('I-688: săptămâna — de luni 00:00 (ora României), stopurile puse acum
 });
 test('I-682: verdictul din ziua intrării — notat de robot, altfel parțial (doar barele de până atunci)', () => {
   const tx = J.tranzactii(data, 'cont'), serii = { SPY: bare(700, (i) => 100 + i * 0.1), QQQ: bare(700, (i) => 100 + i * 0.1), '^VIX': bare(700, () => 14) };
-  const v = J.verdictTranzactii(tx, [{ asOf: '2026-10-13', label: 'defensiv' }], serii);
+  assert.equal(J.verdictTranzactii(tx, [{ asOf: '2026-10-13', label: 'defensiv' }], serii).dinRobot, 0, 'verdictul notat în seara zilei intrării NU se vede la 11:00');
+  const v = J.verdictTranzactii(tx, [{ asOf: '2026-10-12', label: 'defensiv' }], serii);
   assert.equal(v.rows.length, 2); assert.equal(v.redus.n, 1); assert.equal(v.redus.total, -20); assert.equal(v.normal.n, 1); assert.equal(v.dinRobot, 1); // MSFT n-are cumpărare înainte de vânzare ⇒ nu intră
   assert.equal(v.rows.find((r) => r.ticker === 'AAPL_US_EQ').label, 'favorabil'); assert.equal(v.rows.find((r) => r.ticker === 'AAPL_US_EQ').sursa, 'partial');
   // fără privit în viitor: o prăbușire DUPĂ intrare nu schimbă verdictul zilei intrării
   const viitor = { ...serii, '^VIX': bare(700, (i) => (i > 430 ? 45 : 14)) }; assert.equal(J.partial('2026-03-02', viitor).label, 'favorabil');
 });
-test('I-686: raportul fiscal — vânzările anului în lei la cursul BNR din ziua vânzării (sau ultima zi publicată), câștig / pierdere separat, CSV', () => {
+test('I-686: raportul fiscal — la cursul MEDIU ANUAL BNR (venituri din străinătate), cu cursul zilei alături; câștig / pierdere separat, CSV', () => {
   const tx = J.tranzactii(data, 'cont'), curs = { '2026-03-19': { USD: 4.5 }, '2026-10-15': { USD: 4.7 } };
-  const f = J.fiscal(tx, { an: 2026, curs }); assert.equal(f.rows.length, 2); assert.equal(f.castig, 50 * 4.5); assert.ok(Math.abs(f.pierdere + 20 * 4.7) < 1e-9); assert.equal(f.lipsa, 0);
-  const csv = J.csv(f); assert.match(csv, /^Data;Ticker;/); assert.match(csv, /Net;;;;;;/);
+  const f = J.fiscal(tx, { an: 2026, curs }); assert.equal(f.rows.length, 2); assert.ok(Math.abs(f.castig - 50 * 4.6) < 1e-9); assert.ok(Math.abs(f.pierdere + 20 * 4.6) < 1e-9); assert.equal(f.lipsa, 0);
+  assert.equal(f.zi.castig, 50 * 4.5); assert.ok(Math.abs(f.zi.pierdere + 20 * 4.7) < 1e-9); assert.equal(f.provizoriu, true, 'două zile din an = provizoriu');
+  const csv = J.csv(f); assert.match(csv, /^Data;Ticker;.*Curs mediu anual BNR/); assert.match(csv, /Net;;;;;;/); assert.match(csv, /provizoriu/);
   assert.equal(J.fiscal(tx, { an: 2026, curs: null }).lipsa, 2); // fără curs: nimic inventat
 });
 test('I-683: alertele pe poziții — în ordinea gravității; fără niciun stop = un singur rând', () => {

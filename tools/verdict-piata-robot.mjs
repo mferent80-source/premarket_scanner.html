@@ -104,7 +104,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (!process.argv.includes('--uscat')) { writeFileSync(FISIER, JSON.stringify(j) + '\n'); if (linie) appendFileSync(ISTORIC, JSON.stringify(linie) + '\n'); }
   // I-686: cursul BNR pe anul curent și pe cel trecut (pentru raportul fiscal din Jurnal); dacă BNR nu răspunde, fișierul vechi rămâne.
   try {
-    const an = new Date().getUTCFullYear(), curs = {};
+    // revizia 17.10: anii vechi din fișier rămân (raportul fiscal pe 2025 trebuie să meargă și în 2027); se reîmprospătează doar anul trecut și cel curent
+    const an = new Date().getUTCFullYear(), curs = existsSync(CURS) ? (() => { try { return JSON.parse(readFileSync(CURS, 'utf8')).curs || {}; } catch { return {}; } })() : {};
     for (const y of [an - 1, an]) { const r = await fetch(`https://curs.bnr.ro/files/xml/years/nbrfxrates${y}.xml`, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(20000) }); if (r.ok) Object.assign(curs, cursDin(await r.text())); }
     const n = Object.keys(curs).length; console.log('Cursul BNR: ' + n + ' zile');
     if (n > 50 && !process.argv.includes('--uscat')) writeFileSync(CURS, JSON.stringify({ sursa: 'curs.bnr.ro', generat: new Date().toISOString(), curs }) + '\n');
