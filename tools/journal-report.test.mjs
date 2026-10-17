@@ -87,3 +87,12 @@ test('revizia 17.10 — valori aproape de zero nu blochează graficele; scădere
   const sap = [{ id: 'e', ticker: 'SAP_DE_EQ', sym: 'SAP', intrare: Date.parse('2026-03-02T08:00:00Z'), iesire: t0, zile: 3, rez: 10, fees: 0 }];
   const h2 = J.render({ tr: sap, toate: sap, moneda: 'RON', perioada: 0, now: t0 }); assert.match(h2, /Ziua intrării/); assert.doesNotMatch(h2, /Intrări înainte de deschidere \(ora New York\)\n1 tranzacții/);
 });
+test('viteza (17.10: pagina se bloca) — 500 de vânzări × serii pe 5 ani: verdictul pe tranzacții, raportul și excursia sub o secundă', () => {
+  const c2 = { Intl, Date, Math, JSON, Map, Set, URL, String, Number, Array, Object, WeakMap }; c2.window = c2; vm.createContext(c2);
+  for (const f2 of ['lib/execution-review.js', 'lib/journal-report.js', 'lib/journal-review.js']) vm.runInContext(readFileSync(f2, 'utf8'), c2);
+  const DAY = 86400000, t0 = Date.UTC(2021, 0, 4, 21), bars = Array.from({ length: 1260 }, (_, i) => ({ t: t0 + i * DAY, c: 100 + i * 0.05, h: 101 + i * 0.05, l: 99 + i * 0.05 }));
+  const items = []; for (let i = 0; i < 500; i++) { const tb = t0 + (300 + i * 1.8) * DAY + 15 * 3600000; items.push({ id: 'b' + i, ticker: 'A_US_EQ', type: 'TRADE', side: 'BUY', date: new Date(tb).toISOString(), quantity: 1, price: 100, priceCurrency: 'USD', currency: 'RON' }, { id: 's' + i, ticker: 'A_US_EQ', type: 'TRADE', side: 'SELL', date: new Date(tb + 3 * DAY).toISOString(), quantity: 1, price: 101 + (i % 7) - 3, priceCurrency: 'USD', currency: 'RON', realized: (i % 7) - 3 }); }
+  let a = Date.now(); const tx = c2.JournalReview.tranzactii({ accounts: { x: { environment: 'live', items } } }, 'x'); c2.JournalReview.verdictTranzactii(tx, [], { SPY: bars, QQQ: bars, '^VIX': bars }); const tV = Date.now() - a;
+  a = Date.now(); const rows = c2.JournalReport.calatorii(items, { moneda: 'RON' }).rows; for (const r of rows) c2.JournalReport.excursie(r, bars); c2.JournalReport.render({ tr: rows, toate: rows, moneda: 'RON', perioada: 0, now: t0 + 1300 * DAY }); const tR = Date.now() - a;
+  assert.ok(tV < 1000, 'verdictul pe tranzacții: ' + tV + ' ms'); assert.ok(tR < 1000, 'raportul + excursia: ' + tR + ' ms');
+});
