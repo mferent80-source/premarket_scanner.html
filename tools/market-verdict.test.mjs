@@ -71,3 +71,7 @@ test('futures doar înainte de deschidere (sâmbăta nu sunt „acum”)', () =>
   assert.equal(MV.compute({ market: piata(true), extra: x, now: Date.parse('2026-10-17T12:00:00Z') }).futures, null); // sâmbătă
   assert.ok(MV.compute({ market: piata(true), extra: x, now: Date.parse('2026-10-19T12:00:00Z') }).futures.es > 0); // luni 08:00 la New York
 });
+test('datele rezultatelor rămân pe ziua lor (nu trec în ziua următoare la ora României)', () => {
+  const v = MV.compute({ market: piata(true), robot: { rezultateMari: [{ symbol: 'GE', date: '2026-10-20' }, { symbol: 'AXP', date: '2026-10-23' }] }, now: Date.parse('2026-10-17T08:00:00Z') });
+  const h = MV.render(v, Date.parse('2026-10-17T08:00:00Z')); assert.match(h, /mar 20\.10<\/b><\/time><span>Rezultate mari: GE/); assert.match(h, /vin 23\.10<\/b><\/time><span>Rezultate mari: AXP/);
+});
