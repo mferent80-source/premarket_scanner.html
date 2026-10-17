@@ -176,20 +176,26 @@
  }
  /* 17.10.2026 — Verdictul pieței (lib/market-verdict.js, demo aprobat): sectoarele din raportul breadth, regimul macro, calendarul,
     rezultatele pozițiilor (o dată pe încărcare). Rezumat după reguli fixe, nu predicție. */
- const verdictExtra={sectors:null,earnings:null,asked:false};
+ const verdictExtra={raport:null,extra:null,robot:null,earnings:null,expunere:null,asked:false,expAsked:false};
  function verdictLoad(){
-  if(verdictExtra.asked)return;verdictExtra.asked=true;
-  g.MarketVerdict?.sectors?.().then(s=>{verdictExtra.sectors=s;renderVerdict();});
+  if(verdictExtra.asked||!g.MarketVerdict)return;verdictExtra.asked=true;const MV=g.MarketVerdict;
+  MV.raportBreadth().then(r=>{verdictExtra.raport=r;renderVerdict();});
+  MV.robotFile().then(r=>{verdictExtra.robot=r;renderVerdict();}); // I-676: verdictul notat noaptea, ieri → azi, marile companii, proba
+  MV.extraData().then(x=>{verdictExtra.extra=x;renderVerdict();}); // regimul macro, structura VIX, creditul, futures (I-679..I-681)
  }
  function verdictEarnings(){
-  if(verdictExtra.earnings||!g.HoldingsEvents?.fetchEvents)return;const pos=(ui.account?.positions||[]).filter(p=>p&&p.symbol).sort((a,b)=>(b.weight||0)-(a.weight||0)).slice(0,6);if(!pos.length)return;verdictExtra.earnings=[];
-  Promise.allSettled(pos.map(p=>g.HoldingsEvents.fetchEvents(p.symbol))).then(rs=>{verdictExtra.earnings=rs.filter(r=>r.status==='fulfilled'&&r.value?.earnings?.date).map(r=>({symbol:r.value.symbol,date:r.value.earnings.date}));renderVerdict();});
+  const MV=g.MarketVerdict;if(verdictExtra.earnings||!g.HoldingsEvents?.fetchEvents||!MV)return;const pos=(ui.account?.positions||[]).filter(p=>MV.symbolOf(p)).sort((a,b)=>(b.value||0)-(a.value||0)).slice(0,6);if(!pos.length)return;verdictExtra.earnings=[];
+  Promise.allSettled(pos.map(p=>g.HoldingsEvents.fetchEvents(MV.symbolOf(p)))).then(rs=>{verdictExtra.earnings=rs.filter(r=>r.status==='fulfilled'&&r.value?.earnings?.date).map(r=>({symbol:r.value.symbol,date:r.value.earnings.date}));renderVerdict();});
+ }
+ function verdictExpunere(){ // I-678: beta portofoliului, o dată, după ce sunt citite pozițiile și seria SPY
+  const MV=g.MarketVerdict,spy=(ui.market?.items||[]).find(x=>x.symbol==='SPY'),pos=ui.account?.positions||[];if(verdictExtra.expAsked||!MV||spy?.state!=='ready'||!pos.length)return;verdictExtra.expAsked=true;
+  MV.expunere({positions:pos,total:ui.account?.total,currency:ui.account?.currency,spyPoints:spy.points}).then(e=>{verdictExtra.expunere=e;renderVerdict();});
  }
  function renderVerdict(){
-  const host=$('marketVerdict');if(!host||!g.MarketVerdict)return;verdictLoad();verdictEarnings();
+  const host=$('marketVerdict'),MV=g.MarketVerdict;if(!host||!MV)return;verdictLoad();verdictEarnings();verdictExpunere();
   let events=[];try{events=g.MCTX?.hardcodedEvents?.()||[];}catch(_){}
-  let regime=null;try{regime=g.MCTX?.regime?.()||null;}catch(_){}
-  try{host.innerHTML=g.MarketVerdict.render(g.MarketVerdict.compute({market:ui.market||{},sectors:verdictExtra.sectors,regime,events,earnings:verdictExtra.earnings,news:ui.news?.items||[],positions:ui.account?.positions||[],now:Date.now()}));}
+  let regime=null;try{regime=verdictExtra.extra?MV.regimDin(ui.market,verdictExtra.extra):null;if(regime&&regime.partial&&verdictExtra.robot?.regim)regime=verdictExtra.robot.regim;}catch(_){}
+  try{host.innerHTML=MV.render(MV.compute({market:ui.market||{},raport:verdictExtra.raport,regime,extra:verdictExtra.extra,events,earnings:verdictExtra.earnings,news:ui.news?.items||[],positions:ui.account?.positions||[],expunere:verdictExtra.expunere,robot:verdictExtra.robot,now:Date.now()}));}
   catch(_){host.innerHTML='<p class="mv-empty">Verdictul nu poate fi calculat acum; restul paginii rămâne valabil.</p>';}
  }
  function render(){renderVerdict();renderRefresh();renderAccount();renderMarket();renderChart();renderNews();renderPositions();renderActivity();renderScanners();renderAttention();renderBrief();fitLayout();}
