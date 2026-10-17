@@ -3371,6 +3371,11 @@ pe un singur chart.
 | I-663 | Raportul la verdict, scris de robot: în ziua în care o probă ajunge la 30 de zile separate, robotul scrie docs/clasificator-verdict-<lună>.md (ținte, clasamente, bani, pe tip de piață, versiunea motorului) și trimite pe Discord legătura — un singur loc de citit când vine momentul | tools/clasificator-robot.mjs, tools/clasificator-jurnal.mjs | M | P2 | propus | ideation | 2026-10-16 |
 | I-664 | Health: durata ultimei rulări a robotului și cât a clasificat din univers, cu galben peste 45 de minute (limita e 55) — azi a durat 39 min 42 s; dacă Yahoo încetinește, robotul taie din univers fără să știi | tools/clasificator-robot.mjs (durata în fișier), health/index.html | S | P3 | propus | ideation | 2026-10-16 |
 | I-665 | Acțiunile listate de curând (8 azi, sub 510 sesiuni) arată și ele „⏳ din <dată>” ca cele cu salt, iar cele 2 cu date stricate apar cu numele în Health — ca nimic din univers să nu lipsească fără motiv | lib/holdings-bars.js (waitInfo), lib/desk-classifier.js, health/index.html | S | P4 | propus | ideation | 2026-10-16 |
+| I-666 | Robotul așteaptă bara zilei în loc să pice: la rularea din 17.10 01:20 UTC Yahoo dădea încă bara de 15.10 pentru 614 din 616 acțiuni (DATE STALE) ⇒ robotul a ieșit cu eroare după 4 minute; dacă majoritatea sunt vechi, robotul așteaptă ~15 minute și le reia pe cele vechi (de câteva ori, în limita de 55 de minute), iar mesajul de eșec spune cauza („Yahoo n-a publicat încă bara de 16.10 pentru 614/616”) | tools/clasificator-robot.mjs, .github/workflows/clasificator.yml | S | P1 | propus | ideation | 2026-10-17 |
+| I-667 | Câinele de pază pentru rulările care nu pornesc: a doua încercare programată (03:40 UTC, 17.10) n-a pornit deloc, deci nici mesajul de eșec n-a plecat; un workflow care rulează des (Price Alerts) verifică dimineața dacă clasificator.json are ultima sesiune și, dacă nu, pornește robotul o singură dată și scrie pe Discord | .github/workflows/ (Price Alerts sau unul nou mic), tools/clasificator-robot.mjs | S | P1 | propus | ideation | 2026-10-17 |
+| I-668 | Zilele pierdute, numărate, și regula notării la timp: jurnalul are azi o singură linie (15.10, motor v4); rularea v5 din 16.10 18:12 a avut aceeași dată și n-a notat nimic, iar 16.10 lipsește ⇒ Health și Planuri arată „N zile notate, M sesiuni lipsă (16.10 …)”; regulă scrisă dinainte: o linie contează doar dacă a fost notată înainte de deschiderea sesiunii următoare (altfel intrarea ar fi deja în trecut) | tools/clasificator-jurnal.mjs (verifica, bilant), lib/desk-classifier.js, health/index.html | S | P1 | propus | ideation | 2026-10-17 |
+| I-669 | Jurnalul doar crește: o gardă în workflow, înainte de commit, cere ca jurnalul vechi să fie începutul exact al celui nou (nicio linie schimbată sau ștearsă); altfel robotul refuză să salveze — protejează proba de un bug sau de mutarea pe fișiere lunare (I-662) | tools/clasificator-robot.test.mjs (garda GARDA_FISIER), .github/workflows/clasificator.yml | S | P2 | propus | ideation | 2026-10-17 |
+| I-670 | Health: ultimele 10 nopți ale robotului — pentru fiecare sesiune: a rulat / a picat / n-a pornit, câte acțiuni, linia din jurnal notată sau nu; azi ai afla abia deschizând Actions că 16.10 lipsește | health/index.html (citește jurnalul + API-ul public GitHub pentru rulări) | S | P3 | propus | ideation | 2026-10-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6619,3 +6624,44 @@ Lentile: Trader — de acum valoarea stă în proba de 7 luni; ce o poate strica
 - **Impact:** știi pentru fiecare acțiune din univers de ce lipsește și până când.
 - **Riscuri/dependențe:** data e estimată pe zile lucrătoare.
 - **Fișiere:** lib/holdings-bars.js, lib/desk-classifier.js, health/index.html.
+
+## 17.10.2026 (runda 6) — robotul a picat azi-noapte: nicio zi pierdută fără să știi
+
+Fapte verificate (17.10, 05:00 UTC): rularea programată 23:20 UTC a pornit abia la 01:20 UTC și a picat după 4 minute (2 din 616 clasificate; 614 „DATE STALE: 2026-10-15; sesiune așteptată 2026-10-16”); Discord a primit „Robotul Clasificator a PICAT”; a doua încercare (03:40 UTC) n-a pornit deloc. La 05:00 UTC Yahoo dă bara de 16.10 pe toate intervalele (5y / 2y / 1y) ⇒ cauza probabilă: Yahoo a publicat târziu bara zilei (ipoteză, nu dovadă). Jurnalul are o singură linie: 15.10, motor holdings-clf-v4; rularea v5 din 16.10 18:12 UTC avea tot data 15.10 (sesiunea de 16.10 nu se închisese), deci n-a notat nimic ⇒ proba v5 are 0 zile.
+
+Lentile: Trader — proba de 7 luni pierde zile pe tăcute exact când nimeni nu se uită. Designer — azi afli că lipsește o zi doar dacă deschizi Actions. Inginer — un singur eșec de sursă (bara întârziată) oprește toată rularea; jurnalul poate fi rescris fără gardă. Automator — rularea de rezervă depinde de programul GitHub, care o poate sări fără urmă.
+
+#### I-666 · Robotul așteaptă bara zilei în loc să pice · [S] · P1 · propus
+- **Problema/golul:** când Yahoo întârzie bara zilei, aproape toate acțiunile ies „DATE STALE”; robotul iese cu eroare în 4 minute deși mai are 50 de minute din limită.
+- **Soluția:** după prima trecere, dacă majoritatea sunt vechi, robotul așteaptă ~15 minute și le reia doar pe cele vechi, de câteva ori, în limita de 55 de minute; mesajul de eșec spune cauza și câte au rămas vechi.
+- **Impact:** zilele cu sursă întârziată se notează în aceeași noapte.
+- **Riscuri/dependențe:** rularea poate dura mai mult; limita de 55 de minute rămâne.
+- **Fișiere:** tools/clasificator-robot.mjs, .github/workflows/clasificator.yml.
+
+#### I-667 · Câinele de pază pentru rulările care nu pornesc · [S] · P1 · propus
+- **Problema/golul:** GitHub poate sări o rulare programată; atunci nu pleacă nici mesajul de eșec (17.10: 03:40 UTC n-a pornit).
+- **Soluția:** un pas mic într-un workflow care rulează des verifică dimineața (după ~05:00 UTC, zi de bursă) dacă clasificator.json are ultima sesiune încheiată; dacă nu, pornește robotul o singură dată și scrie pe Discord „robotul n-a rulat pentru <dată>, l-am pornit”.
+- **Impact:** o noapte pierdută devine o noapte întârziată.
+- **Riscuri/dependențe:** permisiunea de a porni workflow-ul; o singură pornire pe zi (fără buclă).
+- **Fișiere:** .github/workflows/ (Price Alerts sau un workflow nou mic).
+
+#### I-668 · Zilele pierdute, numărate, și regula notării la timp · [S] · P1 · propus
+- **Problema/golul:** proba v5 are 0 zile (singura linie e v4, 15.10); 16.10 lipsește și nimic nu o spune. O notare făcută după deschiderea sesiunii următoare ar număra o intrare pe care n-o mai poți face.
+- **Soluția:** bilanțul numără sesiunile lipsă de la începutul versiunii curente și le afișează în Health și Planuri; regulă scrisă dinainte: o linie intră în verdict doar dacă `generat` e înaintea deschiderii sesiunii următoare (13:30 UTC, după calendar).
+- **Impact:** știi în fiecare zi câte zile are cu adevărat proba; verdictul nu poate fi umflat cu notări târzii.
+- **Riscuri/dependențe:** după I-660 (aceeași numărătoare pe versiune).
+- **Fișiere:** tools/clasificator-jurnal.mjs, lib/desk-classifier.js, health/index.html.
+
+#### I-669 · Jurnalul doar crește · [S] · P2 · propus
+- **Problema/golul:** nimic nu oprește o rulare să rescrie sau să șteargă linii vechi din jurnal.
+- **Soluția:** garda de după generare compară jurnalul din commit-ul anterior cu cel nou: cel vechi trebuie să fie începutul exact al celui nou; altfel nu se salvează.
+- **Impact:** proba nu poate fi rescrisă pe tăcute, nici la mutarea pe fișiere lunare.
+- **Riscuri/dependențe:** la I-662 garda verifică luna curentă și că lunile vechi nu se schimbă.
+- **Fișiere:** tools/clasificator-robot.test.mjs, .github/workflows/clasificator.yml.
+
+#### I-670 · Health: ultimele 10 nopți ale robotului · [S] · P3 · propus
+- **Problema/golul:** cardul din Health arată doar ultima rulare reușită; o noapte sărită nu se vede.
+- **Soluția:** un tabel mic cu ultimele 10 sesiuni: a rulat / a picat / n-a pornit, câte acțiuni, linie notată în jurnal sau nu.
+- **Impact:** vezi dintr-o privire dacă proba merge zi de zi.
+- **Riscuri/dependențe:** API-ul public GitHub (60 de cereri pe oră fără cheie) — o cerere la deschidere.
+- **Fișiere:** health/index.html.
