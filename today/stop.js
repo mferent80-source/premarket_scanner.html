@@ -7,11 +7,21 @@
   // alarma pe Discord (worker-ul Paznicului) află ce poziții au stop: lista pleacă la fiecare schimbare
   const MES = { 'fara-cheie': 'Alarma pe Discord nu știe de stopurile tale: pune cheia de citire în Alerte (pe acest dispozitiv).', 'cheie-gresita': 'Alarma pe Discord: cheia de citire din Alerte nu e bună.', retea: 'Alarma pe Discord: lista stopurilor n-a putut fi trimisă acum (rețea); se reîncearcă.' };
   function trimite(fortat) { S.trimiteLista({ fortat }).then((r) => { const m = MES[r.stare] || ''; if (m !== discord) { discord = m; desen(); } }); }
-  const stops = (scope) => { try { return window.TodayAttention?.stopuri?.(scope) || new Set(); } catch (_) { return new Set(); } };
+  // stopurile valide = puse DUPĂ deschiderea poziției de acum (revizia 18.10) + cele din Trading 212 / stopul fix din Radar (poza colectorului)
+  let externe = new Set();
+  const stops = (scope) => { try { const d = date(), th = JSON.parse(localStorage.getItem('tt_holdings_theses_v1') || '{}'), s = S.stopuriValide(th, scope, d ? d.snapshot.positions : []); for (const t of externe) s.add(t); return s; } catch (_) { return new Set(externe); } };
+  async function pozaExterna() {
+    let cheie = '', url = 'https://paznic-radar.mferent80.workers.dev'; try { cheie = String(localStorage.getItem('radar_cheie') || '').trim(); const u = String(localStorage.getItem('radar_url') || '').trim(); if (/^https:\/\/[^\s/?#]+\.[^\s/?#]+/i.test(u)) url = u.replace(/\/+$/, ''); } catch (_) { return; }
+    if (!cheie) return; try { const r = await fetch(url + '/poza', { headers: { authorization: 'Bearer ' + cheie }, cache: 'no-store' }); if (!r.ok) return; const e = S.stopuriExterne(await r.json()); if ([...e].sort().join() !== [...externe].sort().join()) { externe = e; window.__stopuriExterne = e; desen(); window.dispatchEvent(new Event('tt-stop-salvat')); } } catch (_) { /* fără poză: doar stopurile din aplicație */ }
+  }
   function date() { const snap = window.T212Snapshot?.read?.('live'); return snap ? { scope: snap[0], snapshot: snap[1] } : null; }
   function desen() {
     const d = date(); if (!d) { host.innerHTML = ''; return; }
+    const scris = {}; host.querySelectorAll('[data-stop-ticker]').forEach((a) => { scris[a.dataset.stopTicker] = { alt: a.querySelector('[data-stop-alt]')?.value || '', tinta: a.querySelector('[data-stop-tinta]')?.value || '' }; });
+    const activ = document.activeElement && host.contains(document.activeElement) ? { tk: document.activeElement.closest('[data-stop-ticker]')?.dataset.stopTicker, camp: document.activeElement.hasAttribute('data-stop-alt') ? 'data-stop-alt' : document.activeElement.hasAttribute('data-stop-tinta') ? 'data-stop-tinta' : null } : null;
     const poz = S.faraStop(d.snapshot, stops(d.scope)); host.innerHTML = S.render(poz, { atr, ultim, alese, stare: [stare, poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul (luni–vineri, 08:00–22:00; în rest tace).') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
+    host.querySelectorAll('[data-stop-ticker]').forEach((a) => { const v = scris[a.dataset.stopTicker]; if (!v) return; const x = a.querySelector('[data-stop-alt]'), y = a.querySelector('[data-stop-tinta]'); if (x) x.value = v.alt; if (y) y.value = v.tinta; });
+    if (activ && activ.tk && activ.camp) host.querySelector('[data-stop-ticker="' + CSS.escape(activ.tk) + '"] [' + activ.camp + ']')?.focus();
     const fetchStock = window.D?.fetchStock; if (typeof fetchStock !== 'function') return;
     for (const p of poz) { const s = S.symYahoo(p.ticker); if (!s || cerut.has(s)) continue; cerut.add(s);
       fetchStock(s, { range: '3mo', interval: '1d', ttl: 21600 }).then((b) => { atr[s] = S.atrPct(b); const c = Array.isArray(b) ? b.filter((x) => Number.isFinite(x?.c) && x.c > 0).at(-1)?.c : null; ultim[s] = c ?? null; }, () => { atr[s] = null; ultim[s] = null; }).then(desen); }
@@ -29,6 +39,6 @@
     desen(); window.dispatchEvent(new Event('tt-stop-salvat')); if (!err) trimite(true);
   });
   window.addEventListener('storage', (e) => { if (e.key === 'tt_holdings_theses_v1' || e.key === 'tt_trading212_portfolio_v1') { desen(); trimite(false); } });
-  desen(); trimite(false);
+  desen(); trimite(false); pozaExterna(); setInterval(() => { if (!document.hidden) pozaExterna(); }, 300000);
   setTimeout(desen, 4000); // copia contului poate sosi după prima citire (pagina contului din fundal)
 })();

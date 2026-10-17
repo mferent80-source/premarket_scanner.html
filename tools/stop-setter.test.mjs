@@ -24,7 +24,7 @@ test('salvarea în Portofoliu: stopul apare în teze (cheia scope|ticker, cu ist
   assert.equal(S.salveaza({ scope: 'live1', poz, stop: 190, tinta: 230, storage: s }), null);
   const t = JSON.parse(s.getItem('tt_holdings_theses_v1'))['live1|AAPL_US_EQ']; assert.equal(t.stop, 190); assert.equal(t.targetPrice, 230); assert.equal(t.history.length, 1);
   assert.ok(TA.stopuri('live1', s).has('AAPL_US_EQ'));
-  assert.match(S.salveaza({ scope: 'live1', poz, stop: 250, tinta: 240, storage: s }), /Ținta trebuie să fie peste stop/);
+  assert.match(S.salveaza({ scope: 'live1', poz, stop: 200, tinta: 190, storage: s }), /Ținta trebuie să fie peste stop/);
   assert.match(S.salveaza({ scope: 'live1', poz: { ...poz, ticker: 'SAP_DE_EQ', instrumentCurrency: null }, stop: 190, storage: s }), /Moneda/); // în afara SUA, moneda trebuie confirmată
   assert.equal(S.faraStop({ positions: [poz, { ...poz, ticker: 'NVDA_US_EQ' }] }, TA.stopuri('live1', s)).length, 1);
 });
@@ -71,4 +71,24 @@ test('18.10: poziția deja sub −5% de la intrare ⇒ stopul de la PREȚUL DE A
   assert.ok(Math.abs(jos[1].stop - 327.35 * 0.925) < 1e-9);
   const sus = S.propuneri({ intrare: 100, acum: 97 }); assert.equal(sus[0].dinAcum, false); assert.equal(sus[0].stop, 95);
   assert.match(S.render([{ ticker: 'WDC_US_EQ', quantity: 1, averagePrice: 411.11, currentPrice: 327.35, instrumentCurrency: 'USD' }], {}), /Poziția e deja −20,4% de la intrare/);
+});
+test('revizia 18.10 (critic): stopul unei poziții VÂNDUTE nu acoperă poziția nouă pe același ticker; doar stopul pus după deschidere contează', () => {
+  const opened = '2026-10-15T15:00:00Z', poz = [{ ticker: 'AAPL_US_EQ', openedAt: opened }, { ticker: 'MU_US_EQ', openedAt: opened }, { ticker: 'TXN_US_EQ' }];
+  const th = { 'l|AAPL_US_EQ': { stop: 150, history: [{ at: '2026-09-01T10:00:00Z', stop: 150 }, { at: '2026-10-16T10:00:00Z', stop: 150, text: 'doar textul' }] },
+    'l|MU_US_EQ': { stop: 900, history: [{ at: '2026-09-01T10:00:00Z', stop: 800 }, { at: '2026-10-15T16:00:00Z', stop: 900 }] }, 'l|TXN_US_EQ': { stop: 250, history: [{ at: '2026-01-01T10:00:00Z', stop: 250 }] } };
+  const v = S.stopuriValide(th, 'l', poz); assert.equal(v.has('AAPL_US_EQ'), false, 'stopul vechi, re-salvat doar cu textul, nu contează'); assert.equal(v.has('MU_US_EQ'), true); assert.equal(v.has('TXN_US_EQ'), true, 'fără data deschiderii: contează');
+  assert.equal(S.istoric(th, 'l').AAPL_US_EQ.length, 1, 'istoricul ține doar schimbările stopului');
+  assert.equal(JSON.stringify(S.cuStop(th, 'l', poz)), JSON.stringify(['MU_US_EQ', 'TXN_US_EQ']));
+});
+test('revizia 18.10: lista goală nu pleacă fără o acțiune a ta; „prea des” (429) ⇒ încă o încercare după 6 s; stopul peste prețul de acum e refuzat; stopurile din T212 / Radar', async () => {
+  const s = mem(); s.setItem('radar_cheie', 'c'.repeat(32)); s.setItem('tt_holdings_theses_v1', '{}');
+  const t = []; const f = async (u, o) => { t.push(o); return { ok: true, status: 200 }; };
+  assert.equal((await S.trimiteLista({ storage: s, fetchImpl: f })).stare, 'gol-nesigur'); assert.equal(t.length, 0);
+  assert.equal((await S.trimiteLista({ storage: s, fetchImpl: f, fortat: true })).stare, 'trimis');
+  let n = 0; const f429 = async () => { n++; return n === 1 ? { ok: false, status: 429 } : { ok: true, status: 200 }; };
+  s.setItem('tt_holdings_theses_v1', JSON.stringify({ 'X_US_EQ': { stop: 5 } }));
+  assert.equal((await S.trimiteLista({ storage: s, fetchImpl: f429, fortat: true, asteapta: async () => {} })).stare, 'trimis'); assert.equal(n, 2);
+  assert.match(S.salveaza({ scope: 'l', poz: { ticker: 'MU_US_EQ', averagePrice: 100, currentPrice: 90, instrumentCurrency: 'USD' }, stop: 92, storage: mem() }), /peste prețul de acum/);
+  const e = S.stopuriExterne({ t212: [{ t212: 'A_US_EQ', stopT212: 10 }, { t212: 'B_US_EQ', plan: { stopFix: 5, trailPct: 15 } }, { t212: 'C_US_EQ', plan: { trailPct: 15 } }] });
+  assert.equal(JSON.stringify([...e].sort()), JSON.stringify(['A_US_EQ', 'B_US_EQ']));
 });
