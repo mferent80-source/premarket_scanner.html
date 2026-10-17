@@ -32,3 +32,7 @@ test('ce vine: evenimentele din 7 zile, decizia Fed o singură dată, rezultatel
   assert.equal(JSON.stringify(v.ceVine.map((x) => x.ce)), JSON.stringify(['Rezultatele AAPL', 'Fed — decizia de dobândă']));
   assert.ok(v.pentruTine.some((t) => /AAPL/.test(t)));
 });
+test('știrile: doar linkuri https; javascript: și adresele cu parolă rămân text', () => {
+  const v = MV.compute({ market: piata(true), sectors: sect(false), news: [{ title: 'Rău', url: 'javascript:alert(1)', publishedAt: '2026-10-16T10:00:00Z' }, { title: 'Bun', url: 'https://example.com/a', publishedAt: '2026-10-16T09:00:00Z' }, { title: 'Parolă', url: 'https://u:p@example.com/', publishedAt: '2026-10-16T08:00:00Z' }] });
+  const h = MV.render(v); assert.doesNotMatch(h, /javascript:/); assert.match(h, /href="https:\/\/example.com\/a"/); assert.doesNotMatch(h, /u:p@/); assert.match(h, /<span>Rău<\/span>/);
+});
