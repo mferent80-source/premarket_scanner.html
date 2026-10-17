@@ -3387,14 +3387,14 @@ pe un singur chart.
 | I-679 | Stresul din opțiuni: structura VIX (VIX9D / VIX / VIX3M — când VIX pe termen scurt trece peste cel pe 3 luni, piața plătește protecție imediată) și mișcarea zilnică așteptată din VIX (±VIX/√252 pe S&P) — ipoteză, pragul de stres scris dinainte | lib/today-dashboard.js (simbolurile ^VIX9D, ^VIX3M), lib/market-verdict.js | S | P2 | făcut 2026-10-17 (6cafb7c1) | ideation | 2026-10-17 |
 | I-680 | Creditul și sănătatea interioară a pieței: obligațiunile cu randament mare față de cele de stat (HYG / IEF față de media de 50 de zile — creditul se strică de obicei înaintea acțiunilor), noile maxime / minime și % acțiuni peste media de 200 de zile, din raportul breadth existent | lib/market-verdict.js, lib/today-dashboard.js, market-breadth/data/latest.json (deja citit) | S | P2 | făcut 2026-10-17 (6cafb7c1) | ideation | 2026-10-17 |
 | I-681 | Calendarul complet al pieței în „Ce vine”: expirarea opțiunilor (a treia vineri; quad witching trimestrial — calculate din reguli), rezultatele celor mai mari 15 companii din S&P (mișcă indicele, nu doar pozițiile tale), futures înainte de deschidere (ES=F / NQ=F) și mișcarea tipică dinaintea evenimentului deja calculată în Macro (I-179) | lib/macro-context.js, lib/market-verdict.js, lib/holdings-events.js, macro-dashboard (I-179, refolosit) | M | P2 | făcut 2026-10-17 (6cafb7c1) | ideation | 2026-10-17 |
-| I-682 | Verdictul față de tranzacțiile TALE: fiecare cumpărare din jurnalul Trading 212 primește verdictul pieței din ziua intrării (din istoricul robotului; pentru trecut, partea care se poate reface fără privit în viitor: trendul SPY / QQQ și VIX) ⇒ cum ți-au mers intrările în zile „Prudent / Defensiv” față de „Favorabil” — singura probă care spune cât te costă să ignori verdictul | journal/ (execuțiile), lib/market-verdict.js, candidate-engine/generated/verdict-piata-istoric.jsonl, lib/trading212-fills (registrul local) | M | P1 | propus | ideation | 2026-10-17 |
-| I-683 | „Ce necesită atenție” pe pozițiile reale: azi rândul de pe Astăzi e general; ar trebui să spună concret „AAPL fără stop”, „NVDA raportează poimâine”, „TSLA sub media de 50 de zile și −12% de la intrare”, „o poziție = 31% din cont” — întâi ce e mai grav | today/view.js (renderAttention), lib/today-dashboard.js, lib/trading212-capital.js (stopurile), lib/market-verdict.js (rezultatele) | M | P1 | propus | ideation | 2026-10-17 |
-| I-684 | Rezumatul de dimineață pe Discord (~15:00 ora României, zilele de bursă): verdictul și ce s-a schimbat de ieri, evenimentele zilei, marile companii care raportează, futures — din fișierul robotului, fără să deschizi aplicația (pozițiile tale nu pot intra: sunt doar pe telefon, criptate) | .github/workflows/ (nou, mic), tools/verdict-piata-robot.mjs (mesajul), candidate-engine/generated/verdict-piata.json | S | P1 | propus | ideation | 2026-10-17 |
-| I-685 | Verdictul în Planuri, chiar lângă mărimea poziției: „azi Defensiv · Governor permite jumătate din risc” — informativ; pragurile rămân la Governor până când proba verdictului (I-677) spune că ajută | desk/index.html (ticketSizing / renderTicket), lib/market-verdict.js | S | P2 | propus | ideation | 2026-10-17 |
-| I-686 | Raportul fiscal anual din execuțiile Trading 212: câștigul / pierderea netă în lei la cursul BNR din ziua fiecărei tranzacții, metoda costului mediu ponderat, dividendele separat — gata de trecut în Declarația unică (+ export CSV); informativ, de verificat cu contabilul | journal/ (fila nouă sau export), lib/ (calculul fiscal, nou), cursul BNR (fișierele anuale publice) | M | P2 | propus | ideation | 2026-10-17 |
-| I-687 | Corelația pozițiilor între ele (90 de zile): „NVDA, AMD și AVGO se mișcă împreună — e un singur pariu de 38% din cont”; pe Astăzi lângă beta (I-678) și în Portofoliu | lib/market-verdict.js (expunere), holdings/ (Portofoliu), today/view.js | M | P2 | propus | ideation | 2026-10-17 |
-| I-688 | Bilanțul săptămânii în Jurnal (sâmbăta): cât a câștigat / pierdut contul față de S&P ajustat cu beta, cea mai bună și cea mai slabă poziție, câte intrări au respectat regulile (riscul pe trade, stop pus, verdictul zilei) — o pagină scurtă de citit în weekend | journal/, desk/analytics.js / desk/account-performance.js (refolosite), lib/market-verdict.js | M | P2 | propus | ideation | 2026-10-17 |
-| I-689 | Health: toți roboții de noapte într-un singur tabel (Clasificator, Verdictul pieței, Trend 12 luni, Market Breadth, Price Alerts, calendarul Europa) — ultima rulare reușită, ce a picat, cât e de vechi fișierul fiecăruia — din API-ul public GitHub, o singură cerere | health/index.html | S | P3 | propus | ideation | 2026-10-17 |
+| I-682 | Verdictul față de tranzacțiile TALE: fiecare cumpărare din jurnalul Trading 212 primește verdictul pieței din ziua intrării (din istoricul robotului; pentru trecut, partea care se poate reface fără privit în viitor: trendul SPY / QQQ și VIX) ⇒ cum ți-au mers intrările în zile „Prudent / Defensiv” față de „Favorabil” — singura probă care spune cât te costă să ignori verdictul | journal/ (execuțiile), lib/market-verdict.js, candidate-engine/generated/verdict-piata-istoric.jsonl, lib/trading212-fills (registrul local) | M | P1 | făcut 2026-10-17 (59c5cd7a) | ideation | 2026-10-17 |
+| I-683 | „Ce necesită atenție” pe pozițiile reale: azi rândul de pe Astăzi e general; ar trebui să spună concret „AAPL fără stop”, „NVDA raportează poimâine”, „TSLA sub media de 50 de zile și −12% de la intrare”, „o poziție = 31% din cont” — întâi ce e mai grav | today/view.js (renderAttention), lib/today-dashboard.js, lib/trading212-capital.js (stopurile), lib/market-verdict.js (rezultatele) | M | P1 | făcut 2026-10-17 (59c5cd7a) | ideation | 2026-10-17 |
+| I-684 | Rezumatul de dimineață pe Discord (~15:00 ora României, zilele de bursă): verdictul și ce s-a schimbat de ieri, evenimentele zilei, marile companii care raportează, futures — din fișierul robotului, fără să deschizi aplicația (pozițiile tale nu pot intra: sunt doar pe telefon, criptate) | .github/workflows/ (nou, mic), tools/verdict-piata-robot.mjs (mesajul), candidate-engine/generated/verdict-piata.json | S | P1 | făcut 2026-10-17 (59c5cd7a) | ideation | 2026-10-17 |
+| I-685 | Verdictul în Planuri, chiar lângă mărimea poziției: „azi Defensiv · Governor permite jumătate din risc” — informativ; pragurile rămân la Governor până când proba verdictului (I-677) spune că ajută | desk/index.html (ticketSizing / renderTicket), lib/market-verdict.js | S | P2 | făcut 2026-10-17 (59c5cd7a) | ideation | 2026-10-17 |
+| I-686 | Raportul fiscal anual din execuțiile Trading 212: câștigul / pierderea netă în lei la cursul BNR din ziua fiecărei tranzacții, metoda costului mediu ponderat, dividendele separat — gata de trecut în Declarația unică (+ export CSV); informativ, de verificat cu contabilul | journal/ (fila nouă sau export), lib/ (calculul fiscal, nou), cursul BNR (fișierele anuale publice) | M | P2 | făcut 2026-10-17 (59c5cd7a) | ideation | 2026-10-17 |
+| I-687 | Corelația pozițiilor între ele (90 de zile): „NVDA, AMD și AVGO se mișcă împreună — e un singur pariu de 38% din cont”; pe Astăzi lângă beta (I-678) și în Portofoliu | lib/market-verdict.js (expunere), holdings/ (Portofoliu), today/view.js | M | P2 | făcut 2026-10-17 (59c5cd7a) | ideation | 2026-10-17 |
+| I-688 | Bilanțul săptămânii în Jurnal (sâmbăta): cât a câștigat / pierdut contul față de S&P ajustat cu beta, cea mai bună și cea mai slabă poziție, câte intrări au respectat regulile (riscul pe trade, stop pus, verdictul zilei) — o pagină scurtă de citit în weekend | journal/, desk/analytics.js / desk/account-performance.js (refolosite), lib/market-verdict.js | M | P2 | făcut 2026-10-17 (59c5cd7a) | ideation | 2026-10-17 |
+| I-689 | Health: toți roboții de noapte într-un singur tabel (Clasificator, Verdictul pieței, Trend 12 luni, Market Breadth, Price Alerts, calendarul Europa) — ultima rulare reușită, ce a picat, cât e de vechi fișierul fiecăruia — din API-ul public GitHub, o singură cerere | health/index.html | S | P3 | făcut 2026-10-17 (59c5cd7a) | ideation | 2026-10-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6797,58 +6797,63 @@ Acoperire: citite integral app-routes (meniul), today/view.js (renderAttention),
 
 Lentile: Trader — aplicația spune cum e piața, dar nu încă ce înseamnă pentru pozițiile și intrările TALE (stopuri, raportări, concentrare, cum ți-a mers când ai ignorat verdictul). Designer — „Ce necesită atenție” e un text general; cel mai valoros loc de pe Astăzi nu spune nimic concret. Inginer — datele există (execuțiile, pozițiile, stopurile, istoricul verdictului), doar nu sunt legate între ele. Automator — dimineața și weekendul pot veni singure: rezumatul pe Discord și bilanțul săptămânii.
 
-#### I-682 · Verdictul față de tranzacțiile tale · [M] · P1 · propus
+#### I-682 · Verdictul față de tranzacțiile tale · [M] · P1 · făcut 2026-10-17 (59c5cd7a)
 - **Problema/golul:** proba verdictului (I-677) e pe S&P; pe tine te interesează ce s-a întâmplat cu intrările tale.
 - **Soluția:** fiecare cumpărare din jurnal primește verdictul din ziua intrării (istoricul robotului, de la 16.10); pentru trecut, doar partea refăcută fără privit în viitor (trendul SPY / QQQ, VIX). Tabel: rezultatul mediu în R și în bani pe tipul de zi, cu numărul de tranzacții.
 - **Impact:** vezi pe banii tăi dacă merită să respecți verdictul.
 - **Riscuri/dependențe:** puține tranzacții ⇒ descriptiv, nu dovadă; partea refăcută nu e verdictul complet (scris pe ecran).
 - **Fișiere:** journal/, lib/market-verdict.js, verdict-piata-istoric.jsonl.
 
-#### I-683 · „Ce necesită atenție” pe pozițiile reale · [M] · P1 · propus
+#### I-683 · „Ce necesită atenție” pe pozițiile reale · [M] · P1 · făcut 2026-10-17 (59c5cd7a)
 - **Problema/golul:** rândul de atenție de pe Astăzi e generic („verifică știrile, riscul…”).
 - **Soluția:** reguli simple, în ordinea gravității: poziție fără stop; raportează în ≤ 3 zile; sub media de 50 de zile și cu pierdere peste un prag de la intrare; o poziție peste 25% din cont; pierderea zilei peste mișcarea tipică din VIX. Fiecare cu legătura spre poziție.
 - **Impact:** riscurile reale sar în ochi înainte de orice altceva.
 - **Riscuri/dependențe:** stopurile vin din contul Trading 212 (unde nu sunt, se spune „nu știu”, nu „fără stop”).
 - **Fișiere:** today/view.js, lib/today-dashboard.js, lib/trading212-capital.js, lib/market-verdict.js.
 
-#### I-684 · Rezumatul de dimineață pe Discord · [S] · P1 · propus
+#### I-684 · Rezumatul de dimineață pe Discord · [S] · P1 · făcut 2026-10-17 (59c5cd7a)
 - **Problema/golul:** verdictul, evenimentele și futures se văd doar dacă deschizi aplicația.
 - **Soluția:** un workflow mic în zilele de bursă (~12:00 UTC) citește verdict-piata.json, adaugă futures și trimite un mesaj scurt: verdictul, schimbarea de ieri, evenimentele zilei, marile companii.
 - **Impact:** știi cum stă piața înainte de deschidere, de pe telefon.
 - **Riscuri/dependențe:** pozițiile tale nu pot intra (sunt doar pe dispozitiv, criptate); I-617 / Trend folosesc același webhook — un singur mesaj, nu mai multe.
 - **Fișiere:** .github/workflows/ (nou), tools/verdict-piata-robot.mjs.
 
-#### I-685 · Verdictul în Planuri · [S] · P2 · propus
+#### I-685 · Verdictul în Planuri · [S] · P2 · făcut 2026-10-17 (59c5cd7a)
 - **Problema/golul:** când calculezi un plan, verdictul pieței e pe altă pagină.
 - **Soluția:** un rând lângă mărimea poziției: verdictul zilei și ce permite Governor; fără să schimbe calculul.
 - **Impact:** decizia de mărime se ia cu contextul în față.
 - **Riscuri/dependențe:** să nu pară regulă de risc (scris „informativ”).
 - **Fișiere:** desk/index.html, lib/market-verdict.js.
 
-#### I-686 · Raportul fiscal anual (Declarația unică) · [M] · P2 · propus
+#### I-686 · Raportul fiscal anual (Declarația unică) · [M] · P2 · făcut 2026-10-17 (59c5cd7a)
 - **Problema/golul:** câștigurile de la Trading 212 se declară anual; calculul în lei, tranzacție cu tranzacție, e manual.
 - **Soluția:** din execuțiile importate: câștigul / pierderea netă în lei la cursul BNR din ziua fiecărei tranzacții, cu metoda costului mediu ponderat; dividendele separat; export CSV; cota și regulile anului afișate ca de verificat.
 - **Impact:** ore economisite și mai puține greșeli la declarație.
 - **Riscuri/dependențe:** regulile fiscale se schimbă — informativ, de confirmat cu contabilul; execuțiile mai vechi decât istoricul API pot lipsi (spus clar).
 - **Fișiere:** journal/, lib/ (nou), cursul BNR.
 
-#### I-687 · Corelația pozițiilor · [M] · P2 · propus
+#### I-687 · Corelația pozițiilor · [M] · P2 · făcut 2026-10-17 (59c5cd7a)
 - **Problema/golul:** cinci poziții pot fi de fapt un singur pariu.
 - **Soluția:** corelația randamentelor zilnice pe 90 de zile între pozițiile US; grupurile cu corelație mare și ponderea lor însumată.
 - **Impact:** diversificarea reală, nu cea aparentă.
 - **Riscuri/dependențe:** corelațiile cresc în căderi; seria pe 90 de zile e o aproximare.
 - **Fișiere:** lib/market-verdict.js, holdings/, today/view.js.
 
-#### I-688 · Bilanțul săptămânii în Jurnal · [M] · P2 · propus
+#### I-688 · Bilanțul săptămânii în Jurnal · [M] · P2 · făcut 2026-10-17 (59c5cd7a)
 - **Problema/golul:** nu există un loc scurt de citit în weekend despre cum a mers săptămâna.
 - **Soluția:** un card în Jurnal: rezultatul săptămânii față de S&P ajustat cu beta, cea mai bună / slabă poziție, câte intrări au respectat regulile (risc, stop, verdict).
 - **Impact:** disciplina se vede săptămânal, nu doar la pierderi mari.
 - **Riscuri/dependențe:** refolosește statisticile existente din Jurnal; săptămâni cu puține tranzacții ⇒ text scurt.
 - **Fișiere:** journal/, desk/analytics.js, desk/account-performance.js.
 
-#### I-689 · Health: toți roboții de noapte într-un tabel · [S] · P3 · propus
+#### I-689 · Health: toți roboții de noapte într-un tabel · [S] · P3 · făcut 2026-10-17 (59c5cd7a)
 - **Problema/golul:** roboții sunt răspândiți în carduri diferite; unii nu apar deloc.
 - **Soluția:** un tabel din API-ul public GitHub: fiecare workflow, ultima rulare reușită, ultima picată, vechimea fișierului lui.
 - **Impact:** o privire spune dacă toată automatizarea merge.
 - **Riscuri/dependențe:** 60 de cereri pe oră fără cheie — o singură cerere pe deschidere.
 - **Fișiere:** health/index.html.
+
+**Rezultate I-682..I-689 (17.10.2026, 59c5cd7a + 0633510c):**
+- I-683 / I-687 Astăzi: alertele pe poziții (lib/today-attention.js), în ordinea gravității; fără niciun stop = un rând; grupurile corelate (≥ 0,7 pe 90 de zile).
+- I-682 / I-686 / I-688 Jurnal → Execuții: „Bilanțul tău” la vedere (lib/journal-review.js + journal/review.js); probat live cu execuții de probă: săptămâna, tabelul pe tipul de zi, raportul fiscal în lei (curs BNR din curs.bnr.ro, 447 de zile, scris de robotul verdictului) + CSV.
+- I-685 Planuri: rândul cu verdictul zilei în ticket (informativ). I-684: verdict-dimineata.yml (12:00 UTC, tace în zilele fără bursă — probat sâmbătă). I-689: tabelul tuturor roboților în Health (9 roboți).
