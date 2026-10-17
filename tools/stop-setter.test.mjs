@@ -45,3 +45,14 @@ test('Raportul: stopul pus în primele 24 h după intrare = stopul LA INTRARE (R
   assert.equal(J.planVsExecutie(r).manual.length, 1);
   void s; void poz;
 });
+test('alarma pe Discord: lista tickerelor CU stop pleacă la worker (cheia de citire), doar la schimbare; fără cheie nu pleacă nimic', async () => {
+  const s = mem(), trimise = []; const f = async (u, o) => { trimise.push({ u, o }); return { ok: true, status: 200 }; };
+  s.setItem('tt_holdings_theses_v1', JSON.stringify({ 'live1|AAPL_US_EQ': { stop: 190 }, 'live1|TSLA_US_EQ': { stop: '' }, 'alt|NVDA_US_EQ': { stop: 100 } }));
+  assert.equal((await S.trimiteLista({ storage: s, fetchImpl: f })).stare, 'fara-cheie'); assert.equal(trimise.length, 0);
+  s.setItem('radar_cheie', 'c'.repeat(32));
+  const r = await S.trimiteLista({ storage: s, fetchImpl: f }); assert.equal(r.stare, 'trimis'); assert.match(trimise[0].u, /paznic-radar\.mferent80\.workers\.dev\/stopuri$/);
+  assert.equal(trimise[0].o.headers.authorization, 'Bearer ' + 'c'.repeat(32)); assert.deepEqual(JSON.parse(trimise[0].o.body).cuStop, ['AAPL_US_EQ', 'NVDA_US_EQ']);
+  assert.equal((await S.trimiteLista({ storage: s, fetchImpl: f })).stare, 'neschimbat'); assert.equal(trimise.length, 1);
+  assert.equal((await S.trimiteLista({ storage: s, fetchImpl: f, fortat: true })).stare, 'trimis');
+  assert.equal((await S.trimiteLista({ storage: s, fetchImpl: async () => ({ ok: false, status: 401 }), fortat: true })).stare, 'cheie-gresita');
+});
