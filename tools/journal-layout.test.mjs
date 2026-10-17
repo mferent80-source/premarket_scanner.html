@@ -645,7 +645,7 @@ test('capital details use labelled buttons, preserve disclosure after refresh an
   const {context,$} = workspace();
   vm.runInContext(readFileSync('lib/equity.js','utf8'),context);
   context.EQ.addSnapshot(1000,'Capital de test',{ts:Date.now()-2*86400000});
-  fixture(context.JR,{exit:110,status:'closed',closeTs:Date.now()-86400000});
+  fixture(context.JR,{exit:110,status:'closed',openTs:Date.now()-2*86400000,closeTs:Date.now()-86400000}); // 18.10: intrarea explicit înaintea ieșirii (altfel, dacă ceasul trecea 1 ms între cele două Date.now(), închiderea precedea intrarea ⇒ test instabil)
   context.$ = $;
   context.esc = esc;
   context.openPriceCache = {};

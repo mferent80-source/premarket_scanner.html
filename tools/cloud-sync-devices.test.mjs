@@ -4,10 +4,10 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {DatabaseSync} from 'node:sqlite';
-import {KEYS,mergeRecord,validateValue,EvidenceCloud} from '../lib/cloud-sync-model.mjs';
+import {KEYS,mergeRecord,validateValue,EvidenceCloud,ForecastCloud} from '../lib/cloud-sync-model.mjs';
 import {handleCloud} from './cloud-sync-worker.bundle.mjs';
 
-const source=readFileSync(new URL('../app/cloud-sync.js',import.meta.url),'utf8').replace(/^import .*;\n/,'');
+const source=readFileSync(new URL('../app/cloud-sync.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/,''); // 18.10: copia de lucru e CRLF — fără \r? rândul import rămânea și toate cele 4 probe picau
 const {create:planStore}=createRequire(import.meta.url)('../lib/trade-plan-store.js');
 const {create:fillsStore}=createRequire(import.meta.url)('../lib/trading212-fills-store.js');
 const endpoint='https://premarket-scanner-html.mferent80.workers.dev',origin='https://mferent80-source.github.io',clientId='test.apps.googleusercontent.com';
@@ -26,7 +26,7 @@ async function device(server,{local={},vault=null}={}){
  const storage=new Map(Object.entries(local)),privateStore=new Map(),calls=[];let connection=vault;
  const localStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)};
  const window={addEventListener(){},dispatchEvent(){},T212FillsStore:fillsStore(localStorage,{durable:null,notify:false}),TTPlanStore:{create:()=>planStore(localStorage,{durable:null,notify:false})},TTCloudStore:{get:async k=>structuredClone(privateStore.get(k)??null),put:async(k,v)=>privateStore.set(k,structuredClone(v)),remove:async k=>privateStore.delete(k)},T212Vault:{read:async()=>connection,save:async value=>{connection=structuredClone(value);},clear:async()=>{connection=null;}}};
- const context={window,localStorage,KEYS,mergeRecord,validateValue,EvidenceCloud,location:{origin,href:origin+'/app/'},document:{hidden:false,querySelectorAll:()=>[],getElementById:()=>null,addEventListener(){}},navigator:{onLine:true},CustomEvent:class{},StorageEvent:class{},AbortController,URL,Date,setTimeout,clearTimeout,setInterval:()=>{},fetch:async(url,options)=>{calls.push({url,method:options?.method||'GET'});if(url==='cloud-sync-config.json')return Response.json({enabled:false,autoActivate:true,endpoint});return server.fetcher(url,options);}};
+ const context={window,localStorage,KEYS,mergeRecord,validateValue,EvidenceCloud,ForecastCloud,location:{origin,href:origin+'/app/'},document:{hidden:false,querySelectorAll:()=>[],getElementById:()=>null,addEventListener(){}},navigator:{onLine:true},CustomEvent:class{},StorageEvent:class{},AbortController,URL,Date,setTimeout,clearTimeout,setInterval:()=>{},fetch:async(url,options)=>{calls.push({url,method:options?.method||'GET'});if(url==='cloud-sync-config.json')return Response.json({enabled:false,autoActivate:true,endpoint});return server.fetcher(url,options);}};
  vm.createContext(context);vm.runInContext(source,context);const api=window.TTCloud;await api.recheck();assert.equal(api.state().ready,true);assert.equal(api.state().connected,false);
  return {api,storage,privateStore,calls,vault:()=>connection,forgetConnection:()=>window.T212Vault.clear(),signIn:async(subject='123')=>{const {nonce}=await api.challenge();await api.login(await server.identity(nonce,subject),nonce);}};
 }
