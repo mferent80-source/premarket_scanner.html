@@ -3381,6 +3381,12 @@ pe un singur chart.
 | I-673 | Protocolul probei, înghețat și numărat: un document datat cu ipoteza, pragurile (PRAG), familia de teste (2 ținte × vot + clasament) și registrul tuturor încercărilor de până acum (4 modele, ablația, contextul SPY, modelul comun) + o gardă care pică dacă PRAG se schimbă fără rând nou în document — I-661 îngheață motorul, asta îngheață regulile de judecată | docs/clasificator-protocol.md (nou), tools/clasificator-jurnal.test.mjs | S | P1 | făcut 2026-10-17 (47b9ba9c) | ideation | 2026-10-17 |
 | I-674 | Motorul nou în umbră, nu în locul celui în probă: dacă motorul trebuie schimbat (un bug), robotul notează în jurnal ambele versiuni (v5 rămâne cea judecată, v6 strânge zile în paralel) — o reparație nu mai aruncă lunile de probă strânse | tools/clasificator-robot.mjs, tools/clasificator-jurnal.mjs, lib/holdings-classifier.js (încărcat în două versiuni) | M | P2 | făcut 2026-10-17 (47b9ba9c) | ideation | 2026-10-17 |
 | I-675 | Martorul de date: în fiecare noapte robotul compară închiderea de pe ~20 de acțiuni cu o a doua sursă gratuită și semnalează în Health diferențe peste 0,5% — prinde barele greșite ale Yahoo înainte să intre în jurnal | tools/clasificator-date.mjs, tools/clasificator-robot.mjs, health/index.html | M | P3 | făcut 2026-10-17 (47b9ba9c) | ideation | 2026-10-17 |
+| I-676 | Verdictul calculat de robot în fiecare noapte (aceeași lib/market-verdict.js în Node), cu istoric: „ce s-a schimbat față de ieri” (Neutru → Prudent: VIX +21%, defensivele conduc) și „de câte zile” — azi verdictul se calculează pe fiecare telefon, fără memorie, și poate diferi între PC și telefon | lib/market-verdict.js, tools/verdict-piata-robot.mjs (nou), .github/workflows/ (nou sau lângă clasificator), candidate-engine/generated/verdict-piata.json, today/view.js | M | P1 | propus | ideation | 2026-10-17 |
+| I-677 | Proba verdictului înainte: zilele „Prudent / Defensiv” chiar au fost urmate de randamente mai slabe și căderi mai mari ale SPY (5 și 20 de sesiuni) decât zilele „Favorabil”? Reguli scrise acum, verdict după un număr fix de zile (testul pe perioade din clasificator) — până atunci panoul spune „regulă nedovedită” | tools/verdict-piata-robot.mjs, tools/clasificator-jurnal.mjs (testul pe perioade, refolosit), docs/verdict-piata-protocol.md (nou) | M | P1 | propus | ideation | 2026-10-17 |
+| I-678 | Expunerea ta la piață: beta portofoliului față de S&P (din pozițiile Trading 212 și seriile pe un an) ⇒ „portofoliul se mișcă ~1,3× S&P; o zi de −2% pe S&P ≈ −X lei la tine”, plus concentrarea pe sectoare față de sectoarele care conduc acum | lib/market-verdict.js, lib/today-dashboard.js (pozițiile + seriile), today/view.js | M | P1 | propus | ideation | 2026-10-17 |
+| I-679 | Stresul din opțiuni: structura VIX (VIX9D / VIX / VIX3M — când VIX pe termen scurt trece peste cel pe 3 luni, piața plătește protecție imediată) și mișcarea zilnică așteptată din VIX (±VIX/√252 pe S&P) — ipoteză, pragul de stres scris dinainte | lib/today-dashboard.js (simbolurile ^VIX9D, ^VIX3M), lib/market-verdict.js | S | P2 | propus | ideation | 2026-10-17 |
+| I-680 | Creditul și sănătatea interioară a pieței: obligațiunile cu randament mare față de cele de stat (HYG / IEF față de media de 50 de zile — creditul se strică de obicei înaintea acțiunilor), noile maxime / minime și % acțiuni peste media de 200 de zile, din raportul breadth existent | lib/market-verdict.js, lib/today-dashboard.js, market-breadth/data/latest.json (deja citit) | S | P2 | propus | ideation | 2026-10-17 |
+| I-681 | Calendarul complet al pieței în „Ce vine”: expirarea opțiunilor (a treia vineri; quad witching trimestrial — calculate din reguli), rezultatele celor mai mari 15 companii din S&P (mișcă indicele, nu doar pozițiile tale), futures înainte de deschidere (ES=F / NQ=F) și mișcarea tipică dinaintea evenimentului deja calculată în Macro (I-179) | lib/macro-context.js, lib/market-verdict.js, lib/holdings-events.js, macro-dashboard (I-179, refolosit) | M | P2 | propus | ideation | 2026-10-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6721,3 +6727,49 @@ Lentile: Trader — o probă de 9 luni care nu poate vedea un avantaj realist e 
 - I-661 / I-673: registrul versiunilor (amprentele v5: fișier `ada57c135ca80b7d`, rezultate `9aca94a357a3c1ef`) și protocolul cu registrul încercărilor; garda pică la rezultate schimbate fără versiune nouă și la praguri diferite de protocol (probat în ambele sensuri).
 - I-666 / I-667: robotul așteaptă 15 minute și reia acțiunile cu bara veche (de 3 ori, în limita de 55); motivul eșecului pleacă pe Discord; câinele de pază (05:10 / 07:10 / 09:10 / 11:10 UTC, marți–sâmbătă) pornește robotul o dată pe sesiune.
 - I-663 / I-664 / I-665 / I-669 / I-670 / I-675: raportul la verdict, durata, acțiunile listate de curând cu „⏳ dată”, garda „jurnalul doar crește”, ultimele 10 sesiuni + rulările GitHub în Health, martorul Nasdaq (Stooq cere verificare de browser ⇒ exclus).
+
+## 17.10.2026 — idei profesioniste pentru panoul „Verdictul pieței” (Astăzi, 49e0d77c)
+
+Lentile: Trader — verdictul spune „cum e piața”, dar nu „cât mă costă pe mine” și nici dacă regula lui a funcționat vreodată. Designer — lipsește schimbarea: un profesionist citește întâi ce s-a mutat față de ieri. Inginer — verdictul se calculează separat pe fiecare dispozitiv, fără istoric, deci nu poate fi verificat. Automator — același calcul poate rula noaptea în robot, cu istoric și mesaj la schimbare. Exclus: I-179 (mișcarea tipică înaintea evenimentului, făcut în Macro) — refolosit în I-681, nu repropus.
+
+#### I-676 · Verdictul calculat de robot noaptea, cu istoric · [M] · P1 · propus
+- **Problema/golul:** verdictul se calculează pe fiecare telefon, din ce date a prins acela; nu există „ieri”, deci nici „ce s-a schimbat”.
+- **Soluția:** robotul de noapte rulează aceeași lib/market-verdict.js în Node și scrie verdict-piata.json (verdictul zilei + istoric); pagina îl citește întâi și afișează „ieri → azi” cu motivele care s-au mutat și „de câte zile”; dacă fișierul lipsește, calculul pe telefon rămâne rezerva.
+- **Impact:** aceeași concluzie pe PC și telefon; schimbarea de regim se vede din prima privire.
+- **Riscuri/dependențe:** sursele din Node (Yahoo direct, raportul breadth din repo); regimul macro (localStorage) nu există în robot ⇒ marcat necitit acolo.
+- **Fișiere:** lib/market-verdict.js, tools/verdict-piata-robot.mjs, .github/workflows/, candidate-engine/generated/verdict-piata.json, today/view.js.
+
+#### I-677 · Proba verdictului înainte · [M] · P1 · propus
+- **Problema/golul:** pragurile verdictului sunt de bun-simț, dar nedovedite; „Prudent” poate fi zgomot.
+- **Soluția:** după I-676, fiecare verdict notat se verifică pe randamentul și căderea maximă a SPY la 5 și 20 de sesiuni; reguli și număr de zile scrise acum (testul pe 8 perioade cu pauze, ca la clasificator); panoul scrie „regulă nedovedită” până la verdict.
+- **Impact:** știi dacă scala chiar ajută la dozarea riscului sau e doar decor.
+- **Riscuri/dependențe:** puține zile „Defensiv” ⇒ putere mică; ipoteză, nu promisiune.
+- **Fișiere:** tools/verdict-piata-robot.mjs, tools/clasificator-jurnal.mjs (refolosit), docs/verdict-piata-protocol.md.
+
+#### I-678 · Expunerea ta la piață (beta) · [M] · P1 · propus
+- **Problema/golul:** „Prudent” nu spune cât te poate costa o zi rea; un portofoliu de tehnologie se mișcă mai mult decât S&P.
+- **Soluția:** beta fiecărei poziții față de SPY (randamente zilnice, un an) ponderată cu valoarea ⇒ beta portofoliului și pierderea estimată la −1% / −2% pe S&P, în moneda contului; plus ponderea pe sectoare față de sectoarele care conduc acum.
+- **Impact:** dozarea riscului pornește din banii tăi, nu doar din starea pieței.
+- **Riscuri/dependențe:** beta istoric se schimbă; acțiunile europene / alte monede cer cursul.
+- **Fișiere:** lib/market-verdict.js, lib/today-dashboard.js, today/view.js.
+
+#### I-679 · Stresul din opțiuni: structura VIX și mișcarea așteptată · [S] · P2 · propus
+- **Problema/golul:** VIX singur nu arată dacă protecția pe termen scurt e mai scumpă decât cea pe 3 luni — semnalul clasic de stres.
+- **Soluția:** VIX9D, VIX și VIX3M; „VIX peste VIX3M” = stres imediat (ipoteză, prag scris dinainte); mișcarea zilnică așteptată pe S&P din VIX (±VIX/√252) afișată lângă volatilitate.
+- **Impact:** stresul se vede mai devreme și în cifre ușor de folosit (±% pe zi).
+- **Riscuri/dependențe:** simbolurile ^VIX9D / ^VIX3M la sursa de prețuri; de validat în I-677.
+- **Fișiere:** lib/today-dashboard.js, lib/market-verdict.js.
+
+#### I-680 · Creditul și sănătatea interioară a pieței · [S] · P2 · propus
+- **Problema/golul:** verdictul nu se uită la credit și la noile maxime / minime, pe care profesioniștii le citesc ca avertizare timpurie.
+- **Soluția:** HYG / IEF față de media de 50 de zile; din raportul breadth existent: noile maxime / minime și % peste media de 200 de zile, adăugate la participare.
+- **Impact:** divergențele (indicele sus, creditul jos) apar înainte de scăderi.
+- **Riscuri/dependențe:** ipoteză de validat (I-677); două simboluri noi la sursa de prețuri.
+- **Fișiere:** lib/market-verdict.js, lib/today-dashboard.js.
+
+#### I-681 · Calendarul complet al pieței · [M] · P2 · propus
+- **Problema/golul:** „Ce vine” are doar macro și pozițiile tale; lipsesc expirarea opțiunilor, rezultatele marilor companii și futures-urile dimineții.
+- **Soluția:** expirarea lunară (a treia vineri) și quad witching calculate din reguli; rezultatele celor mai mari 15 companii din S&P; futures ES=F / NQ=F între 11:00 și 16:30 (ora României); mișcarea tipică dinaintea evenimentului din Macro (I-179).
+- **Impact:** zilele cu mișcări mecanice și raportările care mută indicele se văd dinainte.
+- **Riscuri/dependențe:** calendarul rezultatelor are nevoie de cheia Finnhub sau de raportul breadth.
+- **Fișiere:** lib/macro-context.js, lib/market-verdict.js, lib/holdings-events.js, macro-dashboard.
