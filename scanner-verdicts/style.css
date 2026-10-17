@@ -167,3 +167,30 @@ progress{width:100%;height:6px;accent-color:var(--ws-green)}
 .market-brief .brief-facts b{font-family:var(--tt-mono,ui-monospace,monospace);font-weight:500;color:var(--ws-text)}
 .market-brief .brief-go{font-size:13px;font-weight:500;justify-self:start;margin-top:4px;min-height:32px;display:inline-flex;align-items:center;text-decoration:none}
 @media(max-width:900px){.market-brief{grid-template-columns:1fr}.market-brief>article+article{border-left:0;border-top:1px solid var(--ws-line)}}
+/* 18.10.2026: panoul „Rulează motoarele” — cei trei pași (Premarket Scanner → Reguli V1 → Comparație), opțiunile și filtrele */
+.run-panel{padding:20px 22px;border:1px solid var(--ws-line);border-radius:12px;background:var(--ws-panel);margin-bottom:24px;display:grid;gap:16px}
+.run-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.run-head h2{margin:0 0 4px;font-size:19px;font-weight:600;color:var(--ws-text)}
+.run-head p{margin:0;max-width:62ch;font-size:13.5px;line-height:1.6;color:var(--ws-muted)}
+.run-actions{display:flex;gap:10px;flex-wrap:wrap}
+.run-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.run-steps li{display:flex;gap:10px;align-items:flex-start;min-width:0;padding:12px 14px;border:1px solid var(--ws-line-soft);border-radius:9px;background:var(--ws-raised)}
+.run-steps li div{min-width:0;display:grid;gap:3px}
+.run-steps b{font-size:14px;font-weight:600;color:var(--ws-text)}
+.run-steps small{font-size:12.5px;line-height:1.5;color:var(--ws-muted);overflow-wrap:anywhere}
+.step-dot{flex:0 0 10px;width:10px;height:10px;margin-top:5px;border-radius:50%;background:var(--ws-line)}
+.run-steps li[data-state="done"] .step-dot{background:var(--ws-green)}
+.run-steps li[data-state="old"] .step-dot{background:var(--ws-amber)}
+.run-steps li[data-state="busy"] .step-dot{background:var(--ws-accent);animation:stepPulse 1.1s ease-in-out infinite}
+.run-steps li[data-state="busy"]{border-color:color-mix(in srgb,var(--ws-accent) 45%,var(--ws-line))}
+@keyframes stepPulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.run-steps li[data-state="busy"] .step-dot{animation:none}}
+.run-options{display:flex;gap:12px 22px;flex-wrap:wrap;align-items:center;font-size:13.5px;color:var(--ws-muted)}
+.check-label{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:13.5px;color:var(--ws-muted);cursor:pointer}
+.check-label input{width:18px;height:18px;margin:0;accent-color:var(--ws-accent)}
+.run-panel .toolbar-status{padding:0;margin:0}
+.run-panel .toolbar-status:empty{display:none}
+.action-pair{display:flex;gap:10px;flex-wrap:wrap}
+.result-filter{margin:14px 0 4px;font-size:13.5px;color:var(--ws-muted)}
+.comparison-panel .check-label{margin-bottom:8px}
+@media (max-width:760px){.run-panel{padding:16px}.run-steps{grid-template-columns:minmax(0,1fr)}.run-actions,.run-actions .button,.action-pair,.action-pair .button{width:100%}}

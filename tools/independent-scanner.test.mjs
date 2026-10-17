@@ -207,7 +207,7 @@ test('scan fetches its own prices and shared benchmarks once, reporting verified
 });
 test('benchmark failures remain explicit unknown, and independent scan does not read primary scores', async () => {
   const ctx = boot({ Date: class extends Date { static now() { return NOW; } } });
-  ctx.D = { fetchStock: async symbol => { if (symbol === 'SPY') throw Error('Benchmark offline'); return fixture(ctx, { symbol }); } };
+  ctx.D = { fetchStock: async symbol => { if (symbol === 'SPY' || symbol === 'IVV') throw Error('Benchmark offline'); return fixture(ctx, { symbol }); } };
   const report = await ctx.IndependentScanner.scan({ symbols: ['TEST'] });
   assert.equal(report.verifiedCount, 0); assert.equal(report.failures.length, 1); assert.equal(report.items[0].verdict, 'unverifiable');
   assert.match(check(report.items[0], 'relative_strength').reason, /Benchmark offline/);
@@ -256,4 +256,43 @@ test('concurrent scans maintain separate reports, universes, callbacks and bench
 test('CommonJS consumers receive the same independent API and loaded daily validation', () => {
   const require = createRequire(import.meta.url), api = require('../lib/independent-scanner.js');
   assert.equal(api.VERSION, 'experimental-1.0.0'); assert.equal(typeof api.evaluate, 'function'); assert.equal(typeof api.scan, 'function');
+});
+// 18.10.2026: pagina Piață rulează Reguli V1 cu 5 simboluri deodată — raportul păstrează ordinea universului, iar cererile simultane nu trec de limită.
+test('concurrency keeps universe order, caps parallel requests and still reports every symbol', async () => {
+  const ctx = boot({ Date: class extends Date { static now() { return NOW; } } });
+  let active = 0, peak = 0; const progress = [];
+  ctx.D = { fetchStock: async symbol => { active++; peak = Math.max(peak, active); await new Promise(r => setTimeout(r, symbol === 'S1' ? 15 : 2)); active--; if (symbol === 'S3') throw Error('Provider unavailable'); return fixture(ctx, { symbol, mode: symbol === 'SPY' ? 'benchmark' : 'breakout' }); } };
+  const symbols = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'];
+  const report = await ctx.IndependentScanner.scan({ symbols, concurrency: 3, onProgress: x => progress.push(x.done) });
+  assert.deepEqual(json(report.items.map(x => x.symbol)), symbols);
+  assert.ok(peak <= 3, 'cel mult 3 cereri simultane, au fost ' + peak); assert.ok(peak >= 2, 'cererile chiar rulează în paralel');
+  assert.deepEqual(progress, [1, 2, 3, 4, 5, 6, 7]); assert.equal(report.verifiedCount, 6);
+  assert.deepEqual(json(report.failures.map(x => x.symbol)), ['S3']);
+});
+// 18.10.2026: Yahoo a lăsat fără închidere bara de vineri la ETF-urile europene ⇒ reperul UE trece pe indicele ^STOXX (STOXX Europe 600), cu aceleași date EOD.
+test('a stale European ETF benchmark falls back to the STOXX index on the same EOD dates; US stays on SPY', async () => {
+  const ctx = boot({ Date: class extends Date { static now() { return NOW; } } }), calls = [];
+  ctx.D = { fetchStock: async symbol => {
+    calls.push(symbol);
+    if (symbol === 'EXSA.DE') { const b = fixture(ctx, { symbol, currency: 'EUR', exchange: 'GER', timezone: 'Europe/Berlin', mode: 'benchmark' }); b.pop(); return b; }
+    if (symbol === '^STOXX') return fixture(ctx, { symbol, currency: 'EUR', exchange: 'ZRH', timezone: 'Europe/Zurich', mode: 'benchmark' });
+    if (symbol === 'SAP.DE') return fixture(ctx, { symbol, currency: 'EUR', exchange: 'GER', timezone: 'Europe/Berlin' });
+    return fixture(ctx, { symbol, mode: symbol === 'SPY' ? 'benchmark' : 'breakout' });
+  } };
+  const report = await ctx.IndependentScanner.scan({ symbols: ['SAP.DE', 'TEST'] });
+  const sap = report.items[0];
+  assert.equal(sap.metrics.benchmarkSymbol, '^STOXX'); assert.notEqual(check(sap, 'relative_strength').status, 'unknown', check(sap, 'relative_strength').reason);
+  assert.equal(report.items[1].metrics.benchmarkSymbol, 'SPY');
+  assert.deepEqual(calls, ['SAP.DE', 'EXSA.DE', '^STOXX', 'TEST', 'SPY']);
+});
+test('an index fallback with a non-European timezone or non-EUR currency is refused', async () => {
+  const ctx = boot({ Date: class extends Date { static now() { return NOW; } } });
+  ctx.D = { fetchStock: async symbol => {
+    if (symbol === 'SAP.DE') return fixture(ctx, { symbol, currency: 'EUR', exchange: 'GER', timezone: 'Europe/Berlin' });
+    if (symbol === '^STOXX') return fixture(ctx, { symbol, currency: 'USD', exchange: 'ZRH', timezone: 'Europe/Zurich', mode: 'benchmark' });
+    if (symbol === '^STOXX50E') return fixture(ctx, { symbol, currency: 'EUR', exchange: 'NYQ', timezone: 'America/New_York', mode: 'benchmark' });
+    throw Error('offline');
+  } };
+  const report = await ctx.IndependentScanner.scan({ symbols: ['SAP.DE'] });
+  assert.equal(report.items[0].verdict, 'unverifiable'); assert.match(check(report.items[0], 'relative_strength').reason, /EUR|european/);
 });

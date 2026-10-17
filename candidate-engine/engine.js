@@ -4,6 +4,8 @@
   var SCAN_MS = 5 * 60 * 1000;
   var CACHE_KEY = 'ce_results_v2';
   var demoMode = new URLSearchParams(location.search).get('demo') === '1';
+  // 18.10.2026: pagina Piață rulează motorul într-o fereastră ascunsă (?fundal=1&univers=…): o singură scanare, fără reluarea la 5 minute
+  var fundal = new URLSearchParams(location.search).get('fundal') === '1', universCerut = new URLSearchParams(location.search).get('univers');
   var requested = new URLSearchParams(location.search).get('symbol');
   requested = /^[A-Z0-9][A-Z0-9.-]{0,14}$/.test(requested||'')?requested:null;
   var requestedMode = new URLSearchParams(location.search).get('mode') === 'reversal'?'reversal':'momentum';
@@ -690,9 +692,10 @@
     showAlert('DEMO FICTIV · scanarea nu este salvată. Apasă Construiește planul pentru a verifica transferul direct. Date inventate; planurile demo rămân în memorie.');
     return;
   }
+  if (universCerut && Array.prototype.some.call($('universe').options, function (o) { return o.value === universCerut; })) $('universe').value = universCerut;
   loadCache();
   loadTrend();
   if(requested){$('search').value=requested;document.querySelectorAll('.ce-mode').forEach(function(b){b.classList.toggle('active',b.dataset.mode===state.mode);});showAlert('Validare intraday pentru '+requested+' · rulăm universul curent și tickerul solicitat. Ideea EOD nu este o intrare confirmată.');}
-  schedule();
+  if (!fundal) schedule();
   setTimeout(scan, 400);
 })();
