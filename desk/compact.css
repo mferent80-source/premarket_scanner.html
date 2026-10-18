@@ -1,0 +1,57 @@
+/* 18.10.2026 — Planuri, reașezarea A (el: „optimizăm pagina Planuri” → „fă A”; docs/superpowers/specs/2026-10-18-planuri-design.md).
+   Nimic ascuns: aceleași secțiuni, în ordinea deciziei, iar cifrele care stăteau câte UNA pe rând (≈100 px fiecare) stau acum câte
+   2–3 pe rând pe telefon. Încărcat ULTIMUL, după mobile-ui.css și layout.css. */
+
+/* Telefon: pagina e o singură coloană în ordinea deciziei — grila de sus își dă panourile în coloana paginii (display:contents) */
+@media (max-width: 760px) {
+  .desk { display: flex; flex-direction: column; }
+  .desk > .grid { display: contents; }
+  .desk > #demoBanner { order: 0; }
+  .desk > .brief { order: 1; }
+  .desk > .grid > .coach { order: 2; }
+  .desk > .grid > .signals { order: 3; }
+  .desk > .grid > .focus { order: 4; }
+  .desk > .entry-capture { order: 5; }
+  .desk > .plan-queue { order: 6; }
+  .desk > .grid > .guard { order: 7; }
+  .desk > .grid > .story { order: 8; }
+  .desk > .grid > .toplists { order: 9; }
+  .desk > .breadth-ideas { order: 10; }
+  .desk > .shadow-performance { order: 11; }
+  .desk > #brokerPerformance { order: 12; }
+  .desk > #deskAlerts { order: 13; }
+  .desk > .statusbar { order: 14; }
+  .desk > .grid > .panel, .desk > .panel { margin-top: 10px; }
+
+  /* Capital & risc: Verdict · Risc / trade · Expunere pe un rând */
+  .desk .guard-body { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 14px; }
+  .desk .guard-body .metric { border: 0; padding: 0; }
+  .desk .guard-body .metric b { font-size: 16px; margin-top: 6px; }
+
+  /* Randamentul contului + evoluția rezultatului: două cifre pe rând */
+  .desk .pnl-highlights { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .desk .pnl-highlights > div { padding: 10px; }
+  .desk .pnl-highlights b { font-size: 16px; }
+
+  /* Ideile Breadth: rânduri compacte (toate 10 la vedere, cu butonul ↗): nr · simbol · preț · a doua coloană / sector · ultima coloană */
+  .desk .breadth-ideas .idea-row { grid-template-columns: 26px minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 4px 10px; padding: 9px 0; font-size: 12px; }
+  .desk .breadth-ideas .idea-row > span:first-child { grid-column: 1; grid-row: 1 / 3; align-self: start; padding-top: 7px; }
+  .desk .breadth-ideas .idea-row > button { grid-column: 2; grid-row: 1; justify-self: start; font-size: 14px; padding: 6px 10px; }
+  .desk .breadth-ideas .idea-row > em:nth-child(3) { grid-column: 2; grid-row: 2; }
+  .desk .breadth-ideas .idea-row > em:nth-child(4) { grid-column: 3; grid-row: 1; }
+  .desk .breadth-ideas .idea-row > em:nth-child(5) { grid-column: 4; grid-row: 1; }
+  .desk .breadth-ideas .idea-row > em:nth-child(6) { grid-column: 3 / 5; grid-row: 2; }
+  .desk .breadth-ideas .idea-row > em:before { font-size: 9px; margin-bottom: 1px; }
+}
+
+/* Paragrafele explicative lungi (metodă, surse, avertismente — ~3.100 px pe telefon în demo): 2 rânduri cu „…”, o atingere le desface
+   (clasa .desfasurat, pusă de desk/index.html). Textul rămâne întreg în pagină; paragrafele cu butoane / linkuri / câmpuri nu se strâng. */
+@media (max-width: 760px) {
+  .desk #brokerPerformance p:not(.desfasurat):not(:has(button, a, input, select)),
+  .desk .shadow-performance p:not(.desfasurat):not(:has(button, a, input, select)),
+  .desk .guard p:not(.desfasurat):not(:has(button, a, input, select)),
+  .desk #deskAlerts p.detail-note:not(.desfasurat),
+  .desk .plan-queue .queue-toolbar p:not(.desfasurat) {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer;
+  }
+}
