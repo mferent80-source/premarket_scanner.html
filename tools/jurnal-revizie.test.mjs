@@ -80,3 +80,11 @@ test('the 10,000 starting value is not the account: ACCT.known() is false until 
   const h = readFileSync('journal/index.html', 'utf8'); assert.doesNotMatch(h, /id="setupAccount"[^>]*value="10000"/);
   assert.match(readFileSync('lib/journal-workspace.js', 'utf8'), /Nu afișăm o sumă inventată/); assert.match(readFileSync('lib/portfolio-risk.js', 'utf8'), /g\.source === 'default' \? ''/);
 });
+
+// Etapa 2 (Acțiuni Europa): ca la Premarket, revenirea în pagina parcată rescanează și când rezultatele au peste 5 minute.
+test('Europe: returning to a parked page rescans stale results (older than 5 minutes), not only missing ones', () => {
+  const src = readFileSync('europe-stocks/engine.js', 'utf8');
+  assert.match(src, /state\.shellVisible=event\.data\.ttShellVisible;if\(visible\(\)&&Date\.now\(\)-state\.updatedAt>SCAN_MS\)scan\(\);/);
+  assert.doesNotMatch(src, /ttShellVisible;if\(visible\(\)&&!state\.updatedAt\)scan\(\)/);
+  assert.match(src, /deschisă din aplicație se sincronizează/);
+});
