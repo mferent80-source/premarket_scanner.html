@@ -198,7 +198,7 @@
   }
   async function analyze(sym, benchmark, govScan) {
     var source=DailySeries.read(await D.fetchStock(sym, { range: '1y', interval: '1d', ttl: 1800 }),sym);
-    var bars=source.bars,benchmarkRet20=benchmark&&benchmark.asOf===source.asOf?benchmark.ret20:null;
+    var bars=source.bars,benchmarkRet20=benchmark&&benchmark.asOf===source.asOf?benchmark.ret20:null,benchmarkSymbol=benchmark&&benchmark.symbol||null;
     if (!bars || bars.length < 80) throw new Error('istoric insuficient');
     var c = closes(bars), h = highs(bars), l = lows(bars), v = volumes(bars);
     var price = c[c.length - 1], ema21 = lastValue(TI.calcEMA(c, 21)), ema50 = lastValue(TI.calcEMA(c, 50));
@@ -232,7 +232,7 @@
     var reversalState = blocked ? 'BLOCKED' : (eb && eb.isConfirmed && rScore >= 82 ? 'FIRE' : (eb && eb.isConfirmed ? 'ARMED' : 'EARLY'));
     var trendAligned=trend?trend.short==='up'&&trend.medium==='up':price>ema21&&ema21>ema50;
     var momentum = {
-      symbol: sym, dataQuality:source.dataQuality, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, trend:trend, atr:atr, region: f.region, sector: sector, mode: 'momentum', score: mScore,
+      symbol: sym, dataQuality:source.dataQuality, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, trend:trend, atr:atr, region: f.region, sector: sector, mode: 'momentum', score: mScore, benchmarkSymbol: benchmarkSymbol,
       state: momentumState, price: price, dayChg: f.dayChg, rvol: f.rvol, rs: f.rs20,
       metricA: f.ret20, metricB: f.ext21,
       eligible: knownGovernor && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 55,
@@ -276,10 +276,13 @@
     });
     return out.slice(0, 10);
   }
+  var BENCHMARKS = [['US', ['SPY', 'IVV']], ['EU', ['^STOXX', '^STOXX50E']]];
   async function benchmarkReturns() {
     var out = { US:null,EU:null };
     state.benchmarks=[];
-    for(var pair of [['US','SPY'],['EU','^STOXX50E']]){try{var source=DailySeries.read(await D.fetchStock(pair[1],{range:'6mo',interval:'1d',ttl:1800}),pair[1]),ret=retAt(closes(source.bars),20);if(ret===null)throw Error('Istoric indice insuficient.');out[pair[0]]={asOf:source.asOf,ret20:ret};state.benchmarks.push({region:pair[0],symbol:pair[1],asOf:source.asOf});}catch(e){state.benchmarks.push({region:pair[0],symbol:pair[1],reason:e.message||'Indice indisponibil'});}}
+    // 18.10.2026 (audit): UE se compară cu STOXX 600 (^STOXX), același indice ca reperul Reguli V1 (EXSA.DE ⇒ ^STOXX); rezerve IVV / ^STOXX50E.
+    // Reperul ales se notează (region, symbol); cel căzut rămâne la vedere cu motivul lui.
+    for(var pair of BENCHMARKS){var lipsa=[];for(var sym of pair[1]){try{var source=DailySeries.read(await D.fetchStock(sym,{range:'6mo',interval:'1d',ttl:1800}),sym),ret=retAt(closes(source.bars),20);if(ret===null)throw Error('Istoric indice insuficient.');out[pair[0]]={asOf:source.asOf,ret20:ret,symbol:sym};state.benchmarks.push({region:pair[0],symbol:sym,asOf:source.asOf+(lipsa.length?' (rezervă; '+lipsa.join('; ')+')':'')});break;}catch(e){lipsa.push(sym+': '+(e.message||'indisponibil'));}}if(!out[pair[0]])state.benchmarks.push({region:pair[0],symbol:pair[1].join(' / '),reason:lipsa.join('; ')||'Indice indisponibil'});}
     return out;
   }
   async function updateSectors(items) {
@@ -372,6 +375,8 @@
     }
   }
 
+  // audit 18.10: un verdict Governor necunoscut scoate tot din clasament (eligible cere un verdict cunoscut) — golul trebuie să spună asta
+  function governorNecunoscut() { var v = window.GV && GV.status ? (GV.status() || {}).verdict : null; return ['TRADE','CAUTION','HALTED','NEVERIFICAT'].indexOf(v) < 0; }
   function currentItems() {
     var q = $('search').value.trim().toUpperCase();
     var only = $('onlyActionable').checked;
@@ -606,7 +611,7 @@
     if (!items.length) {
       var query=$('search').value.trim(),only=$('onlyActionable').checked;
       $('rows').innerHTML = '<div class="ce-empty"><b>'+(state.scanning?'Scanarea este în curs':!state.hasScan?'Scanarea se pregătește':!state.verified?'Nicio serie verificată':'Niciun candidat pentru filtrele curente')+'</b>'
-        +(state.scanning?'Pornită singură: verific prețurile, trendul și indicii de comparație (<span id="rowsProgress">'+escapeHtml($('ctxScanned').textContent||'')+'</span>). Rezultatele apar aici la final.':query?'Căutarea „'+escapeHtml(query)+'” nu are rezultate în selecția curentă. Resetează filtrele.':only?'Filtrul „doar confirmate” ascunde candidații de monitorizare și cei cu plan blocat. Resetează filtrele pentru a-i vedea.':!state.verified?'Vezi Acoperire pentru erorile surselor sau schimbă universul scanat.':'Seriile au fost verificate, dar nu trec criteriile acestei strategii. Verifică Acoperire sau schimbă între Top Long și Early Reversal.')+'</div>';
+        +(state.scanning?'Pornită singură: verific prețurile, trendul și indicii de comparație (<span id="rowsProgress">'+escapeHtml($('ctxScanned').textContent||'')+'</span>). Rezultatele apar aici la final.':query?'Căutarea „'+escapeHtml(query)+'” nu are rezultate în selecția curentă. Resetează filtrele.':only?'Filtrul „doar confirmate” ascunde candidații de monitorizare și cei cu plan blocat. Resetează filtrele pentru a-i vedea.':!state.verified?'Vezi Acoperire pentru erorile surselor sau schimbă universul scanat.':governorNecunoscut()?'Seriile au fost verificate, dar Governor nu se poate citi ('+escapeHtml(window.GV?.status?.()?.verdict||'indisponibil')+'): fără limitele contului candidații nu intră în clasament. Reîncarcă aplicația sau verifică Cont & sincronizare.':'Seriile au fost verificate, dar nu trec criteriile acestei strategii. Verifică Acoperire sau schimbă între Top Long și Early Reversal.')+'</div>';
       state.selected = null; renderDetail(null); return;
     }
     state.selected=items.find(function(x){return x.symbol===state.selected?.symbol&&x.mode===state.selected?.mode;})||items[0];

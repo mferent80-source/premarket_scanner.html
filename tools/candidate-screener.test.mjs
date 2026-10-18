@@ -31,7 +31,7 @@ function setup({ univers = 'screener', lista = Array.from({ length: 250 }, (_, i
 test('universul „screener”: primele 200 din lista robotului + lista de urmarit; lista vine din generated/univers-sua.json', async () => {
   const f = setup(); await f.hooks.scan();
   assert.ok(f.fetchuri.some((u) => /^generated\/univers-sua\.json\?x=\d+$/.test(u)));
-  const simboluri = f.cereri.filter((s) => s !== 'SPY' && s !== '^STOXX50E');
+  const simboluri = f.cereri.filter((s) => !['SPY', 'IVV', '^STOXX', '^STOXX50E'].includes(s));
   assert.equal(simboluri.length, 201); assert.ok(simboluri.includes('U0') && simboluri.includes('U199') && simboluri.includes('TEST')); assert.ok(!simboluri.includes('U200'));
   assert.equal(f.hooks.state.scanned, 201); assert.match(f.node('ctxUniverse').textContent, /201/);
   assert.equal(f.hooks.state.screenerLa, '2026-10-14T06:00:00Z');
@@ -39,7 +39,7 @@ test('universul „screener”: primele 200 din lista robotului + lista de urmar
 
 test('fara fisierul robotului, „screener” cade pe lista de mana si spune asta', async () => {
   const f = setup({ screenerOk: false }); await f.hooks.scan();
-  const simboluri = f.cereri.filter((s) => s !== 'SPY' && s !== '^STOXX50E');
+  const simboluri = f.cereri.filter((s) => !['SPY', 'IVV', '^STOXX', '^STOXX50E'].includes(s));
   assert.ok(simboluri.length >= 60 && simboluri.length < 100, 'US_CORE + watchlist'); assert.match(f.node('alert').textContent, /screener/i);
 });
 

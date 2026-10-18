@@ -7,7 +7,7 @@ import { PROTOCOL, inregistrare, adauga, evalueaza } from '../lib/v1-proba.mjs';
 
 const DIR = 'scanner-verdicts/generated', JURNAL = DIR + '/v1-jurnal.json', PROBA = DIR + '/v1-proba.json';
 const z = (ms) => new Promise((r) => setTimeout(r, ms));
-const serii = {}; // simbol → [{ d, c }] din aceleași bare pe care le-a văzut motorul
+export const serii = {}; // simbol → [{ d, c }] din aceleași bare pe care le-a văzut motorul
 
 function dataLocala(t, zone) { const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(t)).map((x) => [x.type, x.value])); return p.year + '-' + p.month + '-' + p.day; }
 // Aceeași formă ca D.fetchStock din lib/data.js (bare valide + meta), direct de la Yahoo.

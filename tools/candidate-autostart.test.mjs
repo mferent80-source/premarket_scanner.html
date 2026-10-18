@@ -12,14 +12,14 @@ function bars(symbol){
  const out=stamps.map((t,i)=>{const c=100+i*.1;return {t,o:c-.1,h:c+.8,l:c-.8,c,v:i===239?1800000:1000000};});
  out.meta={symbol,currency:'USD',timezone:'America/New_York',regularEnd:Date.parse('2026-10-09T20:00:00Z')};return out;
 }
-function setup({search='',hold=false}={}){
+function setup({search='',hold=false,failed=[],verdict='TRADE',watch=['TEST']}={}){
  const nodes={},store=new Map(),events={},calls=[],timers=[];let release=null;const gate=hold?new Promise(r=>{release=r;}):null;
  const node=id=>nodes[id]||(nodes[id]={value:'',checked:false,innerHTML:'',textContent:'',disabled:false,hidden:false,dataset:{},style:{},classList:{toggle(){},add(){},remove(){}},scrollIntoView(){}});
  class Clock extends Date {constructor(...args){super(...(args.length?args:[now]));}static now(){return now;}}
  const ctx={Date:Clock,Intl,console,URLSearchParams,location:{search,origin:'https://example.test'},document:{getElementById:node,querySelectorAll:()=>[],addEventListener(){},hidden:false},localStorage:{getItem:k=>store.get(k)||null,setItem(k,v){store.set(k,v);}},setTimeout:(fn,ms)=>{timers.push(ms);return timers.length;},clearTimeout(){},addEventListener:(n,fn)=>events[n]=fn,
-  D:{fetchStock:async(sym)=>{calls.push(sym);if(gate)await gate;return bars(sym);}},
-  MEB:{computeEarlyBird:()=>({isConfirmed:true,signals:{higherLow:true,stabilized:true,rsiRising:true}})},WL:{get:()=>['TEST']},
-  GV:{status:()=>({verdict:'TRADE',reasons:[]})},TTDecisionPanel:{set(){}},TTEntryAuto:{observe(){}},
+  D:{fetchStock:async(sym)=>{calls.push(sym);if(gate)await gate;if(failed.includes(sym))throw Error('indisponibil');return bars(sym);}},
+  MEB:{computeEarlyBird:()=>({isConfirmed:true,signals:{higherLow:true,stabilized:true,rsiRising:true}})},WL:{get:()=>watch},
+  GV:{status:()=>({verdict,reasons:[]})},TTDecisionPanel:{set(){}},TTEntryAuto:{observe(){}},
   EL:{sectorOf:()=>'Technology',loadSectorMap:()=>({})},matchMedia:()=>({matches:false})};
  ctx.window=ctx;ctx.parent=ctx;vm.createContext(ctx);
  for(const f of ['lib/indicators.js','lib/daily-series.js','lib/decision-verdict.js','lib/candidate-plan-handoff.js'])vm.runInContext(readFileSync(f,'utf8'),ctx);
@@ -48,4 +48,16 @@ test('the age label follows the real age of the results instead of staying “up
 test('background runs (Piață ?fundal=1, the app shell ?background=1) scan once and do not re-arm the 5-minute timer',async()=>{
  for(const search of ['?fundal=1','?background=1']){const f=setup({search});await f.ctx.hooks.scan();assert.ok(!f.timers.includes(5*60*1000),search+' nu reprogramează');}
  const f=setup();await f.ctx.hooks.scan();assert.ok(f.timers.includes(5*60*1000),'pagina vizibilă își păstrează scanarea la 5 minute');
+});
+// „Rezolvă toate” (18.10): cele trei 🔵 din audit care țin de pagină.
+test('Europe is compared with STOXX 600 (^STOXX, the same index as the Reguli V1 benchmark); reserves IVV and ^STOXX50E are named when used',async()=>{
+ const f=setup({watch:['SAP.DE','TEST']});await f.ctx.hooks.scan();const b=f.ctx.hooks.state.benchmarks;
+ assert.equal(b.map(x=>x.region+':'+x.symbol).join(','),'US:SPY,EU:^STOXX');assert.ok(f.calls.includes('^STOXX'));assert.ok(!f.calls.includes('^STOXX50E'),'rezerva nu se cere când primul răspunde');
+ const g=setup({failed:['SPY','^STOXX']});await g.ctx.hooks.scan();const c=g.ctx.hooks.state.benchmarks;
+ assert.equal(c.map(x=>x.region+':'+x.symbol).join(','),'US:IVV,EU:^STOXX50E');assert.match(c[0].asOf,/rezervă; SPY: indisponibil/);
+ assert.equal(g.ctx.hooks.state.analyses.find(x=>x.mode==='momentum').benchmarkSymbol,'IVV','candidatul poartă reperul folosit');
+});
+test('an unreadable Governor explains the empty ranking instead of saying the stocks fail the strategy',async()=>{
+ const f=setup({verdict:'INDISPONIBIL'});await f.ctx.hooks.scan();assert.equal(f.ctx.hooks.state.momentum.length,0);
+ assert.match(f.node('rows').innerHTML,/Governor nu se poate citi/);assert.doesNotMatch(f.node('rows').innerHTML,/nu trec criteriile/);
 });

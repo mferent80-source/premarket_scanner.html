@@ -54,21 +54,27 @@ function brief(){const host=$('marketBrief');if(!host)return;const all=R.compari
   set('stepCompare',cmp.length?'done':running?'busy':all.length?'old':'idle',cmp.length?cmp.length+' comparabile · '+diff.length+' diferite':running?'După cele două motoare':all.length?all.length+' simboluri comune, de reverificat — rulează ambele motoare':'Așteaptă rezultatele ambelor motoare');
   $('runAll').disabled=!!running||!!controller;$('runPrimary').disabled=!!running||!!controller;$('runStop').hidden=!running;$('primaryUniverse').disabled=!!running;
  }
+ /* audit 18.10: aplicația pornește la deschidere aceeași scanare (universul Core) într-un cadru ascuns al ei. Dacă rulează deja,
+    Piață o așteaptă în loc să ceară încă o dată toate seriile; dacă se oprește fără copie nouă, Piață pornește cadrul propriu. */
+ function shellScan(){try{return !!(g.parent&&g.parent!==g&&g.parent.ttBackgroundScan?.state?.()?.running);}catch(_){return false;}}
+ g.ttPiataPrimary=()=>running==='primary';
  function runPrimaryEngine(){
   return new Promise((resolve,reject)=>{
-   const start=Date.now(),f=document.createElement('iframe');let finished=false,seenAt=0;
-   f.hidden=true;f.title='Premarket Scanner · rulare în fundal';f.src='../candidate-engine/?fundal=1&univers='+encodeURIComponent($('primaryUniverse').value);
-   const end=err=>{if(finished)return;finished=true;clearInterval(timer);f.remove();if(primaryFrame===f)primaryFrame=null;primaryProgress='';err?reject(err):resolve();};
+   const start=Date.now();let f=null,finished=false,seenAt=0,shared=$('primaryUniverse').value==='core'&&shellScan();
+   const open=()=>{f=document.createElement('iframe');f.hidden=true;f.title='Premarket Scanner · rulare în fundal';f.src='../candidate-engine/?fundal=1&univers='+encodeURIComponent($('primaryUniverse').value);primaryFrame=f;document.body.appendChild(f);};
+   const end=err=>{if(finished)return;finished=true;clearInterval(timer);if(f)f.remove();if(f&&primaryFrame===f)primaryFrame=null;primaryProgress='';err?reject(err):resolve();};
    const timer=setInterval(()=>{
     if(running!=='primary')return end(Object.assign(Error('Oprit.'),{name:'AbortError'}));
-    let doc=null;try{doc=f.contentDocument;}catch(_){}
+    if(shared&&!shellScan()&&!(R.primary().valid&&R.primary().completedAt>=start)){shared=false;try{open();}catch(e){return end(e);}}
+    if(shared&&primaryProgress!=='folosesc scanarea pornită de aplicație'){primaryProgress='folosesc scanarea pornită de aplicație';steps();}
+    let doc=null;try{doc=f&&f.contentDocument;}catch(_){}
     const txt=doc?.getElementById('ctxScanned')?.textContent||'';if(txt&&txt!==primaryProgress){primaryProgress=txt;steps();}
     const p=R.primary();
     if(p.valid&&p.completedAt>=start){if(!seenAt){seenAt=Date.now();read();}if(!/completare în fundal/.test(doc?.getElementById('scanDetailsBody')?.textContent||'')||Date.now()-seenAt>45000)return end();}
     const alert=doc?.getElementById('alert');if(!seenAt&&alert&&!alert.hidden&&/nu s-a finalizat|Lipsesc biblioteci/.test(alert.textContent))return end(Error(alert.textContent));
     if(Date.now()-start>10*60000)end(Error('Premarket Scanner nu a terminat în 10 minute.'));
    },1500);
-   primaryFrame=f;document.body.appendChild(f);
+   if(!shared)open();
   });
  }
  async function runAll({auto=false,skipPrimary=false,onlyPrimary=false}={}){
@@ -92,16 +98,19 @@ function brief(){const host=$('marketBrief');if(!host)return;const all=R.compari
    urmează pragurile scrise ÎNAINTE de date (docs/v1-proba-protocol.md). Aici doar citim generated/v1-proba.json. */
  const PROBA_VERDICT={astept:['Încă nu se poate spune','neutral'],ajuta:['Reguli V1 ajută','positive'],'fara-avantaj':['Nu s-a văzut un avantaj','warning']};
  function procent(x){return Number.isFinite(x)?(x>=0?'+':'−')+Math.abs(x*100).toLocaleString('ro-RO',{maximumFractionDigits:1})+'%':'—';}
- function probaHtml(j){
+ /* 18.10 („rezolvă toate”): aceeași fereastră pentru proba Premarket Top Long (tools/premarket-jurnal.mjs, docs/premarket-proba-protocol.md) */
+ const PROBA_V1={sus:'6–8 verificări',jos:'5 sau mai puțin',ajuta:'Reguli V1 ajută',azi:j=>(j.azi?.sus??'—')+' cu 6–8 verificări',robot:'„Reguli V1 — proba în timp”',ipoteza:'acțiunile cu 6–8 verificări bat reperul mai mult decât cele cu 5 sau mai puțin',doc:'v1-proba-protocol.md'};
+ const PROBA_PM={sus:'Top Long',jos:'restul verificate',ajuta:'Top Long ajută',azi:j=>(j.azi?.topLong??'—')+' în Top Long',robot:'„Reguli V1 — proba în timp” (pasul Premarket)',ipoteza:'acțiunile din Top Long al Premarket Scanner bat reperul mai mult decât restul universului Core, în aceeași zi (clasamentul tehnic: Governor fix, fără raportări)',doc:'premarket-proba-protocol.md'};
+ function probaHtml(j,cfg=PROBA_V1){
   if(!j||!Array.isArray(j.orizonturi))return '<p class="window-note">Jurnalul probei nu e disponibil încă; robotul rulează în fiecare zi de bursă după închiderea pieței din SUA.</p>';
   const zi=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||'')?d.split('-').reverse().join('.'):'—',vechi=Date.now()-Date.parse(j.ultimaRulare)>4*86400000;
-  const rand=o=>{const [t,ton]=PROBA_VERDICT[o.verdict]||['—','neutral'],d=o.descriptiv||{};return '<div class="proba-row"><div><b>'+o.k+' sesiuni'+(o.principal?' · principală':'')+'</b><small>'+R.esc(o.perioade+' din '+o.necesare+' perioade'+(o.perioade?' · '+o.pozitive+' pozitive · p = '+Number(o.p).toLocaleString('ro-RO',{maximumFractionDigits:3}):''))+'</small></div><span class="badge '+ton+'">'+R.esc(t)+'</span>'+(d.sus?.n||d.jos?.n?'<p>Descriptiv, nu dovadă: 6–8 verificări '+R.esc(procent(d.sus.medie))+' față de reper ('+d.sus.n+') · 5 sau mai puțin '+R.esc(procent(d.jos.medie))+' ('+d.jos.n+')'+(d.indeplineste?.n?' · 8 din 8 '+R.esc(procent(d.indeplineste.medie))+' ('+d.indeplineste.n+')':'')+'.</p>':'')+'</div>';};
-  return '<p class="window-note">Din '+R.esc(zi(j.inceput))+' · '+R.esc(String(j.zile))+(j.zile===1?' zi notată':' zile notate')+' · ultima '+R.esc(zi(j.ultimaZi))+' ('+R.esc(String(j.azi?.verificate??'—'))+' din '+R.esc(String(j.azi?.total??'—'))+' verificate, '+R.esc(String(j.azi?.sus??'—'))+' cu 6–8 verificări). Motor '+R.esc(j.versiune||'—')+'.</p>'
-   +(vechi?'<p class="issue">Robotul nu a mai rulat din '+R.esc(R.time(Date.parse(j.ultimaRulare)))+'. Verifică GitHub → Actions → „Reguli V1 — proba în timp”.</p>':'')
+  const rand=o=>{const [t0,ton]=PROBA_VERDICT[o.verdict]||['—','neutral'],t=o.verdict==='ajuta'?cfg.ajuta:t0,d=o.descriptiv||{};return '<div class="proba-row"><div><b>'+o.k+' sesiuni'+(o.principal?' · principală':'')+'</b><small>'+R.esc(o.perioade+' din '+o.necesare+' perioade'+(o.perioade?' · '+o.pozitive+' pozitive · p = '+Number(o.p).toLocaleString('ro-RO',{maximumFractionDigits:3}):''))+'</small></div><span class="badge '+ton+'">'+R.esc(t)+'</span>'+(d.sus?.n||d.jos?.n?'<p>Descriptiv, nu dovadă: '+cfg.sus+' '+R.esc(procent(d.sus.medie))+' față de reper ('+d.sus.n+') · '+cfg.jos+' '+R.esc(procent(d.jos.medie))+' ('+d.jos.n+')'+(d.indeplineste?.n?' · 8 din 8 '+R.esc(procent(d.indeplineste.medie))+' ('+d.indeplineste.n+')':'')+'.</p>':'')+'</div>';};
+  return '<p class="window-note">Din '+R.esc(zi(j.inceput))+' · '+R.esc(String(j.zile))+(j.zile===1?' zi notată':' zile notate')+' · ultima '+R.esc(zi(j.ultimaZi))+' ('+R.esc(String(j.azi?.verificate??'—'))+' din '+R.esc(String(j.azi?.total??'—'))+' verificate, '+R.esc(String(cfg.azi(j)))+'). Motor '+R.esc(j.versiune||'—')+'.</p>'
+   +(vechi?'<p class="issue">Robotul nu a mai rulat din '+R.esc(R.time(Date.parse(j.ultimaRulare)))+'. Verifică GitHub → Actions → '+cfg.robot+'.</p>':'')
    +j.orizonturi.map(rand).join('')
-   +'<p class="window-note">Ipoteza: acțiunile cu 6–8 verificări bat reperul mai mult decât cele cu 5 sau mai puțin. Verdict abia după 8 perioade care nu se suprapun, cu testul semnelor (p ≤ 0,05). „Nu s-a văzut un avantaj” nu înseamnă „s-a dovedit că nu ajută”. <a href="https://github.com/mferent80-source/premarket_scanner.html/blob/main/docs/v1-proba-protocol.md" target="_blank" rel="noopener">Protocolul scris înainte de date ↗</a></p>';
+   +'<p class="window-note">Ipoteza: '+cfg.ipoteza+'. Verdict abia după 8 perioade care nu se suprapun, cu testul semnelor (p ≤ 0,05). „Nu s-a văzut un avantaj” nu înseamnă „s-a dovedit că nu ajută”. <a href="https://github.com/mferent80-source/premarket_scanner.html/blob/main/docs/'+cfg.doc+'" target="_blank" rel="noopener">Protocolul scris înainte de date ↗</a></p>';
  }
- async function proba(){if(typeof g.fetch!=='function')return;try{const r=await g.fetch('generated/v1-proba.json?x='+Date.now(),{cache:'no-store'});$('v1ProbaBody').innerHTML=probaHtml(r.ok?await r.json():null);}catch(_){$('v1ProbaBody').innerHTML=probaHtml(null);}}
+ async function proba(){if(typeof g.fetch!=='function')return;for(const [file,id,cfg] of [['v1-proba.json','v1ProbaBody',PROBA_V1],['premarket-proba.json','pmProbaBody',PROBA_PM]]){try{const r=await g.fetch('generated/'+file+'?x='+Date.now(),{cache:'no-store'});$(id).innerHTML=probaHtml(r.ok?await r.json():null,cfg);}catch(_){$(id).innerHTML=probaHtml(null,cfg);}}}
  document.addEventListener('click',event=>{const a=event.target.closest('[data-route]');if(!a||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;event.preventDefault();R.navigate(a.dataset.route,a.dataset.query||'');});
  $('scanForm').addEventListener('submit',scan);$('cancelIndependent').addEventListener('click',cancel);$('resultSearch').addEventListener('input',read);$('primaryMode').addEventListener('change',read);$('universeMode').addEventListener('change',universeDescription);$('manualSymbols').addEventListener('input',universeDescription);$('refreshResults').addEventListener('click',()=>{read();$('reportStatus').textContent=memoryReport?'Copii locale recitite; verdictul independent nesalvat a fost păstrat.':'Copii locale recitite.';});$('demoButton').addEventListener('click',demo);$('closeDemo').addEventListener('click',()=>{$('demoPanel').hidden=true;$('demoButton').focus();});g.addEventListener('storage',event=>{if(event.key===null||[R.PRIMARY_KEY,R.INDEPENDENT_KEY,'wl_stocks'].includes(event.key))read();});g.addEventListener('message',event=>{if(event.origin===location.origin&&event.source===parent&&event.data?.ttShellVisible===true){read();autoStart();}});document.addEventListener('visibilitychange',()=>{if(!document.hidden){read();autoStart();}});g.addEventListener('pagehide',()=>{running=null;cancel();});g.setInterval(()=>{if(!document.hidden)read();},60000);
  const requested=new URLSearchParams(location.search).get('symbol');if(requested&&R.symbol(requested.toUpperCase()))$('resultSearch').value=requested.toUpperCase();read();if(requested)document.querySelectorAll('.result-card').forEach(el=>{if(el.dataset.symbol===requested.toUpperCase())el.open=true;});rules();

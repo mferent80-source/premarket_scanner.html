@@ -153,3 +153,25 @@ test('run panel steps, the V1 filter and the only-different filter reflect the s
  f.independent.items[0].verdict='research_match';f.primary.momentum[0].actionable=true;ui.store.values.set(ui.R.INDEPENDENT_KEY,JSON.stringify(f.independent));ui.store.values.set(ui.R.PRIMARY_KEY,JSON.stringify(f.primary));ui.dom.node('onlyDifferent').checked=true;ui.dom.node('onlyDifferent').handlers.change();assert.match(ui.dom.node('comparisonRows').innerHTML,/Nicio comparație pentru acest filtru/);
  assert.equal(ui.store.writes.filter(k=>k!=='tt_piata_optiuni_v1').length,0,'citirea și filtrele nu scriu în copiile motoarelor');});
 test('stale reports never start a background scan before the page finished loading',()=>{const ui=scannerUI(),f=fixtures(ui.c);f.primary.updatedAt=f.now-ui.R.FRESH_MS-1;ui.store.values.set(ui.R.PRIMARY_KEY,JSON.stringify(f.primary));let started=0;ui.c.IndependentScanner={...ui.c.IndependentScanner,scan:async()=>{started++;return f.independent;}};ui.load();ui.dom.events.get('visibilitychange')();assert.equal(started,0);assert.equal(ui.dom.node('stepPrimary').dataset.state,'old');assert.match(ui.dom.node('stepCompareText').textContent,/de reverificat|Așteaptă/);});
+// audit 18.10: la deschiderea aplicației, scanarea din fundal a aplicației (universul Core) și Piață nu mai cer de două ori toate seriile.
+test('Piață waits for the app’s own background scan instead of starting a second full scan, and falls back to its frame if that scan stops empty',async()=>{
+ const time=clock('2026-10-14T10:00:00Z'),ui=scannerUI({clockDate:time.Date}),f=fixtures(ui.c);f.primary.updatedAt=f.now-ui.R.FRESH_MS-1;ui.store.values.set(ui.R.PRIMARY_KEY,JSON.stringify(f.primary));
+ let shellRunning=true,frames=0;ui.c.parent={ttBackgroundScan:{state:()=>({running:shellRunning})},postMessage(){}};ui.dom.document.createElement=()=>{frames++;return {remove(){}};};ui.dom.document.body={appendChild(){}};ui.c.clearInterval=()=>{};
+ ui.load();assert.equal(typeof ui.c.ttPiataPrimary,'function');assert.equal(ui.c.ttPiataPrimary(),false);
+ const sel=ui.dom.node('primaryUniverse');sel.value='core';sel.selectedOptions=[{textContent:'Core lichid + Watchlist'}];
+ const run=ui.dom.node('runPrimary').handlers.click();await tick();assert.equal(frames,0,'scanarea aplicației rulează deja: niciun cadru nou');assert.equal(ui.c.ttPiataPrimary(),true);
+ const timer=ui.intervals.at(-1).fn;timer();assert.match(ui.dom.node('stepPrimaryText').textContent,/scanarea pornită de aplicație/);
+ time.advance(5000);const fresh=fixtures(ui.c);ui.store.values.set(ui.R.PRIMARY_KEY,JSON.stringify(fresh.primary));shellRunning=false;timer();await run;await tick();
+ assert.equal(frames,0);assert.match(ui.dom.node('runStatus').textContent,/Premarket Scanner gata/);assert.equal(ui.c.ttPiataPrimary(),false);
+ ui.store.values.set(ui.R.PRIMARY_KEY,JSON.stringify(f.primary));shellRunning=true;const run2=ui.dom.node('runPrimary').handlers.click();await tick();assert.equal(frames,0);
+ shellRunning=false;ui.intervals.at(-1).fn();assert.equal(frames,1,'scanarea aplicației s-a oprit fără copie nouă ⇒ Piață pornește cadrul propriu');ui.dom.node('runStop').handlers.click();ui.intervals.at(-1).fn();await run2;
+});
+test('Piață shows the Premarket Top Long time test next to the V1 one, each with its own hypothesis and protocol',async()=>{
+ const ui=scannerUI(),o={k:20,principal:true,perioade:0,necesare:8,pozitive:0,p:1,verdict:'astept',descriptiv:{sus:{n:0},jos:{n:0}}};
+ const files={'v1-proba.json':{versiune:'experimental-1.0.0',inceput:'2026-10-16',zile:1,ultimaZi:'2026-10-16',ultimaRulare:new Date().toISOString(),azi:{verificate:82,total:85,sus:30},orizonturi:[o]},
+  'premarket-proba.json':{versiune:'pm-82e7354996ce',inceput:'2026-10-16',zile:1,ultimaZi:'2026-10-16',ultimaRulare:new Date().toISOString(),azi:{verificate:85,total:85,topLong:9},orizonturi:[{...o,verdict:'ajuta'}]}};
+ ui.c.setInterval=()=>0;ui.c.fetch=async u=>{const k=Object.keys(files).find(x=>u.startsWith('generated/'+x));return {ok:!!k,json:async()=>files[k]};};ui.load();for(let i=0;i<5;i++)await tick();
+ const pm=ui.dom.node('pmProbaBody').innerHTML,v1=ui.dom.node('v1ProbaBody').innerHTML;
+ assert.match(pm,/9 în Top Long/);assert.match(pm,/Top Long ajută/);assert.match(pm,/premarket-proba-protocol\.md/);assert.match(pm,/pm-82e7354996ce/);assert.doesNotMatch(pm,/6–8 verificări/);
+ assert.match(v1,/30 cu 6–8 verificări/);assert.match(v1,/v1-proba-protocol\.md/);assert.doesNotMatch(v1,/Top Long/);
+});
