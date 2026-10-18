@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../lib/plex.css?v=743">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=678">
 <link rel="stylesheet" href="../lib/capital-ui.css?v=678">
-<script src="../lib/suite-version.js?v=971"></script>
+<script src="../lib/suite-version.js?v=972"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -528,7 +528,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <div id="capLitePanel">
   <section class="panel">
     <h2>⚖ Capital — Lite</h2>
-    <p class="note" id="capLiteHint">—</p>
+    <p class="note" id="capLiteHint">—</p><p class="note" id="capAutoNote" role="status"></p>
     <div class="cap-hero" id="capLiteHero"></div>
     <div class="frm" style="margin-top:10px">
       <label>Equity $ (Trade212) <input id="jrSnapEqLite" type="number" min="1" step="1" placeholder="total cont"></label>
@@ -645,7 +645,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 </div>
 
 <div class="panel">
-  <h2>📋 Poziții deschise — risc agregat</h2>
+  <h2>📋 Poziții deschise — risc agregat (jurnal manual)</h2>
   <div id="jrPfTblWrap"><div class="empty">Deschide tab-ul sau apasă Scan — citesc OPEN din journal + prețuri live.</div></div>
 </div>
 
@@ -665,12 +665,12 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/account.js?v=26.10.18.1130"></script>
 <script src="../lib/finnhub-key.js?v=625"></script>
 <script src="../lib/suite-context.js?v=686"></script>
-<script src="../lib/trading212-snapshot.js?v=26.10.03.2316"></script><script src="../lib/storage-write.js?v=26.10.15.0547"></script>
+<script src="../lib/trading212-snapshot.js?v=26.10.03.2316"></script><script src="../europe-stocks/finance.js?v=26.10.06.2324"></script><script src="../lib/capital-auto.js?v=26.10.18.1400"></script><script src="../lib/storage-write.js?v=26.10.15.0547"></script>
 <script src="../lib/trading212-fills-store.js?v=26.10.15.0547"></script>
 <script src="../lib/trading212-context.js?v=26.10.15.0547"></script>
 <script src="../lib/execution-review.js?v=26.10.03.2316"></script><script src="../lib/trading212-journal.js?v=26.10.17.2200"></script>
 <script src="../lib/journal.js?v=26.10.04.0102"></script>
-<script src="../lib/suite-version.js?v=971"></script>
+<script src="../lib/suite-version.js?v=972"></script>
 <script src="../lib/journal-insights.js?v=625"></script>
 <script src="../lib/tracker.js?v=26.10.04.0102"></script>
 <script src="../lib/telegram.js?v=625"></script>
@@ -689,7 +689,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/indicators.js?v=plans-audit"></script>
 <script src="../lib/setup-levels.js?v=26.10.04.0102"></script>
 <script src="../lib/setup-builder.js?v=26.10.18.1100"></script>
-<script src="../lib/portfolio-risk.js?v=26.10.18.1100"></script>
+<script src="../lib/portfolio-risk.js?v=26.10.18.1400"></script>
 <script src="../lib/journal-workspace.js?v=26.10.18.1100"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
@@ -1761,6 +1761,8 @@ function setJTab(name, options){
     window.parent.postMessage({ ttModuleState: { module: 'journal/', hash: hashBase } }, location.origin);
   }
   if (name === 'portfolio' && window.PF) PF.onTabActivate();
+  /* 18.10.2026: pe Portofoliu · risc, tabelul pozițiilor reale T212 (pondere, stop, risc la stop) e deschis, nu pliat */
+  if (name === 'portfolio') document.querySelectorAll('[data-t212-capital] details').forEach(d => { d.open = true; });
   if (name === 'setup' && window.SB) {
     window.SB.renderSignalJournal();
     if (window.SB.onSetupTabActivate) window.SB.onSetupTabActivate();
@@ -1826,6 +1828,22 @@ if (window.JWS) {
 }
 renderReconcileChip();
 try { renderAll(); } catch (e) { console.error('renderAll', e); }
+/* 18.10.2026 (el: „poți face”): Mișcări de capital se completează singur — un snapshot pe zi din valoarea contului Trading 212,
+   în USD la cursul BCE verificat (lib/capital-auto.js). Rulează la deschidere și la fiecare citire nouă a contului. */
+let capitalAutoBusy = false;
+async function capitalAuto(){
+  if (capitalAutoBusy || !window.CapitalAuto) return;
+  capitalAutoBusy = true;
+  try {
+    const r = await CapitalAuto.run({ EQ: window.EQ, ACCT: window.ACCT, T212Snapshot: window.T212Snapshot, Finance: window.EuropeFinance });
+    const n = $('capAutoNote'); if (n) n.textContent = 'Trading 212 automat: ' + r.detail;
+    if (r.status === 'saved') renderAll();
+  } catch (e) { const n = $('capAutoNote'); if (n) n.textContent = 'Trading 212 automat: snapshot-ul nu s-a putut face (' + ((e && e.message) || 'eroare') + ').'; }
+  finally { capitalAutoBusy = false; }
+}
+window.addEventListener('storage', e => { if (e.key === 'tt_trading212_portfolio_v1') capitalAuto(); });
+setTimeout(capitalAuto, 1500);
+
 function hashToJTab(h){
   const x = (h || '').replace('#', '').split('&')[0];
   if (x === 'raport' || x === 'capital' || x === 'exec' || x === 'desk' || x === 'portfolio' || x === 'setup') return x;
@@ -1881,7 +1899,7 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = 'tt-v971';
+  var ver = 'tt-v972';
   var full = window.SUITE_VERSION || 'tt-v625-2026-07-12';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
@@ -1915,7 +1933,7 @@ document.addEventListener('click', ev => {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v971';
+  var PAGE_VER = 'tt-v972';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
