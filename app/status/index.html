@@ -4,14 +4,31 @@
 <section class="card"><h2>Market Breadth</h2><div class="value" id="breadth">Verific…</div><p id="breadthText"></p></section>
 <section class="card"><h2>Trading 212 Invest</h2><div class="value" id="broker">Verific…</div><p id="brokerText"></p></section><section class="card"><h2>PC ↔ telefon</h2><div class="value" id="cloud">Verific…</div><p id="cloudText"></p></section>
 <section class="card"><h2>Stocare locală</h2><div class="value" id="storage">Verific…</div><p>Planurile și jurnalul sunt păstrate în acest browser. Exportă periodic datele importante.</p></section>
-<section class="card"><h2>Fișierele aplicației</h2><div class="value" id="modules">Verific…</div><p id="moduleText">Accesibilitatea fișierelor nu garantează disponibilitatea furnizorilor de cotații.</p><details><summary>Rezultatul fiecărui modul</summary><output id="moduleChecks" style="white-space:pre-line;overflow-wrap:anywhere"></output></details></section></div>
+<section class="card"><h2>Fișierele aplicației</h2><div class="value" id="modules">Verific…</div><p id="moduleText">Accesibilitatea fișierelor nu garantează disponibilitatea furnizorilor de cotații.</p><details><summary>Rezultatul fiecărui modul</summary><output id="moduleChecks" style="white-space:pre-line;overflow-wrap:anywhere"></output></details></section><section class="card"><h2>Roboții zilnici</h2><div class="value" id="robots">Verific…</div><p id="robotsText">Datele făcute de roboții de pe GitHub după închiderea pieței: verdictul pieței, clasificatorul, Trend 12 luni, probele în timp și calendarul Europa.</p><details><summary>Data fiecărui robot</summary><output id="robotChecks" style="white-space:pre-line;overflow-wrap:anywhere"></output></details></section></div>
 <div class="note">Un raport STALE sau o sursă indisponibilă nu devine semnal de intrare. Confirmă prețurile, volumul și rezultatele financiare înaintea unui plan.</div><div class="actions"><button id="scanner">DESCHIDE SCANNERUL</button><button id="copy">COPIAZĂ RAPORTUL</button></div><output id="message" aria-live="polite"></output></main>
 <script src="../../lib/trading212-snapshot.js?v=26.10.03.2316"></script><script src="../../lib/breadth.js?v=20261002c"></script>
 <script>
 (function () {
   'use strict';
   var report = {}, cloudState = null;
-  var labels = {scan:'Scanare', storage:'Stocare', breadth:'Market Breadth', broker:'Trading 212', cloud:'PC ↔ telefon', modules:'Module'};
+  var labels = {scan:'Scanare', storage:'Stocare', breadth:'Market Breadth', broker:'Trading 212', cloud:'PC ↔ telefon', modules:'Module', robots:'Roboții zilnici'};
+  /* 18.10.2026 (revizia „Starea datelor”): roboții zilnici alimentează Astăzi, Long & Reversal, Piață și Europa; unul oprit nu mai tace.
+     Data fiecăruia se compară cu ziua de azi la New York; în urmă cu 2+ zile lucrătoare (a sărit o sesiune) = VECHI. */
+  var robots = [
+    ['Verdictul pieței', '../../candidate-engine/generated/verdict-piata.json', 'asOf', 'EOD'],
+    ['Clasificator Long / Hold / Short', '../../candidate-engine/generated/clasificator.json', 'asOf', 'EOD'],
+    ['Trend 12 luni', '../../candidate-engine/generated/trend-12-1.json', 'dataUltimei', 'EOD'],
+    ['Proba Reguli V1', '../../scanner-verdicts/generated/v1-proba.json', 'ultimaZi', 'EOD'],
+    ['Proba Top Long (Premarket)', '../../scanner-verdicts/generated/premarket-proba.json', 'ultimaZi', 'EOD'],
+    ['Calendar rezultate Europa', '../../europe-stocks/calendar.json', 'generatedAt', 'actualizat']
+  ];
+  function nyDay(t) { try { return new Intl.DateTimeFormat('en-CA', {timeZone:'America/New_York', year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date(t)); } catch (_) { return new Date(t).toISOString().slice(0, 10); } }
+  function weekdaysBehind(day) {
+    var d = new Date(day + 'T12:00:00Z'), end = new Date(nyDay(Date.now()) + 'T12:00:00Z'), n = 0;
+    if (!isFinite(d.getTime())) return null;
+    while (d < end && n < 60) { d.setUTCDate(d.getUTCDate() + 1); if (d.getUTCDay() % 6) n++; }
+    return n;
+  }
   var modules = [
     ['Decision Desk', '../../desk/'], ['Long & Reversal', '../../candidate-engine/'],
     ['Performance Control', '../../journal/'], ['Simulări', '../../shadow-book/'],
@@ -132,19 +149,36 @@
     document.getElementById('moduleText').textContent = failed.length ? 'Inaccesibile: ' + failed.map(function (module) { return module.name; }).join(', ') + '. Deschide rezultatul fiecărui modul pentru detalii.' : 'Toate modulele au răspuns. Accesibilitatea fișierelor nu garantează disponibilitatea furnizorilor de cotații.';
     document.getElementById('moduleChecks').textContent = results.map(function (module) { return module.name + ' — ' + module.detail; }).join('\n');
   }
+  async function checkRobots() {
+    var results = await Promise.all(robots.map(async function (r) {
+      try {
+        var response = await bounded(function (signal) { return fetch(r[1] + '?x=' + Date.now(), {cache:'no-store', signal:signal}); });
+        if (!response.ok) return {name:r[0], ok:false, detail:'HTTP ' + response.status};
+        var j = await response.json(), raw = j && j[r[2]], day = typeof raw === 'string' ? raw.slice(0, 10) : '';
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return {name:r[0], ok:false, detail:'fișier fără dată'};
+        var behind = weekdaysBehind(day);
+        return {name:r[0], ok:behind !== null && behind <= 1, detail:r[3] + ' ' + day.split('-').reverse().join('.') + (behind > 1 ? ' · VECHI, în urmă cu ' + behind + ' zile lucrătoare' : '')};
+      } catch (error) { return {name:r[0], ok:false, detail:error.message || 'nu a răspuns'}; }
+    }));
+    var bad = results.filter(function (r) { return !r.ok; });
+    report.robotChecks = results;
+    set('robots', bad.length ? bad.length + ' VECHI' : results.length + ' / ' + results.length + ' LA ZI', bad.length > 0);
+    document.getElementById('robotsText').textContent = bad.length ? 'De verificat: ' + bad.map(function (r) { return r.name; }).join(', ') + '. Datele vechi rămân afișate în pagini cu data lor; vezi GitHub → Actions pentru robotul oprit.' : 'Toți roboții au rulat pentru ultima sesiune de bursă.';
+    document.getElementById('robotChecks').textContent = results.map(function (r) { return r.name + ' — ' + r.detail; }).join('\n');
+  }
   async function run() {
     var button = document.getElementById('run');
     if (button.disabled) return;
     button.disabled = true;
     report = {checkedAt:new Date().toISOString(), checks:{}};
     Object.keys(labels).forEach(function (id) { set(id, 'Verific…', true); });
-    ['scanText','breadthText','brokerText','cloudText','moduleChecks'].forEach(function (id) { document.getElementById(id).textContent = ''; });
+    ['scanText','breadthText','brokerText','cloudText','moduleChecks','robotChecks'].forEach(function (id) { document.getElementById(id).textContent = ''; });
     document.getElementById('moduleText').textContent = 'Verific fiecare modul în parte.';
     document.getElementById('message').textContent = '';
     window.TTDecisionPanel?.set({purpose:'operations', context:{ready:false, reason:'Verificările surselor sunt în curs.', next:'Așteaptă rezultatul fiecărei surse.'}});
     try {
       checkScan(); checkStorage(); checkBroker();
-      await Promise.allSettled([checkBreadth(), checkCloud(), checkModules()]);
+      await Promise.allSettled([checkBreadth(), checkCloud(), checkModules(), checkRobots()]);
     } finally {
       report.finishedAt = new Date().toISOString();
       button.disabled = false;

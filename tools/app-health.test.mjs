@@ -73,3 +73,17 @@ test('health follows delayed cloud readiness and session changes instead of free
  el.message({ready:true,connected:true},{origin:'https://foreign.test'});assert.equal(el('cloud').textContent,'NECONECTAT');
  el.message({ready:true,connected:true},{source:{}});assert.equal(el('cloud').textContent,'NECONECTAT');
 });
+
+// 18.10.2026 (revizia „Starea datelor”): roboții zilnici (verdictul pieței, clasificatorul, Trend 12 luni, probele V1 și Top Long,
+// calendarul Europa) alimentează aplicația; dacă unul se oprește, pagina trebuie s-o spună, nu să tacă.
+test('daily robots: each data file is listed with its date; one more than a trading day behind is flagged VECHI and named', async () => {
+  const azi = new Date(), ieri = new Date(azi), vechi = new Date(azi);
+  const zile = (d, n) => { let k = 0; while (k < n) { d.setUTCDate(d.getUTCDate() - 1); if (d.getUTCDay() % 6) k++; } return d.toISOString().slice(0, 10); };
+  const f1 = zile(ieri, 1), f2 = zile(vechi, 4);
+  const date = { 'verdict-piata.json': { asOf: f1, generat: f1 + 'T13:00:00Z' }, 'clasificator.json': { asOf: f2 }, 'trend-12-1.json': { dataUltimei: f1 }, 'v1-proba.json': { ultimaZi: f1 }, 'premarket-proba.json': { ultimaZi: f1 }, 'calendar.json': { generatedAt: f1 + 'T11:00:00Z' } };
+  const el = await setup(null, {}, null, { fetch: async (path) => { const k = Object.keys(date).find((x) => String(path).includes(x)); return { ok: true, status: 200, json: async () => (k ? date[k] : { enabled: false }) }; } });
+  assert.equal(el('robots').textContent, '1 VECHI'); assert.match(el('robotsText').textContent, /Clasificator/);
+  assert.match(el('robotChecks').textContent, /Verdictul pieței — EOD/); assert.equal(el('verdict').report.context.evidence.find((e) => e.id === 'robots').role, 'unknown');
+  const ok = await setup(null, {}, null, { fetch: async (path) => ({ ok: true, status: 200, json: async () => { const k = Object.keys(date).find((x) => String(path).includes(x)); return k === 'clasificator.json' ? { asOf: f1 } : k ? date[k] : { enabled: false }; } }) });
+  assert.equal(ok('robots').textContent, '6 / 6 LA ZI');
+});
