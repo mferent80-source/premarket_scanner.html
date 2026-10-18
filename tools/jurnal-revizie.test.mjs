@@ -88,3 +88,26 @@ test('Europe: returning to a parked page rescans stale results (older than 5 min
   assert.doesNotMatch(src, /ttShellVisible;if\(visible\(\)&&!state\.updatedAt\)scan\(\)/);
   assert.match(src, /deschisă din aplicație se sincronizează/);
 });
+
+// Etapa 4 (Shadow): „Verdict filtre” declara „filtru util / costisitor” doar după semnul mediei de la 10 evaluări, fără test —
+// evaluările din aceeași zi se mișcă împreună (30 de semnale dintr-o zi ≠ 30 de dovezi). Acum: testul semnelor pe ZILE (media pe zi),
+// cel puțin 12 zile și p ≤ 0,05 bilateral pentru „probat”; altfel verdictul e descriptiv, „neprobat”.
+function shadow(rows) {
+  const store = new Map([['tt_shadow_book_v1', JSON.stringify(rows)]]);
+  const c = { console, JSON, Date, Math, localStorage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) } };
+  c.window = c; vm.createContext(c); vm.runInContext(readFileSync('lib/shadow.js', 'utf8'), c); return c.SH;
+}
+function mulberry32(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const randuri = (rnd, { zile = 20, pe = 3, efect = 0, filtru = 'RVOL' } = {}) => { const out = []; for (let d = 0; d < zile; d++) { const day = '2026-09-' + String(d + 1).padStart(2, '0'), zi = (rnd() - 0.5) * 6; for (let i = 0; i < pe; i++) out.push({ id: day + filtru + i, day, sym: 'S' + i, blockedBy: filtru, price: 100, evalPct: zi + (rnd() - 0.5) * 2 + efect, evalMethod: 'daily-stop-v2' }); } return out; };
+test('Shadow: one day of many signals is not evidence — a filter verdict is “unproven” unless the day-level sign test passes', () => {
+  const SH0 = shadow([]); if (typeof SH0.filterEdge !== 'function') throw Error('SH lipsă');
+  const oZi = Array.from({ length: 30 }, (_, i) => ({ id: 'z' + i, day: '2026-09-01', sym: 'S' + i, blockedBy: 'RVOL', price: 100, evalPct: -1, evalMethod: 'daily-stop-v2' }));
+  const e1 = shadow(oZi).filterEdge()[0]; assert.match(e1.verdict, /neprobat/); assert.equal(e1.days, 1);
+  const tare = randuri(mulberry32(7), { zile: 20, efect: -8 }), e2 = shadow(tare).filterEdge()[0];
+  assert.match(e2.verdict, /util \(probat/); assert.ok(e2.pDays <= 0.05);
+});
+test('Shadow: the day-level sign test claims “proven” in at most 5% of random worlds with no effect (size checked by simulation)', () => {
+  let fals = 0; const N = 400;
+  for (let s = 1; s <= N; s++) { const e = shadow(randuri(mulberry32(100 + s), { zile: 20 })).filterEdge()[0]; if (/probat/.test(e.verdict) && !/neprobat/.test(e.verdict)) fals++; }
+  assert.ok(fals / N <= 0.05, 'dovezi false: ' + (100 * fals / N).toFixed(1) + '%');
+});
