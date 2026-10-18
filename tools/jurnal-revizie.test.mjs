@@ -73,6 +73,10 @@ test('the 10,000 starting value is not the account: ACCT.known() is false until 
   c.window = c; vm.createContext(c); vm.runInContext(readFileSync('lib/account.js', 'utf8'), c);
   assert.equal(c.ACCT.get().source, 'default'); assert.equal(c.ACCT.known(), false);
   store.set('tt_account_size_v1', '12670'); assert.equal(c.ACCT.known(), true); assert.equal(c.ACCT.get().value, 12670);
+  // pe site: migrate() SALVEAZĂ valoarea de pornire (momentul contabil) — tot necunoscută rămâne, până la un capital adevărat
+  store.clear(); c.ACCT.migrate(); assert.equal(c.ACCT.get().value, 10000); assert.equal(c.ACCT.known(), false, 'valoarea de pornire salvată nu e capital');
+  c.ACCT.migrate(); assert.equal(c.ACCT.known(), false, 'reîncărcarea nu o face cunoscută');
+  c.ACCT.syncAll(12670, 'portfolio'); assert.equal(c.ACCT.known(), true); c.ACCT.migrate(); assert.equal(c.ACCT.known(), true, 'capitalul pus rămâne cunoscut');
   const h = readFileSync('journal/index.html', 'utf8'); assert.doesNotMatch(h, /id="setupAccount"[^>]*value="10000"/);
   assert.match(readFileSync('lib/journal-workspace.js', 'utf8'), /Nu afișăm o sumă inventată/); assert.match(readFileSync('lib/portfolio-risk.js', 'utf8'), /g\.source === 'default' \? ''/);
 });
