@@ -36,6 +36,9 @@ test('the version is a fingerprint of the ranking rules: same code ⇒ same vers
   assert.equal(versiune(f), versiune({ ...f })); assert.match(versiune(f), /^pm-[0-9a-f]{12}$/);
   assert.notEqual(versiune({ ...f, momentumScore: () => 1 }), versiune(f));
   assert.throws(() => versiune({ ...f, capSectors: undefined }), /capSectors/);
+  // copia Windows (CRLF) și robotul GitHub (LF) dau aceeași versiune pentru același cod
+  const cu = (eol) => { const fn = function () {}; fn.toString = () => ['function analyze() {', '  return 1;', '}'].join(eol); return { ...f, analyze: fn }; };
+  assert.equal(versiune(cu('\r\n')), versiune(cu('\n')));
 });
 test('SIZE: with no edge, “Top Long helps” appears in at most 5% of random worlds', () => {
   let fals = 0, cu8 = 0; const N = 600;
