@@ -5,7 +5,8 @@
   var CACHE_KEY = 'ce_results_v2';
   var demoMode = new URLSearchParams(location.search).get('demo') === '1';
   // 18.10.2026: pagina Piață rulează motorul într-o fereastră ascunsă (?fundal=1&univers=…): o singură scanare, fără reluarea la 5 minute
-  var fundal = new URLSearchParams(location.search).get('fundal') === '1', universCerut = new URLSearchParams(location.search).get('univers');
+  // 18.10.2026 (audit): cadrul ascuns al aplicației trimite ?background=1 — aceeași regulă: o scanare, fără ceasul de 5 minute
+  var fundal = (new URLSearchParams(location.search).get('fundal') || new URLSearchParams(location.search).get('background')) === '1', universCerut = new URLSearchParams(location.search).get('univers');
   var requested = new URLSearchParams(location.search).get('symbol');
   requested = /^[A-Z0-9][A-Z0-9.-]{0,14}$/.test(requested||'')?requested:null;
   var requestedMode = new URLSearchParams(location.search).get('mode') === 'reversal'?'reversal':'momentum';
@@ -42,6 +43,20 @@
     var s = Math.max(0, Math.round((Date.now() - ts) / 1000));
     if (s < 60) return s + 's';
     return Math.round(s / 60) + 'm';
+  }
+  // 18.10.2026 (audit): vârsta rezultatelor se recalculează (la fiecare randare și la 30 s), nu rămâne „actualizat acum” oricât ar trece
+  function vechime(ts) {
+    var min = Math.floor(Math.max(0, Date.now() - ts) / 60000);
+    return min < 1 ? 'acum' : min < 60 ? 'acum ' + min + ' min' : 'acum ' + Math.floor(min / 60) + ' h ' + (min % 60) + ' min';
+  }
+  function etichete() {
+    if (state.hasScan && state.verified && state.updatedAt && !state.scanning) {
+      $('updatedAt').textContent = 'actualizat ' + vechime(state.updatedAt);
+      $('ctxFreshness').textContent = 'EOD verificat · scanat ' + vechime(state.updatedAt);
+    }
+    if (state.scanning) $('nextScan').textContent = 'scanarea rulează singură';
+    else if (fundal) $('nextScan').textContent = 'o singură scanare, în fundal';
+    else if (state.nextAt) { var m = Math.max(0, Math.ceil((state.nextAt - Date.now()) / 60000)); $('nextScan').textContent = m ? 'următorul scan în ' + m + ' min' : 'următorul scan acum'; }
   }
   function regionOf(sym) { return EU_CORE.indexOf(sym) >= 0 || /\.(DE|PA|AS|CO|MU|MI|L|SW)$/i.test(sym) ? 'EU' : 'US'; }
   function unique(arr) { return Array.from(new Set(arr.map(function (s) { return String(s || '').trim().toUpperCase(); }).filter(Boolean))); }
@@ -289,6 +304,7 @@
   function progress(done, total) {
     $('progress').style.width = (total ? Math.round(done / total * 100) : 0) + '%';
     $('ctxScanned').textContent = done + ' / ' + total;
+    var rp = $('rowsProgress'); if (rp) rp.textContent = done + ' / ' + total;
   }
   function topSectors(items) {
     var c = {}; items.forEach(function (x) { c[x.sector] = (c[x.sector] || 0) + 1; });
@@ -315,7 +331,7 @@
     if (!validateDeps()) { showAlert('Lipsesc biblioteci critice din lib/. Scanarea a fost oprită.', true); return; }
     var token=++state.generation;
     loadTrend();
-    setScanning(true); showAlert(''); progress(0, 1); state.failures = [];state.verified=0;state.sectorPending=false;
+    setScanning(true); showAlert(''); progress(0, 1); state.failures = [];state.verified=0;state.sectorPending=false;render();
     try {
       if ($('universe').value === 'screener' && !(await loadScreenerUnivers())) showAlert('Lista screenerului (generated/univers-sua.json) nu s-a putut citi — scanez lista de mână (Core SUA) până revine robotul.');
       var list = universe(); state.scanKey=JSON.stringify([$('universe').value,list]);state.scanned=list.length;$('ctxUniverse').textContent = list.length + ' simboluri';
@@ -338,8 +354,7 @@
       $('ctxSectors').textContent = topSectors(state[state.mode]);
       var gs = window.GV && GV.status ? GV.status() : null;
       $('ctxGovernor').textContent = gs ? gs.verdict : 'indisponibil';
-      $('ctxFreshness').textContent = state.verified?'EOD verificat · scan ' + ageText(state.updatedAt):'Nicio serie verificată';
-      $('updatedAt').textContent = 'actualizat acum';
+      $('ctxFreshness').textContent = 'Nicio serie verificată'; $('updatedAt').textContent = 'actualizat acum';   // etichete() le înlocuiește când există serii verificate
       if (state.failures.length) showAlert(state.failures.length + ' simboluri nu au răspuns; au fost excluse, nu înlocuite cu date vechi.');
       if(!list.length)showAlert('Watchlist-ul selectat este gol. Alege Core lichid, SUA sau Europa pentru scanare.');
       if(gs&&!['TRADE','CAUTION'].includes(gs.verdict))showAlert('Governor '+gs.verdict+': '+((gs.reasons||[])[0]||'verifică limitele contului')+'. Candidații tehnici rămân vizibili; planurile noi sunt blocate.');
@@ -353,7 +368,7 @@
       setScanning(false);
       if(!currentItems().length)render();
       coverage();
-      schedule();
+      if (!fundal) schedule(); else etichete();
     }
   }
 
@@ -577,6 +592,7 @@
   function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]; }); }
 
   function render() {
+    etichete();
     tableHead();
     coverage();
     notaTrend();
@@ -590,7 +606,7 @@
     if (!items.length) {
       var query=$('search').value.trim(),only=$('onlyActionable').checked;
       $('rows').innerHTML = '<div class="ce-empty"><b>'+(state.scanning?'Scanarea este în curs':!state.hasScan?'Scanarea se pregătește':!state.verified?'Nicio serie verificată':'Niciun candidat pentru filtrele curente')+'</b>'
-        +(query?'Căutarea „'+escapeHtml(query)+'” nu are rezultate în selecția curentă. Resetează filtrele.':only?'Filtrul „doar confirmate” ascunde candidații de monitorizare și cei cu plan blocat. Resetează filtrele pentru a-i vedea.':!state.verified?'Vezi Acoperire pentru erorile surselor sau schimbă universul scanat.':'Seriile au fost verificate, dar nu trec criteriile acestei strategii. Verifică Acoperire sau schimbă între Top Long și Early Reversal.')+'</div>';
+        +(state.scanning?'Pornită singură: verific prețurile, trendul și indicii de comparație (<span id="rowsProgress">'+escapeHtml($('ctxScanned').textContent||'')+'</span>). Rezultatele apar aici la final.':query?'Căutarea „'+escapeHtml(query)+'” nu are rezultate în selecția curentă. Resetează filtrele.':only?'Filtrul „doar confirmate” ascunde candidații de monitorizare și cei cu plan blocat. Resetează filtrele pentru a-i vedea.':!state.verified?'Vezi Acoperire pentru erorile surselor sau schimbă universul scanat.':'Seriile au fost verificate, dar nu trec criteriile acestei strategii. Verifică Acoperire sau schimbă între Top Long și Early Reversal.')+'</div>';
       state.selected = null; renderDetail(null); return;
     }
     state.selected=items.find(function(x){return x.symbol===state.selected?.symbol&&x.mode===state.selected?.mode;})||items[0];
@@ -646,14 +662,13 @@
       $('ctxSectors').textContent = topSectors(state[state.mode]);
       var gs = window.GV && GV.status ? GV.status() : null;
       $('ctxGovernor').textContent = gs ? gs.verdict : 'indisponibil';
-      $('ctxFreshness').textContent = 'cache · ' + ageText(c.updatedAt);
-      $('updatedAt').textContent = 'cache · ' + ageText(c.updatedAt); render();coverage();
+      render();coverage();
     } catch (_) {}
   }
   function schedule() {
     clearTimeout(state.timer);
     state.timer = setTimeout(function () { if (!document.hidden && state.shellVisible) scan(); else schedule(); }, SCAN_MS);
-    $('nextScan').textContent = 'următorul scan în 5 min';
+    state.nextAt = Date.now() + SCAN_MS; etichete();
   }
   function bind() {
     $('scanBtn').onclick = scan; $('universe').onchange = function () {state.generation++;state.analyses=[];state.momentum=[];state.reversal=[];state.selected=null;state.hasScan=false;state.updatedAt=0;state.verified=0;rankResults();render();scan();};
@@ -678,7 +693,8 @@
     window.addEventListener('message', function (e) {
       if (e.origin !== location.origin || !e.data || typeof e.data.ttShellVisible !== 'boolean') return;
       state.shellVisible = e.data.ttShellVisible;
-      if (state.shellVisible && !state.updatedAt) scan();
+      // audit 18.10: la revenirea în pagina parcată rescanează dacă rezultatele au peste 5 minute (înainte: doar când lipseau de tot)
+      if (state.shellVisible && Date.now() - state.updatedAt > SCAN_MS) scan();
     });
     document.addEventListener('visibilitychange', function () { if (!document.hidden && state.shellVisible && Date.now() - state.updatedAt > SCAN_MS) scan(); });
   }
@@ -698,4 +714,5 @@
   if(requested){$('search').value=requested;document.querySelectorAll('.ce-mode').forEach(function(b){b.classList.toggle('active',b.dataset.mode===state.mode);});showAlert('Validare intraday pentru '+requested+' · rulăm universul curent și tickerul solicitat. Ideea EOD nu este o intrare confirmată.');}
   if (!fundal) schedule();
   setTimeout(scan, 400);
+  if (typeof setInterval === 'function') setInterval(etichete, 30000);
 })();
