@@ -111,3 +111,20 @@ test('Shadow: the day-level sign test claims “proven” in at most 5% of rando
   for (let s = 1; s <= N; s++) { const e = shadow(randuri(mulberry32(100 + s), { zile: 20 })).filterEdge()[0]; if (/probat/.test(e.verdict) && !/neprobat/.test(e.verdict)) fals++; }
   assert.ok(fals / N <= 0.05, 'dovezi false: ' + (100 * fals / N).toFixed(1) + '%');
 });
+
+// 18.10.2026 (el a ales „A · Verdictul pieței”): sursa nouă a filtrului de piață din constructorul de setup — verdictul robotului zilnic.
+// favorabil / neutru ×1 · prudent ×0,75 · defensiv ×0,5 fără GO; verdict peste 4 zile sau lipsă = neverificat (×0,75, fără GO).
+test('Setup: the market verdict sets sizing and GO permission (table A); an old or missing verdict stays unverified', () => {
+  const azi = new Date().toISOString().slice(0, 10), vechi = new Date(Date.now() - 9 * 86400000).toISOString().slice(0, 10);
+  const cu = (v) => { const S = sb(); S.setVerdict(v); return S; };
+  const d = (v) => cu(v).readDanger();
+  assert.deepEqual([d({ label: 'defensiv', score: -3, asOf: azi }).mult, d({ label: 'defensiv', score: -3, asOf: azi }).go], [0.5, false]);
+  assert.deepEqual([d({ label: 'prudent', score: -1, asOf: azi }).mult, d({ label: 'prudent', score: -1, asOf: azi }).go], [0.75, true]);
+  assert.deepEqual([d({ label: 'neutru', score: 0, asOf: azi }).mult, d({ label: 'neutru', score: 0, asOf: azi }).go], [1, true]);
+  assert.deepEqual([d({ label: 'favorabil', score: 3, asOf: azi }).mult, d({ label: 'favorabil', score: 3, asOf: azi }).go], [1, true]);
+  const v = d({ label: 'favorabil', score: 3, asOf: vechi }); assert.equal(v.go, false); assert.equal(v.score, null); assert.equal(sb().dangerSizeMult(v.score), 0.75);
+  const S = sb();
+  assert.equal(S.computeVerdict(2.5, false, 6, 6, { go: true }, null, null).verdict, 'GO');
+  assert.notEqual(S.computeVerdict(2.5, false, 6, 6, { go: false }, null, null).verdict, 'GO');
+  assert.equal(S.computeVerdict(2.5, false, 6, 6, 30, null, null).verdict, 'GO', 'un Danger Score proaspăt rămâne valabil');
+});
