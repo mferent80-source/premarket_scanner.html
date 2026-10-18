@@ -90,7 +90,7 @@ test('frozen pre-entry captures reconcile PC and phone through real encrypted D1
 test('Radar read key and Radar password follow the account: a wiped phone gets them back and a local loss never erases the cloud copy',async()=>{
  const server=await service();try{
   const cheie='CheieDeCitireDeProba0123456789ab',parola='Parola.Proba';
-  const pc=await device(server,{local:{radar_cheie:cheie,radar_parola:parola}});await pc.signIn();assert.equal(pc.api.state().error,'');assert.ok(pc.api.state().supportedKeys.includes('tt_radar_access_v1'));
+  const pc=await device(server,{local:{radar_cheie:cheie,radar_cheie_ok:cheie.slice(0,8),radar_parola:parola}});await pc.signIn();assert.equal(pc.api.state().error,'');assert.ok(pc.api.state().supportedKeys.includes('tt_radar_access_v1'));
   const phone=await device(server);await phone.signIn();assert.equal(phone.api.state().error,'');
   assert.equal(phone.storage.get('radar_cheie'),cheie);assert.equal(phone.storage.get('radar_parola'),parola);
   const packets=server.sqlite.prepare('SELECT packet FROM cloud_records').all().map(r=>r.packet).join('');assert.ok(!packets.includes(cheie)&&!packets.includes(parola),'criptate în baza de date');
@@ -99,6 +99,9 @@ test('Radar read key and Radar password follow the account: a wiped phone gets t
   assert.equal(phone.storage.get('radar_cheie'),cheie,'cheia ștearsă de pe telefon revine din cont');assert.equal(phone.storage.get('radar_parola'),parola);
   phone.storage.delete('radar_cheie');await phone.api.sync();await pc.api.sync();assert.equal(pc.storage.get('radar_cheie'),cheie,'o ștergere locală nu șterge copia din cont');
   phone.storage.set('radar_parola','Parola.Noua');await phone.api.sync();await pc.api.sync();assert.equal(pc.storage.get('radar_parola'),'Parola.Noua','o parolă schimbată ajunge pe celălalt dispozitiv');
+  // un dispozitiv cu o cheie VECHE, niciodată acceptată de worker (fără marcaj), n-o urcă — primește cheia bună din cont
+  const vechi=await device(server,{local:{radar_cheie:'CheieVecheRespinsa0123456789abcd',radar_parola:parola}});await vechi.signIn();
+  assert.equal(vechi.storage.get('radar_cheie'),cheie,'cheia veche e înlocuită cu cea verificată');await pc.api.sync();assert.equal(pc.storage.get('radar_cheie'),cheie,'cheia veche nu a ajuns pe PC');
   assert.throws(()=>validateValue('tt_radar_access_v1',{cheie:'scurta',parola:''}),/invalid/);assert.throws(()=>validateValue('tt_radar_access_v1',{cheie:'',parola:''}),/invalid/);
  }finally{server.sqlite.close();}
 });

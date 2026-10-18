@@ -12,7 +12,7 @@ function pagina(href) {
     history: { replaceState: (a, b, u) => istoric.push(u) }, navigator: { storage: { persist: async () => { cereri.persist++; return true; } } },
     localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) } };
   c.window = c; vm.createContext(c); vm.runInContext(readFileSync('lib/radar-poza.js', 'utf8') + ';window.RadarPoza=RadarPoza;', c);
-  return { RP: c.RadarPoza, store, cereri, istoric };
+  return { RP: c.RadarPoza, store, cereri, istoric, ctx: c };
 }
 test('starting the Radar card asks the browser for persistent storage, so a low-space phone does not wipe the key', () => {
   const p = pagina('https://mferent80-source.github.io/premarket_scanner.html/alerts/'); p.RP.porneste({});
@@ -23,6 +23,13 @@ test('one tap on the setup link stores the read key AND the Radar password (dot 
   p.RP.porneste({});
   assert.equal(p.store.get('radar_cheie'), 'CheieFalsaDeProba0123456789abcdef'); assert.equal(p.store.get('radar_parola'), '1908Proba.');
   assert.ok(p.istoric.length && !/cheie=|parola=/.test(p.istoric.at(-1)), 'nu rămân în bara de adrese');
+});
+test('a key the worker accepts is marked verified (only verified keys go to the account); a rejected key loses the mark', async () => {
+  const p = pagina('https://mferent80-source.github.io/premarket_scanner.html/alerts/'), K = 'CheieFalsaDeProba0123456789abcdef';
+  p.store.set('radar_cheie', K); let status = 200;
+  const ctx = p.ctx; ctx.fetch = async () => ({ status, ok: status === 200, json: async () => ({ la: Date.now() }), headers: { get: () => null } });
+  await p.RP.citeste({ fortat: true, acum: Date.parse('2026-10-19T10:00:00Z') }); assert.equal(p.store.get('radar_cheie_ok'), K.slice(0, 8));
+  status = 401; await p.RP.citeste({ fortat: true, acum: Date.parse('2026-10-19T10:10:00Z') }); assert.equal(p.store.has('radar_cheie_ok'), false);
 });
 test('the Decision app shell also asks for persistent storage before anything else loads', () => {
   const html = readFileSync('app/index.html', 'utf8'); assert.match(html, /navigator\.storage\.persist\(\)/);
