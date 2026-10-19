@@ -3401,24 +3401,24 @@ pe un singur chart.
 | I-693 | Cât de sigur e rezultatul tău: intervalul de încredere al speranței pe tranzacție (bootstrap pe tranzacții) + Monte Carlo „într-o serie proastă (5%) din următoarele 50 scazi X lei” + câte tranzacții mai trebuie | lib/journal-report.js | M | P2 | făcut | ideation | 2026-10-17 |
 | I-694 | Tu față de S&P în aceleași zile: pentru fiecare tranzacție, ce ar fi făcut SPY între intrare și ieșire ⇒ „ai bătut piața în X din N tranzacții, plusul tău real e Y lei” | lib/journal-report.js, journal/report.js | M | P2 | făcut | ideation | 2026-10-17 |
 | I-695 | „Ce-ar fi fost dacă” pe tranzacțiile tale: 3 reguli simple refăcute pe barele zilnice (stop la −1 R, prag la +3%, ieșire după N zile) ⇒ rezultatul cu fiecare regulă, ca ipoteză de verificat înainte | lib/journal-report.js | L | P3 | făcut | ideation | 2026-10-17 |
-| I-696 | Formatorul de dată ținut minte (un Intl.DateTimeFormat pe fus orar, nu unul pe fiecare bară) — 7,1 s din 15 s la deschiderea Portofoliului pe telefon, 13,5 s pe o scanare Europa | lib/daily-series.js, lib/exchange-calendar.js, lib/trading212-daily.js, europe-stocks/history.js | S | P1 | propus | audit+ideation | 2026-10-19 |
-| I-697 | Execuțiile Trading 212 împărțite pe luni în cont + o cheie care pică nu mai oprește restul sincronizării | lib/cloud-sync-model.mjs, app/cloud-sync.js, lib/trading212-fills-store.js | M | P1 | propus | audit+ideation | 2026-10-19 |
-| I-698 | Garda de raportări „închisă la eroare” + cheia Finnhub doar pe calea directă | lib/earnings.js, lib/data.js, candidate-engine/engine.js | S | P1 | propus | audit+ideation | 2026-10-19 |
-| I-699 | Shadow reparat cap-coadă: interval de date corect, direcția din testul pe zile, corecție pe mai multe filtre | lib/shadow.js, shadow-book/index.html | S | P1 | propus | audit+ideation | 2026-10-19 |
-| I-700 | Capitalul folosit la vedere: „X $ · sursa · de acum N ore · pe celălalt aparat Y $” + Drafturi pe capitalul brokerului când citirea T212 e proaspătă | lib/account.js, lib/setup-builder.js, lib/governor.js, journal/index.html, desk/index.html | S | P1 | propus | audit+ideation | 2026-10-19 |
-| I-701 | Astăzi recitește rezultatele apropiate și seriile la o zi nouă de bursă sau când se schimbă pozițiile; „dată necunoscută” spusă explicit | today/view.js, lib/holdings-events.js | S | P1 | propus | audit+ideation | 2026-10-19 |
-| I-702 | Paginile parcate se opresc cu adevărat (un modul comun care ascultă ascunderea din aplicație) | app/index.html, today/view.js, holdings/holdings.js, alerts/index.html, desk/index.html, app/sync/*.js | S | P2 | propus | audit+ideation | 2026-10-19 |
-| I-703 | Modelele Portofoliului antrenate o dată pe zi de bursă + fără rescanare când analiza e proaspătă | holdings/learning.js, holdings/holdings.js, holdings/garch.js, hmm.js, isolation.js, knn.js, quantile.js, lib/holdings-neural.js, holdings/classifier.js | M | P2 | propus | audit+ideation | 2026-10-19 |
-| I-704 | Un singur cache de serii zilnice în IndexedDB (2 ani, comun pentru Premarket, Reguli V1, Europa, Portofoliu) | lib/data.js, lib/independent-scanner.js, candidate-engine/engine.js, europe-stocks/engine.js | M | P2 | propus | audit+ideation | 2026-10-19 |
-| I-705 | Pornire în două trepte: carcasa din cache după 3,5 s, modulul înaintea bibliotecilor, brokerul și scanarea ascunsă după încărcare | app/sw.js, app/index.html | S | P2 | propus | audit+ideation | 2026-10-19 |
-| I-706 | Sincronizare doar pe ce s-a schimbat + copie de siguranță rară + o reîncercare la 409 | app/cloud-sync.js | M | P2 | propus | audit+ideation | 2026-10-19 |
-| I-707 | Europa: scanare o dată pe sesiune + dividendele în forța relativă și în randamentele din istoric | europe-stocks/engine.js, europe-stocks/model.js, europe-stocks/history.js | M | P2 | propus | audit+ideation | 2026-10-19 |
-| I-708 | Calendarul burselor pentru 2027 + robotul de calendar nu mai suprascrie datele știute cu „necunoscut” | lib/exchange-calendar.js, tools/europe-calendar.py | S | P2 | propus | audit+ideation | 2026-10-19 |
-| I-709 | Top Long „în probă” la vedere (0/8 perioade) + risc plafonat până la verdict, ca la Trend | candidate-engine/engine.js, desk/index.html | S | P2 | propus | audit+ideation | 2026-10-19 |
-| I-710 | Ora raportului săptămânal în cheie locală (conflict de sincronizare + Telegram trimis de pe ambele aparate) | journal/index.html | S | P2 | propus | audit+ideation | 2026-10-19 |
-| I-711 | Mărunte de siguranță: „Alt stop” invalid nu mai salvează −5% tăcut, confirmarea ordinului în moneda contului (nu „lei” fix), simbolul escapat în Capital Desk, linkurile știrilor doar http(s), ordinul de stop cu timeout | today/stop.js, lib/t212-orders.js, lib/capital-desk.js, alerts/index.html | S | P2 | propus | audit+ideation | 2026-10-19 |
-| I-712 | Depunerile și retragerile Trading 212 intră automat ca mișcări de capital | lib/equity.js, lib/capital-auto.js | M | P3 | propus | audit+ideation | 2026-10-19 |
-| I-713 | Un singur aparat citește Trading 212 (ales sau monitorul de pe server); celălalt doar primește prin sincronizare | broker/broker.js, app/index.html | M | P3 | propus | audit+ideation | 2026-10-19 |
+| I-696 | Formatorul de dată ținut minte (un Intl.DateTimeFormat pe fus orar, nu unul pe fiecare bară) — 7,1 s din 15 s la deschiderea Portofoliului pe telefon, 13,5 s pe o scanare Europa | lib/daily-series.js, lib/exchange-calendar.js, lib/trading212-daily.js, europe-stocks/history.js | S | P1 | făcut | audit+ideation | 2026-10-19 |
+| I-697 | Execuțiile Trading 212 împărțite pe luni în cont + o cheie care pică nu mai oprește restul sincronizării | lib/cloud-sync-model.mjs, app/cloud-sync.js, lib/trading212-fills-store.js | M | P1 | făcut | audit+ideation | 2026-10-19 |
+| I-698 | Garda de raportări „închisă la eroare” + cheia Finnhub doar pe calea directă | lib/earnings.js, lib/data.js, candidate-engine/engine.js | S | P1 | făcut | audit+ideation | 2026-10-19 |
+| I-699 | Shadow reparat cap-coadă: interval de date corect, direcția din testul pe zile, corecție pe mai multe filtre | lib/shadow.js, shadow-book/index.html | S | P1 | făcut | audit+ideation | 2026-10-19 |
+| I-700 | Capitalul folosit la vedere: „X $ · sursa · de acum N ore · pe celălalt aparat Y $” + Drafturi pe capitalul brokerului când citirea T212 e proaspătă | lib/account.js, lib/setup-builder.js, lib/governor.js, journal/index.html, desk/index.html | S | P1 | făcut | audit+ideation | 2026-10-19 |
+| I-701 | Astăzi recitește rezultatele apropiate și seriile la o zi nouă de bursă sau când se schimbă pozițiile; „dată necunoscută” spusă explicit | today/view.js, lib/holdings-events.js | S | P1 | făcut | audit+ideation | 2026-10-19 |
+| I-702 | Paginile parcate se opresc cu adevărat (un modul comun care ascultă ascunderea din aplicație) | app/index.html, today/view.js, holdings/holdings.js, alerts/index.html, desk/index.html, app/sync/*.js | S | P2 | făcut | audit+ideation | 2026-10-19 |
+| I-703 | Modelele Portofoliului antrenate o dată pe zi de bursă + fără rescanare când analiza e proaspătă | holdings/learning.js, holdings/holdings.js, holdings/garch.js, hmm.js, isolation.js, knn.js, quantile.js, lib/holdings-neural.js, holdings/classifier.js | M | P2 | făcut | audit+ideation | 2026-10-19 |
+| I-704 | Un singur cache de serii zilnice în IndexedDB (2 ani, comun pentru Premarket, Reguli V1, Europa, Portofoliu) | lib/data.js, lib/independent-scanner.js, candidate-engine/engine.js, europe-stocks/engine.js | M | P2 | făcut | audit+ideation | 2026-10-19 |
+| I-705 | Pornire în două trepte: carcasa din cache după 3,5 s, modulul înaintea bibliotecilor, brokerul și scanarea ascunsă după încărcare | app/sw.js, app/index.html | S | P2 | făcut | audit+ideation | 2026-10-19 |
+| I-706 | Sincronizare doar pe ce s-a schimbat + copie de siguranță rară + o reîncercare la 409 | app/cloud-sync.js | M | P2 | făcut | audit+ideation | 2026-10-19 |
+| I-707 | Europa: scanare o dată pe sesiune + dividendele în forța relativă și în randamentele din istoric | europe-stocks/engine.js, europe-stocks/model.js, europe-stocks/history.js | M | P2 | făcut | audit+ideation | 2026-10-19 |
+| I-708 | Calendarul burselor pentru 2027 + robotul de calendar nu mai suprascrie datele știute cu „necunoscut” | lib/exchange-calendar.js, tools/europe-calendar.py | S | P2 | făcut | audit+ideation | 2026-10-19 |
+| I-709 | Top Long „în probă” la vedere (0/8 perioade) + risc plafonat până la verdict, ca la Trend | candidate-engine/engine.js, desk/index.html | S | P2 | făcut | audit+ideation | 2026-10-19 |
+| I-710 | Ora raportului săptămânal în cheie locală (conflict de sincronizare + Telegram trimis de pe ambele aparate) | journal/index.html | S | P2 | făcut | audit+ideation | 2026-10-19 |
+| I-711 | Mărunte de siguranță: „Alt stop” invalid nu mai salvează −5% tăcut, confirmarea ordinului în moneda contului (nu „lei” fix), simbolul escapat în Capital Desk, linkurile știrilor doar http(s), ordinul de stop cu timeout | today/stop.js, lib/t212-orders.js, lib/capital-desk.js, alerts/index.html | S | P2 | făcut | audit+ideation | 2026-10-19 |
+| I-712 | Depunerile și retragerile Trading 212 intră automat ca mișcări de capital | lib/equity.js, lib/capital-auto.js | M | P3 | făcut | audit+ideation | 2026-10-19 |
+| I-713 | Un singur aparat citește Trading 212 (ales sau monitorul de pe server); celălalt doar primește prin sincronizare | broker/broker.js, app/index.html | M | P3 | făcut | audit+ideation | 2026-10-19 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -6926,128 +6926,128 @@ Lentile: Trader — aplicația spune cum e piața, dar nu încă ce înseamnă p
 
 **Rezultate I-690..I-695 (17.10.2026, 66488b07):** toate în Jurnal → Raport; limita lunară și pe Astăzi (primul rând de atenție), în ticketul Planurilor și în Risc & capital. Etichetele și limita se sincronizează prin setările jurnalului; rezultatul lunii rămâne local pe fiecare dispozitiv (altfel conflict de sincronizare — prins de revizie). Probat cap-coadă cu 600 de execuții în magazia reală: opriri ≤ 138 ms.
 
-### Audit Decision App 19.10.2026 — idei I-696..I-713 (sursa: audit pe 5 părți + măsurarea încărcării în Edge cu datele lui)
+### Audit Decision App 19.10.2026 — idei I-696..I-713 (TOATE făcute 19.10: e2894584 I-696, 7f2e3ec3 lotul, d732209d + 2ac6a619 revizia) (sursa: audit pe 5 părți + măsurarea încărcării în Edge cu datele lui)
 
-#### I-696 · Formatorul de dată ținut minte (un Intl.DateTimeFormat pe fus orar, nu unul pe fiecare bară) — 7,1 s din 15 s la deschiderea Portofoliului pe telefon, 13,5 s pe o scanare Europa · [S] · P1 · propus
+#### I-696 · Formatorul de dată ținut minte (un Intl.DateTimeFormat pe fus orar, nu unul pe fiecare bară) — 7,1 s din 15 s la deschiderea Portofoliului pe telefon, 13,5 s pe o scanare Europa · [S] · P1 · făcut 2026-10-19
 - **Problema/golul:** Profilul V8 (Edge, datele LUI, CPU×4): `parts` din `lib/daily-series.js:2` = 7,1 s self din 15,3 s de fir principal ocupat; construiește `new Intl.DateTimeFormat` la fiecare bară (99 µs/apel). Aceeași greșeală în `exchange-calendar.js:23`, `trading212-daily.js:4`, `EuropeHistory.update` (6,9 s dintr-o bucată).
 - **Soluția:** Un Map fus orar → formator, creat o dată; aceleași rezultate. În `EuropeHistory.update` datele se calculează doar pentru acțiunile cu intrări.
 - **Impact:** Cea mai mare parte din „se încarcă greu”: Portofoliul, scannerele și Europa pornesc de câteva ori mai repede, fără schimbare de logică.
 - **Riscuri/dependențe:** Practic zero: funcție pură, testele existente o acoperă; de adăugat un test de timp.
 - **Fișiere atinse:** lib/daily-series.js, lib/exchange-calendar.js, lib/trading212-daily.js, europe-stocks/history.js
 
-#### I-697 · Execuțiile Trading 212 împărțite pe luni în cont + o cheie care pică nu mai oprește restul sincronizării · [M] · P1 · propus
+#### I-697 · Execuțiile Trading 212 împărțite pe luni în cont + o cheie care pică nu mai oprește restul sincronizării · [M] · P1 · făcut 2026-10-19
 - **Problema/golul:** `tt_trading212_fills_v1` = 860.507 octeți din limita de 1.000.000 (`cloud-sync-model.mjs:194`), 2.444 execuții, istoricul încă incomplet. La ~400 execuții în plus `record_too_large`; `performSync` se oprește la prima eroare ⇒ se opresc capitalul, tezele, cheia Radar, analizele.
 - **Soluția:** Execuțiile pe pachete lunare (ca analizele, 64 de pachete); în buclă, o cheie care pică e sărită și raportată, celelalte merg; contor „cât din 1 MB” pe chei în Cont & sincronizare.
 - **Impact:** Sincronizarea nu se mai poate opri singură pe măsură ce crește istoricul.
 - **Riscuri/dependențe:** Mutarea datelor existente (migrare cu copie); serverul trebuie să accepte cheile noi (republicarea workerului).
 - **Fișiere atinse:** lib/cloud-sync-model.mjs, app/cloud-sync.js, lib/trading212-fills-store.js
 
-#### I-698 · Garda de raportări „închisă la eroare” + cheia Finnhub doar pe calea directă · [S] · P1 · propus
+#### I-698 · Garda de raportări „închisă la eroare” + cheia Finnhub doar pe calea directă · [S] · P1 · făcut 2026-10-19
 - **Problema/golul:** Când Finnhub nu răspunde, `D.fetchJSON` dă null ⇒ `EARN.calendar` întoarce `{ok:true, items:[]}` (`earnings.js:46`) ⇒ motorul crede că a verificat și dă „fără earnings în 14z” ⇒ plan acționabil chiar înaintea raportării. Separat: URL-ul cu `&token=` trece prin lanțul de proxy-uri (`data.js:56`), tt-proxy refuză finnhub.io (`host not allowed`), deci cheia ajunge la corsproxy/codetabs/cors.lol.
 - **Soluția:** Răspuns fără `earningsCalendar` ⇒ `ok:false` (neverificat, fără GO); gazda finnhub.io doar direct (are CORS).
 - **Impact:** Niciun plan pe bani reali nu mai trece printr-o raportare doar pentru că a căzut o sursă; cheia nu mai pleacă la terți.
 - **Riscuri/dependențe:** Mai multe stări „neverificat” când Finnhub e jos (corect).
 - **Fișiere atinse:** lib/earnings.js, lib/data.js, candidate-engine/engine.js
 
-#### I-699 · Shadow reparat cap-coadă: interval de date corect, direcția din testul pe zile, corecție pe mai multe filtre · [S] · P1 · propus
+#### I-699 · Shadow reparat cap-coadă: interval de date corect, direcția din testul pe zile, corecție pe mai multe filtre · [S] · P1 · făcut 2026-10-19
 - **Problema/golul:** `range:'max', interval:'1d'` (`shadow.js:207`) primește de la Yahoo bare de 3 LUNI (AAPL: 169 bare, dataGranularity 3mo, verificat 19.10) ⇒ aproape nimic nu se evaluează. Direcția verdictului vine din media pe semnale, p din testul pe zile (`:192`) ⇒ poate arăta invers; „neprobat” colorat roșu (`index.html:133`).
 - **Soluția:** Interval din data semnalului (1y/2y); direcția din zilele pozitive; corecție Holm pe filtre; culoare neutră pentru „neprobat”.
 - **Impact:** Afli de fapt care filtre te costă bani.
 - **Riscuri/dependențe:** Semnalele vechi vor primi rezultat pentru prima dată ⇒ verdictul se poate schimba.
 - **Fișiere atinse:** lib/shadow.js, shadow-book/index.html
 
-#### I-700 · Capitalul folosit la vedere: „X $ · sursa · de acum N ore · pe celălalt aparat Y $” + Drafturi pe capitalul brokerului când citirea T212 e proaspătă · [S] · P1 · propus
+#### I-700 · Capitalul folosit la vedere: „X $ · sursa · de acum N ore · pe celălalt aparat Y $” + Drafturi pe capitalul brokerului când citirea T212 e proaspătă · [S] · P1 · făcut 2026-10-19
 - **Problema/golul:** Pe PC `tt_governor_cfg_v1.accountSize` = 12.670 (din iulie), contul real ~5.393 ⇒ Drafturi dimensionează ×2,35 (verificat). `ACCT.divergences()` (`account.js:174`) există dar nu o cheamă nimeni; câmpul „Cont $” din Drafturi nu se reîmprospătează după capitalul automat (`setup-builder.js:842`); Planuri pornește de la 10.000 fără tichet (`desk/index.html:187`).
 - **Soluția:** O linie de capital în Drafturi, Risc & capital și Planuri; dimensionarea pe capitalul brokerului (ca în Planuri) când citirea e < 24 h, altfel blocată cu motivul; `syncFromDesk()` după capitalul automat.
 - **Impact:** Nu mai dimensionezi pe o cifră veche; aceeași cifră pe telefon și pe PC.
 - **Riscuri/dependențe:** Contul în EUR ⇒ conversia BCE deja folosită de capitalul automat.
 - **Fișiere atinse:** lib/account.js, lib/setup-builder.js, lib/governor.js, journal/index.html, desk/index.html
 
-#### I-701 · Astăzi recitește rezultatele apropiate și seriile la o zi nouă de bursă sau când se schimbă pozițiile; „dată necunoscută” spusă explicit · [S] · P1 · propus
+#### I-701 · Astăzi recitește rezultatele apropiate și seriile la o zi nouă de bursă sau când se schimbă pozițiile; „dată necunoscută” spusă explicit · [S] · P1 · făcut 2026-10-19
 - **Problema/golul:** `verdictExtra.asked/expAsked` (`today/view.js:188-202`) se pun o dată și nu se resetează nicăieri (verificat) ⇒ poziție cumpărată după deschidere fără avertisment „raportează în ≤3 zile”; „s-a mișcat X%”/„sub MA50” rămân de la deschidere. Fără Finnhub data lipsește tăcut; știrile goale de la proxy apar „fără titluri”.
 - **Soluția:** Recitire legată de ziua de bursă și de lista de poziții; rând „dată rezultate necunoscută” pentru fiecare poziție fără dată; sursă goală = „indisponibilă”.
 - **Impact:** Niciun salt după rezultate nu te mai prinde neavertizat.
 - **Riscuri/dependențe:** Câteva cereri în plus pe zi.
 - **Fișiere atinse:** today/view.js, lib/holdings-events.js
 
-#### I-702 · Paginile parcate se opresc cu adevărat (un modul comun care ascultă ascunderea din aplicație) · [S] · P2 · propus
+#### I-702 · Paginile parcate se opresc cu adevărat (un modul comun care ascultă ascunderea din aplicație) · [S] · P2 · făcut 2026-10-19
 - **Problema/golul:** O pagină parcată e doar ascunsă (`app/layout.css:32`), `document.hidden` rămâne fals ⇒ Portofoliul redesenează/scanează/antrenează, Alerte cer Binance la 10 s și GitHub la 2 min, Planuri face render la 30 s și pornește scanări — totul pe același fir cu pagina pe care o vezi.
 - **Soluția:** Un mic modul care, la mesajul de ascundere, oprește ceasurile paginii și le repornește la reafișare.
 - **Impact:** Aplicația fluidă pe telefon, baterie mai puțină.
 - **Riscuri/dependențe:** Fiecare pagină trebuie să-și înregistreze ceasurile.
 - **Fișiere atinse:** app/index.html, today/view.js, holdings/holdings.js, alerts/index.html, desk/index.html, app/sync/*.js
 
-#### I-703 · Modelele Portofoliului antrenate o dată pe zi de bursă + fără rescanare când analiza e proaspătă · [M] · P2 · propus
+#### I-703 · Modelele Portofoliului antrenate o dată pe zi de bursă + fără rescanare când analiza e proaspătă · [M] · P2 · făcut 2026-10-19
 - **Problema/golul:** Rapoartele expiră la 30 min ⇒ reantrenare la fiecare deschidere (~8,2 s CPU pe poziție: Neural 4,8 s, HMM 2,4 s). `holdings.js:5` citește analiza înainte să vină din IndexedDB ⇒ `needsScan()` mereu adevărat ⇒ cereri Yahoo pe fiecare poziție la fiecare deschidere.
 - **Soluția:** Valabilitatea legată de ziua de bursă și amprenta datelor; verificarea `needsScan` după încărcare.
 - **Impact:** Portofoliul în 1–2 s în loc de zeci de secunde; verdictul AI nu mai dispare după 30 min.
 - **Riscuri/dependențe:** Mic: identitatea datelor e deja verificată prin dată, închidere, amprentă.
 - **Fișiere atinse:** holdings/learning.js, holdings/holdings.js, holdings/garch.js, hmm.js, isolation.js, knn.js, quantile.js, lib/holdings-neural.js, holdings/classifier.js
 
-#### I-704 · Un singur cache de serii zilnice în IndexedDB (2 ani, comun pentru Premarket, Reguli V1, Europa, Portofoliu) · [M] · P2 · propus
+#### I-704 · Un singur cache de serii zilnice în IndexedDB (2 ani, comun pentru Premarket, Reguli V1, Europa, Portofoliu) · [M] · P2 · făcut 2026-10-19
 - **Problema/golul:** Cache-ul `ttd:` din localStorage are buget 2 mil. caractere; V1 cere 2y, Premarket 1y (chei diferite) ⇒ după o rulare V1, Premarket face 85/85 cereri din nou; o scanare Europa scrie ~5,2 mil. și golește cache-ul celorlalte. localStorage-ul originii pe PC: 4,86 din ~5,2 mil. caractere.
 - **Soluția:** O descărcare de 2 ani pe simbol și zi de bursă, în IndexedDB; fiecare motor taie ce-i trebuie.
 - **Impact:** Scanări repetate în câteva secunde, mult mai puține cereri prin proxy, localStorage eliberat.
 - **Riscuri/dependențe:** Mutarea cache-ului vechi; curățenia `ttd:` din Health rămâne pentru tranziție.
 - **Fișiere atinse:** lib/data.js, lib/independent-scanner.js, candidate-engine/engine.js, europe-stocks/engine.js
 
-#### I-705 · Pornire în două trepte: carcasa din cache după 3,5 s, modulul înaintea bibliotecilor, brokerul și scanarea ascunsă după încărcare · [S] · P2 · propus
+#### I-705 · Pornire în două trepte: carcasa din cache după 3,5 s, modulul înaintea bibliotecilor, brokerul și scanarea ascunsă după încărcare · [S] · P2 · făcut 2026-10-19
 - **Problema/golul:** `app/sw.js:16` cere carcasa de pe rețea fără timeout; 34 de scripturi sincrone (301 KB) înainte de modul; la 8 s pornește scanarea ascunsă dacă `ce_results_v2` are peste 30 min (32 scripturi, ~100 simboluri) — probabil „uneori”-ul.
 - **Soluția:** Timeout 3,5 s ca `sw-app.js:192`; bibliotecile cu `defer` și în cache-ul SW; brokerul și scanarea la primul moment liber.
 - **Impact:** Primul ecran sub o secundă chiar pe semnal slab.
 - **Riscuri/dependențe:** Ordinea scripturilor trebuie verificată pagină cu pagină.
 - **Fișiere atinse:** app/sw.js, app/index.html
 
-#### I-706 · Sincronizare doar pe ce s-a schimbat + copie de siguranță rară + o reîncercare la 409 · [M] · P2 · propus
+#### I-706 · Sincronizare doar pe ce s-a schimbat + copie de siguranță rară + o reîncercare la 409 · [M] · P2 · făcut 2026-10-19
 - **Problema/golul:** La 30 s se recalculează toate cele 146 de chei (registrul de învățare 148–339 ms pe PC); `backup()` complet la fiecare valoare venită din cont (66–175 ms), iar portofoliul T212 vine ~o dată pe minut de pe celălalt aparat; 409 afișează eroare fără reîncercare.
 - **Soluția:** Sar cheile neschimbate local și în cont (revizia); copia de siguranță doar pentru ce scrii tu, cel mult o dată pe oră; o reîncercare imediată la 409.
 - **Impact:** Telefonul nu mai îngheață o dată pe minut.
 - **Riscuri/dependențe:** Mic: 56 de teste de sincronizare.
 - **Fișiere atinse:** app/cloud-sync.js
 
-#### I-707 · Europa: scanare o dată pe sesiune + dividendele în forța relativă și în randamentele din istoric · [M] · P2 · propus
+#### I-707 · Europa: scanare o dată pe sesiune + dividendele în forța relativă și în randamentele din istoric · [M] · P2 · făcut 2026-10-19
 - **Problema/golul:** Rescanare la 5 min și la fiecare deschidere pentru date de sfârșit de zi (5,2 MB); DAX e indice de performanță, acțiunile pe închiderea brută ⇒ ex-dividendul pică testul RS 20 de sesiuni; randamentele 5/10/20 numără ex-dividendul ca pierdere.
 - **Soluția:** Rețea doar la sesiune nouă; `adjustedClose` (deja adus) pentru RS și randamente.
 - **Impact:** Deschidere instantanee; istoric al semnalelor corect în sezonul dividendelor.
 - **Riscuri/dependențe:** Ipoteză de măsurare, nu schimbare de semnal: rezultatele vechi se recalculează.
 - **Fișiere atinse:** europe-stocks/engine.js, europe-stocks/model.js, europe-stocks/history.js
 
-#### I-708 · Calendarul burselor pentru 2027 + robotul de calendar nu mai suprascrie datele știute cu „necunoscut” · [S] · P2 · propus
+#### I-708 · Calendarul burselor pentru 2027 + robotul de calendar nu mai suprascrie datele știute cu „necunoscut” · [S] · P2 · făcut 2026-10-19
 - **Problema/golul:** 9 din 10 piețe expiră pe 31.12.2026 (74 de zile; 05.01.2027 ⇒ 79 de acțiuni excluse); pe 13.10 robotul a publicat 57 de rânduri „Sursă indisponibilă” cu `checkedAt` proaspăt.
 - **Soluția:** Zilele 2027 + un test care pică din 1 noiembrie dacă anul următor lipsește; la eroare se păstrează rândul vechi, robotul se oprește peste 15% erori.
 - **Impact:** Nu se oprește Europa pe 1 ianuarie; nu se pierd datele rezultatelor.
 - **Riscuri/dependențe:** Zilele trebuie luate din calendarele oficiale.
 - **Fișiere atinse:** lib/exchange-calendar.js, tools/europe-calendar.py
 
-#### I-709 · Top Long „în probă” la vedere (0/8 perioade) + risc plafonat până la verdict, ca la Trend · [S] · P2 · propus
+#### I-709 · Top Long „în probă” la vedere (0/8 perioade) + risc plafonat până la verdict, ca la Trend · [S] · P2 · făcut 2026-10-19
 - **Problema/golul:** Top Long are 0 din 8 perioade în probă dar primește FIRE verde și „PLAN VALIDABIL” cu 0,5% risc (`engine.js:231`), iar Trend 12 luni (t≈1,5) e blocat (`:595`).
 - **Soluția:** Eticheta „în probă · N/8” lângă FIRE; riscul 0,25% până la verdict.
 - **Impact:** Aceeași regulă pentru toate semnalele: pragul se câștigă.
 - **Riscuri/dependențe:** Prudență, nu avantaj dovedit.
 - **Fișiere atinse:** candidate-engine/engine.js, desk/index.html
 
-#### I-710 · Ora raportului săptămânal în cheie locală (conflict de sincronizare + Telegram trimis de pe ambele aparate) · [S] · P2 · propus
+#### I-710 · Ora raportului săptămânal în cheie locală (conflict de sincronizare + Telegram trimis de pe ambele aparate) · [S] · P2 · făcut 2026-10-19
 - **Problema/golul:** `lastWeeklyReportTs` = ora aparatului în `tt_journal_settings_v1` (sincronizată, `journal/index.html:967`); Jurnalul viu pe PC și telefon verifică la 2,5 s și la oră.
 - **Soluția:** Ora în cheie locală sau „valoarea mai mare câștigă” pentru câmpul ăsta.
 - **Impact:** Încă o sursă de conflict închisă; un singur mesaj pe Telegram.
 - **Riscuri/dependențe:** Mic.
 - **Fișiere atinse:** journal/index.html
 
-#### I-711 · Mărunte de siguranță: „Alt stop” invalid nu mai salvează −5% tăcut, confirmarea ordinului în moneda contului (nu „lei” fix), simbolul escapat în Capital Desk, linkurile știrilor doar http(s), ordinul de stop cu timeout · [S] · P2 · propus
+#### I-711 · Mărunte de siguranță: „Alt stop” invalid nu mai salvează −5% tăcut, confirmarea ordinului în moneda contului (nu „lei” fix), simbolul escapat în Capital Desk, linkurile știrilor doar http(s), ordinul de stop cu timeout · [S] · P2 · făcut 2026-10-19
 - **Problema/golul:** `today/stop.js:39-40`; `t212-orders.js:45,53`; `capital-desk.js:470` (`top[0].sym` fără `esc`, cheia jurnalului e sincronizată); `alerts/index.html:3143` (`javascript:` posibil); `t212-orders.js:62` fără limită de timp.
 - **Soluția:** Reparații punctuale, fiecare cu testul ei.
 - **Impact:** Fără surprize la stop și la ordine.
 - **Riscuri/dependențe:** Mic.
 - **Fișiere atinse:** today/stop.js, lib/t212-orders.js, lib/capital-desk.js, alerts/index.html
 
-#### I-712 · Depunerile și retragerile Trading 212 intră automat ca mișcări de capital · [M] · P3 · propus
+#### I-712 · Depunerile și retragerile Trading 212 intră automat ca mișcări de capital · [M] · P3 · făcut 2026-10-19
 - **Problema/golul:** Capitalul automat pune în curbă valoarea contului; retragerile și cursul intră în drawdown (12.670 → 5.393 = DD 57,4% afișat; la el `ddRollingOn` e oprit, deci fără blocaj — verificat).
 - **Soluția:** Fluxurile din `tt_trading212_cash_v1` ca evenimente de capital, curba doar pe rezultat.
 - **Impact:** Drawdown curat; poți reporni DD rolling fără HALT fals.
 - **Riscuri/dependențe:** Deduplicare cu evenimentele puse de mână.
 - **Fișiere atinse:** lib/equity.js, lib/capital-auto.js
 
-#### I-713 · Un singur aparat citește Trading 212 (ales sau monitorul de pe server); celălalt doar primește prin sincronizare · [M] · P3 · propus
+#### I-713 · Un singur aparat citește Trading 212 (ales sau monitorul de pe server); celălalt doar primește prin sincronizare · [M] · P3 · făcut 2026-10-19
 - **Problema/golul:** Ambele aparate cer T212 la 60 s și își trimit portofoliul unul altuia ~o dată pe minut (copie de siguranță + redesenare).
 - **Soluția:** Un singur cititor; celălalt doar sincronizează.
 - **Impact:** Mai puține cereri, fără limite T212 lovite, baterie.
