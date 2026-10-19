@@ -51,3 +51,9 @@ test('funcțiile înghețate de proba Top Long au rămas neatinse (amprenta pm-c
   const {motor} = await import('./premarket-jurnal.mjs');
   assert.equal(versiune(motor().hooks), 'pm-cb956aef5680');
 });
+
+test('I-714: sub nivelurile planului, cifrele măsurate ale regulii (limită de risc, nu promisiune)', () => {
+  const e = readFileSync(new URL('../candidate-engine/engine.js', import.meta.url), 'utf8'), h = readFileSync(new URL('../candidate-engine/index.html', import.meta.url), 'utf8');
+  assert.match(e, /var PLAN_MASURAT = 'Regula 1,25 ATR \/ 2R, măsurată pe 4 ani/); assert.match(e, /\$\('planNota'\)\.textContent = PLAN_MASURAT/);
+  assert.match(h, /id="planNota"/);
+});

@@ -10,7 +10,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { curataUnivers, clasament, regim, liniaIstoric, adaugaIstoric, taieBaraPartiala, raporteazaDinCalendar, iesiri, intrari, mesajDiscord, validareFisiere, decizieDateVechi } from './trend-12-1-lib.mjs';
+import { curataUnivers, instantaneuUnivers, caleArhivaUnivers, clasament, regim, liniaIstoric, adaugaIstoric, taieBaraPartiala, raporteazaDinCalendar, iesiri, intrari, mesajDiscord, validareFisiere, decizieDateVechi } from './trend-12-1-lib.mjs';
+import zlib from 'node:zlib';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GEN = path.join(ROOT, 'candidate-engine', 'generated');
@@ -28,6 +29,13 @@ try {
   if (!rows || rows.length < 1000) throw new Error('screener: ' + (rows ? rows.length + ' rânduri' : 'HTTP ' + r.status));
   univers = curataUnivers(rows, { minCap: MIN_CAP, n: N });
   fs.writeFileSync(F_UNIV, JSON.stringify({ la: screenerLa, minCap: MIN_CAP, n: univers.length, dinScreener: rows.length, l: univers }));
+  // I-715 (19.10.2026): arhiva zilnică a universului (toate ≥ 2 mld., datată, comprimată) — fără supraviețuitori pentru cercetarea viitoare
+  try {
+    const inst = instantaneuUnivers(rows, screenerLa, MIN_CAP), f = path.join(GEN, caleArhivaUnivers(inst.d));
+    fs.mkdirSync(path.dirname(f), { recursive: true });
+    fs.writeFileSync(f, zlib.gzipSync(JSON.stringify(inst)));
+    console.log('arhiva universului: ' + inst.n + ' acțiuni ⇒ ' + path.relative(GEN, f));
+  } catch (e) { console.error('arhiva universului n-a putut fi scrisă: ' + (e.message || e)); }
 } catch (e) {
   console.error('screenerul Nasdaq n-a răspuns (' + (e.message || e) + ') ⇒ lista salvată');
   const s = JSON.parse(fs.readFileSync(F_UNIV, 'utf8'));

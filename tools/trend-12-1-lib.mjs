@@ -25,6 +25,16 @@ export function curataUnivers(rows, o = {}) {
   return out.slice(0, n);
 }
 
+/** I-715 (19.10.2026): instantaneul DATAT al universului — TOATE acțiunile SUA ≥ minCap din screener în ziua aceea (nu doar primele N),
+    ca în 12–24 de luni orice regulă să se poată testa pe universul de ATUNCI, fără părtinirea supraviețuitorilor (lista de azi).
+    { d: ziua New York, la, minCap, n, l: [[simbol, capitalizare în mld. $ cu o zecimală, sector]] } */
+export function instantaneuUnivers(rows, la, minCap = 2e9) {
+  const d = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(la));
+  const l = curataUnivers(rows, { minCap, n: Infinity }).map((x) => [x.s, Math.round(x.cap / 1e8) / 10, x.sector]);
+  return { d, la, minCap, n: l.length, l };
+}
+export const caleArhivaUnivers = (d) => 'univers-sua-istoric/' + d.slice(0, 4) + '/' + d + '.json.gz';
+
 /** serii = { simbol: bare[] } (bare zilnice {t,o,h,l,c,v}), spy = bare[] ⇒ clasamentul 12-1 al zilei. */
 export function clasament(serii, spy, o = {}) {
   const top = o.top ?? 40, minPret = o.minPret ?? 5, minDolari = o.minDolari ?? 1e7;

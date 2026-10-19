@@ -414,6 +414,9 @@
   // iar deasupra listei, nota probei. Doar afișare: regulile de clasament (amprenta probei) nu se ating.
   function probaTag(x) { if (!x || x.mode !== 'momentum' || ['FIRE', 'ARMED'].indexOf(x.state) < 0) return ''; return window.TTProbaTopLong ? TTProbaTopLong.tag(x) : 'în probă'; }
   // 19.10.2026 (audit Long & Reversal): verdictul pieței (robotul zilnic) stătea doar în Planuri; aici FIRE apărea verde și într-o zi DEFENSIVĂ
+  // I-714 (19.10.2026): planul spus cinstit — cifrele măsurate ale regulii (cercetarea pre-înregistrată din 19.10, H2:
+  // E:\\Backup-Claude\\premarket-suite\\audit-long-reversal-2026-10-19\\RAPORT.md). Doar text; regula rămâne neschimbată (proba Top Long).
+  var PLAN_MASURAT = 'Regula 1,25 ATR / 2R, măsurată pe 4 ani (oct. 2022 – iul. 2026, 18.447 de intrări Top Long + Early Reversal, cost 0,2 % inclus): ~58 % se termină pe stop, câștigul mediu ≈ 0 R. Folosește-o ca limită de risc, nu ca promisiune.';
   function notaVerdictPiata() {
     var el = $('verdictNota'), v = state.verdictPiata; if (!el) return;
     el.hidden = !v || state.mode === 'trend';
@@ -672,6 +675,7 @@
     $('dFresh').textContent = 'EOD ' + (x.sourceDate || '—') + ' · scanat ' + vechime(x.ts);   // 19.10.2026: data sesiunii, nu doar vechimea scanării $('dReason').textContent = x.reason + (window.T212C && T212C.held(x.symbol).length ? ' · DEȚII DEJA în snapshot Invest; verifică expunerea cumulată înainte de o nouă intrare.' : '');
     $('dEntry').textContent = fmt(x.entryLow, 2) + '–' + fmt(x.entryHigh, 2);
     $('dStop').textContent = fmt(x.stop, 2); $('dTarget').textContent = fmt(x.target, 2);
+    if ($('planNota')) $('planNota').textContent = PLAN_MASURAT;   // I-714
     $('spark').innerHTML = sparkSvg(x.spark);
     var g = x.kind==='synthetic'?x.governor:window.GV?.status?.()||x.governor||{ verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] };
     $('dGovernor').textContent = 'Governor: ' + g.verdict;
