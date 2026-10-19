@@ -31,7 +31,9 @@
  if(!g.document)return;
  const doc=g.document,$=id=>doc.getElementById(id),origin=g.location?.origin;
  // o secțiune se rescrie doar când conținutul ei se schimbă: fără reclipirea graficului, fără tabele închise la fiecare citire din fundal
- const shown=new Map(),put=(id,markup)=>{if(shown.get(id)===markup)return;shown.set(id,markup);$(id).innerHTML=markup;};
+ // 19.10.2026 (I-702): o scriere reală marchează coloanele de re-măsurat; fără schimbări, fitLayout nu mai măsoară la fiecare desen
+ let layoutDirty=true;
+ const shown=new Map(),put=(id,markup)=>{if(shown.get(id)===markup)return;shown.set(id,markup);$(id).innerHTML=markup;layoutDirty=true;};
  const embedded=!!(g.parent&&g.parent!==g&&new URLSearchParams(g.location?.search||'').has('app'));
  if(embedded)doc.documentElement.dataset.embedded='true';
  const requested=new URLSearchParams(g.location?.search||'').get('symbol');
@@ -138,7 +140,7 @@
   else if(!ui.account?.fresh){text='Contul arată ultima copie salvată din '+when(ui.account?.at)+'. Actualizează-l la broker pentru date recente.';}
   else if(ui.activity?.state==='error'||ui.activity?.state==='partial'){text=ui.activity.reason;route='journal/#exec';label='Vezi jurnalul ↗';}
   else if(ui.market?.items?.some(x=>!finite(x.price)&&x.state!=='loading')){text='Unele cotații nu au putut fi confirmate. Sursele disponibile rămân vizibile; lipsurile nu devin zero.';route='scanner-verdicts/';label='Vezi Piață ↗';}
-  else if(ui.busy){text='Citesc sursele publice și registrul local. Ora ultimei citiri a contului rămâne afișată separat.';}
+  else if(ui.busy&&ui.loud!==false){/* I-702: reîmprospătarea liniștită (la minut) nu mai clipește rândul de atenție */text='Citesc sursele publice și registrul local. Ora ultimei citiri a contului rămâne afișată separat.';}
   else{title='Înainte de decizie';text='Verifică știrile, riscul și prețul executabil. Datele EOD și copiile locale nu sunt cotații live.';route='journal/#desk';label='Verifică riscul ↗';}
   // I-683: întâi alertele pe pozițiile reale (fără stop, rezultate în ≤3 zile, pierdere mare, concentrare, mișcare neobișnuită); rândul general rămâne după ele.
   let pozitii=[];try{const TA=g.TodayAttention,vix=(ui.market?.items||[]).find(x=>x.symbol==='^VIX'),pos=ui.account?.state==='ready'?(ui.account.positions||[]):[];if(TA&&pos.length)pozitii=TA.alerte({positions:pos,stops:(()=>{/* revizia 18.10: stopul contează doar dacă e pus după deschiderea poziției + stopurile din Trading 212 / Radar */try{const S2=g.StopSetter,sn=g.T212Snapshot?.read?.('live');if(!S2||!sn)return TA.stopuri(ui.account?.scope);const s=S2.stopuriValide(JSON.parse(localStorage.getItem('tt_holdings_theses_v1')||'{}'),sn[0],sn[1]?.positions||[]);for(const t of g.__stopuriExterne||[])s.add(t);return s;}catch(_){return TA.stopuri(ui.account?.scope);}})(),earnings:verdictExtra.earnings,serii:verdictExtra.expunere?.serii||null,grupuri:verdictExtra.expunere?.grupuri||null,miscare:finite(vix?.price)?vix.price/Math.sqrt(252):null});}catch(_){pozitii=[];}
@@ -184,35 +186,48 @@
   grid.classList.remove('measuring');
  }
  /* 17.10.2026 — Verdictul pieței (lib/market-verdict.js, demo aprobat): sectoarele din raportul breadth, regimul macro, calendarul,
-    rezultatele pozițiilor (o dată pe încărcare). Rezumat după reguli fixe, nu predicție. */
- const verdictExtra={raport:null,extra:null,robot:null,earnings:null,expunere:null,asked:false,expAsked:false};
+    rezultatele pozițiilor. Rezumat după reguli fixe, nu predicție.
+    19.10.2026 (I-701): Astăzi nu se descarcă niciodată din aplicație ⇒ „o dată pe încărcare” însemna o dată pe zile întregi. Sursele zilnice
+    se recitesc la o zi NOUĂ de bursă (ultima sesiune EOD încheiată), rezultatele și expunerea și când se schimbă lista de poziții. */
+ const verdictExtra={raport:null,extra:null,robot:null,earnings:null,necunoscute:null,expunere:null,zi:null,earnSig:null,expSig:null};
+ function ziBursa(){try{const z=g.DailySeries?.expected?.(Date.now(),'America/New_York',960);if(z)return z;}catch(_){}return new Date(Date.now()).toISOString().slice(0,10);}
  function verdictLoad(){
-  if(verdictExtra.asked||!g.MarketVerdict)return;verdictExtra.asked=true;const MV=g.MarketVerdict;
+  const zi=ziBursa();if(verdictExtra.zi===zi||!g.MarketVerdict)return;verdictExtra.zi=zi;const MV=g.MarketVerdict;
   MV.raportBreadth().then(r=>{verdictExtra.raport=r;renderVerdict();});
   MV.robotFile().then(r=>{verdictExtra.robot=r;renderVerdict();}); // I-676: verdictul notat noaptea, ieri → azi, marile companii, proba
   MV.extraData().then(x=>{verdictExtra.extra=x;renderVerdict();}); // regimul macro, structura VIX, creditul, futures (I-679..I-681)
  }
+ // I-701: o poziție fără dată de rezultate (fără cheie Finnhub, calendar fără dată, citire nereușită) se spune explicit în verdict
+ function motivNecunoscut(r){if(r.status!=='fulfilled')return 'citirea calendarului nu a reușit';let cheie='';try{cheie=g.FH_KEY?.get?.()||'';}catch(_){}return r.value?.earningsMotiv||(cheie?'calendarul nu dă o dată':'fără cheie Finnhub');}
  function verdictEarnings(){
-  const MV=g.MarketVerdict;if(verdictExtra.earnings||!g.HoldingsEvents?.fetchEvents||!MV)return;const pos=(ui.account?.positions||[]).filter(p=>MV.symbolOf(p)).sort((a,b)=>(b.value||0)-(a.value||0)).slice(0,6);if(!pos.length)return;verdictExtra.earnings=[];
-  Promise.allSettled(pos.map(p=>g.HoldingsEvents.fetchEvents(MV.symbolOf(p)))).then(rs=>{verdictExtra.earnings=rs.filter(r=>r.status==='fulfilled'&&r.value?.earnings?.date).map(r=>({symbol:r.value.symbol,date:r.value.earnings.date}));renderVerdict();renderAttention();});
+  const MV=g.MarketVerdict;if(!g.HoldingsEvents?.fetchEvents||!MV)return;const pos=(ui.account?.positions||[]).filter(p=>MV.symbolOf(p)).sort((a,b)=>(b.value||0)-(a.value||0)).slice(0,6);if(!pos.length)return;
+  const syms=pos.map(p=>MV.symbolOf(p)),sig=ziBursa()+'|'+syms.slice().sort().join(',');if(verdictExtra.earnSig===sig)return;verdictExtra.earnSig=sig;if(!verdictExtra.earnings)verdictExtra.earnings=[];
+  Promise.allSettled(syms.map(s=>g.HoldingsEvents.fetchEvents(s))).then(rs=>{if(verdictExtra.earnSig!==sig)return;const ok=r=>r.status==='fulfilled'&&r.value?.earnings?.date;verdictExtra.earnings=rs.filter(ok).map(r=>({symbol:r.value.symbol,date:r.value.earnings.date}));verdictExtra.necunoscute=rs.map((r,i)=>ok(r)?null:{symbol:syms[i],motiv:motivNecunoscut(r)}).filter(Boolean);renderVerdict();renderAttention();});
  }
- function verdictExpunere(){ // I-678: beta portofoliului, o dată, după ce sunt citite pozițiile și seria SPY
-  const MV=g.MarketVerdict,spy=(ui.market?.items||[]).find(x=>x.symbol==='SPY'),pos=ui.account?.positions||[];if(verdictExtra.expAsked||!MV||spy?.state!=='ready'||!pos.length)return;verdictExtra.expAsked=true;
-  MV.expunere({positions:pos,total:ui.account?.total,currency:ui.account?.currency,spyPoints:spy.points}).then(e=>{verdictExtra.expunere=e;renderVerdict();renderAttention();});
+ function verdictExpunere(){ // I-678: beta portofoliului după ce sunt citite pozițiile și seria SPY; I-701: din nou la zi nouă / altă listă de poziții
+  const MV=g.MarketVerdict,spy=(ui.market?.items||[]).find(x=>x.symbol==='SPY'),pos=ui.account?.positions||[];if(!MV||spy?.state!=='ready'||!pos.length)return;
+  const sig=ziBursa()+'|'+pos.map(p=>p.ticker).sort().join(',');if(verdictExtra.expSig===sig)return;verdictExtra.expSig=sig;
+  MV.expunere({positions:pos,total:ui.account?.total,currency:ui.account?.currency,spyPoints:spy.points}).then(e=>{if(verdictExtra.expSig!==sig)return;verdictExtra.expunere=e;renderVerdict();renderAttention();});
  }
+ let verdictSig=null;
  function renderVerdict(){
   const host=$('marketVerdict'),MV=g.MarketVerdict;if(!host||!MV)return;verdictLoad();verdictEarnings();verdictExpunere();
+  // I-702 (19.10.2026): se reface doar când s-au schimbat intrările (sau minutul: „azi / mâine”, futures înainte de deschidere)
+  let sig=null;try{sig=JSON.stringify([ui.market,ui.news?.items,(ui.account?.positions||[]).map(p=>[p.ticker,p.value]),Math.floor(Date.now()/60000)]);}catch(_){sig=null;}
+  const refs=[verdictExtra.raport,verdictExtra.extra,verdictExtra.robot,verdictExtra.earnings,verdictExtra.necunoscute,verdictExtra.expunere];
+  if(sig!==null&&verdictSig&&verdictSig.sig===sig&&refs.every((x,i)=>x===verdictSig.refs[i]))return;verdictSig={sig,refs};
   let events=[];try{events=g.MCTX?.hardcodedEvents?.()||[];}catch(_){}
   let regime=null;try{regime=verdictExtra.extra?MV.regimDin(ui.market,verdictExtra.extra):null;if(regime&&regime.partial&&verdictExtra.robot?.regim)regime=verdictExtra.robot.regim;}catch(_){}
-  try{host.innerHTML=MV.render(MV.compute({market:ui.market||{},raport:verdictExtra.raport,regime,extra:verdictExtra.extra,events,earnings:verdictExtra.earnings,news:ui.news?.items||[],positions:ui.account?.positions||[],expunere:verdictExtra.expunere,robot:verdictExtra.robot,now:Date.now()}));}
-  catch(_){host.innerHTML='<p class="mv-empty">Verdictul nu poate fi calculat acum; restul paginii rămâne valabil.</p>';}
+  let html;try{html=MV.render(MV.compute({market:ui.market||{},raport:verdictExtra.raport,regime,extra:verdictExtra.extra,events,earnings:verdictExtra.earnings,earningsNecunoscute:verdictExtra.necunoscute,news:ui.news?.items||[],positions:ui.account?.positions||[],expunere:verdictExtra.expunere,robot:verdictExtra.robot,now:Date.now()}));}
+  catch(_){html='<p class="mv-empty">Verdictul nu poate fi calculat acum; restul paginii rămâne valabil.</p>';}
+  put('marketVerdict',html);
  }
- function render(){renderVerdict();renderRefresh();renderAccount();renderMarket();renderChart();renderNews();renderPositions();renderActivity();renderScanners();renderAttention();renderBrief();fitLayout();}
+ function render(){renderVerdict();renderRefresh();renderAccount();renderMarket();renderChart();renderNews();renderPositions();renderActivity();renderScanners();renderAttention();renderBrief();if(layoutDirty){layoutDirty=false;fitLayout();}}
  async function load(force=false){
   const generation=++ui.generation;renderSession();ui.busy=true;
   try{ui.model=ui.model||g.TodayDashboardModel?.create();ui.account=ui.model?.account({days:ui.days})||{state:'error',issues:['Adaptorul datelor locale nu este disponibil.']};}catch(_){ui.account={state:'error',issues:['Contul nu a putut fi citit; datele existente sunt păstrate.']};}
   const scope=ui.account.scope,names=ui.account.newsSymbols?.length?ui.account.newsSymbols.slice(0,3):['SPY','QQQ'],model=ui.model;
-  const quiet=!force&&ui.loaded,sameScope=ui.shownScope===scope;ui.shownScope=scope;
+  const quiet=!force&&ui.loaded,sameScope=ui.shownScope===scope;ui.shownScope=scope;ui.loud=!quiet;
   if(!quiet){ui.market=emptyMarket();ui.news={state:'loading',items:[]};}
   if(!quiet||!sameScope)ui.activity={state:'loading',items:[]};
   render();if(!quiet)$('refreshStatus').textContent='Citesc date locale și surse publice…';
@@ -267,10 +282,12 @@
  }
  let refreshTimer,brokerTimer,channel;
  function brokerPending(state){if(g.clearTimeout)g.clearTimeout(brokerTimer);ui.brokerBusy=state==='loading';if(ui.brokerBusy&&g.setTimeout)brokerTimer=g.setTimeout(()=>{ui.brokerBusy=false;$('brokerRefreshStatus').hidden=false;$('brokerRefreshStatus').textContent='Actualizarea Trading 212 nu a fost confirmată în intervalul de așteptare. Ultima copie salvată rămâne afișată.';renderRefresh();},65000);}
- const queueRefresh=()=>{if(doc.hidden)return;if(g.clearTimeout)g.clearTimeout(refreshTimer);if(g.setTimeout)refreshTimer=g.setTimeout(()=>{if(!doc.hidden)load(false);},150);else load(false);};
+ // I-702 (19.10.2026): parcată în aplicație pagina e doar ascunsă (`document.hidden` rămâne fals) ⇒ întreabă TTShell (lib/shell-visibility.js)
+ const shellVisible=()=>g.TTShell?g.TTShell.visible():!doc.hidden;
+ const queueRefresh=()=>{if(!shellVisible())return;if(g.clearTimeout)g.clearTimeout(refreshTimer);if(g.setTimeout)refreshTimer=g.setTimeout(()=>{if(shellVisible())load(false);},150);else load(false);};
  g.addEventListener?.('focus',queueRefresh);
  g.addEventListener?.('storage',event=>{if(event.key===null||['ce_results_v2','tt_independent_scanner_v1','tt_trading212_portfolio_v1','tt_trading212_account_history_v1','tt_trading212_fills_v1'].includes(event.key))queueRefresh();});
- doc.addEventListener('visibilitychange',()=>{if(!doc.hidden)queueRefresh();});
+ doc.addEventListener('visibilitychange',()=>{if(shellVisible())queueRefresh();});
  g.addEventListener?.('message',event=>{
   if(!embedded||event.origin!==origin||event.source!==g.parent||!event.data||typeof event.data!=='object')return;
   if(event.data.ttShellVisible===true){queueRefresh();return;}
@@ -282,7 +299,7 @@
  function openFillsChannel(){try{if(!channel&&typeof g.BroadcastChannel==='function'){channel=new g.BroadcastChannel('tt-trading212-fills-changed-v1');channel.onmessage=event=>{const d=event.data;if(d&&typeof d==='object'&&d.key==='tt_trading212_fills_v1'&&Number.isSafeInteger(d.revision)&&d.revision>0&&d.revision<Number.MAX_SAFE_INTEGER&&Object.keys(d).every(k=>k==='key'||k==='revision'))queueRefresh();};}}catch(_){}}
  openFillsChannel();g.addEventListener?.('pageshow',event=>{openFillsChannel();if(event.persisted)queueRefresh();});
  g.addEventListener?.('pagehide',()=>{if(g.clearTimeout){g.clearTimeout(refreshTimer);g.clearTimeout(brokerTimer);}ui.brokerBusy=false;try{channel?.close();}catch(_){}channel=null;});
- if(g.setInterval)g.setInterval(()=>{if(!doc.hidden)queueRefresh();},60000);
+ if(g.TTShell)g.TTShell.every(queueRefresh,60000);else if(g.setInterval)g.setInterval(()=>{if(!doc.hidden)queueRefresh();},60000);
  g.TodayDashboardUI.state=()=>({days:ui.days,tab:ui.tab,busy:ui.busy,brokerBusy:ui.brokerBusy,embedded});
  load();
 })(typeof window!=='undefined'?window:globalThis);

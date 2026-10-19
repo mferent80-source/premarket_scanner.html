@@ -61,6 +61,7 @@
   }
   window.addEventListener('storage', (e) => { if (e.key === 'tt_holdings_theses_v1' || e.key === 'tt_trading212_portfolio_v1') { desen(); trimite(false); } });
   if (window.T212Orders) window.T212Orders.disponibil().then((r) => { ordine = r; desen(); });
-  desen(); trimite(false); pozaExterna(); setInterval(() => { if (!document.hidden) pozaExterna(); }, 300000);
+  // 19.10.2026 (I-702): parcată în aplicație (TTShell ascuns) nu mai întreabă worker-ul la 5 minute; la revenire o dată
+  desen(); trimite(false); pozaExterna(); if (window.TTShell) window.TTShell.every(pozaExterna, 300000); else setInterval(() => { if (!document.hidden) pozaExterna(); }, 300000);
   setTimeout(desen, 4000); // copia contului poate sosi după prima citire (pagina contului din fundal)
 })();
