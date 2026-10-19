@@ -1,0 +1,42 @@
+name: Top Long — bilanțul probei (săptămânal)
+
+# 19.10.2026 — I-717: sâmbăta, un mesaj pe Discord cu proba Top Long („N/8 · media SUS − JOS · nimic de hotărât încă”) și alarma
+# de abatere scrisă înainte (docs/premarket-proba-protocol.md, Anexa A). Citește evaluarea scrisă zilnic de robotul probei; trimite
+# DOAR când s-a închis o perioadă nouă. Același grup de concurență ca robotul zilnic (nu se împing două commituri odată).
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '45 7 * * 6'   # UTC, sâmbăta
+
+permissions:
+  contents: write
+
+jobs:
+  bilant:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: trading-tools-v1-proba
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --test tools/premarket-bilant.test.mjs
+      - name: Bilanțul probei Top Long
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: node tools/premarket-bilant.mjs
+      - name: Salvează ce s-a trimis
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scanner-verdicts/generated/premarket-bilant.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m 'data(premarket): bilantul saptamanal trimis [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
