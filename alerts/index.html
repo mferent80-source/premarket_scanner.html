@@ -1109,6 +1109,7 @@ body.al-page :focus-visible{outline:1px solid #E9B949!important;outline-offset:1
 <script src="../lib/suite-version.js?v=975"></script>
 <script src="../lib/data.js?v=26.10.16.0815"></script>
 <script src="../lib/poll-wake.js?v=975"></script>
+<script src="../lib/shell-visibility.js?v=26.10.19.2000"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
@@ -1316,6 +1317,9 @@ let pollTimer = null;
 // v59: shell PWA → iframe ascuns nu primește visibilitychange, deci shell-ul trimite postMessage({ttShellVisible}).
 // Default false = vizibil → comportament IDENTIC fără mesaj (pagină deschisă direct în browser nu se schimbă).
 var _shellHidden = false;
+// 19.10.2026 (I-702): ceasurile care nu țin de poll (ceasul de 1 s, GitHub și istoricul la 2 min) se opresc și ele cât pagina e parcată;
+// TTShell.every rulează o dată la revenire dacă a ratat un pas. Deschisă direct (în afara aplicației) merge ca setInterval.
+function ttEvery(fn, ms) { return (typeof TTShell !== 'undefined' && TTShell.every) ? TTShell.every(fn, ms) : setInterval(fn, ms); }
 
 // ============ STATE ============
 function loadAlertsBrut(){ try { const o = JSON.parse(localStorage.getItem(ALERTS_KEY) || '{}'); return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; } catch (e) { return {}; } }
@@ -2111,7 +2115,7 @@ function paintPollHeartbeat() {
     _staleBeeped = false;
   }
 }
-setInterval(function () { try { paintPollHeartbeat(); } catch (e) {} }, 1000);
+ttEvery(function () { try { paintPollHeartbeat(); } catch (e) {} }, 1000);
 window._pollWake = (window.PollWake && PollWake.bind) ? PollWake.bind({
   getBusy: function () { return _pollBusy; },
   setBusy: function (v) { _pollBusy = !!v; },
@@ -3127,6 +3131,11 @@ function nwSetStatus(msg) {
   const el = $('nwStatus');
   if (el) el.textContent = msg;
 }
+// 19.10.2026 (I-711): linkul unei știri vine din surse externe — în href ajung doar adrese http(s); javascript:, data: și restul cad pe #
+function nwSafeUrl(u) {
+  const s = typeof u === 'string' ? u.trim() : '';
+  return /^https?:\/\/[^\s/?#]+/i.test(s) ? s : '#';
+}
 function nwRender() {
   const list = $('nwList');
   const cnt = $('cntNw');
@@ -3140,7 +3149,7 @@ function nwRender() {
     const hits = (nwLastHits[w.id] || []).filter(h => h.big !== false);
     const hlHtml = hits.length
       ? `<div class="nw-headlines">${hits.slice(0, NW_HL_SHOW).map(h =>
-          `<a class="nw-hl${h.isNew ? ' new' : ''}" href="${escHtml(h.url || '#')}" target="_blank" rel="noopener">
+          `<a class="nw-hl${h.isNew ? ' new' : ''}" href="${escHtml(nwSafeUrl(h.url))}" target="_blank" rel="noopener">
             ${h.isNew ? '⭐ ' : ''}<b style="color:var(--gold);font-size:10px">${escHtml(h.sev || '')}</b> ${escHtml(h.headline || '(fără titlu)')}
             <span class="nw-hl-meta">${escHtml(h.why || '')} · sc${h.score || '—'} · ${escHtml(h.source || '—')} · ${escHtml(nwFmtWhen(h.datetime))}</span>
           </a>`).join('')}</div>`
@@ -3258,7 +3267,7 @@ async function nwCheckOne(w, { quiet } = {}) {
       const tg = getTgConfig();
       if (tg && tg.token && tg.chatId && window.TG && TG.send && !nwSettings().digest) {
         const lines = freshBig.slice(0, 3).map(h =>
-          `• <code>${tgEsc(h.sev)}</code> <a href="${tgEsc(h.url)}">${tgEsc(h.headline.slice(0, 100))}</a>\n  <i>${tgEsc(h.why)} · sc${h.score}</i>`
+          `• <code>${tgEsc(h.sev)}</code> <a href="${tgEsc(nwSafeUrl(h.url))}">${tgEsc(h.headline.slice(0, 100))}</a>\n  <i>${tgEsc(h.why)} · sc${h.score}</i>`
         ).join('\n');
         TG.send(`⭐ <b>Big News · ${tgEsc(w.symbol)}</b>\n${lines}`);
       }
@@ -3701,9 +3710,9 @@ pullFromGitHub(true).then(() => { updateSyncBanner(); }).catch(() => { updateSyn
 // v56: auto-pull PERIODIC al listei (nu doar la deschidere) — altfel un device cu pagina deja
 // deschisă nu prelua niciodată modificările făcute pe alt device decât la refresh manual.
 // 120s = ~30 req/h pe Contents API (bine sub limita 5000/h cu token); fără token cade pe Pages.
-setInterval(() => { if (!document.hidden) pullFromGitHub(true); }, 120000);
+ttEvery(() => { if (!document.hidden) pullFromGitHub(true); }, 120000);
 // istoricul ☁️ se împrospătează rar — botul rulează la 15 min; Pages cache scurt
-setInterval(() => { if (!document.hidden) loadServerHist(); }, 120000);
+ttEvery(() => { if (!document.hidden) loadServerHist(); }, 120000);
 
 // ============ DIN RADAR (v116) ============
 // Poza colectorului de acasa (pozitiile T212, botii, simbolurile tale cu insideri/rezultate/analisti) vine din worker-ul
@@ -3754,7 +3763,7 @@ function radRandeaza(r) {
 var _radBotiLiveMap = {}, _radBotiFara = {};
 function radBotiLive() { return _radBotiLiveMap; }
 async function radAduBotiLive() {
-  if (document.hidden || typeof RadarPoza === 'undefined') return;
+  if (document.hidden || (typeof TTShell !== 'undefined' && !TTShell.visible()) || typeof RadarPoza === 'undefined') return;   // I-702: nici cât e parcată
   const p = _radUltima ? _radUltima.poza : RadarPoza.cache(), boti = (p && p.boti) || [];
   let schimbat = false;
   await Promise.all(boti.map(async (b) => {
@@ -3762,15 +3771,32 @@ async function radAduBotiLive() {
     // v140: garda sta pe randul ei (in v134 ajunsese in comentariul de mai sus si nu mai rula)
     if (!s || (_radBotiFara[s] && Date.now() - _radBotiFara[s] < 30 * 60000)) return;
     try {
-      const r = await fetch('https://fapi.binance.com/fapi/v1/klines?symbol=' + s + 'USDT&interval=1d&limit=1', { cache: 'no-store' });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const k = (await r.json())[0], o = Number(k && k[1]), c = Number(k && k[4]);
+      const x = await radLumanareBinance(s);
+      if (x.lipsa) { _radBotiFara[s] = Date.now(); return; }   // moneda nu e pe Binance (HTTP 400): pauză de 30 min, ca înainte
+      const k = x.k, o = Number(k && k[1]), c = Number(k && k[4]);
       if (o > 0 && c > 0) { _radBotiLiveMap[b.s] = { deschidere: o, pret: c, la: Date.now(), sursa: 'Binance' }; schimbat = true; }
-    } catch (e) { _radBotiFara[s] = Date.now(); }
+    } catch (e) { _radBotiFara[s] = Date.now() - 28 * 60000; }   // eroare trecătoare după 2 încercări: doar ~2 min pauză, nu 30
   }));
   if (schimbat) radRandeaza();
 }
+// 19.10.2026 (I-702): cererea Binance are termen de 6 s și o reîncercare imediată; doar „simbol inexistent” (HTTP 400) scoate moneda
+// din urmărire 30 de minute — o eroare de rețea, un termen depășit, 5xx sau 429 nu mai ascund prețul live al botului o jumătate de oră.
+var RAD_BINANCE_MS = 6000;
+async function radLumanareBinance(s) {
+  let ultima = null;
+  for (let i = 0; i < 2; i++) {
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null, t = ctl ? setTimeout(() => ctl.abort(), RAD_BINANCE_MS) : null;
+    try {
+      const r = await fetch('https://fapi.binance.com/fapi/v1/klines?symbol=' + s + 'USDT&interval=1d&limit=1', ctl ? { cache: 'no-store', signal: ctl.signal } : { cache: 'no-store' });
+      if (r.status === 400) return { lipsa: true };
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return { k: (await r.json())[0] };
+    } catch (e) { ultima = e; } finally { if (t) clearTimeout(t); }
+  }
+  throw ultima || new Error('Binance nu răspunde');
+}
 setInterval(radAduBotiLive, 10000);
+if (typeof TTShell !== 'undefined') TTShell.onChange(function (v) { if (v) radAduBotiLive(); });   // I-702: la revenire, o citire imediată
 setTimeout(radAduBotiLive, 1500);
 var _radSimTimer = null;
 var _radSimUltima = '';
