@@ -29,8 +29,9 @@ test('model score families remain distinct and Isolation never claims a price or
  assert.ok(i.metrics.some(x=>x.label==='Sesiuni semnalate'));assert.ok(!i.metrics.some(x=>/acuratețe|loss|profit/i.test(x.label)));assert.ok(h.metrics.some(x=>x.label==='NLL · HMM'));assert.ok(g.metrics.some(x=>x.label==='QLIKE · 20 sesiuni'));assert.equal(i.windows[0].baseline,null);
  assert.equal(r.globalAccuracy,undefined);assert.equal(r.ranking,undefined);
 });
-test('expired or revised-source reports disappear individually without hiding the other models',()=>{
- for(const mutate of [r=>r.sourceFingerprint='revised',r=>r.currency='EUR',r=>r.trainedAt=now-1800001]){const s={...snapshots,quantile:{...snapshots.quantile,record:{...snapshots.quantile.record}}};mutate(s.quantile.record);const r=build({snapshots:s});assert.equal(r.historical.available,6);const q=r.historical.models.find(x=>x.id==='quantile');assert.equal(q.available,false);assert.equal(q.metrics.length,0);assert.equal(q.windows.length,0);assert.equal(r.verdict.direction,null);}
+// 19.10.2026 (I-703 a): raportul nu mai expiră la 30 de minute — e valabil pe sesiunea EOD și pe amprenta barelor
+test('revised-source or other-currency reports disappear individually without hiding the other models',()=>{
+ for(const mutate of [r=>r.sourceFingerprint='revised',r=>r.currency='EUR']){const s={...snapshots,quantile:{...snapshots.quantile,record:{...snapshots.quantile.record}}};mutate(s.quantile.record);const r=build({snapshots:s});assert.equal(r.historical.available,6);const q=r.historical.models.find(x=>x.id==='quantile');assert.equal(q.available,false);assert.equal(q.metrics.length,0);assert.equal(q.windows.length,0);assert.equal(r.verdict.direction,null);}
 });
 test('pending, missing-probability and overlapping outcomes are not fabricated into a probability score',()=>{
  const ledger=fixture(c,40,{step:1});let r=c.HoldingsPerformance.prospective(ledger,now),n=r.models.find(x=>x.id==='neural');assert.equal(n.all,40);assert.ok(n.n<40);assert.equal(n.probability.n,n.n);

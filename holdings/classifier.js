@@ -10,7 +10,9 @@ const key=p=>'tt_holdings_classifier_v1:'+encodeURIComponent(context.scope)+'|'+
 const others=()=>OTHERS.some(n=>g[n]?.busy());
 function restore(p){return context&&p?reports.restore(key(p),context.demo):Promise.resolve();}
 function read(p){try{return reports.read(key(p),context.demo);}catch{return null;}}
-function usable(r,p,m,now=Date.now()){try{return !!r&&Number.isFinite(r.sourceTime)&&r.symbol===context.symbol(p)&&r.currency===m?.currency&&r.asOf===m?.asOf&&r.result?.current?.t===r.sourceTime&&g.DailySeries?.date(r.sourceTime,r.timezone)===r.asOf&&equal(r.sourceClose,m?.price)&&equal(r.result.current.close,m?.price)&&r.kind===(context.demo?'synthetic':'market')&&Number.isFinite(r.trainedAt)&&r.trainedAt<=now&&now-r.trainedAt<=1800000&&Q.valid(r.result);}catch{return false;}}
+/* 19.10.2026 (I-703 a): raportul e valabil pe sesiunea EOD (asOf + închiderea) și pe amprenta barelor — aceleași bare ⇒ același rezultat —, nu 30 de minute;
+   înainte, fiecare deschidere a Portofoliului reantrena modelele (~8 s CPU pe poziție). */
+function usable(r,p,m,now=Date.now()){try{return !!r&&Number.isFinite(r.sourceTime)&&r.symbol===context.symbol(p)&&r.currency===m?.currency&&r.asOf===m?.asOf&&r.result?.current?.t===r.sourceTime&&g.DailySeries?.date(r.sourceTime,r.timezone)===r.asOf&&equal(r.sourceClose,m?.price)&&equal(r.result.current.close,m?.price)&&r.kind===(context.demo?'synthetic':'market')&&Number.isFinite(r.trainedAt)&&r.trainedAt<=now&&(typeof m?.sourceFingerprint!=='string'||typeof r.sourceFingerprint!=='string'||r.sourceFingerprint===m.sourceFingerprint)&&Q.valid(r.result);}catch{return false;}}
 function cancel(update=true){if(job){if(update){errors.set(job.key,'Clasificare anulată. Pornirea automată stă 30 de minute; Reclasifică pornește oricând.');pausedUntil=Date.now()+1800000;}job.worker?.terminate();clearTimeout(job.timeout);job.resolve?.({state:'cancelled'});job=null;serial++;}if(update)refresh();}
 function setContext(c){if(context&&(context.scope!==c.scope||context.demo!==c.demo))cancel(false);if(job){const p=c.positions.find(p=>p.ticker===job.ticker),m=p?c.model(p):null;if(!p||c.symbol(p)!==job.symbol||m?.currency!==job.currency||m?.asOf!==job.asOf||m?.price!==job.price)cancel(false);}context=c;if(!c.demo)for(const p of c.positions)restore(p);}
 function refresh(){g.HoldingsNeuralUI?.refresh();}
@@ -61,9 +63,10 @@ async function train(p,options={}){
  }catch(e){finish(current,e.message);}
  return current.completion;
 }
-/* Pornește singur o dată pe poziție, EOD și jumătate de oră (raportul e reutilizabil 30 de minute, ca la celelalte modele),
-   doar când cardul e pe ecran și celelalte modele sunt libere. */
-function auto(){if(!context||busy()||Date.now()<pausedUntil)return;for(const host of document.querySelectorAll('[data-clf-host]')){if(!host.isConnected||host.closest('.holding')?.hidden||host.closest('[data-holding-panel]')?.hidden)continue;const p=context.positions[Number(host.dataset.clfHost)],m=p&&context.model(p);if(!m||!context.symbol(p))continue;const id=key(p)+'|'+m.asOf+'|'+m.price+'|'+Math.floor(Date.now()/1800000);if(started.has(id)||inspect(p).usable)continue;started.add(id);const ticker=p.ticker;setTimeout(()=>{const now=context?.positions.find(x=>x.ticker===ticker);if(!busy()&&now&&Date.now()>=pausedUntil&&context.model(now)?.asOf===m.asOf)train(now);else started.delete(id);},1500);return;}}
+/* Pornește singur o dată pe poziție și pe sesiune EOD (19.10.2026, I-703 c: înainte și la fiecare jumătate de oră; aceleași bare dau exact
+   același raport — tools/modele-valabile-pe-sesiune-i703.test.mjs —, deci raportul ține toată ziua de bursă), doar când cardul e pe ecran
+   și celelalte modele sunt libere. */
+function auto(){if(!context||busy()||Date.now()<pausedUntil)return;for(const host of document.querySelectorAll('[data-clf-host]')){if(!host.isConnected||host.closest('.holding')?.hidden||host.closest('[data-holding-panel]')?.hidden)continue;const p=context.positions[Number(host.dataset.clfHost)],m=p&&context.model(p);if(!m||!context.symbol(p))continue;const id=key(p)+'|'+m.asOf+'|'+m.price;if(started.has(id)||inspect(p).usable)continue;started.add(id);const ticker=p.ticker;setTimeout(()=>{const now=context?.positions.find(x=>x.ticker===ticker);if(!busy()&&now&&Date.now()>=pausedUntil&&context.model(now)?.asOf===m.asOf)train(now);else started.delete(id);},1500);return;}}
 function bind(){for(const b of document.querySelectorAll('[data-clf-train]'))b.onclick=()=>train(context.positions[Number(b.dataset.clfTrain)]);for(const b of document.querySelectorAll('[data-clf-cancel]'))b.onclick=()=>cancel();for(const b of document.querySelectorAll('[data-clf-export]'))b.onclick=()=>{const p=context.positions[Number(b.dataset.clfExport)],r=read(p);if(usable(r,p,context.model(p)))g.HoldingsNeuralUI.exportReport(r);};auto();}
 g.HoldingsClassifierUI={setContext,restore,inspect,markup,bind,cancel,busy:()=>!!job};
 })(typeof window!=='undefined'?window:globalThis);
