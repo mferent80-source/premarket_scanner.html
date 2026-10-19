@@ -685,6 +685,29 @@
     state.timer = setTimeout(function () { if (!document.hidden && state.shellVisible) scan(); else schedule(); }, SCAN_MS);
     state.nextAt = Date.now() + SCAN_MS; etichete();
   }
+  // 19.10.2026 (I-702): la deschidere pagina rescana mereu (setTimeout(scan, 400)), chiar cu rezultate de 2 minute. Acum: doar când copia lipsește
+  // sau are peste 30 de minute — aceeași regulă ca scanarea ascunsă a aplicației (app/index.html). Dacă aplicația scanează chiar atunci în
+  // fundal, pagina o așteaptă (copia vine prin `storage`) și scanează singură doar dacă aceea se oprește fără copie nouă.
+  var DESCHIDERE_MS = 30 * 60 * 1000;
+  function scanareAplicatie() {
+    if (fundal) return false;   // cadrul ascuns al aplicației e chiar această pagină
+    try { return !!(window.parent && window.parent !== window && window.parent.ttBackgroundScan && window.parent.ttBackgroundScan.state().running); } catch (_) { return false; }
+  }
+  function proaspat() { return state.updatedAt > 0 && Date.now() - state.updatedAt < DESCHIDERE_MS; }
+  function pornire() {
+    if (fundal || requested) { setTimeout(scan, 400); return; }   // cadrul ascuns și validarea unui simbol cerut scanează ca înainte
+    if (proaspat()) return;
+    if (!scanareAplicatie()) { setTimeout(scan, 400); return; }
+    var start = Date.now();
+    $('nextScan').textContent = 'aștept scanarea pornită de aplicație';
+    (function astept() {
+      setTimeout(function () {
+        if (state.scanning || proaspat()) { etichete(); return; }
+        if (scanareAplicatie() && Date.now() - start < 6 * 60000) { astept(); return; }
+        loadCache(); if (!proaspat()) scan();
+      }, 1500);
+    })();
+  }
   function bind() {
     $('scanBtn').onclick = scan; $('universe').onchange = function () {state.generation++;state.analyses=[];state.momentum=[];state.reversal=[];state.selected=null;state.hasScan=false;state.updatedAt=0;state.verified=0;rankResults();render();scan();};
     $('search').oninput = render; $('onlyActionable').onchange = render;
@@ -729,6 +752,8 @@
   if (!fundal && window.TTProbaTopLong) TTProbaTopLong.load('../scanner-verdicts/generated/premarket-proba.json').then(function () { render(); });   // I-709
   if(requested){$('search').value=requested;document.querySelectorAll('.ce-mode').forEach(function(b){b.classList.toggle('active',b.dataset.mode===state.mode);});showAlert('Validare intraday pentru '+requested+' · rulăm universul curent și tickerul solicitat. Ideea EOD nu este o intrare confirmată.');}
   if (!fundal) schedule();
-  setTimeout(scan, 400);
+  // I-702: copia salvată de altă fereastră (scanarea ascunsă a aplicației, Piață, Planuri) intră în pagină fără o scanare nouă
+  if (!fundal) window.addEventListener('storage', function (e) { if (e && e.key === CACHE_KEY && !state.scanning) loadCache(); });
+  pornire();
   if (typeof setInterval === 'function') setInterval(etichete, 30000);
 })();
