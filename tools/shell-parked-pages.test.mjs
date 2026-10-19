@@ -37,7 +37,7 @@ for (const [file, kind] of [['app/sync/monitor.js', 'monitor'], ['app/sync/push.
 
 test('I-702: Alerte leagă TTShell; ceasul de 1 s, GitHub și istoricul la 2 min se opresc cât pagina e parcată', () => {
   const main = ALERTS.indexOf('var _shellHidden');
-  const lib = ALERTS.indexOf('../lib/shell-visibility.js?v=26.10.19.2000');
+  const lib = ALERTS.indexOf('../lib/shell-visibility.js?v=');
   assert.ok(lib > 0 && lib < main, 'shell-visibility.js e încărcat înaintea scriptului paginii');
   assert.match(ALERTS, /function ttEvery\(fn, ms\) \{ return \(typeof TTShell !== 'undefined' && TTShell\.every\) \? TTShell\.every\(fn, ms\) : setInterval\(fn, ms\); \}/);
   assert.match(ALERTS, /ttEvery\(function \(\) \{ try \{ paintPollHeartbeat\(\); \} catch \(e\) \{\} \}, 1000\);/);

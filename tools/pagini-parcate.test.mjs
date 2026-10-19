@@ -134,5 +134,5 @@ test('I-702: SPY (randamentul contului), validarea și clasificatorul trec prin 
   for (const f of ['desk/account-performance.js', 'desk/validation.js', 'lib/desk-classifier.js']) {
     const s = readFileSync(f, 'utf8'); assert.match(s, /TTDeskDailyCache\.fetchStock\(/, f);
   }
-  assert.ok(deskHtml.indexOf('desk-daily-cache.js?v=26.10.19.2000') > deskHtml.indexOf('lib/data.js?v=') && deskHtml.indexOf('desk-daily-cache.js?v=') < deskHtml.indexOf('account-performance.js?v='));
+  assert.ok(deskHtml.indexOf('desk-daily-cache.js?v=') > deskHtml.indexOf('lib/data.js?v=') && deskHtml.indexOf('desk-daily-cache.js?v=') < deskHtml.indexOf('account-performance.js?v='));
 });

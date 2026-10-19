@@ -99,7 +99,7 @@ test('I-702: reantrenarea automată (holdings/learning.js) nu pornește cât Por
 });
 
 test('I-702: holdings/index.html încarcă lib/shell-visibility.js înaintea scripturilor paginii', () => {
-  const html = readFileSync('holdings/index.html', 'utf8'), i = html.indexOf('../lib/shell-visibility.js?v=26.10.19.2000');
+  const html = readFileSync('holdings/index.html', 'utf8'), i = html.indexOf('../lib/shell-visibility.js?v=');
   assert.ok(i > 0); assert.ok(i < html.indexOf('src="holdings.js') && i < html.indexOf('src="learning.js') && i < html.indexOf('src="workbench.js'));
 });
 

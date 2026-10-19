@@ -97,6 +97,6 @@ test('I-702: parcată în aplicație (TTShell ascuns) Astăzi nu mai citește la
 });
 
 test('I-702: today/index.html încarcă lib/shell-visibility.js înaintea scripturilor paginii', () => {
-  const html = readFileSync('today/index.html', 'utf8'), i = html.indexOf('../lib/shell-visibility.js?v=26.10.19.2000');
+  const html = readFileSync('today/index.html', 'utf8'), i = html.indexOf('../lib/shell-visibility.js?v=');
   assert.ok(i > 0); assert.ok(i < html.indexOf('src="view.js'));
 });

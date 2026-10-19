@@ -71,7 +71,7 @@ test('I-713: textul vechimii pentru Setări și pagina contului', () => {
 
 test('I-713: brokerul ascuns cere T212 doar când regula o permite; citirea proprie se marchează', () => {
   const js = read('broker/broker.js'), html = read('broker/index.html');
-  assert.match(html, /lib\/shell-visibility\.js\?v=26\.10\.19\.2000/); assert.match(html, /lib\/t212-reader\.js\?v=26\.10\.19\.2000/);
+  assert.match(html, /lib\/shell-visibility\.js\?v=[\d.]+/); assert.match(html, /lib\/t212-reader\.js\?v=[\d.]+/);
   assert.match(js, /setInterval\(\(\)=>\{if\(token&&\$\('autoSync'\)\.checked&&!busy&&!journalRunning&&navigator\.onLine!==false&&document\.visibilityState!=='hidden'&&readAllowed\(\)\)sync\(\);\},60000\);/);
   assert.match(js, /importJournalPage\(\);\},12000\)/); assert.match(js, /&&readAllowed\(\)\)importJournalPage\(\);\},12000\)/);
   assert.match(js, /&&readAllowed\(\)\)importCashPage\(\);\},15000\)/);
@@ -131,7 +131,7 @@ test('I-713: aparatul ales (implicit) citește ca înainte', async () => {
 test('I-713: Setări are bifa „Acest aparat citește Trading 212”, cu explicație și vechimea citirii', () => {
   const html = read('app/settings/index.html');
   assert.match(html, /id="t212Reader"/); assert.match(html, /Acest aparat citește Trading 212/); assert.match(html, /15 minute/);
-  assert.match(html, /lib\/t212-reader\.js\?v=26\.10\.19\.2000/);
+  assert.match(html, /lib\/t212-reader\.js\?v=[\d.]+/);
   // workspace.js leagă bifa de setare
   const elements = {}, s = store({ tt_trading212_portfolio_v1: JSON.stringify({ a: { environment: 'live', fetchedAt: new Date(Date.now() - 4 * MIN).toISOString() } }) });
   const el = (id) => (id in elements ? elements[id] : (elements[id] = { id, checked: false, textContent: '', dataset: {}, addEventListener(n, f) { this['on' + n] = f; }, setAttribute() {}, querySelectorAll: () => [] }));

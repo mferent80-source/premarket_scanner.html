@@ -1,4 +1,4 @@
-import {KEYS,mergeRecord,validateValue,EvidenceCloud,ForecastCloud,LAST_WRITE_WINS,FillsCloud} from '../lib/cloud-sync-model.mjs?v=26.10.19.1715';
+import {KEYS,mergeRecord,validateValue,EvidenceCloud,ForecastCloud,LAST_WRITE_WINS,FillsCloud} from '../lib/cloud-sync-model.mjs?v=26.10.19.1845';
 /* 16.10.2026: registrul de învățare al Portofoliului circulă între dispozitive (PC-ul notează dimineața, telefonul vede). Se citește din IndexedDB o
    dată pe sincronizare; scrierea unește în aceeași tranzacție cu ce e salvat (Portofoliul deschis poate adăuga între timp) și nu șterge nimic. */
 const ForecastLocal=(()=>{let snap=null,gen=0;
