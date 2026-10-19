@@ -13,12 +13,13 @@ function setup({ vault = { key: 'k', secret: 's', environment: 'live' }, config 
   for (const f of ['lib/holdings-notes.js', 'lib/stop-setter.js', 'lib/t212-orders.js']) vm.runInContext(readFileSync(f, 'utf8'), c);
   return { c, O: c.T212Orders, S: c.StopSetter, calls };
 }
-const poz = { ticker: 'MU_US_EQ', quantity: 5.5, currentPrice: 876, averagePrice: 993.06, value: 5362, instrumentCurrency: 'USD' };
+// 19.10.2026 (I-711): contul e în RON (poz.currency) — a doua sumă din confirmare e în moneda contului, nu „lei” presupus
+const poz = { ticker: 'MU_US_EQ', quantity: 5.5, currentPrice: 876, averagePrice: 993.06, value: 5362, instrumentCurrency: 'USD', currency: 'RON' };
 
 test('the confirmation summary uses the whole position, the stop and the loss from the current price (in the stock currency and in lei)', () => {
   const { O } = setup(), r = O.rezumat(poz, 832.2, 876);
   assert.equal(r.qty, 5.5); assert.equal(r.simbol, 'MU'); assert.ok(Math.abs(r.pierdere - (876 - 832.2) * 5.5) < 1e-9);
-  assert.ok(Math.abs(r.lei - 5362 * (1 - 832.2 / 876)) < 1e-9); assert.equal(r.peste, false);
+  assert.ok(Math.abs(r.lei - 5362 * (1 - 832.2 / 876)) < 1e-9); assert.equal(r.monedaCont, 'RON'); assert.equal(r.peste, false);
   assert.equal(O.rezumat(poz, 0, 876), null); assert.equal(O.rezumat({ ...poz, quantity: 0 }, 800, 876), null);
   assert.equal(O.rezumat(poz, 900, 876).peste, true);
   const html = O.confirmareHtml(r, 'USD', (s) => String(s), false);
