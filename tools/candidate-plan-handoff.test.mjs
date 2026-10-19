@@ -17,7 +17,8 @@ async function boot({search='?symbol=QCOM&mode=momentum&ticket=1&handoff=1',hash
   class Clock extends Date {constructor(...args){super(...(args.length?args:[clock]));}static now(){return clock;}}
   function node(id){return nodes[id]||(nodes[id]={value:'',textContent:'',innerHTML:'',open:false,hidden:false,dataset:{},style:{setProperty(){}},classList:(()=>{const set=new Set();return {toggle:(k,on)=>{const v=on===undefined?!set.has(k):!!on;if(v)set.add(k);else set.delete(k);return v;},remove:k=>set.delete(k),add:k=>set.add(k),contains:k=>set.has(k)};})(),removeAttribute(k){delete this[k];},setAttribute(k,v){this[k]=v;},parentNode:{insertBefore(){}},remove(){this.removed=true;},querySelectorAll:()=>[],contains:()=>false,focus(){},blur(){},showModal(){this.open=true;this.opens=(this.opens||0)+1;},close(){this.open=false;}});}
   const parent={postMessage:(data,origin)=>messages.push({data,origin})};
-  const localStorage={getItem:key=>key==="tt_trade_plans_v1"&&planRows?JSON.stringify(planRows):key.startsWith('ce_results_')&&cache?JSON.stringify(cache):null,setItem(){writes++;if(quota)throw new DOMException('quota','QuotaExceededError');}};
+  // 19.10.2026 (I-700): Planuri nu mai presupune 10.000 — capitalul de referință e cel scris de el (aici, 10.000 scris)
+  const localStorage={getItem:key=>key==='tt_ticket_capital'?'10000':key==="tt_trade_plans_v1"&&planRows?JSON.stringify(planRows):key.startsWith('ce_results_')&&cache?JSON.stringify(cache):null,setItem(){writes++;if(quota)throw new DOMException('quota','QuotaExceededError');}};
   const ctx={Date:Clock,URLSearchParams,URL,Intl,DOMException,console,document:{getElementById:node,createElement:()=>{const id='__frame'+Object.keys(nodes).length,n=node(id);n.contentWindow={postMessage:(data,origin)=>messages.push({data,origin,frame:id})};return n;},querySelectorAll:()=>[],addEventListener(){},activeElement:null,hidden:false,documentElement:{dataset:{appVersion:'test'}}},location:{origin:'https://example.test',href:'https://example.test/project/'+page+'/',search,hash},localStorage,parent,addEventListener:(n,fn)=>events[n]=fn,setTimeout:(fn,ms)=>{timeouts.push({fn,ms});return timeouts.length;},clearTimeout(){},setInterval:(fn,ms)=>{intervals.push({fn,ms});},GV:{status:()=>({verdict:governor,reasons:[],openCount:0,budgetLeftUsd:200,maxLossWeekUsd:300,weekPnl:0,cfg:{maxOpenPositions:4}})},TTBreadth:{load:async()=>null}};
   ctx.window=ctx;if(standalone)ctx.parent=ctx;
   vm.createContext(ctx);vm.runInContext(daily+handoff,ctx);
@@ -46,7 +47,7 @@ test('scanner button carries the current selected analysis despite full local st
   assert.equal(b.messages[0].data.ttPlanCandidate.entryHigh,102);
   const d=await boot();d.send(b.messages[0].data);
   assert.equal(d.nodes.ticketWrap.open,true);assert.equal(d.nodes.ticketSymbol.textContent,'QCOM');
-  assert.equal(d.nodes.ticketShares.textContent,'7 unități');assert.equal(d.nodes.ticketSave.disabled,false);assert.equal(d.writes,0);
+  assert.equal(d.nodes.ticketShares.textContent,'3 unități');/* I-709 (19.10.2026): Top Long în probă ⇒ risc 0,25 % (25 USD / 7 USD pe unitate), nu 0,5 % (7 unități) */assert.equal(d.nodes.ticketSave.disabled,false);assert.equal(d.writes,0);
 });
 test('standalone scanner uses the same Desk with a bounded public snapshot',async()=>{
   const b=await boot({page:'scanner',standalone:true});b.ctx.scannerState.selected.apiKey='secret';b.ctx.scannerState.selected.governor={verdict:'TRADE',account:'private'};b.nodes.setupBtn.onclick();
