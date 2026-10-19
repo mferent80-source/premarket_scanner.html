@@ -407,7 +407,16 @@
       + '<div class="ce-symbol"><b>' + escapeHtml(x.symbol) + ' <em>' + escapeHtml(x.region) + '</em></b><small>' + fapteHtml(x) + '</small>' + (window.T212C ? T212C.badge(x.symbol) : '') + '</div>'
       + '<span class="ce-cell" data-label="Sector">' + escapeHtml(x.sector) + '</span><b class="ce-cell ' + clsA + '" data-label="'+(state.mode==='momentum'?'Δ zi':'De la maxim')+'">' + a + '</b>'
       + '<span class="ce-cell ' + clsB + '" data-label="'+(state.mode==='momentum'?'RVOL':'Din minim')+'">' + b + '</span><span class="ce-cell" data-label="'+(state.mode==='momentum'?'RS 20z':'Bază')+'">' + c + '</span><span class="ce-cell" data-label="'+(state.mode==='momentum'?'Ret. 20z':'RVOL')+'">' + d + '</span>'
-      + '<strong class="ce-score">' + x.score + '</strong><i class="ce-state ' + stateClass(x) + '">' + x.state + '</i></button>';
+      + '<strong class="ce-score">' + x.score + '</strong><i class="ce-state ' + stateClass(x) + '">' + x.state + (probaTag(x) ? '<small class="ce-proba-tag">' + escapeHtml(probaTag(x)) + '</small>' : '') + '</i></button>';
+  }
+  // 19.10.2026 (I-709): Top Long e în proba în timp (scanner-verdicts/generated/premarket-proba.json) ⇒ lângă FIRE / ARMED scrie „în probă · N/8”,
+  // iar deasupra listei, nota probei. Doar afișare: regulile de clasament (amprenta probei) nu se ating.
+  function probaTag(x) { if (!x || x.mode !== 'momentum' || ['FIRE', 'ARMED'].indexOf(x.state) < 0) return ''; return window.TTProbaTopLong ? TTProbaTopLong.tag(x) : 'în probă'; }
+  function notaProba() {
+    var el = $('probaNota'); if (!el) return;
+    var s = window.TTProbaTopLong ? TTProbaTopLong.state() : null;
+    el.hidden = state.mode !== 'momentum' || !!(s && s.dovedit);
+    if (!el.hidden) el.textContent = s ? s.text : 'Top Long e în proba în timp; până la verdict riscul unui plan Top Long e plafonat la 0,25 %.';
   }
   function stateClass(x) { return x.mode === 'trend' ? (x.state === 'VECHI' ? 'vechi' : x.state === 'RAPORTEAZĂ' ? 'raporteaza' : x.state === 'FĂRĂ REGIM' ? 'regim' : 'proba') : String(x.state || '').toLowerCase(); }
   // Modul „Trend 12 luni” (14.10.2026): clasamentul vine de la robotul zilnic (tools/trend-12-1.mjs ⇒ generated/trend-12-1.json).
@@ -601,6 +610,7 @@
     tableHead();
     coverage();
     notaTrend();
+    notaProba();
     var items = currentItems();
     if (!items.length && state.mode === 'trend') {
       var qT=$('search').value.trim(),oT=$('onlyActionable').checked;
@@ -640,7 +650,7 @@
       $('spark').innerHTML = ''; $('setupBtn').disabled = true; return;
     }
     $('dSymbol').textContent = x.symbol; $('dName').textContent = (x.mode === 'momentum' ? 'Long momentum' : 'Early reversal')+' · '+(x.currency||'monedă neverificată');
-    $('dScore').textContent = x.score; $('dSector').textContent = x.sector; $('dState').textContent = x.state;
+    $('dScore').textContent = x.score; $('dSector').textContent = x.sector; $('dState').textContent = x.state + (probaTag(x) ? ' · ' + probaTag(x) : '');
     $('dFresh').textContent = ageText(x.ts); $('dReason').textContent = x.reason + (window.T212C && T212C.held(x.symbol).length ? ' · DEȚII DEJA în snapshot Invest; verifică expunerea cumulată înainte de o nouă intrare.' : '');
     $('dEntry').textContent = fmt(x.entryLow, 2) + '–' + fmt(x.entryHigh, 2);
     $('dStop').textContent = fmt(x.stop, 2); $('dTarget').textContent = fmt(x.target, 2);
@@ -674,6 +684,29 @@
     clearTimeout(state.timer);
     state.timer = setTimeout(function () { if (!document.hidden && state.shellVisible) scan(); else schedule(); }, SCAN_MS);
     state.nextAt = Date.now() + SCAN_MS; etichete();
+  }
+  // 19.10.2026 (I-702): la deschidere pagina rescana mereu (setTimeout(scan, 400)), chiar cu rezultate de 2 minute. Acum: doar când copia lipsește
+  // sau are peste 30 de minute — aceeași regulă ca scanarea ascunsă a aplicației (app/index.html). Dacă aplicația scanează chiar atunci în
+  // fundal, pagina o așteaptă (copia vine prin `storage`) și scanează singură doar dacă aceea se oprește fără copie nouă.
+  var DESCHIDERE_MS = 30 * 60 * 1000;
+  function scanareAplicatie() {
+    if (fundal) return false;   // cadrul ascuns al aplicației e chiar această pagină
+    try { return !!(window.parent && window.parent !== window && window.parent.ttBackgroundScan && window.parent.ttBackgroundScan.state().running); } catch (_) { return false; }
+  }
+  function proaspat() { return state.updatedAt > 0 && Date.now() - state.updatedAt < DESCHIDERE_MS; }
+  function pornire() {
+    if (fundal || requested) { setTimeout(scan, 400); return; }   // cadrul ascuns și validarea unui simbol cerut scanează ca înainte
+    if (proaspat()) return;
+    if (!scanareAplicatie()) { setTimeout(scan, 400); return; }
+    var start = Date.now();
+    $('nextScan').textContent = 'aștept scanarea pornită de aplicație';
+    (function astept() {
+      setTimeout(function () {
+        if (state.scanning || proaspat()) { etichete(); return; }
+        if (scanareAplicatie() && Date.now() - start < 6 * 60000) { astept(); return; }
+        loadCache(); if (!proaspat()) scan();
+      }, 1500);
+    })();
   }
   function bind() {
     $('scanBtn').onclick = scan; $('universe').onchange = function () {state.generation++;state.analyses=[];state.momentum=[];state.reversal=[];state.selected=null;state.hasScan=false;state.updatedAt=0;state.verified=0;rankResults();render();scan();};
@@ -716,8 +749,11 @@
   if (universCerut && Array.prototype.some.call($('universe').options, function (o) { return o.value === universCerut; })) $('universe').value = universCerut;
   loadCache();
   loadTrend();
+  if (!fundal && window.TTProbaTopLong) TTProbaTopLong.load('../scanner-verdicts/generated/premarket-proba.json').then(function () { render(); });   // I-709
   if(requested){$('search').value=requested;document.querySelectorAll('.ce-mode').forEach(function(b){b.classList.toggle('active',b.dataset.mode===state.mode);});showAlert('Validare intraday pentru '+requested+' · rulăm universul curent și tickerul solicitat. Ideea EOD nu este o intrare confirmată.');}
   if (!fundal) schedule();
-  setTimeout(scan, 400);
+  // I-702: copia salvată de altă fereastră (scanarea ascunsă a aplicației, Piață, Planuri) intră în pagină fără o scanare nouă
+  if (!fundal) window.addEventListener('storage', function (e) { if (e && e.key === CACHE_KEY && !state.scanning) loadCache(); });
+  pornire();
   if (typeof setInterval === 'function') setInterval(etichete, 30000);
 })();

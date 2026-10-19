@@ -41,6 +41,9 @@ function brief(){const host=$('marketBrief');if(!host)return;const all=R.compari
 /* 18.10.2026 (el: „să pornească toate, să aibă rezultate și opțiuni”): panoul „Rulează motoarele”. Premarket Scanner rulează într-o fereastră ascunsă
    (candidate-engine/?fundal=1 — aceeași scanare ca pe pagina lui, salvată în aceeași copie), apoi Reguli V1 pe universul lui, 5 simboluri deodată.
    Comparația cere în continuare două analize actuale pentru aceeași sesiune EOD — de aceea motoarele rulează unul după altul. */
+ /* 19.10.2026 (I-702): Piață parcată în aplicație e doar ascunsă (document.hidden rămâne fals) — recitea la 60 s și la fiecare `storage`.
+    Cu TTShell (lib/shell-visibility.js): nimic cât e ascunsă, o recitire la revenire. Scanările pornite de el merg mai departe. */
+ const vizibil=()=>g.TTShell?g.TTShell.visible():!document.hidden;
  const OPT_KEY='tt_piata_optiuni_v1';let running=null,primaryFrame=null,primaryProgress='',lastAuto=0,autoReady=false;
  function options(){let o={};try{o=JSON.parse(localStorage.getItem(OPT_KEY)||'{}')||{};}catch(_){}let kind=null;try{kind=JSON.parse(JSON.parse(localStorage.getItem(R.PRIMARY_KEY)||'null')?.universeKey||'null')?.[0]||null;}catch(_){}return {auto:o.auto!==false,univers:typeof o.univers==='string'?o.univers:kind};}
  function saveOptions(){try{localStorage.setItem(OPT_KEY,JSON.stringify({auto:$('autoRun').checked,univers:$('primaryUniverse').value}));}catch(_){}}
@@ -90,7 +93,7 @@ function brief(){const host=$('marketBrief');if(!host)return;const all=R.compari
  }
  function stopAll(){if(running==='primary')running=null;else cancel();steps();}
  function autoStart(){
-  if(!autoReady||!primary||!$('autoRun').checked||running||controller||document.hidden||Date.now()-lastAuto<10*60000)return;
+  if(!autoReady||!primary||!$('autoRun').checked||running||controller||!vizibil()||Date.now()-lastAuto<10*60000)return;
   const sameUniverse=independent.universe.length>0&&independent.universe.join(',')===primary.universe.join(',');
   if(!primary.scanFresh)runAll({auto:true});else if(!independent.scanFresh||!sameUniverse)runAll({auto:true,skipPrimary:true});
  }
@@ -112,11 +115,11 @@ function brief(){const host=$('marketBrief');if(!host)return;const all=R.compari
  }
  async function proba(){if(typeof g.fetch!=='function')return;for(const [file,id,cfg] of [['v1-proba.json','v1ProbaBody',PROBA_V1],['premarket-proba.json','pmProbaBody',PROBA_PM]]){try{const r=await g.fetch('generated/'+file+'?x='+Date.now(),{cache:'no-store'});$(id).innerHTML=probaHtml(r.ok?await r.json():null,cfg);}catch(_){$(id).innerHTML=probaHtml(null,cfg);}}}
  document.addEventListener('click',event=>{const a=event.target.closest('[data-route]');if(!a||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;event.preventDefault();R.navigate(a.dataset.route,a.dataset.query||'');});
- $('scanForm').addEventListener('submit',scan);$('cancelIndependent').addEventListener('click',cancel);$('resultSearch').addEventListener('input',read);$('primaryMode').addEventListener('change',read);$('universeMode').addEventListener('change',universeDescription);$('manualSymbols').addEventListener('input',universeDescription);$('refreshResults').addEventListener('click',()=>{read();$('reportStatus').textContent=memoryReport?'Copii locale recitite; verdictul independent nesalvat a fost păstrat.':'Copii locale recitite.';});$('demoButton').addEventListener('click',demo);$('closeDemo').addEventListener('click',()=>{$('demoPanel').hidden=true;$('demoButton').focus();});g.addEventListener('storage',event=>{if(event.key===null||[R.PRIMARY_KEY,R.INDEPENDENT_KEY,'wl_stocks'].includes(event.key))read();});g.addEventListener('message',event=>{if(event.origin===location.origin&&event.source===parent&&event.data?.ttShellVisible===true){read();autoStart();}});document.addEventListener('visibilitychange',()=>{if(!document.hidden){read();autoStart();}});g.addEventListener('pagehide',()=>{running=null;cancel();});g.setInterval(()=>{if(!document.hidden)read();},60000);
+ $('scanForm').addEventListener('submit',scan);$('cancelIndependent').addEventListener('click',cancel);$('resultSearch').addEventListener('input',read);$('primaryMode').addEventListener('change',read);$('universeMode').addEventListener('change',universeDescription);$('manualSymbols').addEventListener('input',universeDescription);$('refreshResults').addEventListener('click',()=>{read();$('reportStatus').textContent=memoryReport?'Copii locale recitite; verdictul independent nesalvat a fost păstrat.':'Copii locale recitite.';});$('demoButton').addEventListener('click',demo);$('closeDemo').addEventListener('click',()=>{$('demoPanel').hidden=true;$('demoButton').focus();});g.addEventListener('storage',event=>{if(event.key===null||[R.PRIMARY_KEY,R.INDEPENDENT_KEY,'wl_stocks'].includes(event.key)){if(vizibil())read();}});if(g.TTShell)g.TTShell.onChange(v=>{if(v){read();autoStart();}});else{g.addEventListener('message',event=>{if(event.origin===location.origin&&event.source===parent&&event.data?.ttShellVisible===true){read();autoStart();}});document.addEventListener('visibilitychange',()=>{if(!document.hidden){read();autoStart();}});}g.addEventListener('pagehide',()=>{running=null;cancel();});g.setInterval(()=>{if(vizibil())read();},60000);
  const requested=new URLSearchParams(location.search).get('symbol');if(requested&&R.symbol(requested.toUpperCase()))$('resultSearch').value=requested.toUpperCase();read();if(requested)document.querySelectorAll('.result-card').forEach(el=>{if(el.dataset.symbol===requested.toUpperCase())el.open=true;});rules();
  {const o=options();$('autoRun').checked=o.auto;if(o.univers&&Array.from($('primaryUniverse').options||[]).some(x=>x.value===o.univers))$('primaryUniverse').value=o.univers;}
  $('runAll').addEventListener('click',()=>runAll());$('runPrimary').addEventListener('click',()=>runAll({onlyPrimary:true}));$('runStop').addEventListener('click',stopAll);
  $('autoRun').addEventListener('change',saveOptions);$('primaryUniverse').addEventListener('change',saveOptions);$('independentFilter').addEventListener('change',read);$('onlyDifferent').addEventListener('change',read);
  steps();g.setTimeout?.(()=>{autoReady=true;autoStart();},600);
- proba();g.setInterval(()=>{if(!document.hidden)proba();},30*60000);
+ proba();g.setInterval(()=>{if(vizibil())proba();},30*60000);
 })(window);

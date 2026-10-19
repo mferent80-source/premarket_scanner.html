@@ -21,7 +21,7 @@ function setContext(c){const before=F.key(identity());context=c;if(before!==F.ke
 async function check(){
  const e=identity();if(busy||!F.identity(e)||context.demo)return;const token=generation,candidate=context.candidate;attempts.set(F.key(e),Date.now());busy=true;message='Verific închiderile efective la orizontul fiecărui model…';render();
  try{
-  const bars=await g.D.fetchStock(e.symbol,{range:'5y',interval:'1d',ttl:0}),source=g.DailySeries.read(bars,e.symbol),now=Date.now();
+  const bars=await(g.TTDeskDailyCache?g.TTDeskDailyCache.fetchStock(e.symbol,{range:'5y',interval:'1d'}):g.D.fetchStock(e.symbol,{range:'5y',interval:'1d',ttl:0})),/* 19.10.2026 (I-702): o dată pe sesiune de bursă */source=g.DailySeries.read(bars,e.symbol),now=Date.now();
   if(token!==generation||!same(e)||g.T212Snapshot?.read('live')?.[0]!==e.scope||context.candidate.trend?.historyKey!==candidate.trend?.historyKey)return;
   const item=await reader.check(e,{...source,symbol:e.symbol,kind:'market',retrievedAt:now},{now});if(token!==generation||!same(e)||g.T212Snapshot?.read('live')?.[0]!==e.scope)return;cache.set(F.key(e),{item,at:Date.now(),loading:false});message='Verificare încheiată. Estimările originale au rămas fixe; rezultatele revizuite sau incomplete sunt excluse.';
  }catch(error){if(token===generation&&same(e))message='Verificare indisponibilă: '+error.message+' Originalele sunt păstrate.';}
