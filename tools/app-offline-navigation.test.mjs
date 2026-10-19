@@ -11,7 +11,7 @@ function worker({ offline = true } = {}) {
   const handlers = {}, calls = { fetch: [], cacheMatch: [], cachePut: [] };
   const cached = new Response('CACHED TRADING SCREEN');
   const context = {
-    URL, Response,
+    URL, Response, setTimeout, clearTimeout,
     self: {
       location: { origin: new URL(scope).origin },
       registration: { scope },

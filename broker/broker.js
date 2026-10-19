@@ -6,6 +6,14 @@ const numeric=v=>typeof v==='number'&&Number.isFinite(v);
 const fmt=(v,c)=>numeric(v)?new Intl.NumberFormat('ro-RO',{maximumFractionDigits:6}).format(v)+(c?' '+c:''):'—';
 const stamp=v=>{const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString('ro-RO'):'—';};
 let configuredBase='',ready=false,base='',token='',brokerEnvironment='live',session=0,busy=false,kind='orders',cursor=null,rows=[],seen=new Set(),controller=new AbortController(),times={},lastFetched=0,environment='';
+// 19.10.2026 (I-713): pe aparatul care nu citește Trading 212 pagina ascunsă a contului nu mai cere T212 la 60/12/15 s — primește
+// instantaneul prin sincronizare; regula și preluarea după 15 minute sunt în lib/t212-reader.js. Pagina deschisă pe ecran citește oricum.
+let wokeAt=Date.now();
+const shellVisible=()=>window.TTShell?window.TTShell.visible():document.visibilityState!=='hidden';
+function readerInput(){const R=window.TTT212Reader;return {reader:R.setting(localStorage),latestAt:R.latest(localStorage,brokerEnvironment),ownAt:R.own(localStorage,brokerEnvironment),now:Date.now(),wokeAt,visible:shellVisible()};}
+function readAllowed(){if(previewMode)return false;if(!window.TTT212Reader)return true;return window.TTT212Reader.decide(readerInput()).read;}
+function readerNote(){return !previewMode&&window.TTT212Reader?window.TTT212Reader.describe(readerInput()):'';}
+document.addEventListener?.('visibilitychange',()=>{if(!document.hidden)wokeAt=Date.now();});
 const errors={broker_redirected:'API-ul Trading 212 redirecționează cererea; conexiunea a fost oprită pentru protejarea cheilor.',broker_timeout:'Trading 212 nu a răspuns în 20 de secunde.',broker_network_error:'Worker-ul nu poate deschide conexiunea către Trading 212.',broker_non_json_response:'Trading 212 a răspuns cu o pagină sau un format incompatibil, nu cu date API.',broker_schema_mismatch:'Datele Trading 212 au un format diferit de cel așteptat.',backend_not_configured:'Backendul nu are încă secretele configurate.',environment_not_configured:'Mediul Invest nu este configurat.',session_unauthorized:'Codul de acces la integrare este incorect.',broker_credentials_invalid:'Cheia Trading 212 nu este validă pentru mediul configurat.',broker_permission_missing:'Cheia Trading 212 nu are permisiunea de citire necesară.',broker_unavailable:'Trading 212 nu răspunde momentan.',broker_response_unavailable:'Răspunsul Trading 212 nu a putut fi verificat.',origin_forbidden:'Această origine nu este autorizată de backend.'};
 function validEndpoint(value){const u=new URL(value);if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash||u.pathname!=='/'||!u.hostname.endsWith('.workers.dev'))throw Error('Introdu adresa HTTPS a Workerului privat (workers.dev), fără cale sau parametri.');return u.origin;}
 function reset(){clearPortfolio();$('connectionSettings').open=true;journalScope='';journalCursor=null;journalStarted=false;journalDone=false;journalRunning=false;journalHeadNext=0;journalHeadRevision=0;journalHeadRejected=false;session++;controller.abort();controller=new AbortController();token='';base='';rows=[];seen.clear();cursor=null;times={};lastFetched=0;busy=false;$('apiKey').value='';$('apiSecret').value='';$('account').hidden=true;$('metrics').replaceChildren();$('positions').replaceChildren();$('history').replaceChildren();$('more').hidden=true;$('refresh').hidden=true;$('disconnect').hidden=true;$('connectButton').disabled=!ready;$('status').textContent='Neconectat · datele contului au fost eliminate din ecran.';}
@@ -118,6 +126,7 @@ async function sync({refreshOrders=false,onComplete=null}={}){const report=state
  portfolioSummary=null;portfolioPositions=null;portfolioReport=null;portfolioAt=null;summaryAt=null;$('metrics').replaceChildren();const warnings=[];let success=false;
  for(let i=0;i<results.length;i++){const r=results[i];if(r.status==='fulfilled'){if(i===0){portfolioSummary=r.value.data;summaryAt=r.value.fetchedAt;metrics(r.value.data);}else{portfolioAt=r.value.fetchedAt;positions(r.value.data);}environment=r.value.environment;success=true;}else warnings.push((i===0?'Sold':'Poziții')+': '+r.reason.message);}
  if(success)lastFetched=Math.min(...results.filter(r=>r.status==='fulfilled').map(r=>Date.parse(r.value.fetchedAt)));
+ if(success&&window.TTT212Reader)window.TTT212Reader.markOwn(localStorage,brokerEnvironment,lastFetched); // I-713: citirea acestui aparat, ca s-o deosebească de cea sincronizată
  let persisted=false;if(success&&journalScope&&window.T212J){try{await window.T212J.saveSnapshot(journalScope,brokerEnvironment,results[0].status==='fulfilled'?results[0].value.data:null,results[1].status==='fulfilled'?results[1].value.data:null,new Date(lastFetched).toISOString());persisted=true;}catch(e){warnings.push('Portofoliu nesalvat: '+e.message);}}if(id!==session){report('error');return false;}
  $('account').hidden=!success;$('refresh').hidden=false;$('disconnect').hidden=false;$('status').textContent=success?`${environment==='demo'?'DEMO · bani virtuali':'INVEST LIVE'} · citire ${stamp(lastFetched)}${warnings.length?' · PARȚIAL: '+warnings.join(' / '):''}`:'Conectare nereușită: '+warnings.join(' / ');
  if(portfolioPositions===null)positions(null);renderRealized();$('account').setAttribute('aria-busy','false');busy=false;$('refresh').disabled=false;$('connectButton').disabled=!ready;const headReadBefore=journalHeadNext,headRevisionBefore=journalHeadRevision;if(success&&!rows.length)await loadHistory();if(id!==session){report('error');return false;}if(success)$('connectionSettings').open=false;if(success||refreshOrders)await importJournalPage({forceHead:refreshOrders&&journalHeadNext===headReadBefore});if(id!==session){report('error');return false;}report(!success?'error':results.every(r=>r.status==='fulfilled')&&persisted&&(!refreshOrders||journalHeadRevision>headRevisionBefore&&!journalHeadRejected)?'ready':'partial');return success;
@@ -133,12 +142,14 @@ async function refreshFromDashboard(){
  try{await sync({refreshOrders:true,onComplete:notify});}catch(_){notify('error');}finally{dashboardRefreshRunning=false;}
 }
 window.addEventListener('message',e=>{if(window.parent===window||e.source!==window.parent||e.origin!==location.origin||e.data?.ttRefreshBroker!==true)return;refreshFromDashboard();});
-async function startConnection(payload,persist){
+async function startConnection(payload,persist,{read=true}={}){
  if(previewMode)return false;
  const {key,secret,environment:mode}=payload;let encoded;try{encoded=btoa(key+':'+secret);}catch(_){throw Error('Cheia trebuie copiată exact din Trading 212.');}
  reset();const id=session;base=configuredBase;token=encoded;brokerEnvironment=mode;
  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(mode+':'+key));if(id!==session)return false;
  journalScope=mode+':'+Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,'0')).join('');
+ // I-713: reconectarea la pornire pe aparatul care nu citește doar pregătește legătura; datele vin prin sincronizare
+ if(!read){$('refresh').hidden=false;$('disconnect').hidden=false;$('connectionSettings').open=false;$('status').textContent=readerNote()+' Apasă Sincronizează pentru o citire acum.';return false;}
  const success=await sync();if(id!==session)return false;
  if(success&&persist&&window.T212Vault){try{await window.T212Vault.save(payload);if(id===session)$('configState').textContent='Conexiune salvată pe acest dispozitiv · reconectare automată activă.';}catch(e){if(id===session)$('configState').textContent='Conectat pentru această sesiune, dar salvarea a eșuat: '+e.message;}}
  return success;
@@ -150,7 +161,9 @@ $('copyConnection').onclick=async()=>{try{if(!$('transferCode').value)throw Erro
 $('importConnection').onclick=async()=>{try{if(!ready)throw Error('Releul nu este activ.');const payload=await window.T212Vault.unpack($('transferCode').value.trim(),$('transferPassword').value);await startConnection(payload,true);$('transferState').textContent='Transfer preluat. Verifică starea conexiunii de mai sus.';}catch(e){$('transferState').textContent=e.message;}finally{$('transferPassword').value='';$('transferCode').value='';}};
 $('disconnect').onclick=reset;$('refresh').onclick=()=>sync({refreshOrders:true});$('more').onclick=()=>loadHistory(true);
 document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{if(busy)return;kind=b.dataset.kind;rows=[];seen.clear();cursor=null;$('history').replaceChildren();$('more').hidden=true;document.querySelectorAll('[data-kind]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));loadHistory();});
-setInterval(()=>{if(portfolioReport&&document.visibilityState!=='hidden')renderPositions();else updatePortfolioTime();if(lastFetched&&Date.now()-lastFetched>300000)$('status').textContent=`DATE NEACTUALIZATE · ultima citire ${stamp(lastFetched)} · apasă Sincronizează.`;},30000);
+// 19.10.2026 (I-702): pagina contului parcată în aplicație nu-și mai redesenează pozițiile la 30 s; la revenire se redesenează o dată
+setInterval(()=>{if(portfolioReport&&shellVisible())renderPositions();else updatePortfolioTime();if(token&&!readAllowed())$('status').textContent=readerNote();else if(lastFetched&&Date.now()-lastFetched>300000)$('status').textContent=`DATE NEACTUALIZATE · ultima citire ${stamp(lastFetched)} · apasă Sincronizează.`;},30000);
+if(window.TTShell)window.TTShell.onChange(v=>{if(!v)return;if(portfolioReport)renderPositions();if(token&&!portfolioReport&&!busy&&!journalRunning&&$('autoSync').checked&&navigator.onLine!==false)sync();});
 window.addEventListener('offline',()=>{$('status').textContent='OFFLINE · datele afișate nu se actualizează.';});
 window.addEventListener('pagehide',reset);
 function connectionReady(value){ready=value;['apiKey','apiSecret','brokerEnvironment','connectButton'].forEach(id=>$(id).disabled=!value);}
@@ -176,10 +189,10 @@ async function importJournalPage({forceHead=false}={}){
  }catch(e){if(id===session&&e.name!=='AbortError'){$('journalState').textContent='Import parțial / întrerupt: '+e.message;try{await window.T212J.importState?.(scope,mode,'error');}catch(_){}}}
  finally{if(id===session){journalRunning=false;renderRealized();}}
 }
-setInterval(()=>{if(token&&$('autoSync').checked&&!busy&&!journalRunning&&navigator.onLine!==false&&document.visibilityState!=='hidden')sync();},60000);
-setInterval(()=>{if(token&&$('autoSync').checked&&!busy&&navigator.onLine!==false&&document.visibilityState!=='hidden')importJournalPage();},12000);
+setInterval(()=>{if(token&&$('autoSync').checked&&!busy&&!journalRunning&&navigator.onLine!==false&&document.visibilityState!=='hidden'&&readAllowed())sync();},60000);
+setInterval(()=>{if(token&&$('autoSync').checked&&!busy&&navigator.onLine!==false&&document.visibilityState!=='hidden'&&readAllowed())importJournalPage();},12000);
 
-if(!previewMode&&ready&&window.T212Vault){try{const saved=await window.T212Vault.read();if(saved){$('configState').textContent='Restabilesc conexiunea salvată…';await startConnection(saved,false);}}catch(e){$('configState').textContent='Reconectarea automată nu a reușit: '+e.message;}}
+if(!previewMode&&ready&&window.T212Vault){try{const saved=await window.T212Vault.read();if(saved){$('configState').textContent='Restabilesc conexiunea salvată…';await startConnection(saved,false,{read:readAllowed()});}}catch(e){$('configState').textContent='Reconectarea automată nu a reușit: '+e.message;}}
 
 let cashRunning=false,cashTurn=0,cashStates={};
 async function importCashPage(){
@@ -192,7 +205,7 @@ async function importCashPage(){
  // O pagină veche care pică altfel decât limita 429 nu mai e reîncercată la nesfârșit: următoarea încercare reia de la prima pagină, ca tranzacțiile noi să intre.
  finally{cashStates[scope+'|'+selected]=state;cashRunning=false;}
 }
-setInterval(()=>{if(token&&$('autoSync').checked&&navigator.onLine!==false&&document.visibilityState!=='hidden')importCashPage();},15000);
+setInterval(()=>{if(token&&$('autoSync').checked&&navigator.onLine!==false&&document.visibilityState!=='hidden'&&readAllowed())importCashPage();},15000);
 
 if(previewMode){
  previewFixture=window.T212Portfolio.demo();journalScope=previewFixture.scope;portfolioSummary=previewFixture.summary;portfolioAt=summaryAt=new Date().toISOString();

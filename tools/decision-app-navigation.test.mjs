@@ -40,15 +40,17 @@ test('all module routes exist and inline app scripts compile',()=>{const b=boot(
 test('journal opens execution tab and support routes use app pages',()=>{const b=boot();b.send({ttOpenModule:'journal/'});assert.equal(b.elements.frame.src,'../journal/?app=decision-mobile-v2&v=release-test#raport'); /* 17.10: Jurnalul se deschide pe Raport */b.send({ttOpenModule:'guide/'});assert.equal(b.elements.frame.src,'../app/coach/?app=decision-mobile-v2&v=release-test');b.send({ttOpenModule:'health/'});assert.equal(b.elements.frame.src,'../health/?app=decision-mobile-v2&v=release-test');});
 test('Europe home link returns to Today in the existing workspace',()=>{const b=boot('?module=europe-stocks%2F'),child=loadChildDocument(b);assert.equal(child.click(link('../app/')),true);assert.match(b.elements.frame.src,/^\.\.\/today\/\?app=/);assert.equal(b.elements.pageName.textContent,'Astăzi');});
 
-test('broker frame persists across module navigation without restarting connection',()=>{const b=boot();const initial=b.elements.brokerFrame.src;b.send({ttOpenModule:'broker/'});assert.equal(b.elements.brokerFrame.src,initial);assert.equal(b.elements.brokerFrame.hidden,false);assert.equal(b.elements.frame.classList.contains('parked'),true,'paginile rămân vii, parcate sub conector');b.send({ttOpenModule:'journal/'});assert.equal(b.elements.brokerFrame.hidden,true);assert.equal(b.elements.brokerFrame.src,initial);b.send({ttOpenModule:'broker/'});assert.equal(b.elements.brokerFrame.src,initial);});
+test('broker frame persists across module navigation without restarting connection',()=>{const b=boot();/* 19.10.2026 (I-705): brokerul ascuns pornește abia după primul modul încărcat */assert.ok(!b.elements.brokerFrame.src,'brokerul nu pornește în timpul primului ecran');loadChildDocument(b);const initial=b.elements.brokerFrame.src;assert.match(initial,/^\.\.\/broker\/\?app=decision-mobile-v2&v=release-test$/);b.send({ttOpenModule:'broker/'});assert.equal(b.elements.brokerFrame.src,initial);assert.equal(b.elements.brokerFrame.hidden,false);assert.equal(b.elements.frame.classList.contains('parked'),true,'paginile rămân vii, parcate sub conector');b.send({ttOpenModule:'journal/'});assert.equal(b.elements.brokerFrame.hidden,true);assert.equal(b.elements.brokerFrame.src,initial);b.send({ttOpenModule:'broker/'});assert.equal(b.elements.brokerFrame.src,initial);});
 
 test('only the active Today document can request a refresh from the persistent broker',()=>{
- const b=boot(),src=b.elements.brokerFrame.src;
+ const b=boot();loadChildDocument(b);b.elements.brokerFrame.onload.call(b.elements.brokerFrame);const src=b.elements.brokerFrame.src;
  b.send({ttRefreshBroker:true});assert.deepEqual(JSON.parse(JSON.stringify(b.messages.broker)),[{data:{ttRefreshBroker:true},origin:b.ctx.location.origin}]);assert.equal(b.elements.brokerFrame.src,src);
  b.events.message({origin:'https://untrusted.test',source:b.elements.frame.contentWindow,data:{ttRefreshBroker:true}});
  b.events.message({origin:b.ctx.location.origin,source:{},data:{ttRefreshBroker:true}});assert.equal(b.messages.broker.length,1);
  b.send({ttOpenModule:'journal/'});b.send({ttRefreshBroker:true});assert.equal(b.messages.broker.length,1);
- b.send({ttOpenModule:'broker/'});b.send({ttRefreshBroker:true});assert.equal(b.messages.broker.length,1);
+ b.send({ttOpenModule:'broker/'});b.send({ttRefreshBroker:true});assert.equal(b.messages.broker.filter(m=>m.data.ttRefreshBroker).length,1);
+ // 19.10.2026 (I-713): brokerul află când ajunge pe ecran (citirea ascunsă se decide după asta)
+ assert.deepEqual(JSON.parse(JSON.stringify(b.messages.broker.filter(m=>'ttShellVisible' in m.data).map(m=>m.data))),[{ttShellVisible:true}]);
 });
 
 test('broker refresh results are accepted from the hidden broker only, stripped to fixed messages, and sent to active Today',()=>{
