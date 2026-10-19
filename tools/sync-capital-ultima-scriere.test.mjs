@@ -8,7 +8,7 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {DatabaseSync} from 'node:sqlite';
-import {KEYS,mergeRecord,validateValue,EvidenceCloud,ForecastCloud,LAST_WRITE_WINS} from '../lib/cloud-sync-model.mjs';
+import {KEYS,mergeRecord,validateValue,EvidenceCloud,ForecastCloud,LAST_WRITE_WINS,FillsCloud} from '../lib/cloud-sync-model.mjs';
 import {handleCloud} from './cloud-sync-worker.bundle.mjs';
 
 test('regula: la capital câștigă scrierea cea mai nouă, fără conflict; fără oră locală câștigă contul', () => {
@@ -72,7 +72,7 @@ async function device(server, local = {}) {
   const storage = new Map(Object.entries(local)), privateStore = new Map(), listeners = [];
   const localStorage = {getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, String(v)), removeItem: (k) => storage.delete(k)};
   const window = {addEventListener(type, f) { if (type === 'storage') listeners.push(f); }, dispatchEvent() {}, T212FillsStore: fillsStore(localStorage, {durable: null, notify: false}), TTPlanStore: {create: () => planStore(localStorage, {durable: null, notify: false})}, TTCloudStore: {get: async (k) => structuredClone(privateStore.get(k) ?? null), put: async (k, v) => privateStore.set(k, structuredClone(v)), remove: async (k) => privateStore.delete(k)}, T212Vault: {read: async () => null, save: async () => {}, clear: async () => {}}};
-  const context = {window, localStorage, KEYS, LAST_WRITE_WINS, mergeRecord, validateValue, EvidenceCloud, ForecastCloud, location: {origin, href: origin + '/app/'}, document: {hidden: false, querySelectorAll: () => [], getElementById: () => null, addEventListener() {}}, navigator: {onLine: true}, CustomEvent: class {}, StorageEvent: class {}, AbortController, URL, Date, setTimeout: (f, ms) => ms === 2500 ? 0 : setTimeout(f, ms), clearTimeout, setInterval: () => {}, fetch: async (url, options) => url === 'cloud-sync-config.json' ? Response.json({enabled: false, autoActivate: true, endpoint}) : server.fetcher(url, options)};
+  const context = {window, localStorage, KEYS, LAST_WRITE_WINS, mergeRecord, validateValue, EvidenceCloud, ForecastCloud, FillsCloud, location: {origin, href: origin + '/app/'}, document: {hidden: false, querySelectorAll: () => [], getElementById: () => null, addEventListener() {}}, navigator: {onLine: true}, CustomEvent: class {}, StorageEvent: class {}, AbortController, URL, Date, setTimeout: (f, ms) => ms === 2500 ? 0 : setTimeout(f, ms), clearTimeout, setInterval: () => {}, fetch: async (url, options) => url === 'cloud-sync-config.json' ? Response.json({enabled: false, autoActivate: true, endpoint}) : server.fetcher(url, options)};
   vm.createContext(context); vm.runInContext(source, context); const api = window.TTCloud; await api.recheck();
   // o pagină din aplicație (Jurnalul, Desk) scrie: aplicația primește evenimentul storage
   const write = (k, v) => { const old = storage.get(k) ?? null; storage.set(k, v); for (const f of listeners) f({key: k, oldValue: old, newValue: v}); };
