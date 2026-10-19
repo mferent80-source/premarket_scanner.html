@@ -7,8 +7,11 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { fetchStock, serii } from './v1-jurnal.mjs';
 import { adauga } from '../lib/v1-proba.mjs';
 import { PROTOCOL, versiune, inregistrare, evalueaza, amprentaDependinte, istoricDependinte } from '../lib/premarket-proba.mjs';
+import { pasUmbra, versiune as versiuneUmbra, bareZilnice, PROTOCOL as UMBRA } from '../lib/reversal-umbra.mjs';
 
 const DIR = 'scanner-verdicts/generated', JURNAL = DIR + '/premarket-jurnal.json', PROBA = DIR + '/premarket-proba.json';
+// 19.10.2026 — I-716: jurnalul SEPARAT al stopului Early Reversal „în umbră” (docs/reversal-stop-umbra-protocol.md)
+const UMBRA_JURNAL = DIR + '/reversal-umbra-jurnal.json', UMBRA_PROBA = DIR + '/reversal-umbra-proba.json';
 const MARCAJ = '  validateDeps(); bind();';
 
 /** Motorul paginii într-un context izolat: aceleași biblioteci ca pagina, un DOM minim, `?fundal=1` (o scanare, fără ceas). */
@@ -25,7 +28,8 @@ export function motor(fetchSerie = fetchStock) {
   c.GV = { status: () => ({ verdict: 'TRADE', reasons: ['robot: proba judecă clasamentul tehnic, nu limitele contului'] }) };
   const src = readFileSync('candidate-engine/engine.js', 'utf8'), cut = src.lastIndexOf(MARCAJ);
   if (cut < 0) throw Error('Marcajul de pornire din candidate-engine/engine.js s-a schimbat — robotul nu mai poate rula motorul.');
-  vm.runInContext(src.slice(0, cut) + 'bind();window.hooks={state,scan,earningsInfo,' + PROTOCOL.functii.join(',') + '};})();', c);
+  /* 19.10.2026 — I-716: și reversalScore, pentru amprenta umbrei (versiunea Top Long se calculează tot doar pe PROTOCOL.functii) */
+  vm.runInContext(src.slice(0, cut) + 'bind();window.hooks={state,scan,earningsInfo,reversalScore,' + PROTOCOL.functii.join(',') + '};})();', c);
   node('universe').value = 'core';
   return c;
 }
@@ -39,8 +43,23 @@ export function intervalPentru(primaZi, azi = new Date().toISOString().slice(0, 
 export function simboluriDeReluat(jurnal) {
   return [...new Set(jurnal.zile.flatMap((zi) => zi.r.flatMap((x) => [x[0], x[4]])).filter(Boolean).concat('SPY'))];
 }
+// 19.10.2026 — I-716: barele zilnice OHLC ale fiecărei cereri (aceleași pe care le vede motorul), pentru stopurile umbrei
+const bare = {};
+async function fetchCuBare(sym, o) { const out = await fetchStock(sym, o); if (!o || o.interval === '1d') { const b = bareZilnice(out); if (b) bare[sym] = b; } return out; }
+/** Pasul umbrei după ce ziua Top Long e scrisă; o eroare a umbrei nu atinge proba Top Long. Barele de după ziua scanării (o sesiune
+    neînchisă, la o rulare de mână) se taie. */
+function umbra(h, s, zi, sesiuni) {
+  try {
+    const taiate = Object.fromEntries(Object.entries(bare).map(([k, v]) => [k, v.filter((b) => b.d <= zi)]));
+    const vechi = existsSync(UMBRA_JURNAL) ? JSON.parse(readFileSync(UMBRA_JURNAL, 'utf8')) : { zile: [] };
+    const { jurnal, proba, rec } = pasUmbra(vechi, s, versiuneUmbra(h), zi, taiate, sesiuni);
+    writeFileSync(UMBRA_JURNAL, JSON.stringify(jurnal)); writeFileSync(UMBRA_PROBA, JSON.stringify(proba, null, 1));
+    const e = proba.evaluare;
+    console.log(`Umbra Reversal ${proba.versiune} · ${rec.r.length} candidați azi · ${proba.zile} zile · ${e.perioade}/${e.necesare} perioade · ${e.verdict}`);
+  } catch (e) { console.log('umbra Reversal (' + UMBRA.id + '): ' + (e.message || e) + ' — ziua Top Long e salvată oricum'); }
+}
 async function main() {
-  const c = motor(), h = c.hooks, V = versiune(h);
+  const c = motor(fetchCuBare), h = c.hooks, V = versiune(h);
   await h.scan();
   const s = h.state;
   if (!s.verified) throw Error('Nicio acțiune verificată azi (' + s.failures.length + ' eșecuri) — jurnalul rămâne neschimbat.');
@@ -51,7 +70,7 @@ async function main() {
   const jurnal = { ...adauga(vechi, rec), protocol: PROTOCOL.id };
   // motorul cere acțiunile pe 1 an și reperele pe 6 luni; evaluarea are nevoie de tot intervalul jurnalului ⇒ toate se reiau (19.10.2026)
   const range = intervalPentru(jurnal.zile[0]?.zi || rec.zi);
-  for (const sym of simboluriDeReluat(jurnal)) { try { await fetchStock(sym, { range, interval: '1d' }); } catch (e) { console.log('serie ' + sym + ': ' + e.message); } }
+  for (const sym of simboluriDeReluat(jurnal)) { try { await fetchCuBare(sym, { range, interval: '1d' }); } catch (e) { console.log('serie ' + sym + ': ' + e.message); } }
   const sesiuni = (serii.SPY || []).map((x) => x.d);
   const orizonturi = PROTOCOL.orizonturi.map((k) => evalueaza(jurnal, serii, { k, versiune: V, sesiuni }));
   const zileVersiune = jurnal.zile.filter((zi) => zi.v === V);
@@ -62,5 +81,6 @@ async function main() {
     orizonturi }, null, 1));
   console.log(`Premarket ${V} · ziua ${rec.zi} · ${s.verified}/${s.scanned} verificate · Top Long ${rec.r.filter((x) => x[1] === 'm').length} · ${zileVersiune.length} zile în probă`);
   for (const o of orizonturi) console.log(`  k=${o.k}: ${o.perioade}/${o.necesare} perioade · ${o.verdict}`);
+  umbra(h, s, rec.zi, sesiuni);   /* 19.10.2026 — I-716 */
 }
 if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('tools/premarket-jurnal.mjs')) main().catch((e) => { console.error(e.message); process.exit(1); });

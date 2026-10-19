@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: '20'
       # 19.10.2026: și garda amprentei Top Long + reluarea seriilor (auditul Long & Reversal)
-      - run: node --test tools/v1-proba.test.mjs tools/independent-scanner.test.mjs tools/premarket-proba.test.mjs tools/candidate-autostart.test.mjs tools/top-long-proba.test.mjs tools/premarket-jurnal-serii.test.mjs
+      - run: node --test tools/v1-proba.test.mjs tools/independent-scanner.test.mjs tools/premarket-proba.test.mjs tools/candidate-autostart.test.mjs tools/top-long-proba.test.mjs tools/premarket-jurnal-serii.test.mjs tools/reversal-umbra.test.mjs
       - name: Ziua în jurnal + evaluarea
         run: node tools/v1-jurnal.mjs
       # 18.10.2026: proba Premarket Scanner (Top Long), docs/premarket-proba-protocol.md; dacă pică, ziua V1 se salvează oricum
@@ -48,6 +48,8 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add scanner-verdicts/generated/v1-jurnal.json scanner-verdicts/generated/v1-proba.json
           git add scanner-verdicts/generated/premarket-jurnal.json scanner-verdicts/generated/premarket-proba.json 2>/dev/null || true
+          # 19.10.2026 — I-716: jurnalul separat al stopului Early Reversal în umbră (docs/reversal-stop-umbra-protocol.md)
+          git add scanner-verdicts/generated/reversal-umbra-jurnal.json scanner-verdicts/generated/reversal-umbra-proba.json 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m 'data(v1): ziua in proba [skip ci]'
             git pull --rebase origin main
