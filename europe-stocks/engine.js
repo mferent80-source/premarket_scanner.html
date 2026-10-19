@@ -1,9 +1,10 @@
 (function (g) {
   'use strict';
-  const CACHE='tt_europe_scan_v3',RISK_SETTINGS='tt_europe_risk_settings_v1',SCAN_MS=5*60000,MAX_AGE=30*60000;
+  // 19.10.2026 (I-707): datele sunt EOD ⇒ rețea o dată pe sesiune (închidere + 15 min) sau când rezultatele lipsesc; la 5 minute doar Governor, local
+  const CACHE='tt_europe_scan_v3',RISK_SETTINGS='tt_europe_risk_settings_v1',RISK_ENTRY='tt_europe_risk_entry_v1',SCAN_MS=5*60000,RETRY_MS=15*60000;
   const scanCache=g.EuropeScanCache?.create(localStorage);
   const state={category:'growth',items:[],selected:null,scanning:false,updatedAt:0,verified:0,
-    failures:[],benchmarks:[],timer:null,shellVisible:true,hasScan:false,context:null,calendar:null,calendarError:null,mobileDetailOpen:false};
+    failures:[],benchmarks:[],timer:null,shellVisible:true,hasScan:false,context:null,calendar:null,calendarError:null,mobileDetailOpen:false,sessions:null,attemptAt:0};
   const $=id=>document.getElementById(id);
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
   const fmt=(n,d=2)=>Number.isFinite(n)?n.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
@@ -17,6 +18,10 @@
   let historyRead=EuropeHistory.read(localStorage,EuropeUniverse);let cloudState=null;try{cloudState=g.parent?.TTCloud?.state()||null;}catch{}
   state.history=historyRead.document;state.historyError=historyRead.error;
   function riskSettings(){try{const s=JSON.parse(localStorage.getItem(RISK_SETTINGS)||'null');return s&&EuropeFinance.codes.includes(s.currency)?s:{};}catch(_){return {};}}
+  // 19.10.2026 (I-707 b): intrarea e a unei acțiuni ⇒ stă local (nu în setările sincronizate), valabilă pentru aceeași sesiune EOD
+  function riskEntries(){try{const all=JSON.parse(localStorage.getItem(RISK_ENTRY)||'{}');return all&&typeof all==='object'&&!Array.isArray(all)?all:{};}catch(_){return {};}}
+  function savedEntry(x){const e=riskEntries()[x.symbol];return e&&e.sourceDate===x.sourceDate&&Number(e.entry)>0?Number(e.entry):null;}
+  function sessions(){return EuropeUniverse.sessionKey(universe());}
   function refreshCalendar(){
     EuropeFinance.loadCalendar(EuropeUniverse).then(calendar=>{state.calendar=calendar;state.calendarError=null;coverage();refreshVerdict(state.selected);if(state.selected&&$('earningsPanel'))$('earningsPanel').outerHTML=EuropeView.earnings(EuropeFinance.earnings(calendar,state.selected),state.selected);})
       .catch(error=>{state.calendarError=error.message;refreshVerdict(state.selected);if(state.selected&&$('earningsPanel')){const e=EuropeFinance.earnings(state.calendar,state.selected);if(!state.calendar)e.reason=error.message;$('earningsPanel').outerHTML=EuropeView.earnings(e,state.selected);}});
@@ -85,10 +90,10 @@
   }
   function renderDetail(x){
     if(!x){g.TTDecisionPanel?.set({purpose:'entry',empty:{title:state.scanning?'Analizez acțiunile Europa':!state.hasScan?'Pornește scanarea Europa':'Niciun candidat pentru selecția curentă',reason:state.scanning?'Verific prețurile EOD și indicii comparativi pentru piețele selectate.':state.verified?state.verified+' instrumente verificate; niciun candidat nu trece strategia și filtrele curente.':'Datele nu sunt încă verificate. Vezi acoperirea și erorile surselor.',next:state.scanning?'Așteaptă finalizarea scanării.':'Scanează Europa sau schimbă strategia și filtrele.'}});$('detail').innerHTML='<h2>Analiza acțiunii</h2><p>Selectează un candidat pentru trend, volum și niveluri tehnice.</p>';return;}
-    const stale=!g.DailySeries.usable(x)||Date.now()-x.ts>MAX_AGE;
+    const stale=!g.DailySeries.usable(x)||state.sessions!==sessions();
     const e=EuropeFinance.earnings(state.calendar,x);if(state.calendarError&&!state.calendar)e.reason=state.calendarError;
     refreshVerdict(x);
-    $('detail').innerHTML=EuropeView.detail(x,{stale,earnings:e,settings:riskSettings()});
+    $('detail').innerHTML=EuropeView.detail(x,{stale,earnings:e,settings:riskSettings(),entry:savedEntry(x)});
     $('closeDetail').onclick=()=>{state.mobileDetailOpen=false;placeDetail();$('results').querySelector('[data-symbol="'+x.symbol+'"]')?.scrollIntoView({block:'nearest'});};
     $('chartCursor').oninput=event=>{
       const index=Number(event.target.value),bar=x.chart[index],lo=Number(event.target.dataset.low),span=Number(event.target.dataset.span);
@@ -104,7 +109,11 @@
         const rate=EuropeFinance.conversion(x.currency===input.currency?null:await EuropeFinance.loadRates(),x.currency,input.currency);
         if(state.selected?.symbol!==symbol||node!==$('riskResult'))return;
         const result=EuropeDecision.calculateRisk(input,x.plan,rate);node.innerHTML=EuropeView.riskResult(result,rate,x);
-        if(result.ok){try{localStorage.setItem(RISK_SETTINGS,JSON.stringify(input));}catch(_){node.innerHTML+='<p>Setările calculatorului nu au putut fi salvate local.</p>';}}
+        if(result.ok){try{
+          // valoarea sincronizată păstrează intrarea deja salvată (câmpul e cerut de validarea din cloud) ⇒ alt preț de intrare nu mai dă conflict între aparate
+          const previous=riskSettings();localStorage.setItem(RISK_SETTINGS,JSON.stringify({...input,entry:Number(previous.entry)>0?previous.entry:input.entry}));
+          const entries=riskEntries();delete entries[symbol];entries[symbol]={entry:input.entry,sourceDate:x.sourceDate};localStorage.setItem(RISK_ENTRY,JSON.stringify(Object.fromEntries(Object.entries(entries).slice(-50))));
+        }catch(_){node.innerHTML+='<p>Setările calculatorului nu au putut fi salvate local.</p>';}}
       }catch(error){if(state.selected?.symbol===symbol&&node===$('riskResult'))node.innerHTML='<p class="risk-error">'+esc(error.message||'Cursul nu poate fi verificat.')+'</p>';}
     };
     $('watchlistBtn').onclick=()=>{
@@ -142,7 +151,7 @@
     if(state.scanning||!visible())return;
     refreshCalendar();
     if(!g.D?.fetchStock||!g.DailySeries||!g.TI?.calcEMA||!g.MEB?.computeEarlyBird||!g.EuropeDecision){showAlert('Datele sau indicatorii nu s-au încărcat. Reîncarcă pagina.');return;}
-    const list=universe();state.verified=0;state.failures=[];state.benchmarks=[];
+    const list=universe(),scanSessions=EuropeUniverse.sessionKey(list);state.verified=0;state.failures=[];state.benchmarks=[];state.attemptAt=Date.now();
     setBusy(true);showAlert('');$('universeCount').textContent=list.length+' acțiuni';progress(0,list.length);
     try{
       const markets=[...new Set(list.map(x=>x.market))],bench={};
@@ -161,7 +170,7 @@
         done++;progress(done,list.length);
       }}
       await Promise.all([worker(),worker(),worker()]);
-      state.items=items;state.selected=null;state.updatedAt=Date.now();state.hasScan=true;
+      state.items=items;state.selected=null;state.updatedAt=Date.now();state.hasScan=true;state.sessions=scanSessions;
       state.context=EuropeDecision.breadth(summaries,list.length);
       if(!state.historyError){const observation=await EuropeHistory.record(localStorage,EuropeUniverse,observations,state.updatedAt,g.navigator?.locks,state.history);state.history=observation.document;state.historyError=observation.error;}
       const warnings=[];
@@ -170,30 +179,42 @@
       else if(state.failures.length)warnings.push(state.failures.length+' simboluri excluse din cauza datelor; vezi Acoperire.');
       const noBench=state.benchmarks.filter(x=>!x.asOf).length;
       if(noBench)warnings.push(noBench+' indici indisponibili; candidații fără RS verificat rămân în monitorizare.');
-      try{const snapshot={schema:3,policy:EuropeDecision.VERSION,filter:filterKey(),items,context:state.context,updatedAt:state.updatedAt,verified:state.verified,scanned:list.length,failures:state.failures,benchmarks:state.benchmarks};if(scanCache)await scanCache.save(snapshot);else localStorage.setItem(CACHE,JSON.stringify(snapshot));}
+      try{const snapshot={schema:3,policy:EuropeDecision.VERSION,filter:filterKey(),sessions:scanSessions,items,context:state.context,updatedAt:state.updatedAt,verified:state.verified,scanned:list.length,failures:state.failures,benchmarks:state.benchmarks};if(scanCache)await scanCache.save(snapshot);else localStorage.setItem(CACHE,JSON.stringify(snapshot));}
       catch(_){warnings.push('Scanarea este disponibilă în această sesiune; copia locală nu a putut fi salvată.');}
       showAlert(warnings.join(' '));coverage();displayLists();
     }catch(error){
-      state.items=[];state.selected=null;state.context=null;state.hasScan=true;state.updatedAt=0;
+      state.items=[];state.selected=null;state.context=null;state.hasScan=true;state.updatedAt=0;state.sessions=scanSessions;
       showAlert('Scanarea nu s-a finalizat: '+(error.message||'eroare neașteptată')+'. Rulează din nou.');displayLists();coverage();
     }finally{setBusy(false);schedule();}
   }
   function applyCache(cache){
     try{
-      if(!cache||cache.schema!==3||cache.policy!==EuropeDecision.VERSION||cache.filter!==filterKey()||!Number.isFinite(cache.updatedAt)||cache.updatedAt>Date.now()+60000||Date.now()-cache.updatedAt>MAX_AGE||!Array.isArray(cache.items))return;
+      if(!cache||cache.schema!==3||cache.policy!==EuropeDecision.VERSION||cache.filter!==filterKey()||!Number.isFinite(cache.updatedAt)||cache.updatedAt>Date.now()+60000||typeof cache.sessions!=='string'||cache.sessions!==sessions()||!Array.isArray(cache.items))return;
       const allowed=new Map(universe().map(x=>[x.symbol,x.isin]));
       if(cache.items.some(x=>!allowed.has(x.symbol)||allowed.get(x.symbol)!==x.isin||!EuropeModel.categories[x.category]||!DailySeries.usable(x)||!Array.isArray(x.chart)||x.chart.length<2||x.chart.length>90||x.chart.some(b=>![b.t,b.c].every(Number.isFinite)||b.c<=0||[b.ema21,b.ema50].some(v=>v!=null&&!Number.isFinite(v)))||![x.chart.at(-1).ema21,x.chart.at(-1).ema50].every(Number.isFinite)||!Array.isArray(x.checks)||!Number.isFinite(x.price)||x.price<=0||x.plan?.version!==EuropeDecision.VERSION||!['WAIT','CONFIRMED','EXTENDED','INVALID'].includes(x.plan.state)||![x.plan.trigger,x.plan.entryHigh,x.plan.support,x.plan.stop].every(Number.isFinite)||!Array.isArray(x.scoreParts)))return;
-      Object.assign(state,{items:cache.items,context:cache.context||null,updatedAt:cache.updatedAt,verified:cache.verified,failures:cache.failures||[],benchmarks:cache.benchmarks||[],hasScan:true});
+      Object.assign(state,{items:cache.items.map(x=>EuropeModel.regovern(x,governor())),context:cache.context||null,updatedAt:cache.updatedAt,attemptAt:cache.updatedAt,verified:cache.verified,failures:cache.failures||[],benchmarks:cache.benchmarks||[],hasScan:true,sessions:cache.sessions});
       $('universeCount').textContent=cache.scanned+' acțiuni';progress(cache.scanned,cache.scanned);coverage();displayLists();
-      showAlert('Ultima scanare locală · '+new Date(cache.updatedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})+'. Se verifică din nou datele.');
+      showAlert('Ultima scanare locală · '+new Date(cache.updatedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})+' · aceeași sesiune EOD. Datele se descarcă din nou după următoarea închidere.');
     }catch(_){}
   }
   function loadCache(){
     try{applyCache(JSON.parse(localStorage.getItem(CACHE)||'null'));}catch{}
     const initial=state.updatedAt,filter=filterKey();
-    scanCache?.read().then(cache=>{if(!state.scanning&&state.updatedAt===initial&&filterKey()===filter&&cache?.updatedAt>initial)applyCache(cache);}).catch(()=>{});
+    return scanCache?.read().then(cache=>{if(!state.scanning&&state.updatedAt===initial&&filterKey()===filter&&cache?.updatedAt>initial)applyCache(cache);}).catch(()=>{});
   }
-  function schedule(){clearTimeout(state.timer);state.timer=setTimeout(()=>{if(visible())scan();else schedule();},SCAN_MS);}
+  function needsNetwork(){
+    if(!state.hasScan||state.sessions!==sessions())return true;   // rezultatele lipsesc sau s-a încheiat o sesiune nouă
+    const scanned=state.verified+state.failures.length,failed=!state.updatedAt||scanned>0&&state.failures.length/scanned>.1;
+    return failed&&Date.now()-state.attemptAt>=RETRY_MS;   // scanare căzută / multe serii încă neînchise la sursă: reîncercare la 15 minute
+  }
+  function regovern(){
+    if(!state.items.length)return;const gv=governor(),next=state.items.map(x=>EuropeModel.regovern(x,gv));
+    const changed=next.some((x,i)=>x.state!==state.items[i].state||x.checks.join('|')!==state.items[i].checks.join('|'));
+    const symbol=state.selected?.symbol;state.items=next;state.selected=next.find(x=>x.symbol===symbol)||null;
+    if(changed)displayLists();else if(state.selected)refreshVerdict(state.selected);   // panoul de decizie primește ora noii verificări
+  }
+  function tick(){if(state.scanning||!visible())return;if(needsNetwork())scan();else regovern();}
+  function schedule(){clearTimeout(state.timer);state.timer=setTimeout(()=>{tick();schedule();},SCAN_MS);}
   function switchCategory(category){
     state.category=category;state.selected=null;
     document.querySelectorAll('[data-category]').forEach(button=>{
@@ -210,8 +231,8 @@
     button.onclick=()=>switchCategory(button.dataset.category);
     button.onkeydown=event=>{let next=null;if(event.key==='ArrowRight')next=(index+1)%tabs.length;if(event.key==='ArrowLeft')next=(index+tabs.length-1)%tabs.length;if(event.key==='Home')next=0;if(event.key==='End')next=tabs.length-1;if(next!==null){event.preventDefault();tabs[next].focus();switchCategory(tabs[next].dataset.category);}};
   });
-  g.addEventListener('message',event=>{if(event.origin!==location.origin||typeof event.data?.ttShellVisible!=='boolean')return;state.shellVisible=event.data.ttShellVisible;if(visible()&&Date.now()-state.updatedAt>SCAN_MS)scan();});   // 18.10.2026 (revizia Europa): la revenirea în pagina parcată rescanează și când rezultatele au peste 5 minute, nu doar când lipsesc
-  document.addEventListener('visibilitychange',()=>{if(visible()&&Date.now()-state.updatedAt>SCAN_MS)scan();});
+  g.addEventListener('message',event=>{if(event.origin!==location.origin||typeof event.data?.ttShellVisible!=='boolean')return;state.shellVisible=event.data.ttShellVisible;if(visible())tick();});   // 19.10.2026 (I-707): la revenirea în pagina parcată rețea doar pentru o sesiune nouă sau rezultate lipsă; altfel Governor local
+  document.addEventListener('visibilitychange',()=>{if(visible())tick();});
   g.addEventListener('storage',event=>{
     if(event.key===EuropeHistory.KEY){historyRead=EuropeHistory.read(localStorage,EuropeUniverse);state.history=historyRead.document;state.historyError=historyRead.error;renderHistory();}
     if(event.key===RISK_SETTINGS&&state.selected&&!$('riskForm')?.contains(document.activeElement)){
@@ -224,5 +245,5 @@
   g.matchMedia('(max-width:760px)').addEventListener('change',placeDetail);
   $('advancedFilters').open=!g.matchMedia('(max-width:760px)').matches;
   refreshCalendar();
-  $('universeCount').textContent=universe().length+' acțiuni';coverage();loadCache();schedule();setTimeout(scan,400);
+  $('universeCount').textContent=universe().length+' acțiuni';coverage();const restored=loadCache();schedule();Promise.resolve(restored).then(()=>setTimeout(tick,400));
 })(window);
