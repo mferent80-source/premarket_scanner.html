@@ -8,7 +8,7 @@ const modules=[
  {path:'../lib/trading212-model.mjs',name:'TTBrokerModel',exports:['number','summary','position','historyItem'],imports:[],bindings:''},
  {path:'./trading212-worker.mjs',name:'TTBrokerRelay',exports:['ROUTES','nextCursor','STOP_ROUTE','STOP_CONFIRM','roundStop','roundQuantity','handle'],imports:["import {summary, position, historyItem} from '../lib/trading212-model.mjs';"],bindings:'const {summary,position,historyItem}=TTBrokerModel;'},
  {path:'../lib/trade-evidence-schema.js',name:'TTEvidenceSchema',exports:[],imports:[],bindings:'',result:'globalThis.TradeEvidenceSchema'},
- {path:'../lib/cloud-sync-model.mjs',name:'TTCloudModel',exports:['KEYS','merge','mergeRecord','validateValue','EvidenceCloud','ForecastCloud'],imports:["import './trade-evidence-schema.js';"],bindings:''},
+ {path:'../lib/cloud-sync-model.mjs',name:'TTCloudModel',exports:['KEYS','LAST_WRITE_WINS','merge','mergeRecord','validateValue','EvidenceCloud','ForecastCloud'],imports:["import './trade-evidence-schema.js';"],bindings:''},
  {path:'../lib/cloud-private-store.mjs',name:'TTPrivateStore',exports:['readPrivate','writePrivate'],imports:[],bindings:''},
  {path:'../lib/web-push.mjs',name:'TTWebPush',exports:['base64url','decode64','validSubscription','encryptPush','createPushKeys','sendPush'],imports:[],bindings:''},
  {path:'../lib/cloud-push.mjs',name:'TTCloudPush',exports:['PUSH_KEY','handlePush','deliverPush','pushReceipt'],imports:["import {readPrivate,writePrivate} from './cloud-private-store.mjs';","import {base64url,createPushKeys,sendPush,validSubscription} from './web-push.mjs';"],bindings:'const {readPrivate,writePrivate}=TTPrivateStore;const {base64url,createPushKeys,sendPush,validSubscription}=TTWebPush;'},

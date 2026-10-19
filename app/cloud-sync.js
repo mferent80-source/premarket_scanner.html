@@ -1,4 +1,4 @@
-import {KEYS,mergeRecord,validateValue,EvidenceCloud,ForecastCloud} from '../lib/cloud-sync-model.mjs?v=26.10.18.0800';
+import {KEYS,mergeRecord,validateValue,EvidenceCloud,ForecastCloud,LAST_WRITE_WINS} from '../lib/cloud-sync-model.mjs?v=26.10.19.1715';
 /* 16.10.2026: registrul de învățare al Portofoliului circulă între dispozitive (PC-ul notează dimineața, telefonul vede). Se citește din IndexedDB o
    dată pe sincronizare; scrierea unește în aceeași tranzacție cu ce e salvat (Portofoliul deschis poate adăuga între timp) și nu șterge nimic. */
 const ForecastLocal=(()=>{let snap=null;
@@ -83,7 +83,7 @@ async function performSync(){if(!ready||!session||busy||checking||navigator.onLi
   if(key==='cloud_credentials'&&current===undefined&&base?.value){continue;}
   if(key==='cloud_credentials'&&record?.value===null){baseline[key]=record;continue;}
   const remoteValue=record?.value===null?undefined:record?.value;
-  const result=mergeRecord(key,base?.value,current,remoteValue);
+  const result=mergeRecord(key,base?.value,current,remoteValue,{localAt:writtenAt(key),remoteAt:(Number(record?.updated)||0)*1000});
   if(result.conflicts.length){conflicts[key]={paths:result.conflicts,remote:record,local:current};continue;}
   const next=result.value;
   if(JSON.stringify(next)!==JSON.stringify(remoteValue)){
@@ -119,7 +119,11 @@ const wrapped={};for(const [name,fn] of Object.entries({login,logout,resolve,del
 async function pauseForBackup(){return mutation(async()=>{await Store.put('backup-pause',true);backupPaused=true;clearTimeout(timer);const broker=document.getElementById('brokerFrame');if(broker){brokerBeforeBackup=broker.src;broker.src='about:blank';}});}
 async function resumeAfterBackup(){await mutation(async()=>{await Store.remove('backup-pause');backupPaused=false;const broker=document.getElementById('brokerFrame');if(broker&&brokerBeforeBackup){broker.src=brokerBeforeBackup;brokerBeforeBackup=null;}});await sync();}
 window.TTCloud={forecastLocal:{value:k=>ForecastLocal.value(k),apply:(k,v)=>ForecastLocal.apply(k,v),reset:()=>ForecastLocal.reset(),bucket:ForecastCloud.bucket,keys:ForecastCloud.keys},push:()=>api('push'),subscribePush:subscription=>api('push','PUT',{subscription}),removePush:id=>api('push','DELETE',{id}),testPush:id=>api('push/test','POST',{id}),audit:()=>api('audit'),anchorAudit:entries=>api('audit','POST',{entries}),pauseForBackup,resumeAfterBackup,monitor:()=>api('monitor'),configureMonitor:enabled=>api('monitor','PUT',{enabled}),runMonitor:()=>api('monitor/check','POST',{}),conflictView,state,sync,recheck,login,logout,resolve,deleteCredentials,publishCredentials,restoreCredentials,restore,challenge:()=>api('challenge','POST',{}),config:()=>({endpoint}),...wrapped};
-window.addEventListener('storage',e=>{if(KEYS.includes(e.key)&&!busy){clearTimeout(timer);timer=setTimeout(sync,2500);}});
+// 19.10.2026: ora ultimei scrieri pe acest aparat a cheilor de capital (LAST_WRITE_WINS) — la două scrieri diferite câștigă cea mai nouă.
+const WRITTEN_KEY='tt_cloud_ultima_scriere_v1';
+function writtenAt(key){try{return Number(JSON.parse(localStorage.getItem(WRITTEN_KEY)||'{}')[key])||0;}catch{return 0;}}
+function markWritten(key){try{const m=JSON.parse(localStorage.getItem(WRITTEN_KEY)||'{}');m[key]=Date.now();localStorage.setItem(WRITTEN_KEY,JSON.stringify(m));}catch{}}
+window.addEventListener('storage',e=>{if(LAST_WRITE_WINS.includes(e.key))markWritten(e.key);if(KEYS.includes(e.key)&&!busy){clearTimeout(timer);timer=setTimeout(sync,2500);}});
 function plansChanged(){if(!busy){clearTimeout(timer);timer=setTimeout(sync,2500);}}
 window.addEventListener('tt-plan-store-changed',plansChanged);PlanStore?.subscribe(plansChanged);
 window.addEventListener('online',()=>ready?sync():recheck());document.addEventListener('visibilitychange',()=>{if(!document.hidden)(ready?sync():recheck());});
