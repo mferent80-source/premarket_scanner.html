@@ -272,7 +272,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 #jpaneCapital .panel{ border-top:3px solid var(--crypto-1); }
 </style>
 <link rel="stylesheet" href="../lib/mobile-ui.css?v=20261002m1">
-<link rel="stylesheet" href="../lib/decision-panel.css?v=26.10.16.1630"><script src="../lib/decision-verdict.js?v=26.10.09.1548"></script><script src="../lib/decision-bridge.js?v=26.10.08.1850"></script><script src="../lib/ai.js?v=26.10.07.2305"></script><link rel="stylesheet" href="../lib/decision-insights.css?v=26.10.08.1850"><script src="../lib/decision-insights.js?v=26.10.08.1850"></script><script src="../lib/decision-panel.js?v=26.10.18.1100" data-decision-module="journal"></script><link rel="stylesheet" href="../lib/trading212-capital.css?v=26.10.08.0923"><link rel="stylesheet" href="design.css?v=26.10.16.1300"><link rel="stylesheet" href="astazi.css?v=26.10.16.1300"><link rel="stylesheet" href="review.css?v=26.10.17.1800"></head>
+<script src="../lib/shell-visibility.js?v=26.10.19.2000"></script><link rel="stylesheet" href="../lib/decision-panel.css?v=26.10.16.1630"><script src="../lib/decision-verdict.js?v=26.10.09.1548"></script><script src="../lib/decision-bridge.js?v=26.10.08.1850"></script><script src="../lib/ai.js?v=26.10.07.2305"></script><link rel="stylesheet" href="../lib/decision-insights.css?v=26.10.08.1850"><script src="../lib/decision-insights.js?v=26.10.08.1850"></script><script src="../lib/decision-panel.js?v=26.10.18.1100" data-decision-module="journal"></script><link rel="stylesheet" href="../lib/trading212-capital.css?v=26.10.08.0923"><link rel="stylesheet" href="design.css?v=26.10.16.1300"><link rel="stylesheet" href="astazi.css?v=26.10.16.1300"><link rel="stylesheet" href="review.css?v=26.10.17.1800"></head>
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
@@ -326,6 +326,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
         <div class="lbl"><span>Buget zilnic · jurnal manual USD</span><span id="budgetLbl">—</span></div>
         <div class="track"><div class="fill" id="budgetFill" style="width:0;background:var(--bull-s)"></div></div>
       </div>
+      <p class="note" id="deskCapitalLine" role="status"></p>
       <ul class="desk-reasons" id="deskReasons"></ul>
     </div>
     <div class="desk-strip" id="deskStrip"></div>
@@ -425,6 +426,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <span id="setupDeskBadge" class="setup-desk-badge" style="display:none" title="Valorile diferă de Desk">≠ Desk</span>
       <button class="btn" id="setupBtn" type="button">Construiește setup</button>
     </div>
+    <p class="setup-hint" id="setupCapitalLine" role="status" hidden></p>
     <div class="setup-hint" id="setupFormHint"><b>ATR</b> — SL la 1.5×ATR (tehnic). <b>% Fix</b> — SL la distanță fixă față de entry. <b>Risc %</b> controlează doar sizing-ul, nu poziția SL în modul ATR.</div>
     <div id="setupToast" style="display:none;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:var(--mono);font-size:11px"></div>
     <div id="setupResult"></div>
@@ -519,6 +521,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 </div><!-- /jpaneExec -->
 
 <div id="jpaneCapital" class="jr-pane" data-jpane="capital" role="tabpanel" aria-labelledby="jrTabCapital" hidden>
+<p class="note" id="capCapitalLine" role="status"></p>
 
 <div class="cap-mode-tabs">
   <button type="button" class="seg-tab active" data-cap-mode="lite">Lite</button>
@@ -670,7 +673,6 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/trading212-context.js?v=26.10.15.0547"></script>
 <script src="../lib/execution-review.js?v=26.10.03.2316"></script><script src="../lib/trading212-journal.js?v=26.10.17.2200"></script>
 <script src="../lib/journal.js?v=26.10.04.0102"></script>
-<script src="../lib/suite-version.js?v=975"></script>
 <script src="../lib/journal-insights.js?v=625"></script>
 <script src="../lib/tracker.js?v=26.10.04.0102"></script>
 <script src="../lib/telegram.js?v=625"></script>
@@ -725,8 +727,9 @@ function loadJournalSettingsUi(){
   if ($('jWeeklyEmail')) $('jWeeklyEmail').value = s.weeklyReportEmail || '';
   if ($('jDdNotify')) $('jDdNotify').checked = !!s.ddNotifyBrowser;
   if ($('jWeeklyOn')) $('jWeeklyOn').checked = !!s.weeklyReportEnabled;
-  if ($('jWeeklyLbl') && s.lastWeeklyReportTs) {
-    $('jWeeklyLbl').textContent = 'Ultimul raport: ' + new Date(s.lastWeeklyReportTs).toLocaleString('ro-RO') + ' · Telegram din tt_tg_config';
+  const last = JR.weeklyReportLast ? JR.weeklyReportLast() : { ts: s.lastWeeklyReportTs || null, week: null };
+  if ($('jWeeklyLbl') && (last.ts || last.week)) {
+    $('jWeeklyLbl').textContent = 'Ultimul raport: ' + (last.ts ? new Date(last.ts).toLocaleString('ro-RO') + ' (pe acest aparat)' : '') + (last.week ? (last.ts ? ' · ' : '') + 'săptămâna ' + last.week + ' trimisă' : '') + ' · Telegram din tt_tg_config';
   }
 }
 function saveJournalSettingsUi(){
@@ -964,16 +967,18 @@ async function sendWeeklyReport(manual){
   }
   if (!sent && manual) { alert('Configurează Telegram (Alerts) sau email în setări journal.'); return; }
   if (sent) {
-    JR.saveSettings({ lastWeeklyReportTs: Date.now() });
+    // 19.10.2026 (I-710): ora trimiterii rămâne pe aparat; în setările sincronizate doar marcajul săptămânii (o dată)
+    if (JR.markWeeklyReportSent) JR.markWeeklyReportSent();
     loadJournalSettingsUi();
     if (manual) alert('✅ Raport trimis via ' + via);
   }
 }
+let weeklyBusy = false;
 function checkWeeklyReport(){
-  const s = journalSettings();
-  if (!s.weeklyReportEnabled) return;
-  if (Date.now() - (s.lastWeeklyReportTs || 0) < 7 * 86400000) return;
-  sendWeeklyReport(false);
+  // 19.10.2026 (I-710): trimite doar dacă săptămâna nu e deja marcată în setările sincronizate (de oricare aparat)
+  if (weeklyBusy || !JR.weeklyReportDue || !JR.weeklyReportDue()) return;
+  weeklyBusy = true;
+  Promise.resolve(sendWeeklyReport(false)).catch(() => {}).finally(() => { weeklyBusy = false; });
 }
 function toggleMarkField(){
   const show = !$('fExit').value.trim();
@@ -1311,6 +1316,17 @@ function renderTable(){
   }));
 }
 
+/* 19.10.2026 (I-700): linia „Capital folosit: … · sursa · vechimea · pe celălalt aparat …” în Risc & capital, Mișcări de capital și Drafturi */
+function renderCapitalLines(){
+  let info = null;
+  try { info = window.ACCT && ACCT.capitalInfo ? ACCT.capitalInfo() : null; } catch (e) { info = null; }
+  ['deskCapitalLine', 'capCapitalLine'].forEach(id => {
+    const el = $(id); if (!el) return;
+    el.textContent = info ? info.text + (info.stale ? ' — neverificat de peste 7 zile: sincronizează Trading 212 sau pune un snapshot' : '') : '';
+    el.classList.toggle('wrn', !!(info && (info.stale || info.diverges)));
+  });
+  if (window.SB && SB.renderCapitalLine) SB.renderCapitalLine();
+}
 function renderDesk(){
   if (!window.GV) return;
   const s = GV.status();
@@ -1322,7 +1338,7 @@ function renderDesk(){
   const fillCol = used >= 100 ? 'var(--bear-s)' : used >= 75 ? 'var(--warn)' : 'var(--bull-s)';
   $('budgetFill').style.width = used + '%';
   $('budgetFill').style.background = fillCol;
-  $('budgetLbl').textContent = '$' + s.budgetLeftUsd.toFixed(0) + ' rămas din −$' + s.maxLossUsd.toFixed(0) + ' (' + used.toFixed(0) + '% consumat)';
+  $('budgetLbl').textContent = '$' + s.budgetLeftUsd.toFixed(0) + ' rămas din −$' + s.maxLossUsd.toFixed(0) + ' (' + used.toFixed(0) + '% consumat)' + (s.budgetSource && s.budgetSource !== 'jurnal manual' ? ' · rămas = ' + s.budgetSource : '');
   const pnlCls = s.todayPnl >= 0 ? 'pos' : 'neg';
   $('deskStrip').innerHTML = [
     ['PnL manual azi', (s.todayPnl >= 0 ? '+' : '') + '$' + s.todayPnl.toFixed(2), pnlCls],
@@ -1539,9 +1555,10 @@ $('btnAcctSnap') && $('btnAcctSnap').addEventListener('click', () => {
   const snap = window.EQ && EQ.lastSnapshot ? EQ.lastSnapshot() : null;
   if (!snap) { alert('Niciun snapshot. Tab Capital → + Snapshot manual în USD.'); return; }
   $('cAcct').value = snap.equity;
-  GV.saveCfg({ accountSize: +snap.equity });
+  // 19.10.2026: capitalul se scria de două ori (GV.saveCfg → ACCT.syncAll 'governor', apoi încă un syncAll 'snapshot') ⇒ o singură scriere
   if (window.ACCT) ACCT.syncAll(+snap.equity, 'snapshot');
-  renderDesk();
+  else GV.saveCfg({ accountSize: +snap.equity });
+  renderDesk(); renderCapitalLines();
   alert('Cont $ setat la $' + snap.equity.toFixed(0) + ' (snapshot ' + snap.day + '). Baseline curbă = primul snapshot; sizing risc folosește contul curent.');
 });
 $('btnDeskRefresh') && $('btnDeskRefresh').addEventListener('click', renderDesk);
@@ -1691,6 +1708,7 @@ function renderAll(){
   renderHaltRail();
   renderFeesBanner();
   renderDesk();
+  renderCapitalLines();
   renderCapitalPanel();
   if (window.PF) PF.onJournalUpdate({ activeTab: jTab });
   if (window.JWS && JWS.enabled()) {
@@ -1761,6 +1779,9 @@ function setJTab(name, options){
     window.parent.postMessage({ ttModuleState: { module: 'journal/', hash: hashBase } }, location.origin);
   }
   if (name === 'portfolio' && window.PF) PF.onTabActivate();
+  // 19.10.2026: Raportul se calculează doar cu fila deschisă; verdictul din Risc & capital se reface la deschiderea filei
+  if (name === 'raport' && window.JournalReportUI && JournalReportUI.activeaza) JournalReportUI.activeaza();
+  if (name === 'desk' && changed) { try { renderDesk(); renderCapitalLines(); } catch (e) {} }
   /* 18.10.2026: pe Portofoliu · risc, tabelul pozițiilor reale T212 (pondere, stop, risc la stop) e deschis, nu pliat */
   if (name === 'portfolio') document.querySelectorAll('[data-t212-capital] details').forEach(d => { d.open = true; });
   if (name === 'setup' && window.SB) {
@@ -1836,12 +1857,20 @@ async function capitalAuto(){
   capitalAutoBusy = true;
   try {
     const r = await CapitalAuto.run({ EQ: window.EQ, ACCT: window.ACCT, T212Snapshot: window.T212Snapshot, Finance: window.EuropeFinance });
-    const n = $('capAutoNote'); if (n) n.textContent = 'Trading 212 automat: ' + r.detail;
-    if (r.status === 'saved') renderAll();
+    // 19.10.2026 (I-712): depunerile / retragerile Trading 212 intră în registrul de capital (curba și DD doar pe rezultat)
+    const f = window.EQ && EQ.importBrokerFlows ? EQ.importBrokerFlows() : { added: 0 };
+    const n = $('capAutoNote'); if (n) n.textContent = 'Trading 212 automat: ' + r.detail + (f.added ? ' · ' + f.added + ' depuneri/retrageri importate' : '') + (f.matched ? ' · ' + f.matched + ' erau deja puse de mână' : '') + (f.noFx ? ' · ' + f.noFx + ' așteaptă cursul BCE' : '');
+    if (r.status === 'saved' || f.added) renderAll();
+    else renderCapitalLines();
+    // 19.10.2026 (I-700 d): câmpul „Cont $” din Drafturi urmează capitalul nou, dacă nu l-ai atins
+    if (window.SB && SB.refreshAccountFromCapital) SB.refreshAccountFromCapital();
   } catch (e) { const n = $('capAutoNote'); if (n) n.textContent = 'Trading 212 automat: snapshot-ul nu s-a putut face (' + ((e && e.message) || 'eroare') + ').'; }
   finally { capitalAutoBusy = false; }
 }
-window.addEventListener('storage', e => { if (e.key === 'tt_trading212_portfolio_v1') capitalAuto(); });
+window.addEventListener('storage', e => {
+  if (e.key === 'tt_trading212_portfolio_v1' || e.key === 'tt_trading212_cash_v1') capitalAuto();
+  else if (['tt_account_size_v1', 'tt_governor_cfg_v1', 'tt_pf_account', 'tt_equity_snapshots_v1'].includes(e.key)) renderCapitalLines();
+});
 setTimeout(capitalAuto, 1500);
 
 function hashToJTab(h){
@@ -1871,11 +1900,14 @@ window.addEventListener('hashchange', () => {
   setJTab(hashToJTab(location.hash), { notify: false });
   if (location.hash === '#setup' && localStorage.getItem('md_setup_prefill') && window.SB) window.SB.consumePrefill();
 });
-setInterval(renderDesk, 60000);
+/* 19.10.2026 (I-702): ceasurile Jurnalului nu mai rulează cât pagina e parcată în aplicație (TTShell.every; ce s-a ratat rulează o dată la
+   revenire). Verdictul din Risc & capital se reface la 60 s doar cu fila deschisă (la deschiderea filei se reface oricum). */
+const every = (fn, ms) => (window.TTShell && TTShell.every ? TTShell.every(fn, ms) : setInterval(fn, ms));
+every(() => { if (jTab === 'desk') renderDesk(); }, 60000);
 setTimeout(() => { if (JR.all().some(e => isOpenE(e))) refreshMarks(); }, 500);
-setInterval(() => { if (JR.all().some(e => isOpenE(e))) refreshMarks(); }, 60000);
+every(() => { if (JR.all().some(e => isOpenE(e))) refreshMarks(); }, 60000);
 setTimeout(checkWeeklyReport, 2500);
-setInterval(checkWeeklyReport, 3600000);
+every(checkWeeklyReport, 3600000);
 window.addEventListener('resize', () => { if ($('rollingDdCanvas')) drawRollingDdChart(); });
 if (window.CD && CD.initListener) CD.initListener(renderAll);
 if (window.PF) {
@@ -1916,13 +1948,7 @@ document.addEventListener('click', ev => {
       });
     } else if (!seen) localStorage.setItem('tt_sw_seen_ver', full);
   } catch(e){}
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('../sw-app.js?v=' + ver, { scope: '../', updateViaCache: 'none' })
-      .then(function(reg){ reg.update(); return navigator.serviceWorker.ready; })
-      .then(function(reg){
-        if (reg && reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-      }).catch(function(){});
-  }
+  // 19.10.2026: service worker-ul se înregistra de două ori (aici și în blocul generat tt:sw-guard de mai jos) ⇒ o dată, în blocul generat
 })();
 </script>
 <script src="../lib/trade-evidence-schema.js?v=26.10.09.2330"></script><script src="../lib/evidence-vault.js?v=26.10.15.1930"></script><script src="../lib/trade-evidence.js?v=26.10.15.1930"></script>
