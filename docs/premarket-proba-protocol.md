@@ -60,3 +60,17 @@ exact cele din 18.10.2026; amprenta probei rămâne `pm-cb956aef5680`, deci prob
   Long n-are niciun avantaj, 6,5 % cu un avantaj de +0,5 % pe perioadă, 20,5 % cu −0,5 %. Universul Core (85) poate fi mai volatil
   decât cel din cercetare (200) ⇒ alarma poate suna ceva mai des. De aceea e **o alarmă de revăzut, nu un verdict**: nu oprește proba,
   nu schimbă regulile și nu e un semnal de cumpărare sau de vânzare.
+
+## La următoarea repornire (scris pe 19.10.2026, I-720 — NU se aplică probei de acum)
+Proba de acum (`premarket-proba-1`) judecă **fără calendarul de raportări**, cum scrie mai sus („Ce se notează”), și rămâne așa până la
+capăt. Ce s-a pregătit pentru o repornire planificată (una care oricum ar avea alt motiv — ex. stopul Early Reversal, dacă umbra din
+`docs/reversal-stop-umbra-protocol.md` dă verdictul „ajută”):
+- **Capacitatea există, dar e OPRITĂ:** `PROTOCOL.calendar === false` în `lib/premarket-proba.mjs`; robotul (`calendarPentruProba` din
+  `tools/premarket-jurnal.mjs`) nu face nicio cerere cât timp comutatorul e oprit. Testul `tools/premarket-calendar.test.mjs` fixează
+  că e oprit pentru `premarket-proba-1`. Secretul `FINNHUB_API_KEY` ajunge la pasul robotului, dar nu e citit.
+- **La repornire:** o probă nouă (`id` nou, ex. `premarket-proba-2`), cu protocolul rescris ÎNAINTE de date, pune `calendar: true`.
+  Atunci robotul citește calendarul Finnhub pe 14 zile (aceleași tickere ca garda paginii) și motorul îl folosește exact ca pagina ⇒
+  proba judecă același clasament pe care îl vede omul (penalizarea de raportări pe fiecare acțiune, nu „neverificat” pentru toate).
+- **Închis la eroare:** cu comutatorul pornit, fără cheie sau cu un răspuns care nu e calendar, robotul se oprește (fluxul reîncearcă
+  și anunță pe Discord) — o zi judecată fără calendar ar amesteca regulile probei.
+- Pornirea comutatorului fără o probă nouă e interzisă: ar schimba ce se judecă la mijlocul probei.

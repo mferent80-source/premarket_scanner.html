@@ -15,7 +15,26 @@ const UMBRA_JURNAL = DIR + '/reversal-umbra-jurnal.json', UMBRA_PROBA = DIR + '/
 const MARCAJ = '  validateDeps(); bind();';
 
 /** Motorul paginii într-un context izolat: aceleași biblioteci ca pagina, un DOM minim, `?fundal=1` (o scanare, fără ceas). */
-export function motor(fetchSerie = fetchStock) {
+/** 19.10.2026 — I-720: calendarul Finnhub pentru robot, cu cheia din secretele Actions (FINNHUB_API_KEY), DOAR dacă protocolul probei
+    îl cere (`calendar: true`). Oprit ⇒ nicio cerere. Pornit, dar fără cheie sau cu un răspuns care nu e calendar ⇒ eroare (robotul se
+    oprește; o zi judecată cu alte reguli decât restul probei ar amesteca proba). Aceleași tickere ca garda paginii (lib/earnings.js, `toate`). */
+export async function calendarPentruProba(protocol = PROTOCOL, env = process.env, fetchFn = fetch, azi = new Date().toISOString().slice(0, 10)) {
+  if (protocol.calendar !== true) return { folosit: false, motiv: 'calendarul e oprit în protocolul ' + protocol.id + ' (penalizarea „neverificat” pentru toate)' };
+  const cheie = env.FINNHUB_API_KEY;
+  if (!cheie) throw Error('Protocolul ' + protocol.id + ' cere calendarul, dar FINNHUB_API_KEY lipsește din secretele Actions.');
+  const pana = new Date(Date.parse(azi + 'T12:00:00Z') + 14 * 86400000).toISOString().slice(0, 10);
+  const r = await fetchFn('https://finnhub.io/api/v1/calendar/earnings?from=' + azi + '&to=' + pana + '&token=' + encodeURIComponent(cheie), { signal: AbortSignal.timeout(30000) });
+  if (!r || !r.ok) throw Error('Calendarul Finnhub n-a răspuns (HTTP ' + (r ? r.status : '—') + ').');
+  const j = await r.json();
+  if (!j || !Array.isArray(j.earningsCalendar)) throw Error('Răspunsul Finnhub nu e un calendar de raportări.');
+  const items = j.earningsCalendar.filter((e) => e && typeof e.symbol === 'string' && /^[A-Z][A-Z0-9]{0,4}(\.[A-Z])?$/.test(e.symbol) && e.date)
+    .map((e) => (e.symbol.includes('.') ? { ...e, symbol: e.symbol.replace('.', '-') } : e))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  return { folosit: true, items, n: items.length };
+}
+/* 19.10.2026 — I-720: `calendar` (din calendarPentruProba) ajunge în motor ca EARN.calendar, exact cum îl primește pagina; fără el,
+   motorul rămâne „earnings neverificat” pentru toate, cum cere protocolul probei de acum. */
+export function motor(fetchSerie = fetchStock, { calendar } = {}) {
   const nodes = {}, store = new Map();
   const node = (id) => nodes[id] || (nodes[id] = { value: '', checked: false, innerHTML: '', textContent: '', disabled: false, hidden: false, dataset: {}, style: {}, options: [], classList: { toggle() {}, add() {}, remove() {} }, scrollIntoView() {} });
   const c = { console, Intl, Date, Math, JSON, Map, Set, URL, URLSearchParams, Promise, Error, Number, String, Array, Object, AbortController, setTimeout: () => 0, clearTimeout() {},
@@ -26,6 +45,7 @@ export function motor(fetchSerie = fetchStock) {
   if (c.EL) c.EL.enrichSectorsYahoo = undefined;   // protocol: harta de sectoare de bază, fără completarea de la Yahoo
   c.D = { fetchStock: (s, o) => fetchSerie(s, o) }; c.WL = { get: () => [] };
   c.GV = { status: () => ({ verdict: 'TRADE', reasons: ['robot: proba judecă clasamentul tehnic, nu limitele contului'] }) };
+  if (calendar && calendar.folosit) c.EARN = { calendar: async () => ({ ok: true, items: calendar.items, motiv: '' }) };
   const src = readFileSync('candidate-engine/engine.js', 'utf8'), cut = src.lastIndexOf(MARCAJ);
   if (cut < 0) throw Error('Marcajul de pornire din candidate-engine/engine.js s-a schimbat — robotul nu mai poate rula motorul.');
   /* 19.10.2026 — I-716: și reversalScore, pentru amprenta umbrei (versiunea Top Long se calculează tot doar pe PROTOCOL.functii) */
@@ -59,7 +79,9 @@ function umbra(h, s, zi, sesiuni) {
   } catch (e) { console.log('umbra Reversal (' + UMBRA.id + '): ' + (e.message || e) + ' — ziua Top Long e salvată oricum'); }
 }
 async function main() {
-  const c = motor(fetchCuBare), h = c.hooks, V = versiune(h);
+  const cal = await calendarPentruProba(PROTOCOL);   /* 19.10.2026 — I-720: oprit pentru premarket-proba-1 */
+  console.log('calendar: ' + (cal.folosit ? cal.n + ' raportări din Finnhub' : cal.motiv));
+  const c = motor(fetchCuBare, { calendar: cal }), h = c.hooks, V = versiune(h);
   await h.scan();
   const s = h.state;
   if (!s.verified) throw Error('Nicio acțiune verificată azi (' + s.failures.length + ' eșecuri) — jurnalul rămâne neschimbat.');

@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: '20'
       # 19.10.2026: și garda amprentei Top Long + reluarea seriilor (auditul Long & Reversal)
-      - run: node --test tools/v1-proba.test.mjs tools/independent-scanner.test.mjs tools/premarket-proba.test.mjs tools/candidate-autostart.test.mjs tools/top-long-proba.test.mjs tools/premarket-jurnal-serii.test.mjs tools/reversal-umbra.test.mjs
+      - run: node --test tools/v1-proba.test.mjs tools/independent-scanner.test.mjs tools/premarket-proba.test.mjs tools/candidate-autostart.test.mjs tools/top-long-proba.test.mjs tools/premarket-jurnal-serii.test.mjs tools/reversal-umbra.test.mjs tools/premarket-calendar.test.mjs
       - name: Ziua în jurnal + evaluarea
         run: node tools/v1-jurnal.mjs
       # 18.10.2026: proba Premarket Scanner (Top Long), docs/premarket-proba-protocol.md; dacă pică, ziua V1 se salvează oricum
@@ -33,6 +33,9 @@ jobs:
       - name: Premarket Top Long în jurnal + evaluarea
         id: premarket
         continue-on-error: true
+        # 19.10.2026 — I-720: cheia ajunge la robot, dar e citită DOAR dacă protocolul probei cere calendarul (premarket-proba-1: oprit)
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
         run: node tools/premarket-jurnal.mjs || (sleep 180 && node tools/premarket-jurnal.mjs)
       - name: Anunță pe Discord că ziua Premarket lipsește
         if: steps.premarket.outcome == 'failure'
