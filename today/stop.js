@@ -36,12 +36,16 @@
     const vreaOrdin = !!ev.target.closest('[data-stop-t212]');
     if (!vreaOrdin && !ev.target.closest('[data-stop-save]')) return;
     const d = date(), poz = d && (d.snapshot.positions || []).find((p) => p.ticker === tk); if (!poz) return;
-    const alt = Number(art.querySelector('[data-stop-alt]')?.value), ales = art.querySelector(`[data-stop-var="${alese[tk] || 'fix'}"]`) || art.querySelector('[data-stop-var]');
-    const stop = alt > 0 ? alt : Number(ales?.dataset.stopPret), tv = art.querySelector('[data-stop-tinta]')?.value, tinta = tv ? Number(tv) : null;
+    // 19.10.2026 (I-711): „Alt stop” nevalid ⇒ eroare, nimic salvat / trimis (înainte cădea tăcut pe varianta −5 %)
+    const altEl = art.querySelector('[data-stop-alt]'), ales = art.querySelector(`[data-stop-var="${alese[tk] || 'fix'}"]`) || art.querySelector('[data-stop-var]');
+    const ales2 = S.stopDinFormular(altEl?.value, !!altEl?.validity?.badInput, ales?.dataset.stopPret);
+    if (ales2.eroare) { stare = '⚠ ' + ales2.eroare; confirm = null; desen(); return; }
+    const stop = ales2.stop, tv = art.querySelector('[data-stop-tinta]')?.value, tinta = tv ? Number(tv) : null;
     const sy = S.symYahoo(tk), px = S.preturi(poz, sy ? ultim[sy] : null);
-    if (vreaOrdin) { const r = window.T212Orders?.rezumat(poz, stop, px.acum); if (!r) { stare = '⚠ Alege o variantă de stop sau scrie stopul, apoi apasă din nou.'; confirm = null; } else { confirm = { ...r, scope: d.scope, tinta, intrare: px.intrare }; stare = ''; } desen(); return; }
+    if (vreaOrdin) { const r = window.T212Orders?.rezumat(poz, stop, px.acum, d.snapshot.summary?.currency); if (!r) { stare = '⚠ Alege o variantă de stop sau scrie stopul, apoi apasă din nou.'; confirm = null; } else { confirm = { ...r, scope: d.scope, tinta, intrare: px.intrare }; stare = ''; } desen(); return; }
     const err = S.salveaza({ scope: d.scope, poz: { ...poz, averagePrice: px.intrare ?? poz.averagePrice, currentPrice: px.acum ?? poz.currentPrice }, stop, tinta });
-    stare = err ? '⚠ ' + err : '✓ Stopul pentru ' + tk.replace(/_US_EQ$|_[A-Z]{2}_EQ$/, '') + ' e salvat în Portofoliu.';
+    // I-711: confirmarea spune valoarea SALVATĂ (rotunjită la 4 zecimale, ca în teză), în moneda acțiunii
+    stare = err ? '⚠ ' + err : '✓ Stopul pentru ' + tk.replace(/_US_EQ$|_[A-Z]{2}_EQ$/, '') + ' e salvat în Portofoliu: ' + new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(+stop.toFixed(4)) + ' ' + (S.moneda(poz) || '') + '.';
     desen(); window.dispatchEvent(new Event('tt-stop-salvat')); if (!err) trimite(true);
   });
   async function trimiteOrdin() {
@@ -57,6 +61,7 @@
   }
   window.addEventListener('storage', (e) => { if (e.key === 'tt_holdings_theses_v1' || e.key === 'tt_trading212_portfolio_v1') { desen(); trimite(false); } });
   if (window.T212Orders) window.T212Orders.disponibil().then((r) => { ordine = r; desen(); });
-  desen(); trimite(false); pozaExterna(); setInterval(() => { if (!document.hidden) pozaExterna(); }, 300000);
+  // 19.10.2026 (I-702): parcată în aplicație (TTShell ascuns) nu mai întreabă worker-ul la 5 minute; la revenire o dată
+  desen(); trimite(false); pozaExterna(); if (window.TTShell) window.TTShell.every(pozaExterna, 300000); else setInterval(() => { if (!document.hidden) pozaExterna(); }, 300000);
   setTimeout(desen, 4000); // copia contului poate sosi după prima citire (pagina contului din fundal)
 })();

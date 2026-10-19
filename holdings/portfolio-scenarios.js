@@ -37,5 +37,6 @@ function render(ctx){
  paint();if(priorOpen)$('stressResult').querySelector('details')?.setAttribute('open','');
 }
 g.PortfolioScenariosUI={render};
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)paint();});setInterval(()=>{if(!document.hidden)paint();},30000);
+// 19.10.2026 (I-702): parcat în aplicație (TTShell ascuns) nu repictează la 30 s; la revenire o dată
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!g.TTShell||g.TTShell.visible()))paint();});if(g.TTShell)g.TTShell.every(paint,30000);else setInterval(()=>{if(!document.hidden)paint();},30000);
 })(typeof window!=='undefined'?window:globalThis);

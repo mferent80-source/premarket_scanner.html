@@ -35,8 +35,10 @@ test('direction disagreement and failed repeated advantage cannot become researc
 test('out-of-domain or internally disagreeing Neural blocks both direction displays',()=>{
  for(const state of ['drift','disagreement']){const f=fixture();f.neural.assessment.state=state;f.neural.comparison.state='blocked';const r=S.build(f);assert.equal(r.state,'blocked');assert.equal(r.cards[0].value,'Interpretare blocată');assert.equal(r.cards[1].value,'Interpretare blocată');}
 });
-test('expired, future, mismatched currency, ticker, session or demo records never contribute',()=>{
- const mutations=[r=>r.trainedAt=now-1800001,r=>r.trainedAt=now+1,r=>r.currency='EUR',r=>r.symbol='OTHER',r=>r.asOf='2026-10-01',r=>r.kind='synthetic',r=>r.result.version='other'];
+// 19.10.2026 (I-703 a): raportul nu mai expiră la 30 de minute — e valabil pe sesiunea EOD și pe amprenta barelor
+test('future, mismatched currency, ticker, session or demo records never contribute; an older report of the same session still does',()=>{
+ {const f=fixture();f.isolation.record.trainedAt=now-3*3600000;assert.equal(S.build(f).available,4);}
+ const mutations=[r=>r.trainedAt=now+1,r=>r.currency='EUR',r=>r.symbol='OTHER',r=>r.asOf='2026-10-01',r=>r.kind='synthetic',r=>r.result.version='other'];
  for(const mutate of mutations){const f=fixture();mutate(f.isolation.record);const r=S.build(f);assert.equal(r.available,3);assert.equal(r.cards[3].available,false);assert.equal(r.cards[3].score,undefined);assert.equal(r.state,'incomplete');}
  const f=fixture();f.neural.usable=false;assert.equal(S.build(f).available,2);
 });

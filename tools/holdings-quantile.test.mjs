@@ -58,8 +58,10 @@ test('poor coverage, insufficient controls, drift and absent repeated advantage 
 test('fifth-model summary is separate, compact and excludes model parameters and broker fields',()=>{
  const q=inspection();q.record.apiKey='PRIVATE_KEY';q.record.quantity=999;const s=summary(q);assert.equal(s.version,'holdings-lab-summary-v2');assert.equal(s.total,5);assert.equal(s.available,1);assert.equal(s.cards[4].nominal,.8);assert.ok(!/PRIVATE_KEY|quantity|members|testRows/.test(JSON.stringify(s)));assert.equal('confidence' in s,false);
 });
-test('expired or mismatched fifth-model records never contribute',()=>{
- for(const mutate of [r=>r.trainedAt=now-1800001,r=>r.trainedAt=now+1,r=>r.currency='EUR',r=>r.asOf='2026-10-01',r=>r.symbol='OTHER',r=>r.kind='market']){const q=inspection();q.record={...q.record};mutate(q.record);assert.equal(summary(q).cards[4].available,false);}
+// 19.10.2026 (I-703 a): raportul nu mai expiră la 30 de minute — e valabil pe sesiunea EOD și pe amprenta barelor
+test('future or mismatched fifth-model records never contribute; an older report of the same session still does',()=>{
+ {const q=inspection();q.record={...q.record,trainedAt:now-3*3600000};assert.equal(summary(q).cards[4].available,true);}
+ for(const mutate of [r=>r.trainedAt=now+1,r=>r.currency='EUR',r=>r.asOf='2026-10-01',r=>r.symbol='OTHER',r=>r.kind='market']){const q=inspection();q.record={...q.record};mutate(q.record);assert.equal(summary(q).cards[4].available,false);}
 });
 test('four-model history stays readable after adding the fifth model without a migration write',()=>{
  const raw=new Map(),storage={getItem:k=>raw.get(k)||null,setItem:(k,v)=>raw.set(k,v)},store=H.createStore(storage);

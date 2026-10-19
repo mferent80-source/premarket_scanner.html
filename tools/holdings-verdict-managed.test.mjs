@@ -67,7 +67,8 @@ test('all seven valid reports survive a fresh page with full localStorage and ke
   assert.equal(core.HoldingsVerdict.accepted(name,snapshots[name],{...expected,fingerprint:'changed-history'},now),false);assert.equal(core.HoldingsVerdict.accepted(name,{...snapshots[name],record:{...snapshots[name].record,trainedAt:now+1}},expected,now),false);
  }
  const r=core.HoldingsVerdict.build({expected,snapshots,now});assert.equal(r.available,7);assert.ok(r.cards.every(c=>c.persistence==='indexeddb'&&/păstrat în browser/.test(c.detail)));
- for(const patch of [{trainedAt:now-1800001},{trainedAt:now+60001},{result:{version:'invalid'}}]){
+ // 19.10.2026 (I-703 a): raportul nu mai expiră la 30 de minute — e valabil pe sesiunea EOD și pe amprenta barelor
+ for(const patch of [{trainedAt:now+60001},{result:{version:'invalid'}}]){
   const altered={get:async k=>JSON.stringify({...JSON.parse(records.get(k)||'null'),...patch}),set:durable.set};
   for(const name of Object.keys(examples())){const fresh=setup(name,{demo:false,quota:true,durable:altered});await fresh.api.restore(fresh.c.positions[0]);const s=fresh.api.inspect(fresh.c.positions[0]);assert.equal(s.usable,false,name);assert.equal(core.HoldingsVerdict.accepted(name,s,expected,now),false);}
  }
@@ -87,13 +88,14 @@ test('manual Forest and HMM reject a different or nonnumeric historical close be
 });
 
 
-test('every temporary report still rejects another account, demo, currency, EOD, close and expired time',async()=>{
+// 19.10.2026 (I-703 a): raportul nu mai expiră la 30 de minute — e valabil pe sesiunea EOD și pe amprenta barelor
+test('every temporary report still rejects another account, demo, currency, EOD and close; the same session stays valid after 30 minutes',async()=>{
  for(const name of Object.keys(examples())){
   const s=setup(name,{demo:false,quota:true}),p=s.c.positions[0],expected={...source,kind:'market'},pending=s.api.run(p,{source:expected}),worker=s.workers[0];worker.onmessage({data:{id:worker.payload.id,result:examples()[name]}});assert.equal((await pending).state,'ready');assert.equal(s.api.inspect(p).usable,true);
   for(const patch of [{scope:'another-account'},{demo:true},{model:()=>({asOf:source.asOf,currency:'EUR',price:source.close})},{model:()=>({asOf:'2026-10-01',currency:'USD',price:source.close})},{model:()=>({asOf:source.asOf,currency:'USD',price:source.close+1})}]){
    s.api.setContext({...s.c,...patch});assert.equal(s.api.inspect(p).usable,false,name+': '+JSON.stringify(patch));s.api.setContext(s.c);assert.equal(s.api.inspect(p).usable,true,name);
   }
-  s.sandbox.Date.now=()=>now+1800001;assert.equal(s.api.inspect(p).usable,false,name+': expired');assert.equal(core.HoldingsVerdict.accepted(name,s.api.inspect(p),expected,now+1800001),false);assert.equal(s.writes.length,0);
+  s.sandbox.Date.now=()=>now+1800001;assert.equal(s.api.inspect(p).usable,true,name+': aceeași sesiune după 30 de minute');assert.equal(core.HoldingsVerdict.accepted(name,s.api.inspect(p),expected,now+1800001),true);assert.equal(s.writes.length,0);
  }
 });
 test('a full store never promotes an invalid worker payload into a current report',async()=>{

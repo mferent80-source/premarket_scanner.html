@@ -11,9 +11,10 @@ function setup({demo=true,blocked=false,price=result.current.close}={}){
 test('worker gets public bars and request identity, without broker fields',()=>{
  const s=setup();s.button.onclick();assert.equal(s.workers.length,1);assert.deepEqual(Object.keys(s.workers[0].payload).sort(),['bars','id','now']);assert.ok(!/SECRET|apiKey|quantity/.test(JSON.stringify(s.workers[0].payload)));assert.equal(s.ui.busy(),true);
 });
-test('demo results stay in memory and can be exported only while current',()=>{
+// 19.10.2026 (I-703 a): raportul nu mai expiră la 30 de minute — e valabil pe sesiunea EOD și pe amprenta barelor
+test('demo results stay in memory and can be exported only while current (same EOD session)',()=>{
  const s=setup();s.button.onclick();s.complete();assert.equal(s.ui.busy(),false);assert.equal(s.writes.size,0);const p=s.c.positions[0];assert.equal(s.ui.inspect(p).usable,true);s.exportButton.onclick();assert.equal(s.emitted().result.version,'holdings-quantile-v1');
- s.sandbox.Date.now=()=>now+1800001;assert.equal(s.ui.inspect(p).usable,false);
+ s.sandbox.Date.now=()=>now+1800001;assert.equal(s.ui.inspect(p).usable,true,'aceeași sesiune după 30 de minute');
 });
 test('account, symbol, currency, EOD, price and position removal cancel pending work',()=>{
  for(const change of ['account','symbol','currency','eod','removed']){const s=setup();s.button.onclick();const c=s.context('a');if(change==='account')c.scope='b';if(change==='symbol')c.symbol=()=> 'OTHER';if(change==='currency')c.model=()=>({currency:'EUR',asOf:'2026-10-02'});if(change==='eod')c.model=()=>({currency:'USD',asOf:'2026-10-01'});if(change==='removed')c.positions=[];s.ui.setContext(c);assert.equal(s.workers[0].terminated,true,change);s.complete();assert.equal(s.writes.size,0);assert.equal(s.ui.busy(),false);}
