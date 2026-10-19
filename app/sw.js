@@ -17,6 +17,7 @@ self.addEventListener('fetch', event => {
     new URL(path, self.registration.scope).pathname === url.pathname);
   const allowed = shellNavigation || SHELL.some(path => new URL(path, self.registration.scope).href === url.href);
   if (!allowed) return;
+  if (shellNavigation) { event.respondWith(shellNavigationResponse(event, request)); return; }
   event.respondWith(fetch(request, { cache: 'no-cache' }).then(response => {
     if (response.ok) {
       const cachedResponse = response.clone();
@@ -25,10 +26,33 @@ self.addEventListener('fetch', event => {
     return response;
   }).catch(async () => {
     // Never present an offline trading screen as a current scan.
-    if (request.mode === 'navigate') return new Response('<!doctype html><html lang="ro"><meta name="viewport" content="width=device-width"><title>Trading Tools — Offline</title><body style="background:#090d12;color:#e9eef1;font:18px system-ui;padding:30px"><h1>Trading Tools</h1><p>Ești offline. Conectează telefonul la internet pentru date și scanări actualizate.</p><button onclick="location.reload()" style="padding:14px;font:inherit">Reîncearcă</button></body></html>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+    if (request.mode === 'navigate') return offlineScreen();
     return (await caches.match(request)) || Response.error();
   }));
 });
+// 19.10.2026 (I-705): pe semnal slab carcasa nu mai stă albă cât durează rețeaua — după 3,5 s (ca HTML_NET_TIMEOUT_MS din sw-app.js)
+// se servește copia din cache, iar răspunsul rețelei o actualizează în fundal. Carcasa e doar meniul: modulele își cer datele singure.
+// Fără rețea deloc (cererea pică) rămâne ecranul „Ești offline”, ca înainte.
+const HTML_NET_TIMEOUT_MS = 3500;
+const offlineScreen = () => new Response('<!doctype html><html lang="ro"><meta name="viewport" content="width=device-width"><title>Trading Tools — Offline</title><body style="background:#090d12;color:#e9eef1;font:18px system-ui;padding:30px"><h1>Trading Tools</h1><p>Ești offline. Conectează telefonul la internet pentru date și scanări actualizate.</p><button onclick="location.reload()" style="padding:14px;font:inherit">Reîncearcă</button></body></html>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+function cachedShell(request) {
+  const at = path => new URL(path, self.registration.scope).href;
+  return caches.match(request, { ignoreSearch: true }).then(hit => hit || caches.match(at('./'))).then(hit => hit || caches.match(at('./index.html'))).catch(() => null);
+}
+function shellNavigationResponse(event, request) {
+  return new Promise(resolve => {
+    let done = false;
+    const finish = response => { if (!done && response) { done = true; resolve(response); } };
+    const timer = setTimeout(() => { cachedShell(request).then(finish); }, HTML_NET_TIMEOUT_MS);
+    const network = fetch(request, { cache: 'no-cache' }).then(response => {
+      clearTimeout(timer);
+      const copy = response.ok ? response.clone() : null;
+      finish(response);
+      if (copy) return caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
+    }, () => { clearTimeout(timer); finish(offlineScreen()); });
+    event.waitUntil(network);
+  });
+}
 
 // Notifications contain no portfolio amounts or API credentials.
 async function receipt(data,phase){try{const url=new URL(data.receiptUrl);if(url.origin!=='https://premarket-scanner-html.mferent80.workers.dev'||url.pathname!=='/api/cloud/push/receipt'||typeof data.receipt!=='string')return;await fetch(url.href,{method:'POST',credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:data.receipt,phase})});}catch{}}
