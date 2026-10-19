@@ -57,3 +57,8 @@ test('I-714: sub nivelurile planului, cifrele măsurate ale regulii (limită de 
   assert.match(e, /var PLAN_MASURAT = 'Regula 1,25 ATR \/ 2R, măsurată pe 4 ani/); assert.match(e, /\$\('planNota'\)\.textContent = PLAN_MASURAT/);
   assert.match(h, /id="planNota"/);
 });
+
+test('I-714 în tichet: candidații scannerului primesc cifrele măsurate ale regulii', () => {
+  const h = readFileSync(new URL('../desk/index.html', import.meta.url), 'utf8');
+  assert.match(h, /x\.mode==='momentum'\|\|x\.mode==='reversal'\)\)out\+=' · Regula 1,25 ATR \/ 2R, măsurată pe 4 ani/);
+});

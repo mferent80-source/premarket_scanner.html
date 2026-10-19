@@ -179,5 +179,5 @@ test('I-719 Planuri: a 3-a poziție din același grup de corelație (≥ 0,7 pe 
   assert.match(b.nodes.ticketVerdict.textContent, /corelat/); assert.match(b.nodes.ticketVerdict.textContent, /NVDA/); assert.equal(b.nodes.ticketSave.disabled, true);
   const h = readFileSync('desk/index.html', 'utf8');
   assert.match(h, /function garziComune\(x,rows,capital,riskPct\)/); assert.match(h, /return garziComune\(x,rows,capital,allowedRisk\(x\)\);/);
-  assert.match(h, /lib\/caldura-portofoliu\.js\?v=26\.10\.19\.2200/); assert.match(h, /lib\/idee-proprie\.js\?v=26\.10\.19\.2200/); assert.match(h, /lib\/earnings\.js\?v=26\.10\.19\.2200/);
+  assert.match(h, /lib\/caldura-portofoliu\.js\?v=[\d.]+/); assert.match(h, /lib\/idee-proprie\.js\?v=[\d.]+/); assert.match(h, /lib\/earnings\.js\?v=[\d.]+/);
 });
