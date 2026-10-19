@@ -3419,6 +3419,13 @@ pe un singur chart.
 | I-711 | Mărunte de siguranță: „Alt stop” invalid nu mai salvează −5% tăcut, confirmarea ordinului în moneda contului (nu „lei” fix), simbolul escapat în Capital Desk, linkurile știrilor doar http(s), ordinul de stop cu timeout | today/stop.js, lib/t212-orders.js, lib/capital-desk.js, alerts/index.html | S | P2 | făcut | audit+ideation | 2026-10-19 |
 | I-712 | Depunerile și retragerile Trading 212 intră automat ca mișcări de capital | lib/equity.js, lib/capital-auto.js | M | P3 | făcut | audit+ideation | 2026-10-19 |
 | I-713 | Un singur aparat citește Trading 212 (ales sau monitorul de pe server); celălalt doar primește prin sincronizare | broker/broker.js, app/index.html | M | P3 | făcut | audit+ideation | 2026-10-19 |
+| I-714 | Planul spus cinstit: lângă stop/țintă, cifrele măsurate ale regulii (1,25 ATR / 2R pe 4 ani: 58 % se termină pe stop, R mediu ≈ 0) — planul e o regulă de risc, nu un avantaj | candidate-engine/engine.js (renderDetail), desk/index.html (tichet) | S | P1 | propus | audit+ideation | 2026-10-19 |
+| I-715 | Arhiva zilnică a universului (lista screenerului datată, fără supraviețuitori) — temelia oricărei cercetări cinstite pe acțiuni SUA | tools/trend-12-1.mjs, candidate-engine/generated/univers-sua-istoric/ (nou) | S | P1 | propus | audit+ideation | 2026-10-19 |
+| I-716 | Motor „în umbră” pentru Early Reversal: stopul sub bază (minimul pe 60 de zile − 0,25 ATR) față de stopul de azi (preț − 1,25 ATR), notat zilnic, judecat doar ca ipoteză | tools/premarket-jurnal.mjs, lib/premarket-proba.mjs (jurnal în umbră), docs/ | M | P2 | propus | audit+ideation | 2026-10-19 |
+| I-717 | Bilanțul săptămânal al probei Top Long pe Discord (ca la Trend): perioade strânse, diferența SUS − JOS, abaterea față de pragul scris înainte | tools/premarket-jurnal.mjs, .github/workflows/v1-proba.yml | S | P2 | propus | audit+ideation | 2026-10-19 |
+| I-718 | Calculator de risc pentru ideile TALE (orice simbol): stop scris de tine sau ATR, preț de acum, cost de schimb, plafonul contului și limita lunară — scannerul ca unealtă de execuție, nu ca sursă de semnale | desk/index.html (tichet), lib/trade-plans.js, lib/pret-viu.js | M | P1 | propus | audit+ideation | 2026-10-19 |
+| I-719 | Căldura portofoliului: riscul total deschis până la stopuri ≤ un plafon (ex. 4 % din cont) și cel mult 2 poziții din același grup de corelație, verificat la fiecare plan nou | lib/governor.js, desk/index.html, lib/trading212-capital.js | M | P2 | propus | audit+ideation | 2026-10-19 |
+| I-720 | Calendarul de raportări și în robotul probei Top Long (secretul FINNHUB_API_KEY există în Actions), la următoarea repornire planificată a probei | tools/premarket-jurnal.mjs, docs/premarket-proba-protocol.md | S | P3 | propus | audit+ideation | 2026-10-19 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -7053,3 +7060,54 @@ Lentile: Trader — aplicația spune cum e piața, dar nu încă ce înseamnă p
 - **Impact:** Mai puține cereri, fără limite T212 lovite, baterie.
 - **Riscuri/dependențe:** Când aparatul ales e închis, datele îmbătrânesc ⇒ vechimea la vedere.
 - **Fișiere atinse:** broker/broker.js, app/index.html
+
+### Long & Reversal 19.10.2026 — propuneri I-714..I-720 (audit de cod + cercetarea pre-înregistrată H1–H6: nimic nu dă avantaj; propunerile sunt de risc, de onestitate și de infrastructură de cercetare, nu semnale noi)
+
+#### I-714 · Planul spus cinstit: lângă stop/țintă, cifrele măsurate ale regulii (1,25 ATR / 2R pe 4 ani: 58 % se termină pe stop, R mediu ≈ 0) — planul e o regulă de risc, nu un avantaj · [S] · P1 · propus
+- **Problema/golul:** Cercetarea pre-înregistrată din 19.10 (E:\Backup-Claude\premarket-suite\audit-long-reversal-2026-10-19\RAPORT.md, H2): pe 18.447 de intrări Top Long + Early Reversal, planul de azi are R mediu 0,0, mediana −1,05 R, 58 % stop. Omul vede „țintă 2R” și „PLAN VALIDABIL”, ceea ce sugerează un avantaj care nu există.
+- **Soluția:** O linie fixă sub nivelurile planului: „regula 1,25 ATR / 2R, măsurată pe 4 ani: ~58 % stop, R mediu ≈ 0 — folosește-o ca limită de risc, nu ca promisiune”, cu link la raport. Fără schimbare de regulă (funcțiile probei rămân neatinse).
+- **Impact:** Decizii pe așteptări corecte: nu crești mărimea pe încrederea dată de un „2R” care, în medie, nu se atinge.
+- **Riscuri/dependențe:** Doar text; cifra se actualizează la o rundă nouă de cercetare.
+- **Fișiere atinse:** candidate-engine/engine.js (renderDetail), desk/index.html (tichet)
+
+#### I-715 · Arhiva zilnică a universului (lista screenerului datată, fără supraviețuitori) — temelia oricărei cercetări cinstite pe acțiuni SUA · [S] · P1 · propus
+- **Problema/golul:** Toate testele din 14.10 și 19.10 folosesc lista de AZI (supraviețuitorii): o acțiune oarecare din primele 200 a bătut SPY cu ~4,8 %/an doar pentru că a ajuns mare ⇒ nulul A e părtinitor, nivelurile absolute sunt umflate, iar 12-1 n-a putut fi judecat pe nulul A. Robotul Trend rescrie zilnic univers-sua.json și pierde istoria.
+- **Soluția:** Robotul păstrează și o copie datată (o linie pe zi: data + simbolurile cu capitalizarea, comprimată) — în 12–24 de luni există un univers „în punct de timp” pe care orice regulă se poate testa fără părtinirea supraviețuitorilor.
+- **Impact:** Peste un an: cercetare pe care poți pune bani, nu doar „indicii”.
+- **Riscuri/dependențe:** Spațiu: ~600 simboluri × 250 zile/an, câteva sute de KB comprimat; zero efect pe aplicație.
+- **Fișiere atinse:** tools/trend-12-1.mjs, candidate-engine/generated/univers-sua-istoric/ (nou)
+
+#### I-716 · Motor „în umbră” pentru Early Reversal: stopul sub bază (minimul pe 60 de zile − 0,25 ATR) față de stopul de azi (preț − 1,25 ATR), notat zilnic, judecat doar ca ipoteză · [M] · P2 · propus
+- **Problema/golul:** Auditul de cod (19.10): pe datele de azi 7 din 8 stopuri Reversal stau cu 2–6 % PESTE minimul bazei (RTX +5,6 %, UNH +6,5 %) ⇒ o revenire normală la minim scoate poziția; explică parțial cele 58 % stopuri. Schimbarea direct în `analyze` ar reporni proba Top Long și n-ar fi testată.
+- **Soluția:** Tiparul I-674: robotul notează pentru fiecare candidat Early Reversal ambele stopuri și rezultatul la 20 de sesiuni; protocol scris înainte (R mediu și rata de stop, perioade care nu se suprapun, minimum 8); abia după verdict se mută în motor (cu repornirea probei atunci).
+- **Impact:** Dacă trece: stopuri care nu te scot pe zgomot; dacă nu: ai evitat o schimbare „logică” fără dovadă.
+- **Riscuri/dependențe:** Ipoteză, nu îmbunătățire garantată; stopul mai jos înseamnă poziții mai mici la același risc.
+- **Fișiere atinse:** tools/premarket-jurnal.mjs, lib/premarket-proba.mjs (jurnal în umbră), docs/
+
+#### I-717 · Bilanțul săptămânal al probei Top Long pe Discord (ca la Trend): perioade strânse, diferența SUS − JOS, abaterea față de pragul scris înainte · [S] · P2 · propus
+- **Problema/golul:** Proba Top Long are verdictul abia după 8 perioade de 20 de sesiuni (~8 luni); între timp nu vezi nimic decât dacă deschizi fișierul. Live-vs-backtest drift: o derivă mare se prinde devreme doar dacă e privită.
+- **Soluția:** Sâmbăta, un mesaj: „Top Long în probă · N/8 · media SUS − JOS până acum ±x % · nimic de hotărât încă”, plus alarmă dacă media trece sub un prag de abatere scris acum (ca la Trend).
+- **Impact:** Vezi proba fără să cauți; oprești devreme un semnal care se strică.
+- **Riscuri/dependențe:** Pragul de abatere trebuie scris înainte de date (acum), altfel e căutare.
+- **Fișiere atinse:** tools/premarket-jurnal.mjs, .github/workflows/v1-proba.yml
+
+#### I-718 · Calculator de risc pentru ideile TALE (orice simbol): stop scris de tine sau ATR, preț de acum, cost de schimb, plafonul contului și limita lunară — scannerul ca unealtă de execuție, nu ca sursă de semnale · [M] · P1 · propus
+- **Problema/golul:** Două runde de cercetare (14.10, 19.10) arată că listele scannerului nu au avantaj; valoarea reală a paginii e disciplina de risc (dimensionare, Governor, earnings, preț de acum, cost). Azi tichetul acceptă doar candidații scannerului.
+- **Soluția:** În Planuri: „idee proprie” — simbol + stop (sau ATR × k) ⇒ aceleași gărzi (earnings închis la eroare, Governor, verdictul pieței, prețul de acum, costul) și aceeași dimensionare; planul salvat cu sursa „manual”.
+- **Impact:** Folosești gărzile profesioniste pe ideile pe care chiar le cumperi (Radar, Trend 12 luni, propriile analize).
+- **Riscuri/dependențe:** Fără semnal nou — doar risc; trebuie păzit să nu devină „buton de cumpărat”.
+- **Fișiere atinse:** desk/index.html (tichet), lib/trade-plans.js, lib/pret-viu.js
+
+#### I-719 · Căldura portofoliului: riscul total deschis până la stopuri ≤ un plafon (ex. 4 % din cont) și cel mult 2 poziții din același grup de corelație, verificat la fiecare plan nou · [M] · P2 · propus
+- **Problema/golul:** Governor limitează numărul de poziții și pierderea pe zi/săptămână, dar nu suma riscurilor deschise până la stopuri, nici corelația (I-687 a arătat NVDA/AMD/AVGO = un singur pariu).
+- **Soluția:** Înainte de un plan nou: riscul real până la stopuri (pozițiile T212 + planurile) + riscul planului ≤ plafon; corelația pe 90 de zile ⇒ grupuri; peste plafon ⇒ mărime redusă sau blocat, cu motivul.
+- **Impact:** Previne pierderea mare dintr-o zi în care toate pozițiile corelate lovesc stopul odată.
+- **Riscuri/dependențe:** Corelațiile se schimbă; plafonul e o alegere a lui (nu un optim).
+- **Fișiere atinse:** lib/governor.js, desk/index.html, lib/trading212-capital.js
+
+#### I-720 · Calendarul de raportări și în robotul probei Top Long (secretul FINNHUB_API_KEY există în Actions), la următoarea repornire planificată a probei · [S] · P3 · propus
+- **Problema/golul:** Robotul probei pune aceeași penalizare „neverificat” tuturor (protocol), în timp ce pagina folosește calendarul ⇒ proba judecă un clasament ușor diferit de cel văzut de om.
+- **Soluția:** Robotul citește calendarul cu secretul existent; se aplică DOAR la o repornire a probei (cu protocolul rescris înainte), ca să nu amestece reguli.
+- **Impact:** Proba judecă exact ce vede omul.
+- **Riscuri/dependențe:** Repornește proba ⇒ de făcut doar împreună cu alt motiv de repornire.
+- **Fișiere atinse:** tools/premarket-jurnal.mjs, docs/premarket-proba-protocol.md
