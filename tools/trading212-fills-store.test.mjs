@@ -194,12 +194,13 @@ test('the last readable durable revision cannot advance into an unreadable or un
 
 test('read, peek, mutation arguments and confirmed results cannot mutate cached or durable executions',async()=>{
  const storage=legacy(fills('old'),{quota:true}),durable=backup(),{api}=setup(storage),s=api.create(storage,{durable,notify:false});
- const read=await s.ready();read.data.accounts['live:fixture'].items[0].realized=999;
- const peek=s.peek();peek.data.accounts['live:fixture'].items.length=0;
+ // 19.10.2026 (I-697): copia comună a cititorilor e înghețată ⇒ încercarea de a o modifica eșuează zgomotos, nu strică registrul
+ const read=await s.ready();assert.throws(()=>{read.data.accounts['live:fixture'].items[0].realized=999;},TypeError);
+ const peek=s.peek();assert.throws(()=>{peek.data.accounts['live:fixture'].items.length=0;},TypeError);
  assert.deepEqual(plain(s.peek().data),fills('old'));
  let input;const saved=await s.mutate(data=>{input=data;return append('new')(data);});
  input.accounts['live:fixture'].items[0].taxes[0].quantity=999;
- saved.data.accounts['live:fixture'].items.pop();
+ assert.throws(()=>saved.data.accounts['live:fixture'].items.pop(),TypeError);
  assert.deepEqual(plain(s.peek().data),fills('old','new'));
  assert.deepEqual(JSON.parse(durable.record.raw),fills('old','new'));
 });

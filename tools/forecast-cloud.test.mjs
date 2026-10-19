@@ -51,6 +51,6 @@ test('validarea: estimarea în alt pachet, identitate străină sau id dublat su
 });
 test('serviciul: aplicațiile vechi (index=1) nu primesc pachetele noi, cele noi (index=2) da; încărcarea completă le exclude',()=>{
  const w=readFileSync('tools/cloud-sync-worker.mjs','utf8');
- assert.match(w,/name==='index'&&\(key==='1'\|\|key==='2'\)/);assert.match(w,/key==='2'\|\|!ForecastCloud\.isBucket\(row\.key\)/);assert.match(w,/!KEYS\.includes\(r\.key\)\|\|ForecastCloud\.isBucket\(r\.key\)/);
+ assert.match(w,/name==='index'&&\(key==='1'\|\|key==='2'/);assert.match(w,/key==='2'\|\|!ForecastCloud\.isBucket\(row\.key\)/);assert.match(w,/!KEYS\.includes\(r\.key\)\|\|ForecastCloud\.isBucket\(r\.key\)/);
  const c=readFileSync('app/cloud-sync.js','utf8');assert.match(c,/records\?index=2/);
 });

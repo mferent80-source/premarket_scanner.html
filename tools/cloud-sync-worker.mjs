@@ -1,4 +1,4 @@
-import {KEYS,validateValue,ForecastCloud} from '../lib/cloud-sync-model.mjs';
+import {KEYS,validateValue,ForecastCloud,FillsCloud} from '../lib/cloud-sync-model.mjs';
 import {handle as brokerHandle} from './trading212-worker.mjs';
 import {handleMonitor,runMonitors,schedulerStatus} from '../lib/cloud-monitor.mjs';
 import {handlePush,pushReceipt} from '../lib/cloud-push.mjs';
@@ -67,9 +67,10 @@ export async function handleCloud(request,env,upstream=fetch){
     if(query.length!==1)return reply({error:'invalid_query'},400);
     const [name,key]=query[0];
     // index=1: aplicațiile vechi, care opresc sincronizarea la o cheie necunoscută; index=2 include registrul de învățare
-    if(name==='index'&&(key==='1'||key==='2')){
+    // 19.10.2026 (I-697): index=3 include și pachetele execuțiilor Trading 212; aplicațiile de dinainte nu le văd (s-ar opri la cheia necunoscută)
+    if(name==='index'&&(key==='1'||key==='2'||key==='3')){
      const rows=await db.prepare('SELECT key,revision,updated FROM cloud_records WHERE subject=?').bind(subject).all(),records={};
-     for(const row of rows.results)if(KEYS.includes(row.key)&&(key==='2'||!ForecastCloud.isBucket(row.key)))records[row.key]={revision:row.revision,updated:row.updated};
+     for(const row of rows.results)if(KEYS.includes(row.key)&&(key==='3'||key==='2'||!ForecastCloud.isBucket(row.key))&&(key==='3'||!FillsCloud.isKey(row.key)))records[row.key]={revision:row.revision,updated:row.updated};
      return reply({protocol:'tt-cloud-records-v2',records});
     }
     if(name!=='key'||!KEYS.includes(key))return reply({error:'invalid_query'},400);
@@ -77,7 +78,7 @@ export async function handleCloud(request,env,upstream=fetch){
     if(row)records[key]={revision:row.revision,updated:row.updated,value:await unseal(row.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+key+'|'+row.revision)};
     return reply({records});
    }
-   const rows=await db.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=?').bind(subject).all(),records={};for(const r of rows.results){if(!KEYS.includes(r.key)||ForecastCloud.isBucket(r.key))continue;records[r.key]={revision:r.revision,updated:r.updated,value:await unseal(r.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+r.key+'|'+r.revision)};}return reply({records});
+   const rows=await db.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=?').bind(subject).all(),records={};for(const r of rows.results){if(!KEYS.includes(r.key)||ForecastCloud.isBucket(r.key)||FillsCloud.isKey(r.key))continue;records[r.key]={revision:r.revision,updated:r.updated,value:await unseal(r.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+r.key+'|'+r.revision)};}return reply({records});
   }
   if(url.pathname==='/api/cloud/record'&&request.method==='PUT'){
    const b=await body(request);validateValue(b.key,b.value);if(!Number.isSafeInteger(b.revision)||b.revision<0)return reply({error:'invalid_revision'},400);

@@ -112,7 +112,7 @@ test('a corrupt selected packet returns a sanitized failure with CORS',async t=>
 
 test('records queries reject unknown, repeated or mixed parameters',async t=>{
  const s=setup(t);
- for(const query of ['?unknown=1','?index=','?index=0','?index=3','?index=1&index=1','?index=1&unknown=1','?key=','?key=not_allowed','?key=__audit_receipts_v1','?key=tt_theme&key=tt_theme','?key=tt_theme&key=tt_journal_v1','?key=tt_theme&unknown=1','?index=1&key=tt_theme']){
+ for(const query of ['?unknown=1','?index=','?index=0','?index=4','?index=1&index=1','?index=1&unknown=1','?key=','?key=not_allowed','?key=__audit_receipts_v1','?key=tt_theme&key=tt_theme','?key=tt_theme&key=tt_journal_v1','?key=tt_theme&unknown=1','?index=1&key=tt_theme']){
   const response=await s.get(query);
   assert.equal(response.status,400,query);cors(response);
   assert.deepEqual(await response.json(),{error:'invalid_query'},query);
