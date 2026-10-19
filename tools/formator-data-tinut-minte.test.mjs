@@ -22,7 +22,7 @@ test('ExchangeCalendar.date dă aceleași zile ca înainte, pe toate fusurile', 
   assert.throws(() => b.date(0, 'Nu/Exista'), RangeError, 'un fus greșit tot aruncă');
 });
 
-test('DailySeries.read dă aceeași serie ca înainte și e de cel puțin 10× mai rapidă', () => {
+test('DailySeries.read dă aceeași serie ca înainte și construiește formatorul o dată, nu pe fiecare bară', () => {
   const cal = nou('lib/exchange-calendar.js');
   const A = load(cal + '\n' + vechi('lib/daily-series.js')), B = load(cal + '\n' + nou('lib/daily-series.js'));
   const now = Date.parse('2026-10-16T21:30:00Z'), bars = [];
@@ -30,9 +30,10 @@ test('DailySeries.read dă aceeași serie ca înainte și e de cel puțin 10× m
   const serie = Object.assign(bars.slice(), {meta: {symbol: 'AAPL', timezone: 'America/New_York', regularEnd: Date.parse('2026-10-16T20:00:00Z'), currency: 'USD'}});
   const ra = A.DailySeries.read(serie, 'AAPL', now), rb = B.DailySeries.read(serie, 'AAPL', now);
   assert.equal(JSON.stringify(rb), JSON.stringify(ra));
-  const timp = (D) => { const t0 = performance.now(); for (let i = 0; i < 20; i++) D.DailySeries.read(serie, 'AAPL', now); return performance.now() - t0; };
-  timp(B); const tv = timp(A), tn = timp(B);
-  assert.ok(tn * 10 < tv, `nou ${tn.toFixed(0)} ms vs vechi ${tv.toFixed(0)} ms`);
+  // 19.10.2026: proba fără cronometru (instabilă sub încărcare) — câte Intl.DateTimeFormat se construiesc la 20 de citiri
+  const numara = (src) => { let n = 0; const I = {...Intl, DateTimeFormat: function (...a) { n++; return new Intl.DateTimeFormat(...a); }}; const c = {Intl: I, Date, Number, Object, Math, JSON, Error, Map, Set, Array, String, console}; c.window = c; c.globalThis = c; vm.createContext(c); vm.runInContext(cal + '\n' + src, c); n = 0; for (let i = 0; i < 20; i++) c.DailySeries.read(serie, 'AAPL', now); return n; };
+  const nv = numara(vechi('lib/daily-series.js')), nn = numara(nou('lib/daily-series.js'));
+  assert.ok(nn <= 2, `nou: ${nn} formatoare`); assert.ok(nv > 1000, `vechi: ${nv} formatoare (unul pe bară)`);
 });
 
 test('ziua din jurnalul Trading 212 și ora New York din analiză: același formator, construit o singură dată', () => {

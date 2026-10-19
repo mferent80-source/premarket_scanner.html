@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ro" data-app-version="26.10.19.1845">
+<html lang="ro" data-app-version="26.10.19.1910">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -22,7 +22,7 @@
   </aside>
   <section class="workspace">
     <header class="topbar">
-      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.19.1845</span></small><b id="pageName">Astăzi</b></div>
+      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.19.1910</span></small><b id="pageName">Astăzi</b></div>
       <div class="account-state"><button class="google-account" id="googleAccount" data-state="checking" title="Deschide Cont & sincronizare"><i aria-hidden="true"></i><span id="googleAccountLabel" aria-live="polite">Verific Google…</span></button><button class="sync-state" id="syncStatus" data-state="checking" aria-live="polite">Verific sincronizarea</button><small class="sync-error-detail" id="syncErrorDetail" role="status" hidden></small></div>
       <div class="spacer"></div><button class="app-update" data-update hidden>Actualizează</button>
       <input class="search" id="search" aria-label="Caută module, tickere, dețineri și jurnal" aria-controls="palette" aria-expanded="false" placeholder="Caută · Ctrl K" autocomplete="off">
@@ -146,7 +146,9 @@
   function firstScreenReady(){if(firstScreenDone)return;firstScreenDone=true;afterFirst.splice(0).forEach(whenIdle);}
   function afterFirstScreen(fn){if(firstScreenDone)whenIdle(fn);else afterFirst.push(fn);}
   function brokerURL(){return '../broker/?app=decision-mobile-v2&v='+encodeURIComponent(document.documentElement.dataset.appVersion);}
-  function startBroker(){if(!brokerFrame.src)brokerFrame.src=brokerURL();}
+  // 19.10.2026 (revizia lotului): pornirea întârziată tratează și „about:blank” (pus de suspendarea pentru copie) și nu pornește cât e suspendată
+  function startBroker(){try{var cs=window.TTCloud&&TTCloud.state&&TTCloud.state();if(cs&&cs.backupPaused)return;}catch(_){}if(!brokerFrame.src||brokerFrame.src==='about:blank')brokerFrame.src=brokerURL();}
+  window.ttStartBroker=startBroker;
   if(typeof setTimeout==='function')setTimeout(firstScreenReady,15000);
   var framePool=new Map(),FRAME_LIMIT=window.matchMedia&&matchMedia('(max-width: 760px)').matches?4:6,firstFrame=normalFrame,HOME='today/';
   function poolFrame(key){
@@ -271,8 +273,8 @@
 <script src="../lib/breadth-daily.js?v=26.10.18.1500"></script>
 <script>document.addEventListener('tt-breadth-daily',function(e){var s=e.detail,n=document.getElementById('breadthDailyState');n.hidden=s.status==='disabled';n.textContent=TTBreadthDaily.message(s);});TTBreadthDaily.start();</script>
 <script src="install.js?v=phone-20261003"></script>
-<script src="version.js?v=26.10.19.1845"></script>
-<script defer src="../lib/trading212-vault.js?v=26.10.05.2201"></script><script defer src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=26.10.19.1845"></script>
+<script src="version.js?v=26.10.19.1910"></script>
+<script defer src="../lib/trading212-vault.js?v=26.10.05.2201"></script><script defer src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=26.10.19.1910"></script>
 </body>
 </html>
 

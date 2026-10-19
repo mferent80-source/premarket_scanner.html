@@ -58,15 +58,15 @@ test('o cheie revenită la valoarea dinaintea unei aplicări din cont nu e sări
  s.storage.delete('wl_stocks');await s.api.sync();assert.equal(s.records.wl_stocks.value,null,'ștergerea locală e văzută (nu sărită pe amprenta veche)');
 });
 
-test('copia locală: doar registrele scrise de om, cel mult una pe oră; execuțiile și portofoliul de la broker nu o declanșează',async()=>{
+test('copia locală: doar registrele scrise de om, înaintea FIECĂREI schimbări venite din cont (revizia 19.10); execuțiile și portofoliul de la broker nu o declanșează',async()=>{
  const s=await setup({remote:{tt_trading212_portfolio_v1:{revision:1,updated:5,value:{'live:x':{fetchedAt:'2026-10-19T10:00:00Z',positions:[]}}},tt_trading212_fills_v1:{revision:1,updated:5,value:fills(3)}}});
  assert.equal(s.api.state().error,'');assert.equal(s.privateStore.get('backups:123'),undefined,'datele brokerului nu fac copie');
  s.records.tt_journal_v1={revision:1,updated:6,value:[{id:'telefon'}]};s.storage.set('tt_holdings_theses_v1','{"AAPL":{"t":1}}');await s.api.sync();
  const list=s.privateStore.get('backups:123');assert.equal(list.length,1);assert.ok(list[0].keys.includes('tt_journal_v1')&&list[0].keys.includes('tt_holdings_theses_v1'));
  for(const k of ['tt_trading212_fills_v1','tt_trading212_portfolio_v1','tt_trading212_cash_v1'])assert.ok(!list[0].keys.includes(k)&&!(k in list[0].snapshot),k);
- s.records.tt_journal_v1={revision:2,updated:7,value:[{id:'telefon'},{id:'doi'}]};await s.api.sync();assert.equal(s.privateStore.get('backups:123').length,1,'a doua în aceeași oră nu se face');
+ s.records.tt_journal_v1={revision:2,updated:7,value:[{id:'telefon'},{id:'doi'}]};await s.api.sync();assert.equal(s.privateStore.get('backups:123').length,2,'revizia 19.10: și a doua schimbare din cont are copia ei (altfel restaurarea pierdea ce scrisese între timp)');
  // restaurarea unei copii noi nu atinge execuțiile
- const before=JSON.stringify((await s.fills.read()).data);await s.api.restore();assert.equal(JSON.stringify((await s.fills.read()).data),before);assert.equal(s.storage.has('tt_journal_v1'),false,'jurnalul revine la starea dinaintea copiei (nu exista)');assert.equal(s.storage.get('tt_holdings_theses_v1'),'{"AAPL":{"t":1}}');
+ const before=JSON.stringify((await s.fills.read()).data);await s.api.restore();assert.equal(JSON.stringify((await s.fills.read()).data),before);assert.deepEqual(JSON.parse(s.storage.get('tt_journal_v1')),[{id:'telefon'}],'jurnalul revine la starea dinaintea ultimei schimbări venite din cont');assert.equal(s.storage.get('tt_holdings_theses_v1'),'{"AAPL":{"t":1}}');
 });
 
 test('o copie veche (fără lista cheilor) se restaurează ca înainte, pe toate registrele locale',async()=>{

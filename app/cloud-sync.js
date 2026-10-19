@@ -88,7 +88,7 @@ async function apply(key,next,expected,locked=false){if(ForecastCloud.isBucket(k
 // Alegerea explicită dintr-un conflict face copia mereu, împreună cu registrul ales. Un registru care nu se poate citi lipsește din copie, nu o oprește.
 const HUMAN_KEYS=['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','tt_europe_risk_settings_v1',RADAR_KEY,EvidenceCloud.KEY];
 const humanKey=k=>HUMAN_KEYS.includes(k)||EvidenceCloud.isBucket(k);
-async function backup(extra=[],force=false){const list=await Store.get('backups:'+session.subject)||[];if(!force&&list[0]&&Date.now()-list[0].at<3600000)return;const keys=[...new Set([...HUMAN_KEYS,...extra.map(k=>FillsCloud.isKey(k)?FillsCloud.KEY:k)])].filter(k=>LOCAL_KEYS.includes(k)),snapshot={};for(const k of keys){let v;try{v=await value(k);}catch{continue;}if(v!==undefined)snapshot[k]=v;}list.unshift({at:Date.now(),keys,snapshot});await Store.put('backups:'+session.subject,list.slice(0,5));}
+async function backup(extra=[],force=false){const list=await Store.get('backups:'+session.subject)||[];if(!force&&list[0]&&Date.now()-list[0].at<3600000)return;const want=[...new Set([...HUMAN_KEYS,...extra.map(k=>FillsCloud.isKey(k)?FillsCloud.KEY:k)])].filter(k=>LOCAL_KEYS.includes(k)),keys=[],snapshot={};for(const k of want){let v;try{v=await value(k);}catch{continue;}keys.push(k);if(v!==undefined)snapshot[k]=v;}list.unshift({at:Date.now(),keys,snapshot});await Store.put('backups:'+session.subject,list.slice(0,10));} /* 19.10.2026 (revizia lotului): un registru care nu s-a putut citi nu intră în listă ⇒ restaurarea nu-l mai șterge; 10 copii */
 const quotaFull=e=>e?.name==='QuotaExceededError'||e?.code===22||e?.code===1014;
 // 19.10.2026 (p.2): o cheie care pică singură (validare, record_too_large, JSON stricat, 4xx pe ea, spațiu plin) e sărită și raportată, celelalte merg;
 // trecerea se oprește doar la ce ține de cont sau de rețea (sesiune, limită de cereri, serviciu indisponibil, revizie schimbată, fără răspuns).
@@ -142,7 +142,7 @@ async function performSync(){if(!ready||!session||busy||checking||navigator.onLi
   }
   const changed=text!==JSON.stringify(current);
   if(changed){
-   if(!backedUp&&humanKey(key)){await backup();backedUp=true;}
+   if(!backedUp&&humanKey(key)){await backup([],true);backedUp=true;} // 19.10.2026: copie MEREU înaintea unei schimbări venite din cont la jurnal/planuri/teze (nu cel mult o dată pe oră)
    // A concurrent local edit still descends from the snapshot read above,
    // not from the merged cloud value that this device has not accepted.
    if(!await apply(key,next,current)){baseline[key]={...(remote[key]||{revision:0}),value:current};continue;}
@@ -173,7 +173,7 @@ function conflictView(key){const c=conflicts[key];if(!c)return null;const previe
 async function mutation(fn){if(busy||checking)throw Error('Sincronizare în curs. Așteaptă finalizarea înainte de această acțiune.');busy=true;seen.clear();error='';failure=null;broadcast();try{return await fn();}catch(e){error=e.message;failure=failed(e);throw e;}finally{busy=false;broadcast();}}
 const wrapped={};for(const [name,fn] of Object.entries({login,logout,resolve,deleteCredentials,publishCredentials,restoreCredentials,restore})){wrapped[name]=async(...args)=>{await mutation(()=>fn(...args));if(!['logout','restore'].includes(name))await sync();};}
 async function pauseForBackup(){return mutation(async()=>{await Store.put('backup-pause',true);backupPaused=true;clearTimeout(timer);const broker=document.getElementById('brokerFrame');if(broker){brokerBeforeBackup=broker.src;broker.src='about:blank';}});}
-async function resumeAfterBackup(){await mutation(async()=>{await Store.remove('backup-pause');backupPaused=false;const broker=document.getElementById('brokerFrame');if(broker&&brokerBeforeBackup){broker.src=brokerBeforeBackup;brokerBeforeBackup=null;}});await sync();}
+async function resumeAfterBackup(){await mutation(async()=>{await Store.remove('backup-pause');backupPaused=false;const broker=document.getElementById('brokerFrame');if(broker){if(brokerBeforeBackup&&brokerBeforeBackup!=='about:blank')broker.src=brokerBeforeBackup;else window.ttStartBroker?.();brokerBeforeBackup=null;} /* 19.10.2026: fără adresă ținută minte (brokerul pornește acum după primul ecran) ⇒ îl pornește carcasa */});await sync();}
 window.TTCloud={forecastLocal:{value:k=>ForecastLocal.value(k),apply:(k,v)=>ForecastLocal.apply(k,v),reset:()=>ForecastLocal.reset(),bucket:ForecastCloud.bucket,keys:ForecastCloud.keys},push:()=>api('push'),subscribePush:subscription=>api('push','PUT',{subscription}),removePush:id=>api('push','DELETE',{id}),testPush:id=>api('push/test','POST',{id}),audit:()=>api('audit'),anchorAudit:entries=>api('audit','POST',{entries}),pauseForBackup,resumeAfterBackup,monitor:()=>api('monitor'),configureMonitor:enabled=>api('monitor','PUT',{enabled}),runMonitor:()=>api('monitor/check','POST',{}),conflictView,state,sync,recheck,login,logout,resolve,deleteCredentials,publishCredentials,restoreCredentials,restore,challenge:()=>api('challenge','POST',{}),config:()=>({endpoint}),...wrapped};
 // 19.10.2026: ora ultimei scrieri pe acest aparat a cheilor de capital (LAST_WRITE_WINS) — la două scrieri diferite câștigă cea mai nouă.
 const WRITTEN_KEY='tt_cloud_ultima_scriere_v1';
@@ -198,7 +198,7 @@ async function initialize(){let available=false;checking=true;error='';failure=n
  fillsActive=boundedReads&&Array.isArray(status.supportedKeys)&&FillsCloud.keys.every(k=>status.supportedKeys.includes(k));activeKeys=KEYS.filter(k=>k!==EvidenceCloud.KEY&&(!EvidenceCloud.isBucket(k)||evidenceReady)&&(!ForecastCloud.isBucket(k)||forecastReady)&&(!FillsCloud.isKey(k)||fillsActive)&&(!EUROPE_KEYS.includes(k)||status.supportedKeys?.includes(k))&&(!PERFORMANCE_KEYS.includes(k)||status.supportedKeys?.includes(k)));
  ready=true;available=true;window.TTCloud.clientId=status.clientId;
  if(poll===null)poll=setInterval(()=>{if(!document.hidden)sync();},30000);
- backupPaused=await Store.get('backup-pause')===true;if(backupPaused){const broker=document.getElementById('brokerFrame');if(broker){brokerBeforeBackup=broker.src;broker.src='about:blank';}}
+ backupPaused=await Store.get('backup-pause')===true;if(backupPaused){const broker=document.getElementById('brokerFrame');if(broker){if(broker.src&&broker.src!=='about:blank')brokerBeforeBackup=broker.src;broker.src='about:blank';}}
  session=await Store.get('session');if(session){const verified=await api('session');if(verified.subject!==session.subject){session=null;await Store.remove('session');throw Error('session_expired');}baseline=await Store.get('baseline:'+session.subject)||{};}
  }catch(e){ready=available;error=e.message;failure=failed(e);}finally{checking=false;broadcast();}if(ready&&session&&!error)await sync();}
 function recheck(){if(busy)return Promise.resolve();if(initialization)return initialization;initialization=initialize().finally(()=>{initialization=null;});return initialization;}
