@@ -343,6 +343,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <label>Max DD rolling % <input id="cDdRoll" type="number" min="1" step="0.5" value="10"></label>
       <label>Max concentrare Invest % <input id="cInstrument" type="number" min="0.1" max="100" step="0.1"></label>
       <label>Max risc total la stop Invest % <input id="cStopRisk" type="number" min="0.1" max="100" step="0.1"></label>
+      <label title="19.10.2026 (I-719): stopurile reale + planurile Shadow deschise + planul nou; prag prudent, nu optim">Max căldură portofoliu % (stopuri reale + Shadow) <input id="cHeat" type="number" min="0.1" max="100" step="0.1"></label>
       <label>Max pierdere %/săpt <input id="cWeekLoss" type="number" min="0.5" step="0.5" value="3"></label>
     </div>
     <label class="chkrow"><input type="checkbox" id="cDdOn" checked> Frână pe DD rolling (Equity curve)</label>
@@ -1364,6 +1365,7 @@ function loadGovCfg(){
   $('cTrades').value = c.maxTradesDay;
   $('cOpen').value = c.maxOpenPositions;
   $('cInstrument').value = c.maxInstrumentPct; $('cStopRisk').value = c.maxTotalStopPct;
+  $('cHeat').value = c.maxHeatPct;
   $('cCool').value = c.cooldownAfterLosses;
   $('cDdRoll').value = c.maxDdPctRolling != null ? c.maxDdPctRolling : 10;
   $('cWeekLoss').value = c.maxLossPctWeek != null ? c.maxLossPctWeek : 3;
@@ -1375,7 +1377,7 @@ $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
   const acct = +$('cAcct').value;
   const saved = GV.saveCfg({
     accountSize: acct, maxLossPctDay: +$('cLoss').value, maxTradesDay: +$('cTrades').value,
-    maxOpenPositions: +$('cOpen').value, maxInstrumentPct:+$('cInstrument').value, maxTotalStopPct:+$('cStopRisk').value, cooldownAfterLosses: +$('cCool').value,
+    maxOpenPositions: +$('cOpen').value, maxInstrumentPct:+$('cInstrument').value, maxTotalStopPct:+$('cStopRisk').value, maxHeatPct:+$('cHeat').value, cooldownAfterLosses: +$('cCool').value,
     maxDdPctRolling: +$('cDdRoll').value, maxLossPctWeek: +$('cWeekLoss').value,
     ddRollingOn: $('cDdOn').checked, tgOnHalt: $('cTg').checked,
     tgOnRiskHalt: $('cTgRisk') ? $('cTgRisk').checked : true
