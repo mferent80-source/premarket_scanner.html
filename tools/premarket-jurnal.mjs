@@ -6,7 +6,7 @@ import vm from 'node:vm';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { fetchStock, serii } from './v1-jurnal.mjs';
 import { adauga } from '../lib/v1-proba.mjs';
-import { PROTOCOL, versiune, inregistrare, evalueaza } from '../lib/premarket-proba.mjs';
+import { PROTOCOL, versiune, inregistrare, evalueaza, amprentaDependinte, istoricDependinte } from '../lib/premarket-proba.mjs';
 
 const DIR = 'scanner-verdicts/generated', JURNAL = DIR + '/premarket-jurnal.json', PROBA = DIR + '/premarket-proba.json';
 const MARCAJ = '  validateDeps(); bind();';
@@ -25,9 +25,19 @@ export function motor(fetchSerie = fetchStock) {
   c.GV = { status: () => ({ verdict: 'TRADE', reasons: ['robot: proba judecă clasamentul tehnic, nu limitele contului'] }) };
   const src = readFileSync('candidate-engine/engine.js', 'utf8'), cut = src.lastIndexOf(MARCAJ);
   if (cut < 0) throw Error('Marcajul de pornire din candidate-engine/engine.js s-a schimbat — robotul nu mai poate rula motorul.');
-  vm.runInContext(src.slice(0, cut) + 'bind();window.hooks={state,scan,' + PROTOCOL.functii.join(',') + '};})();', c);
+  vm.runInContext(src.slice(0, cut) + 'bind();window.hooks={state,scan,earningsInfo,' + PROTOCOL.functii.join(',') + '};})();', c);
   node('universe').value = 'core';
   return c;
+}
+// 19.10.2026 (audit Long & Reversal): motorul citește acțiunile pe 1 an ⇒ peste un an primele perioade ar ieși din fereastră și verdictul
+// s-ar calcula pe o fereastră alunecătoare, nu pe toate zilele din jurnal, cum cere protocolul. Înainte de evaluare se reiau TOATE
+// simbolurile din jurnal (acțiuni + repere) pe un interval care acoperă prima zi a jurnalului plus orizontul cel mai lung.
+export function intervalPentru(primaZi, azi = new Date().toISOString().slice(0, 10)) {
+  const zile = (Date.parse(azi + 'T00:00:00Z') - Date.parse(primaZi + 'T00:00:00Z')) / 86400000 + 60;
+  return zile <= 700 ? '2y' : zile <= 1800 ? '5y' : '10y';
+}
+export function simboluriDeReluat(jurnal) {
+  return [...new Set(jurnal.zile.flatMap((zi) => zi.r.flatMap((x) => [x[0], x[4]])).filter(Boolean).concat('SPY'))];
 }
 async function main() {
   const c = motor(), h = c.hooks, V = versiune(h);
@@ -35,18 +45,19 @@ async function main() {
   const s = h.state;
   if (!s.verified) throw Error('Nicio acțiune verificată azi (' + s.failures.length + ' eșecuri) — jurnalul rămâne neschimbat.');
   if (s.scanned !== PROTOCOL.univers.length) throw Error('Universul scanat (' + s.scanned + ') nu e lista înghețată de ' + PROTOCOL.univers.length + '.');
-  const rec = inregistrare(s, V);
+  const rec = { ...inregistrare(s, V), d: amprentaDependinte((f) => readFileSync(f, 'utf8'), h) };   // 19.10.2026: amprenta dependențelor pe zi
   mkdirSync(DIR, { recursive: true });
   const vechi = existsSync(JURNAL) ? JSON.parse(readFileSync(JURNAL, 'utf8')) : { zile: [] };
   const jurnal = { ...adauga(vechi, rec), protocol: PROTOCOL.id };
-  // motorul cere reperele pe 6 luni; evaluarea are nevoie de tot intervalul jurnalului ⇒ reperele (și SPY, calendarul) se reiau pe 2 ani
-  const repere = [...new Set(jurnal.zile.flatMap((zi) => zi.r.map((x) => x[4]).filter(Boolean)).concat('SPY'))];
-  for (const sym of repere) { try { await fetchStock(sym, { range: '2y', interval: '1d' }); } catch (e) { console.log('reper ' + sym + ': ' + e.message); } }
+  // motorul cere acțiunile pe 1 an și reperele pe 6 luni; evaluarea are nevoie de tot intervalul jurnalului ⇒ toate se reiau (19.10.2026)
+  const range = intervalPentru(jurnal.zile[0]?.zi || rec.zi);
+  for (const sym of simboluriDeReluat(jurnal)) { try { await fetchStock(sym, { range, interval: '1d' }); } catch (e) { console.log('serie ' + sym + ': ' + e.message); } }
   const sesiuni = (serii.SPY || []).map((x) => x.d);
   const orizonturi = PROTOCOL.orizonturi.map((k) => evalueaza(jurnal, serii, { k, versiune: V, sesiuni }));
   const zileVersiune = jurnal.zile.filter((zi) => zi.v === V);
   writeFileSync(JURNAL, JSON.stringify(jurnal));
   writeFileSync(PROBA, JSON.stringify({ protocol: PROTOCOL.id, scrisLa: PROTOCOL.scrisLa, versiune: V, inceput: zileVersiune[0]?.zi || null, zile: zileVersiune.length, ultimaZi: rec.zi, ultimaRulare: rec.la,
+    dependinte: istoricDependinte(jurnal, V),
     azi: { verificate: s.verified, total: s.scanned, topLong: rec.r.filter((x) => x[1] === 'm').length, reversal: rec.r.filter((x) => x[5] === 'r').length, repere: s.benchmarks },
     orizonturi }, null, 1));
   console.log(`Premarket ${V} · ziua ${rec.zi} · ${s.verified}/${s.scanned} verificate · Top Long ${rec.r.filter((x) => x[1] === 'm').length} · ${zileVersiune.length} zile în probă`);

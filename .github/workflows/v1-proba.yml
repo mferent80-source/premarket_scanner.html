@@ -24,13 +24,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: node --test tools/v1-proba.test.mjs tools/independent-scanner.test.mjs tools/premarket-proba.test.mjs tools/candidate-autostart.test.mjs
+      # 19.10.2026: și garda amprentei Top Long + reluarea seriilor (auditul Long & Reversal)
+      - run: node --test tools/v1-proba.test.mjs tools/independent-scanner.test.mjs tools/premarket-proba.test.mjs tools/candidate-autostart.test.mjs tools/top-long-proba.test.mjs tools/premarket-jurnal-serii.test.mjs
       - name: Ziua în jurnal + evaluarea
         run: node tools/v1-jurnal.mjs
       # 18.10.2026: proba Premarket Scanner (Top Long), docs/premarket-proba-protocol.md; dacă pică, ziua V1 se salvează oricum
+      # 19.10.2026 (audit): o a doua încercare după 3 minute; dacă pică de două ori, mesaj pe Discord (altfel ziua se pierdea pe tăcute)
       - name: Premarket Top Long în jurnal + evaluarea
+        id: premarket
         continue-on-error: true
-        run: node tools/premarket-jurnal.mjs
+        run: node tools/premarket-jurnal.mjs || (sleep 180 && node tools/premarket-jurnal.mjs)
+      - name: Anunță pe Discord că ziua Premarket lipsește
+        if: steps.premarket.outcome == 'failure'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          if [ -n "$DISCORD_WEBHOOK" ]; then
+            curl -sS -H 'Content-Type: application/json' -d "{\"content\":\"⚠️ Proba Top Long: robotul n-a putut nota ziua de azi (două încercări). Rulează manual fluxul «Reguli V1 — proba în timp» din GitHub Actions.\"}" "$DISCORD_WEBHOOK" || true
+          fi
       - name: Salvează jurnalul
         run: |
           git config user.name 'github-actions[bot]'

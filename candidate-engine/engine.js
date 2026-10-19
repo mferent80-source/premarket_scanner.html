@@ -339,6 +339,7 @@
       if ($('universe').value === 'screener' && !(await loadScreenerUnivers())) showAlert('Lista screenerului (generated/univers-sua.json) nu s-a putut citi — scanez lista de mână (Core SUA) până revine robotul.');
       var list = universe(); state.scanKey=JSON.stringify([$('universe').value,list]);state.scanned=list.length;$('ctxUniverse').textContent = list.length + ' simboluri';
       var initial=await Promise.all([earningsGate(),benchmarkReturns()]),bench=initial[1];
+      if (!bench.US) showAlert('Reperul SUA (SPY/IVV) nu s-a putut citi: forța relativă lipsește, deci toate acțiunile SUA rămân fără plan (WATCH). Reîncearcă peste câteva minute.', true);   // 19.10.2026 (audit)
       var govScan = window.GV && GV.status ? GV.status() : null;   // o singură citire a jurnalului pe scanare
       var all = [], q = list.slice(), done = 0, concurrency = 5;
       async function worker() {
@@ -412,6 +413,21 @@
   // 19.10.2026 (I-709): Top Long e în proba în timp (scanner-verdicts/generated/premarket-proba.json) ⇒ lângă FIRE / ARMED scrie „în probă · N/8”,
   // iar deasupra listei, nota probei. Doar afișare: regulile de clasament (amprenta probei) nu se ating.
   function probaTag(x) { if (!x || x.mode !== 'momentum' || ['FIRE', 'ARMED'].indexOf(x.state) < 0) return ''; return window.TTProbaTopLong ? TTProbaTopLong.tag(x) : 'în probă'; }
+  // 19.10.2026 (audit Long & Reversal): verdictul pieței (robotul zilnic) stătea doar în Planuri; aici FIRE apărea verde și într-o zi DEFENSIVĂ
+  function notaVerdictPiata() {
+    var el = $('verdictNota'), v = state.verdictPiata; if (!el) return;
+    el.hidden = !v || state.mode === 'trend';
+    if (el.hidden) return;
+    var zile = Math.round((Date.now() - Date.parse(v.asOf + 'T21:00:00Z')) / 86400000), vechi = !(zile <= 4);
+    var lab = String(v.label || '').toUpperCase(), regula = v.label === 'defensiv' ? 'fără intrări noi (în Planuri dimensionarea ×0,5, fără GO)' : v.label === 'prudent' ? 'dimensionare ×0,75 în Planuri' : 'fără restricție de piață';
+    el.className = 'ce-trend-nota ce-verdict-nota ' + (vechi ? 'vechi' : String(v.label || ''));
+    el.textContent = 'Piața (EOD ' + v.asOf + '): ' + lab + ' — ' + (vechi ? 'verdict VECHI, neverificat azi' : regula) + (v.fraza ? ' · ' + v.fraza : '');
+  }
+  async function loadVerdictPiata() {
+    if (typeof fetch !== 'function' || demoMode) return;
+    try { var r = await fetch('generated/verdict-piata.json?x=' + Date.now(), { cache: 'no-store' }); var j = r && r.ok ? await r.json() : null; state.verdictPiata = j && /^\d{4}-\d{2}-\d{2}$/.test(j.asOf || '') ? { asOf: j.asOf, label: String(j.label || ''), fraza: String(j.fraza || '').slice(0, 160) } : null; } catch (_) { state.verdictPiata = null; }
+    notaVerdictPiata();
+  }
   function notaProba() {
     var el = $('probaNota'); if (!el) return;
     var s = window.TTProbaTopLong ? TTProbaTopLong.state() : null;
@@ -521,7 +537,9 @@
           x.fapte.push({ k: 'raportează', v: 'în ' + z + 'z', rol: 'block' });
         }
       } else if (m.raportari && m.raportari.sursa === 'finnhub') {
-        x.earnings = 'fără raportare în 14z'; x.earningsDinRobot = true; x.fapte.push({ k: 'earnings', v: 'fără raportare în 14z', rol: 'info' });
+        // 19.10.2026 (audit): fereastra de 14 zile e a robotului (din ziua clasamentului), nu de azi
+        var panaLa = m.dataUltimei ? DailySeries.date(Date.parse(m.dataUltimei + 'T12:00:00Z') + 14 * 86400000, 'UTC') : null;
+        x.earnings = 'fără raportare până la ' + (panaLa || '14z'); x.earningsDinRobot = true; x.fapte.push({ k: 'earnings', v: 'fără raportare până la ' + (panaLa || '14z'), rol: 'info' });
       }
       if (m.concentrare && x.sector === m.concentrare.sector) x.fapte.push({ k: 'sector', v: m.concentrare.n + '/20 ' + m.concentrare.sector, rol: 'attention' });
     });
@@ -610,7 +628,7 @@
     tableHead();
     coverage();
     notaTrend();
-    notaProba();
+    notaProba(); notaVerdictPiata();
     var items = currentItems();
     if (!items.length && state.mode === 'trend') {
       var qT=$('search').value.trim(),oT=$('onlyActionable').checked;
@@ -651,7 +669,7 @@
     }
     $('dSymbol').textContent = x.symbol; $('dName').textContent = (x.mode === 'momentum' ? 'Long momentum' : 'Early reversal')+' · '+(x.currency||'monedă neverificată');
     $('dScore').textContent = x.score; $('dSector').textContent = x.sector; $('dState').textContent = x.state + (probaTag(x) ? ' · ' + probaTag(x) : '');
-    $('dFresh').textContent = ageText(x.ts); $('dReason').textContent = x.reason + (window.T212C && T212C.held(x.symbol).length ? ' · DEȚII DEJA în snapshot Invest; verifică expunerea cumulată înainte de o nouă intrare.' : '');
+    $('dFresh').textContent = 'EOD ' + (x.sourceDate || '—') + ' · scanat ' + vechime(x.ts);   // 19.10.2026: data sesiunii, nu doar vechimea scanării $('dReason').textContent = x.reason + (window.T212C && T212C.held(x.symbol).length ? ' · DEȚII DEJA în snapshot Invest; verifică expunerea cumulată înainte de o nouă intrare.' : '');
     $('dEntry').textContent = fmt(x.entryLow, 2) + '–' + fmt(x.entryHigh, 2);
     $('dStop').textContent = fmt(x.stop, 2); $('dTarget').textContent = fmt(x.target, 2);
     $('spark').innerHTML = sparkSvg(x.spark);
@@ -659,8 +677,10 @@
     $('dGovernor').textContent = 'Governor: ' + g.verdict;
     $('dGovernorWhy').textContent = (g.reasons && g.reasons[0]) || (x.earnings + ' · R:R țintă 2.0');
     $('governorBox').className = 'ce-governor ' + (g.verdict === 'HALTED' ? 'halted' : (g.verdict === 'CAUTION' ? 'caution' : ''));
-    $('setupBtn').disabled = x.state === 'BLOCKED' || !x.actionable || !['TRADE','CAUTION'].includes(g.verdict);
-    $('setupBtn').title = $('setupBtn').disabled ? 'Plan indisponibil: ' + x.reason : 'Deschide dimensionarea pentru ' + x.symbol;
+    // 19.10.2026 (audit): Planuri dimensionează doar în USD — pentru Europa butonul trimitea într-un drum fără ieșire
+    var faraUsd = !!x.currency && x.currency !== 'USD';
+    $('setupBtn').disabled = faraUsd || x.state === 'BLOCKED' || !x.actionable || !['TRADE','CAUTION'].includes(g.verdict);
+    $('setupBtn').title = faraUsd ? 'Acțiune în ' + x.currency + ': Planuri dimensionează doar în USD — folosește calculatorul din Acțiuni Europa' : $('setupBtn').disabled ? 'Plan indisponibil: ' + x.reason : 'Deschide dimensionarea pentru ' + x.symbol;
   }
 
   function loadCache() {
@@ -749,6 +769,7 @@
   if (universCerut && Array.prototype.some.call($('universe').options, function (o) { return o.value === universCerut; })) $('universe').value = universCerut;
   loadCache();
   loadTrend();
+  loadVerdictPiata();   // 19.10.2026 (audit): verdictul pieței la vedere în scanner
   if (!fundal && window.TTProbaTopLong) TTProbaTopLong.load('../scanner-verdicts/generated/premarket-proba.json').then(function () { render(); });   // I-709
   if(requested){$('search').value=requested;document.querySelectorAll('.ce-mode').forEach(function(b){b.classList.toggle('active',b.dataset.mode===state.mode);});showAlert('Validare intraday pentru '+requested+' · rulăm universul curent și tickerul solicitat. Ideea EOD nu este o intrare confirmată.');}
   if (!fundal) schedule();

@@ -24,6 +24,9 @@
 @media(max-width:760px){.ce-head{grid-template-columns:1fr 120px}.ce-head select{grid-column:1}.ce-refresh{grid-column:2}.ce-live{justify-self:end}.ce-context{grid-template-columns:repeat(2,1fr)}.ce-context>div:nth-child(n+5){display:none}.ce-toolbar{overflow-x:auto}.ce-toolbar input,.ce-toolbar label{display:none}.ce-work{grid-template-columns:1fr}.ce-list{border-right:0}.ce-detail{border-top:1px solid var(--ce-line)}.ce-th,.ce-row{grid-template-columns:26px minmax(120px,1fr) 55px 50px 45px}.ce-th>*:nth-child(3),.ce-th>*:nth-child(6),.ce-th>*:nth-child(7),.ce-th>*:nth-child(8),.ce-row>*:nth-child(3),.ce-row>*:nth-child(6),.ce-row>*:nth-child(7),.ce-row>*:nth-child(8){display:none}}
 .ce-reset{min-height:30px;padding:6px 9px;border:1px solid var(--ce-line2);border-radius:5px;background:var(--ce-panel2);font-size:10px;cursor:pointer}.ce-scan-details{margin:12px 14px;border:1px solid var(--ce-line);border-radius:8px;font-size:12px;color:var(--ce-muted);overflow-wrap:anywhere}.ce-scan-details>summary{padding:12px;cursor:pointer;min-height:44px;font-weight:600;color:var(--ce-text)}#scanDetailsBody{padding:0 12px 12px;line-height:1.5}.ce-coverage-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.ce-coverage-grid ul{padding-left:20px;margin:8px 0}.ce-coverage-grid li+li{margin-top:5px}
 @media(max-width:760px){.ce-scan-details{margin:8px}.ce-coverage-grid{grid-template-columns:1fr}.ce-app .ce-toolbar{height:auto;min-height:50px;flex-wrap:wrap;overflow:visible;padding:8px;gap:8px}.ce-app .ce-toolbar input[type=search]{display:block;width:100%;height:44px;order:3;font-size:14px}.ce-app .ce-toolbar label{display:flex;font-size:12px;min-height:44px}.ce-app .ce-toolbar input[type=checkbox]{display:block;width:18px;height:18px;accent-color:var(--ce-green)}.ce-app .ce-reset{min-height:44px;font-size:12px}.ce-app .ce-mode{min-height:44px;font-size:12px}.ce-app .ce-toolbar .spacer{display:none}.ce-app .ce-toolbar .fresh{font-size:11px}}
+/* 19.10.2026 (audit): pe PC cifrele planului și starea erau 7–10px lângă un titlu de 28px */
+@media (min-width:761px){.ce-levels small{font-size:11px}.ce-levels b{font-size:15px}.ce-state{font-size:10px}.ce-th{font-size:10px}.ce-symbol small{font-size:10px}.ce-symbol b em{font-size:9px}}
+.ce-verdict-nota.defensiv{border-left-color:var(--ce-red)}.ce-verdict-nota.prudent{border-left-color:var(--ce-amber)}.ce-verdict-nota.vechi{opacity:.75}
 </style>
 <link rel="stylesheet" href="../lib/mobile-ui.css?v=20261002m1">
 <link rel="stylesheet" href="../lib/decision-panel.css?v=26.10.16.1630"><script src="../lib/decision-verdict.js?v=26.10.09.1548"></script><script src="../lib/decision-bridge.js?v=26.10.08.1850"></script><script src="../lib/ai.js?v=26.10.07.2305"></script><link rel="stylesheet" href="../lib/decision-insights.css?v=26.10.08.1850"><script src="../lib/decision-insights.js?v=26.10.08.1850"></script><script src="../lib/decision-panel.js?v=26.10.19.1845" data-decision-module="candidate"></script><link rel="stylesheet" href="astazi.css?v=26.10.16.1300">
@@ -52,6 +55,7 @@
     <span class="fresh" id="updatedAt">nescanat</span>
   </div>
   <div class="ce-trend-nota" id="trendNota" hidden></div>
+  <div class="ce-trend-nota ce-verdict-nota" id="verdictNota" role="note" hidden></div>
   <div class="ce-trend-nota ce-proba-nota" id="probaNota" role="note" hidden></div>
   <details class="ce-scan-details"><summary id="scanDetailsTitle">Acoperirea scanării și motivele excluderii</summary><div id="scanDetailsBody"></div></details>
   <main class="ce-work">
@@ -97,7 +101,7 @@
 <script src="../lib/evidence-vault.js?v=26.10.15.1930"></script><script src="../lib/trade-evidence.js?v=26.10.15.1930"></script>
 <script src="../lib/trade-evidence-auto.js?v=26.10.15.1930"></script>
 <script src="../lib/desk-proba.js?v=26.10.19.1845"></script>
-<script src="engine.js?v=26.10.19.1845"></script>
+<script src="engine.js?v=26.10.19.2040"></script>
 <script>document.getElementById("backToList").onclick=function(){document.getElementById("rows").scrollIntoView({block:"start",behavior:window.matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"});};</script>
 </body>
 </html>

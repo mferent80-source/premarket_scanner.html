@@ -86,7 +86,7 @@ test('I-621: raportarile din JSON-ul robotului dau RAPORTEAZĂ fara cheie in bro
   const f = setup({ trend: t }); await f.hooks.loadTrend(); const s = f.hooks.state;
   const t2 = s.trend.find((x) => x.symbol === 'T2'), t0 = s.trend.find((x) => x.symbol === 'T0');
   assert.equal(t2.state, 'RAPORTEAZĂ'); assert.match(t2.earnings, /raportează în 4z/); assert.match(t2.earnings, /după închidere/);
-  assert.equal(t0.state, 'ÎN PROBĂ'); assert.match(t0.earnings, /fără raportare în 14z/);
+  assert.equal(t0.state, 'ÎN PROBĂ'); assert.match(t0.earnings, /fără raportare până la \d{4}-\d{2}-\d{2}/);
   assert.ok(t2.fapte.some((p) => p.k === 'raportează' && p.rol === 'block'), 'faptul „raportează” e blocant');
 });
 
