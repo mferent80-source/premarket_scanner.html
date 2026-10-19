@@ -95,14 +95,24 @@
     if (!curs) stare += (stare ? ' ' : '') + 'Cursul BNR nu e încă publicat de robot: mărimea pozițiilor apare după prima rulare.';
     desen(); barele();
   }
+  // 19.10.2026 (perf): raportul (SPY 5 ani + până la 40 de simboluri unul după altul + bootstrap) se calcula la fiecare deschidere a
+  // Jurnalului, pe orice filă, și cu pagina parcată în aplicație. Acum: complet doar cu fila Raport deschisă și pagina pe ecran; altfel
+  // doar rezultatul lunii pentru limita lunară (Astăzi îl citește din tt_journal_luna_t212_v1) și bannerul din Risc & capital.
+  const pane = document.getElementById('jpaneRaport');
+  const activ = () => (!pane || !pane.hidden) && (window.TTShell?.visible ? window.TTShell.visible() : !document.hidden);
+  let deIncarcat = true, deDesenat = false;
+  async function doarLuna() { try { await ML?.reimprospateaza?.(); } catch (_) { /* rămâne ultimul rezultat salvat */ } bannerGovernor(); }
+  function cere() { if (activ()) { deIncarcat = false; deDesenat = false; incarca(); } else { deIncarcat = true; doarLuna(); } }
+  function activeaza() { if (!activ()) return; if (deIncarcat) { deIncarcat = false; deDesenat = false; incarca(); } else if (deDesenat) { deDesenat = false; desen(); } }
   host.innerHTML = '<p class="jrr-gol">Se citesc execuțiile…</p>';
-  incarca();
+  cere();
+  try { window.TTShell?.onChange?.((v) => { if (v) activeaza(); }); } catch (_) { /* pagină deschisă direct */ }
   // execuțiile stau în IndexedDB (T212FillsStore): după o sincronizare raportul se reface singur
-  try { window.T212FillsStore?.subscribe?.(() => incarca()); } catch (_) { /* fără abonare: la reîncărcarea paginii */ }
+  try { window.T212FillsStore?.subscribe?.(() => cere()); } catch (_) { /* fără abonare: la reîncărcarea paginii */ }
   // limita / etichetele schimbate pe alt dispozitiv (sincronizare) sau în altă filă
   let amanat = false;
   const ocupat = () => { const a = document.activeElement; return !!(a && host.contains(a) && (a.tagName === 'INPUT' || a.tagName === 'SELECT' || st.editez)); };
   host.addEventListener('focusout', () => { if (amanat) setTimeout(() => { if (amanat && !ocupat()) { amanat = false; desen(); } }, 0); });
-  window.addEventListener('storage', (e) => { if (e.key !== (ML?.K_SET || 'tt_journal_settings_v1') && e.key !== ML?.K_LUNA) return; bannerGovernor(); if (ocupat()) amanat = true; else desen(); });
-  window.JournalReportUI = { reincarca: incarca };
+  window.addEventListener('storage', (e) => { if (e.key !== (ML?.K_SET || 'tt_journal_settings_v1') && e.key !== ML?.K_LUNA) return; bannerGovernor(); if (!activ()) deDesenat = true; else if (ocupat()) amanat = true; else desen(); });
+  window.JournalReportUI = { reincarca: cere, activeaza };
 })();
