@@ -19,7 +19,7 @@
     const scale=source.currency==='GBX'?0.01:1;
     const currency=source.currency==='GBX'?'GBP':source.currency;
     if (currency!==instrument.currency) throw Error('Moneda sursei nu corespunde listării europene.');
-    const bars=source.bars.map(b=>({...b,o:b.o*scale,h:b.h*scale,l:b.l*scale,c:b.c*scale}));
+    const bars=source.bars.map(b=>({...b,o:b.o*scale,h:b.h*scale,l:b.l*scale,c:b.c*scale,...(Number.isFinite(b.adjustedClose)?{adjustedClose:b.adjustedClose*scale}:{})}));
     if (bars.some(b=>![b.o,b.h,b.l,b.c,b.v].every(Number.isFinite)||b.c<=0||b.v<0)) throw Error('Prețuri sau volume invalide.');
     return {...source,bars,currency,normalizedPence:scale!==1};
   }
@@ -32,16 +32,19 @@
     const avgVolume=mean(v.slice(-21,-1)),turnover=mean(bars.slice(-20).map(b=>b.c*b.v));
     const rvol=avgVolume>0?last(v)/avgVolume:0;
     const ret5=ret(c,5),ret20=ret(c,20),dayChg=ret(c,1),ext=pct(ema21,price);
+    // 19.10.2026 (I-707): față de un indice de performanță (DAX) RS-ul folosește randamentul total (închiderea ajustată), altfel ex-dividendul apare ca pierdere
+    const rsBasis=instrument.benchmarkBasis==='total'&&bars.every(b=>Number.isFinite(b.adjustedClose)&&b.adjustedClose>0)?'total':'price';
+    const rsRet20=rsBasis==='total'?ret(bars.map(b=>b.adjustedClose),20):ret20;
     const drawdown=pct(Math.max(...h.slice(-252)),price),bounce=pct(Math.min(...l.slice(-60)),price);
     const eb=g.MEB.computeEarlyBird({closes:c,highs:h,lows:l,vols:v},4,null);
     const volumeOk=avgVolume>0&&last(v)>0&&turnover>=liquidity[source.currency];
-    return {instrument,source,bars,price,ema21,ema50,rsi,atr,rvol,ret5,ret20,dayChg,ext,drawdown,bounce,turnover,eb,volumeOk,
+    return {instrument,source,bars,price,ema21,ema50,rsi,atr,rvol,ret5,ret20,rsRet20,rsBasis,dayChg,ext,drawdown,bounce,turnover,eb,volumeOk,
       summary:{symbol:instrument.symbol,isin:instrument.isin,market:instrument.market,sector:instrument.sector,sourceDate:source.asOf,price,ema21,ema50,dayChg,ret20}};
   }
   function candidate(analysis,benchmark,governor,now=Date.now()) {
-    const {instrument,source,bars,price,ema21,ema50,rsi,atr,rvol,ret5,ret20,dayChg,ext,drawdown,bounce,turnover,eb,volumeOk}=analysis;
+    const {instrument,source,bars,price,ema21,ema50,rsi,atr,rvol,ret5,ret20,rsRet20=ret20,rsBasis='price',dayChg,ext,drawdown,bounce,turnover,eb,volumeOk}=analysis;
     const aligned=benchmark?.symbol===instrument.benchmark && benchmark.asOf===source.asOf && Number.isFinite(benchmark.ret20);
-    const rs=aligned?ret20-benchmark.ret20:null;
+    const rs=aligned&&Number.isFinite(rsRet20)?rsRet20-benchmark.ret20:null;
     const grown=price>ema21&&ema21>ema50&&ret20>0&&rsi>=50&&rsi<=72&&ext<=6&&rs!==null&&rs>=0;
     const healthy=eb && !eb.isWilting && !eb.isRanBlocked && !eb.expired;
     const early=healthy&&eb.isEarly&&Math.abs(dayChg)<=3;
@@ -77,7 +80,7 @@
       category,mode:categories[category].mode,state,actionable:false,
       score:categories[category].mode==='momentum'?growthScore:reversalScore,
       scoreParts:categories[category].mode==='momentum'?growthParts:reversalParts,scoreAdjustment:-5,
-      trend:g.TTDecisionVerdict?.trend(bars)||null,price,ema21,ema50,rsi,atr,rvol,rs,ret5,ret20,dayChg,drawdown,bounce,ext,turnover,
+      trend:g.TTDecisionVerdict?.trend(bars)||null,price,ema21,ema50,rsi,atr,rvol,rs,rsBasis,ret5,ret20,dayChg,drawdown,bounce,ext,turnover,
       minTurnover:liquidity[source.currency],benchmark:instrument.benchmark,index:instrument.index,
       plan,entryLow:plan.entryLow,entryHigh:plan.entryHigh,stop:plan.stop,target:plan.target,
       sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,ts:now,
@@ -87,6 +90,14 @@
       planNote:'Plan condițional pe sesiuni încheiate, în '+source.currency+'. Calculatorul Europa folosește cursuri de referință BCE; planul USD din Decision Desk rămâne separat.'
     };
   }
+  // 19.10.2026 (I-707): între sesiuni se recalculează local doar starea dată de Governor; prețurile EOD rămân cele din scanarea sesiunii.
+  // ts = ora acestei verificări (sesiunea EOD e încă cea curentă, Governor recitit); scannedAt păstrează ora descărcării.
+  function regovern(item,governor,now=Date.now()) {
+    const guardOk=!!governor&&['TRADE','CAUTION'].includes(governor.verdict),aligned=Number.isFinite(item.rs),early=item.category==='earlyLong'||item.category==='earlyReversal';
+    const checks=(item.checks||[]).filter(t=>!/^Governor /.test(t));
+    if(!guardOk)checks.splice(aligned?0:Math.min(1,checks.length),0,'Governor '+(governor?.verdict||'indisponibil')+'; planul rămâne blocat.');
+    return {...item,ts:now,scannedAt:Number.isFinite(item.scannedAt)?item.scannedAt:item.ts,governor:governor||null,state:!guardOk?'BLOCKED':!aligned?'WATCH':early?'EARLY':'ARMED',checks};
+  }
   function build(instrument,source,benchmark,governor,now=Date.now()) {return candidate(analyze(instrument,source),benchmark,governor,now);}
   function rank(items,category,sort='score') {
     const counts={};
@@ -94,5 +105,5 @@
     return items.filter(x=>x.category===category).sort((a,b)=>order(a,b)||b.score-a.score||a.symbol.localeCompare(b.symbol))
       .filter(x=>{const sector=x.sector||'Necunoscut';if((counts[sector]||0)>=3)return false;counts[sector]=(counts[sector]||0)+1;return true;}).slice(0,10);
   }
-  g.EuropeModel={categories,liquidity,normalize,analyze,candidate,build,rank};
+  g.EuropeModel={categories,liquidity,normalize,analyze,candidate,regovern,build,rank};
 })(typeof window!=='undefined'?window:globalThis);

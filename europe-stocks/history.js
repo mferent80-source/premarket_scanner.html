@@ -25,11 +25,14 @@
   }
   function update(document,observations,now=Date.now()){
     const next=JSON.parse(JSON.stringify(document)),changes=new Map();
+    // 19.10.2026 (I-707): intrările grupate pe ISIN o dată, iar datele barelor se calculează doar pentru acțiunile care au intrări (înainte: toate ~200 × 250 bare, 6,9 s dintr-o bucată)
+    const byIsin=new Map();for(const e of next.entries){if(!byIsin.has(e.isin))byIsin.set(e.isin,[]);byIsin.get(e.isin).push(e);}
     for(const observation of observations){
       const {instrument,series,candidate}=observation;
-      const bars=series.bars.map(b=>({...b,date:day(b.t,series.timezone)}));
+      const own=byIsin.get(instrument.isin)||[];
+      const bars=own.length?series.bars.map(b=>({...b,date:day(b.t,series.timezone)})):[];
       const currentDate=series.asOf;
-      for(const e of next.entries.filter(x=>x.isin===instrument.isin)){
+      for(const e of own){
         if(currentDate<e.lastDate)continue; // never rewind an observation on a stale scan
         const at=bars.findIndex(b=>b.date===e.firstDate);
         if(at>=0){
@@ -38,7 +41,9 @@
           if(Math.abs(first.c/e.firstPrice-1)>.01){e.review='Prețul istoric a fost revizuit; randamentele sunt suspendate.';e.outcomes={};}
           if(!e.review){
             const forward=bars.slice(at+1);
-            for(const n of [5,10,20])if(forward.length>=n&&!e.outcomes[n])e.outcomes[n]={pct:(forward[n-1].c/e.firstPrice-1)*100,date:forward[n-1].date};
+            // 19.10.2026 (I-707): randament total (închiderea ajustată include dividendul) când sursa îl dă pe ambele capete; altfel prețul, ca înainte
+            const total=b=>Number.isFinite(first.adjustedClose)&&first.adjustedClose>0&&Number.isFinite(b.adjustedClose)&&b.adjustedClose>0;
+            for(const n of [5,10,20])if(forward.length>=n&&!e.outcomes[n]){const b=forward[n-1];e.outcomes[n]=total(b)?{pct:Math.round((b.adjustedClose/first.adjustedClose-1)*1e5)/1e3,date:b.date,basis:'total'}:{pct:(b.c/e.firstPrice-1)*100,date:b.date};}
             if(e.active){const broken=forward.find(b=>b.date>e.lastDate&&b.c<=e.support);if(broken){e.active=false;e.status='INVALIDATED';e.endDate=broken.date;e.lastDate=broken.date;changes.set(e.isin,'Invalidat');}}
           }
         }
@@ -53,14 +58,15 @@
         }
       }
       if(candidate&&candidate.plan?.stop>0&&candidate.plan?.support>0){
-        const existing=next.entries.find(e=>e.isin===instrument.isin&&e.active&&family(e.currentCategory)===family(candidate.category));
-        const already=next.entries.some(e=>e.isin===instrument.isin&&e.lastDate>=currentDate&&e.endDate===currentDate);
+        const existing=own.find(e=>e.active&&family(e.currentCategory)===family(candidate.category));
+        const already=own.some(e=>e.lastDate>=currentDate&&e.endDate===currentDate);
         if(!existing&&!already){
           const id=instrument.isin+':'+currentDate+':'+candidate.category;
           if(!next.entries.some(e=>e.id===id)){
             next.entries.push({id,symbol:instrument.symbol,isin:instrument.isin,name:instrument.name,market:instrument.market,sector:instrument.sector,currency:series.currency,category:candidate.category,currentCategory:candidate.category,
               firstDate:currentDate,lastDate:currentDate,firstPrice:candidate.price,lastPrice:candidate.price,firstStop:candidate.plan.stop,support:candidate.plan.support,
               createdAt:now,policy:candidate.plan.version,active:true,status:'ACTIVE',transitions:[{date:currentDate,category:candidate.category}],outcomes:{}});
+            if(!byIsin.has(instrument.isin))byIsin.set(instrument.isin,own);own.push(next.entries.at(-1));
             changes.set(instrument.isin,'Nou în această sesiune');
           }
         }

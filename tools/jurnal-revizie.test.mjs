@@ -82,9 +82,11 @@ test('the 10,000 starting value is not the account: ACCT.known() is false until 
 });
 
 // Etapa 2 (Acțiuni Europa): ca la Premarket, revenirea în pagina parcată rescanează și când rezultatele au peste 5 minute.
-test('Europe: returning to a parked page rescans stale results (older than 5 minutes), not only missing ones', () => {
+// 19.10.2026 (I-707): datele Europa sunt EOD ⇒ la revenire rescanează la o sesiune nouă sau când rezultatele lipsesc, nu după vârsta de 5 minute (proba de comportament: europe-sesiune.test.mjs)
+test('Europe: returning to a parked page rescans for a new EOD session or missing results, not only missing ones', () => {
   const src = readFileSync('europe-stocks/engine.js', 'utf8');
-  assert.match(src, /state\.shellVisible=event\.data\.ttShellVisible;if\(visible\(\)&&Date\.now\(\)-state\.updatedAt>SCAN_MS\)scan\(\);/);
+  assert.match(src, /state\.shellVisible=event\.data\.ttShellVisible;if\(visible\(\)\)tick\(\);/);
+  assert.match(src, /function needsNetwork\(\)\{\r?\n\s*if\(!state\.hasScan\|\|state\.sessions!==sessions\(\)\)return true;/);
   assert.doesNotMatch(src, /ttShellVisible;if\(visible\(\)&&!state\.updatedAt\)scan\(\)/);
   assert.match(src, /deschisă din aplicație se sincronizează/);
 });

@@ -127,7 +127,7 @@ function bootCache(c,cache,watchlist=[],watchlistOnly=false){
   return nodes;
 }
 test('cached results cannot escape Salt source, ISIN or Watchlist membership',()=>{
-  function cache(c,item){return {schema:3,policy:c.EuropeDecision.VERSION,filter:c.EuropeUniverse.cacheIdentity(),items:[item],updatedAt:Date.now(),verified:1,scanned:1,failures:[],benchmarks:[]};}
+  function cache(c,item){return {schema:3,policy:c.EuropeDecision.VERSION,filter:c.EuropeUniverse.cacheIdentity(),sessions:c.EuropeUniverse.sessionKey(c.EuropeUniverse.list()),items:[item],updatedAt:Date.now(),verified:1,scanned:1,failures:[],benchmarks:[]};}
   const valid=setup(),candidate=build(valid),ok=bootCache(valid,cache(valid,candidate));
   assert.equal(ok.get('candidateCount').textContent,1);
   for(const change of [x=>({...x,symbol:'UNKNOWN.L',isin:undefined}),x=>({...x,isin:'DE0007664039'})]){
@@ -140,7 +140,7 @@ test('cached results cannot escape Salt source, ISIN or Watchlist membership',()
 });
 
 test('Europa updates imported history immediately and accepts cloud status only from its own shell',()=>{
- const c=setup(),candidate=build(c),cache={schema:3,policy:c.EuropeDecision.VERSION,filter:c.EuropeUniverse.cacheIdentity(),items:[candidate],updatedAt:Date.now(),verified:1,scanned:1,failures:[],benchmarks:[]},nodes=bootCache(c,cache);
+ const c=setup(),candidate=build(c),cache={schema:3,policy:c.EuropeDecision.VERSION,filter:c.EuropeUniverse.cacheIdentity(),sessions:c.EuropeUniverse.sessionKey(c.EuropeUniverse.list()),items:[candidate],updatedAt:Date.now(),verified:1,scanned:1,failures:[],benchmarks:[]},nodes=bootCache(c,cache);
  const e={id:'DE0007164600:2026-10-01:earlyLong',symbol:'SAP.DE',isin:'DE0007164600',category:'earlyLong',currentCategory:'earlyLong',firstDate:'2026-10-01',lastDate:'2026-10-01',firstPrice:100,firstStop:90,support:92,createdAt:1790866800000,active:true,status:'ACTIVE',transitions:[{date:'2026-10-01',category:'earlyLong'}],outcomes:{}};
  c.storage.set(c.EuropeHistory.KEY,JSON.stringify({schema:1,entries:[e]}));c.events.storage.forEach(fn=>fn({key:c.EuropeHistory.KEY}));assert.match(nodes.get('signalHistory').innerHTML,/1 observații urmărite/);
  c.parent={};const event={source:c.parent,origin:c.location.origin,data:{ttCloudState:{ready:true,connected:true,conflicts:[],supportedKeys:[c.EuropeHistory.KEY,'tt_europe_risk_settings_v1'],lastSync:Date.now()}}};
@@ -149,7 +149,7 @@ test('Europa updates imported history immediately and accepts cloud status only 
  event.data.ttCloudState.supportedKeys=[];c.events.message.forEach(fn=>fn(event));assert.match(nodes.get('europeSyncState').textContent,/rămân local/);
 });
 test('incoming risk settings preserve an active draft and invalidate an old quantity after applying',()=>{
- const c=setup(),candidate=build(c),cache={schema:3,policy:c.EuropeDecision.VERSION,filter:c.EuropeUniverse.cacheIdentity(),items:[candidate],updatedAt:Date.now(),verified:1,scanned:1,failures:[],benchmarks:[]},nodes=bootCache(c,cache);
+ const c=setup(),candidate=build(c),cache={schema:3,policy:c.EuropeDecision.VERSION,filter:c.EuropeUniverse.cacheIdentity(),sessions:c.EuropeUniverse.sessionKey(c.EuropeUniverse.list()),items:[candidate],updatedAt:Date.now(),verified:1,scanned:1,failures:[],benchmarks:[]},nodes=bootCache(c,cache);
  for(const id of ['riskBudget','riskLoss','riskFees','riskCurrency','riskStep','riskResult'])c.document.getElementById(id);
  const form=nodes.get('riskForm');form.contains=x=>x===nodes.get('riskBudget');nodes.get('riskBudget').value='777';c.document.activeElement=nodes.get('riskBudget');
  c.storage.set('tt_europe_risk_settings_v1',JSON.stringify({currency:'RON',budget:'1500',loss:'50',fees:'5',fractional:true}));
@@ -159,7 +159,7 @@ test('incoming risk settings preserve an active draft and invalidate an old quan
 
 const cacheTick=()=>new Promise(resolve=>setImmediate(resolve));
 function cacheSnapshot(c,candidate,updatedAt=Date.now()){
- return {schema:3,policy:c.EuropeDecision.VERSION,filter:c.EuropeUniverse.cacheIdentity('all',['SAP.DE'],true),items:[candidate],updatedAt,verified:1,scanned:1,failures:[],benchmarks:[]};
+ return {schema:3,policy:c.EuropeDecision.VERSION,filter:c.EuropeUniverse.cacheIdentity('all',['SAP.DE'],true),sessions:c.EuropeUniverse.sessionKey(c.EuropeUniverse.list('all',['SAP.DE'],true)),items:[candidate],updatedAt,verified:1,scanned:1,failures:[],benchmarks:[]};
 }
 test('Europe scanning saves through quota refusal and a fresh module restores the complete candidate',async()=>{
  let raw=null;const durable={read:async()=>raw,write:async value=>{raw=value;}},c=setup();c.cacheDurable=durable;
@@ -172,7 +172,7 @@ test('Europe scanning saves through quota refusal and a fresh module restores th
 test('restored database scans retain source, freshness and filter validation',async()=>{
  for(const invalid of ['isin','filter','stale','policy']){
   const c=setup(),candidate=build(c),cache=cacheSnapshot(c,candidate);
-  if(invalid==='isin')candidate.isin='wrong';if(invalid==='filter')cache.filter='wrong';if(invalid==='stale')cache.updatedAt=Date.now()-31*60000;if(invalid==='policy')cache.policy='old';
+  if(invalid==='isin')candidate.isin='wrong';if(invalid==='filter')cache.filter='wrong';if(invalid==='stale')cache.sessions='XETRA:2000-01-01';if(invalid==='policy')cache.policy='old';
   c.cacheDurable={read:async()=>JSON.stringify(cache)};const nodes=bootCache(c,null,['SAP.DE'],true);await cacheTick();assert.notEqual(nodes.get('candidateCount')?.textContent,1,invalid);
  }
 });
