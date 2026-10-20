@@ -45,7 +45,7 @@ test('a scan that does not finish in 6 minutes ends with an error state and the 
 test('the Planuri page loads the module before its script, starts it after the first load and retries on the 30-second refresh; the new layout CSS loads last', () => {
   const h = readFileSync('desk/index.html', 'utf8');
   assert.ok(h.indexOf('auto-scan.js?v=') > 0 && h.indexOf('auto-scan.js?v=') < h.indexOf('var CANDIDATE_FRESH_MS'));
-  assert.match(h, /load\(\);loadBreadth\(\);startAutoScan\(\);/); assert.match(h, /render\(\);if\(autoScan\)autoScan\.start\(\);\},30000\)/);
+  assert.match(h, /load\(\);loadBreadth\(\);incarcaVerdictPiata\(\).*?;startAutoScan\(\);/, 'I-727 (20.10.2026): verdictul pieței se citește la pornire, înaintea scanării'); assert.match(h, /render\(\);if\(autoScan\)autoScan\.start\(\);\},30000\)/);
   assert.match(h, /function startAutoScan\(\)\{if\(demoMode\|\|!window\.TTDeskAutoScan\)return;/, 'niciodată în demo');
   const css = [...h.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)].map((m) => m[1]); assert.match(css.at(-1), /^compact\.css\?v=/);
   assert.ok(h.indexOf('<section class="panel plan-queue">') < h.indexOf('<section class="panel breadth-ideas"'), 'Planuri & simulări înaintea ideilor Breadth');

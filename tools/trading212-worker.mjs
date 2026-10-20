@@ -1,5 +1,6 @@
-import {summary, position, historyItem} from '../lib/trading212-model.mjs';
-export const ROUTES = Object.freeze({summary:'/api/v0/equity/account/summary',positions:'/api/v0/equity/positions',orders:'/api/v0/equity/history/orders',dividends:'/api/v0/equity/history/dividends',transactions:'/api/v0/equity/history/transactions'});
+import {summary, position, historyItem, pendingOrder} from '../lib/trading212-model.mjs';
+// 20.10.2026 (I-723): `orders-pending` = ordinele în așteptare (GET /api/v0/equity/orders), DOAR citire — ca aplicația să vadă dacă stopul documentat e și ordin la broker.
+export const ROUTES = Object.freeze({summary:'/api/v0/equity/account/summary',positions:'/api/v0/equity/positions',orders:'/api/v0/equity/history/orders',dividends:'/api/v0/equity/history/dividends',transactions:'/api/v0/equity/history/transactions','orders-pending':'/api/v0/equity/orders'});
 const ORIGIN='https://mferent80-source.github.io';
 async function equalSecret(a,b) {
   const hash=async s=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)));
@@ -114,6 +115,7 @@ export async function handle(request,env,upstream=fetch) {
     stage='schema';
     if(kind==='summary')output=summary(data);
     else if(kind==='positions'){if(!Array.isArray(data))throw new Error('schema');output=data.map(position);}
+    else if(kind==='orders-pending'){if(!Array.isArray(data))throw new Error('schema');output=data.map(pendingOrder);}
     else {if(!Array.isArray(data.items))throw new Error('schema');output={items:data.items.map(item=>historyItem(item,kind)),nextCursor:nextCursor(data.nextPagePath,ROUTES[kind],base)};}
     return reply({source:'Trading 212',environment,fetchedAt:new Date().toISOString(),data:output});
   }catch(error){

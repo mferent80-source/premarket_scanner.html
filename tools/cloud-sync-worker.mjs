@@ -11,7 +11,9 @@ export const PROTOCOL='tt-cloud-sync-v1';
 export async function readiness(env){
  const checks={database:!!env.CLOUD_DB,google:/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(env.GOOGLE_CLIENT_ID||''),encryption:/^[A-Za-z0-9_-]{43}$/.test(env.CLOUD_ENCRYPTION_KEY||''),schema:false};
  if(checks.database)try{await env.CLOUD_DB.prepare('SELECT s.hash,s.subject,s.email,s.expires,c.nonce,c.expires,r.subject,r.key,r.revision,r.packet,r.updated,l.key,l.bucket,l.count FROM cloud_sessions s,cloud_challenges c,cloud_records r,cloud_limits l WHERE 0').first();checks.schema=true;}catch{}
- const enabled=Object.values(checks).every(v=>v===true);return {enabled,protocol:PROTOCOL,clientId:enabled?env.GOOGLE_CLIENT_ID:null,checks,supportedKeys:KEYS,records:{protocol:'tt-cloud-records-v2',maxKeys:1},monitor:await schedulerStatus(env),push:{protocol:'tt-web-push-v1',available:enabled},audit:{protocol:'tt-audit-v1',available:enabled}};
+ const enabled=Object.values(checks).every(v=>v===true);
+ // 20.10.2026 (I-733): dacă lipsește GOOGLE_ALLOWED_SUB orice cont Google poate folosi workerul ca stocare; starea (nu valoarea) e la vedere ca să se poată verifica
+ return {enabled,protocol:PROTOCOL,clientId:enabled?env.GOOGLE_CLIENT_ID:null,checks,allowlist:/^\d{1,128}$/.test(env.GOOGLE_ALLOWED_SUB||''),supportedKeys:KEYS,records:{protocol:'tt-cloud-records-v2',maxKeys:1},monitor:await schedulerStatus(env),push:{protocol:'tt-web-push-v1',available:enabled},audit:{protocol:'tt-audit-v1',available:enabled}};
 }
 const hash=async s=>b64(await crypto.subtle.digest('SHA-256',E.encode(s)));
 export async function seal(value,secret,aad){const raw=bytes(secret);if(raw.length!==32)throw Error('encryption_key_invalid');const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt']),iv=crypto.getRandomValues(new Uint8Array(12));return JSON.stringify({v:1,iv:b64(iv),cipher:b64(await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:E.encode(aad)},key,E.encode(JSON.stringify(value))))});}

@@ -133,6 +133,10 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
     <div class="chk-body" id="bDClf">—</div>
   </div>
   <div class="chk-group">SUITĂ ȘI INFRASTRUCTURĂ</div>
+  <div class="chk" id="cSuita">
+    <div class="chk-head"><span class="chk-dot" id="dSuita"></span><h2>🧪 Suita de teste la ultimul push (GitHub Actions)</h2></div>
+    <div class="chk-body" id="bSuita">—</div>
+  </div>
 
   <div class="chk" id="cProxy">
     <div class="chk-head"><span class="chk-dot" id="dProxy"></span><h2>🌐 Proxy-uri CORS (Yahoo)</h2><button class="chk-btn" data-run="proxy">Testează</button></div>
@@ -688,6 +692,20 @@ async function checkDecisionLearning(){
   lines.push('Primul verdict probabilistic cere minimum 40 de perechi Neural + Boosting verificate; o previziune se verifică după 5 sesiuni.');
   $('bDLearn').innerHTML=lines.join('<br>');
 }
+/* 20.10.2026 (I-724): poarta de teste — robotul „Suita de teste” (.github/workflows/teste.yml) rulează toată suita la fiecare push și scrie
+   health/generated/suita.json; publicarea pe Pages NU așteaptă suita, deci un roșu înseamnă „ce e publicat are un test picat”. */
+async function checkSuita(){
+  let j=null;try{const r=await fetch('generated/suita.json?v='+Math.floor(Date.now()/300000),{cache:'no-cache'});if(r.ok)j=await r.json();}catch(_){}
+  if(!j||j.version!=='suita-v1'||!j.node||!j.python){dot('dSuita','warn');$('bSuita').innerHTML='<b class="warn">Starea suitei nu e publicată încă.</b> Robotul „Suita de teste” scrie fișierul la primul push după activare (20.10.2026).';return;}
+  const when=t=>new Date(t).toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),vechi=!Number.isFinite(Date.parse(j.la))||Date.now()-Date.parse(j.la)>7*86400000,n=j.node,p=j.python;
+  dot('dSuita',j.verde?(vechi?'warn':'ok'):'err');
+  const lines=['<b class="'+(j.verde?'ok':'err')+'">'+(j.verde?'VERDE':'ROȘU')+'</b> · Node '+esc(n.pass==null?'—':n.pass)+' / '+esc(n.tests==null?'—':n.tests)+' trecute'+(n.fail?' · <span class="err">'+esc(n.fail)+' picate</span>':'')+(n.skipped?' · '+esc(n.skipped)+' sărite':'')+' · Python '+(p.ok?'ok':'<span class="err">picat</span>')+(Number.isFinite(p.tests)?' ('+esc(p.tests)+' teste)':''),
+   'Commit '+esc(String(j.commit||'').slice(0,8))+' · rulat '+when(j.la)+(vechi?' · <span class="warn">mai vechi de 7 zile</span>':'')+(j.run?' · <a href="'+esc(j.run)+'" target="_blank" rel="noopener">jurnalul rulării</a>':'')];
+  if(Array.isArray(n.picate)&&n.picate.length)lines.push('Picate: '+esc(n.picate.slice(0,8).join(' · '))+(n.picate.length>8?' …':''));
+  if(p.detaliu)lines.push('Python: '+esc(p.detaliu));
+  lines.push('Publicarea pe GitHub Pages nu așteaptă suita (build „legacy” din main): la roșu, ce e publicat are un test picat — Discord anunță.');
+  $('bSuita').innerHTML=lines.join('<br>');
+}
 /* I-645 (16.10.2026): robotul de noapte al clasificatorului (candidate-engine/generated/clasificator.json). */
 async function checkDecisionClassifier(){
   let j=null;try{const r=await fetch('../candidate-engine/generated/clasificator.json',{cache:'no-cache'});if(r.ok)j=await r.json();}catch(_){}
@@ -782,7 +800,7 @@ function checkDecisionSpace(){
 // Fiecare verificare rulează separat: una care pică nu le mai oprește pe celelalte (15.10.2026: „Hub stale” bloca localStorage).
 const runSafe=(name,fn)=>{try{const r=fn();if(r&&typeof r.catch==='function')r.catch(e=>console.warn('[health] '+name,e));}catch(e){console.warn('[health] '+name,e);}};
 window.addEventListener('message',e=>{if(e.origin===location.origin&&e.source===window.parent&&e.data&&e.data.ttStorageHygiene===true){runSafe('Decision · spațiu',checkDecisionSpace);setTimeout(()=>runSafe('Decision · sincronizare',checkDecisionSync),4000);}});
-[['Decision · sincronizare',checkDecisionSync],['Decision · spațiu',checkDecisionSpace],['Decision · învățare',checkDecisionLearning],['Decision · registru',checkDecisionLedger],['Decision · robotul clasificatorului',checkDecisionClassifier],['Decision · robotul verdictului',checkDecisionVerdict],['Roboții GitHub',checkRoboti],['Anthropic',checkAnthropic],['Telegram',checkTG],['Gist',checkGistPresence],['SW',checkSW],['Equity',checkEquity],['Hub stale',checkHubStale],['localStorage',checkLS],['Quote-bus',checkQB]].forEach(([n,f])=>runSafe(n,f));
+[['Decision · sincronizare',checkDecisionSync],['Decision · spațiu',checkDecisionSpace],['Decision · învățare',checkDecisionLearning],['Decision · registru',checkDecisionLedger],['Decision · robotul clasificatorului',checkDecisionClassifier],['Decision · robotul verdictului',checkDecisionVerdict],['Suita de teste',checkSuita],['Roboții GitHub',checkRoboti],['Anthropic',checkAnthropic],['Telegram',checkTG],['Gist',checkGistPresence],['SW',checkSW],['Equity',checkEquity],['Hub stale',checkHubStale],['localStorage',checkLS],['Quote-bus',checkQB]].forEach(([n,f])=>runSafe(n,f));
 $('foot').textContent = 'verificările gratuite au rulat la deschidere · cele cu consum așteaptă butonul';
 })();
 </script>

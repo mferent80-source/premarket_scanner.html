@@ -12,10 +12,13 @@
   const limita = () => (ML ? ML.limita() : null);
   const harta = () => { const h = ML ? ML.setari().t212Etichete : null; return h && typeof h === 'object' && !Array.isArray(h) ? h : {}; };
   function teze(scope) { try { const t = JSON.parse(localStorage.getItem('tt_holdings_theses_v1') || '{}'), o = {}; for (const [k, v] of Object.entries(t)) { const i = k.indexOf('|'), s = i >= 0 ? k.slice(0, i) : null, tk = i >= 0 ? k.slice(i + 1) : k; const x = Number(v?.stop); if ((!scope || !s || s === scope) && x > 0) o[tk] = x; } return o; } catch (_) { return {}; } }
-  function analize(report) {
+  function analizeToate(report) {
     const E = window.TradeEvidence; if (!E || !report?.scope) return [];
-    try { return E.evaluate(E.read().entries, report).filter((o) => o.sellIds && o.sellIds.length); } catch (_) { return []; }
+    try { return E.evaluate(E.read().entries, report); } catch (_) { return []; }
   }
+  // 20.10.2026 (I-726 / I-729 / I-730): planurile Shadow, valoarea contului în moneda raportului și limitele Governor — pentru disciplină, alunecare și cozi
+  function planuriShadow() { try { const a = JSON.parse(localStorage.getItem('tt_trade_plans_v1') || '[]'); return Array.isArray(a) ? a : []; } catch (_) { return []; } }
+  function contValoare(moneda) { try { const sn = window.T212Snapshot?.read?.('live'), s = sn && sn[1] && sn[1].summary; return s && s.currency === moneda && Number.isFinite(s.totalValue) ? s.totalValue : null; } catch (_) { return null; } }
   function filtrate() {
     if (!baza) return [];
     const de = st.perioada ? Date.now() - st.perioada * 86400000 : -Infinity, h = harta();
@@ -30,6 +33,7 @@
     const tr = filtrate();
     host.innerHTML = J.render({ tr, toate: baza?.rows || [], moneda: baza?.moneda, perioada: st.perioada, ticker: st.ticker, tickere: baza ? [...new Set(baza.rows.map((x) => x.ticker))].sort() : [],
       ex, exStare, spy, spyEsuat, limita: limita(), stare, faraCumparare: baza?.faraCumparare || 0, alteMonede: baza?.alteMonede || 0, partiale: baza?.partiale || 0, corporative: baza?.corporative || 0,
+      rows: baza?.fills || [], jurnal: (window.GV && typeof GV.jurnal === 'function') ? GV.jurnal() : [], analize: baza?.analizeToate || [], plans: planuriShadow(), gov: (window.GV && typeof GV.cfg === 'function') ? GV.cfg() : null, cont: contValoare(baza?.moneda),
       toateRandurile: st.toateRandurile, editez: st.editez, now: Date.now() });
     bannerGovernor();
   }
@@ -88,7 +92,8 @@
     let curs = null; try { curs = await window.JournalReview?.cursFile?.(); } catch (_) { curs = null; }
     const c = J.calatorii(report.rows, { curs, moneda: report.currency });
     let istoricStop = {}; try { istoricStop = window.StopSetter ? window.StopSetter.istoric(JSON.parse(localStorage.getItem('tt_holdings_theses_v1') || '{}'), report.scope) : {}; } catch (_) { istoricStop = {}; }
-    baza = { ...c, rows: J.stopuriR(c.rows, { analize: analize(report), teze: teze(report.scope), deschisa: c.deschisa, istoricStop }) };
+    const an = analizeToate(report);
+    baza = { ...c, rows: J.stopuriR(c.rows, { analize: an.filter((o) => o.sellIds && o.sellIds.length), teze: teze(report.scope), deschisa: c.deschisa, istoricStop }), fills: report.rows, analizeToate: an };
     if (ML && report.rows.length) ML.salveazaLuna(ML.dinExecutii(report.rows, { moneda: c.moneda })); // I-692: rezultatul lunii, pentru Astăzi și Planuri
     stare = report.state === 'partial' ? 'Istoricul importat e parțial: o parte din execuții lipsesc sau au fost respinse.' : report.state === 'error' ? (report.reason || '') : '';
     if (report.state === 'missing') stare = report.reason || '';
@@ -113,6 +118,6 @@
   let amanat = false;
   const ocupat = () => { const a = document.activeElement; return !!(a && host.contains(a) && (a.tagName === 'INPUT' || a.tagName === 'SELECT' || st.editez)); };
   host.addEventListener('focusout', () => { if (amanat) setTimeout(() => { if (amanat && !ocupat()) { amanat = false; desen(); } }, 0); });
-  window.addEventListener('storage', (e) => { if (e.key !== (ML?.K_SET || 'tt_journal_settings_v1') && e.key !== ML?.K_LUNA) return; bannerGovernor(); if (!activ()) deDesenat = true; else if (ocupat()) amanat = true; else desen(); });
+  window.addEventListener('storage', (e) => { if (e.key !== (ML?.K_SET || 'tt_journal_settings_v1') && e.key !== ML?.K_LUNA && e.key !== 'tt_governor_jurnal_v1' && e.key !== 'tt_trade_plans_v1') return; bannerGovernor(); if (!activ()) deDesenat = true; else if (ocupat()) amanat = true; else desen(); });
   window.JournalReportUI = { reincarca: cere, activeaza };
 })();

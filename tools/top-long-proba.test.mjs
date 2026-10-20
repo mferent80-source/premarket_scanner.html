@@ -43,12 +43,16 @@ test('I-709 Planuri: după verdictul „Top Long ajută” plafonul se ridică s
   b.rows().find((r) => r.dataset.symbol === 'FICTIV-A').onclick(); b.nodes.focusAction.onclick();
   assert.equal(b.nodes.ticketRiskPct.value, '0,50%'); assert.doesNotMatch(b.nodes.signalRows.innerHTML, /în probă/);
 });
-test('I-709 Planuri: verdictul pieței „defensiv” se vede clar în tichet (informativ — regula Guardrail nu se schimbă)', async () => {
-  const b = deskCuProba(); await flush();
-  b.modes[1].onclick(); b.nodes.focusAction.onclick();
-  b.node('ticketMarketVerdict').dataset.verdict = 'defensiv'; b.nodes.ticketCapital.oninput.call(b.nodes.ticketCapital);
-  assert.match(b.nodes.ticketVerdict.textContent, /PLAN VALIDABIL/, 'regula rămâne: planul nu e blocat de verdictul pieței');
-  assert.match(b.nodes.ticketVerdict.textContent, /DEFENSIV/); assert.match(b.nodes.ticketVerdict.textContent, /fără planuri noi/);
+// 20.10.2026 (I-727): verdictul pieței nu mai e informativ în Planuri — aceeași regulă ca în Drafturi (MarketVerdict.regula): defensiv ⇒ fără plan nou (blocaj cu motivul), prudent ⇒ risc ×0,75 cu nota în tichet.
+test('I-727 Planuri: verdictul pieței „defensiv” BLOCHEAZĂ planul nou cu motivul; „prudent” lasă planul cu risc ×0,75 și nota în tichet', async () => {
+  const regula = (label) => ({ label, mult: label === 'defensiv' ? 0.5 : 0.75, go: label !== 'defensiv', asOf: '2026-10-07', score: -2, vechi: false, motiv: null, nota: label === 'defensiv' ? 'Verdictul pieței DEFENSIV (după sesiunea 07.10): fără plan nou — regula din Drafturi.' : 'Verdictul pieței PRUDENT (după sesiunea 07.10): risc ×0,75 — regula din Drafturi.' });
+  const cuVerdict = (label) => boot({ files: ['lib/desk-proba.js'], extra: { MarketVerdict: { regula: () => regula(label), robotFile: async () => ({ version: 'verdict-piata-v1', label, asOf: '2026-10-07', score: -2 }) } }, before: (c) => { c.TTProbaTopLong.set(PROBA); const d = c.T212Capital.demo; c.T212Capital.demo = (...a) => ({ ...d(...a), verdict: 'TRADE', reasons: [] }); } });
+  const b = cuVerdict('defensiv'); await flush();
+  b.modes[1].onclick(); b.nodes.focusAction.onclick(); b.nodes.ticketCapital.oninput.call(b.nodes.ticketCapital);
+  assert.match(b.nodes.ticketVerdict.textContent, /Verdictul pieței e DEFENSIV/); assert.match(b.nodes.ticketVerdict.textContent, /fără plan nou/); assert.doesNotMatch(b.nodes.ticketVerdict.textContent, /PLAN VALIDABIL/);
+  const p = cuVerdict('prudent'); await flush();
+  p.modes[1].onclick(); p.nodes.focusAction.onclick(); p.nodes.ticketCapital.oninput.call(p.nodes.ticketCapital);
+  assert.match(p.nodes.ticketVerdict.textContent, /PLAN VALIDABIL/); assert.match(p.nodes.ticketVerdict.textContent, /PRUDENT .*risc ×0,75/);
   const h = readFileSync('desk/index.html', 'utf8'); assert.match(h, /\.ticket-risk\[data-verdict="defensiv"\]\{/);
 });
 

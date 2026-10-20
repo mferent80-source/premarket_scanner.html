@@ -1,4 +1,20 @@
-# Filtrul de piață din constructorul de setup (Jurnal → Drafturi)
+# Filtrul de piață (verdictul pieței) — regula unică: Drafturi ȘI Planuri
+
+## Versiunea 2.1: aceeași regulă și în Planuri (20.10.2026, I-727)
+
+Sursa unică a regulii e `MarketVerdict.regula` (`lib/market-verdict.js`); Drafturi (`lib/setup-builder.js`) și Planuri (`desk/index.html`,
+`allowedRisk` / `garziComune`) o aplică la fel, iar `tools/verdict-piata-regula.test.mjs` le ține lipite:
+
+| Verdict | Drafturi | Planuri |
+|---|---|---|
+| favorabil / neutru | ×1, GO | risc ×1 |
+| prudent | ×0,75, GO | risc ×0,75 |
+| defensiv | ×0,5, fără GO | **fără plan nou** (planul e acțiunea; ×0,5 fără GO n-ar avea sens) |
+| lipsă sau mai vechi de 4 zile („neverificat”) | ×0,75, fără GO | risc ×0,75, motivul în tichet |
+
+Până pe 20.10 Planuri scria „informativ; Guardrail nu blochează” — drumul care chiar ducea la plan era cel permisiv. Statutul rămâne: regulă de
+prudență, nu avantaj dovedit; vezi `docs/politica-de-risc.md` § 2 și `docs/cercetare/registru.md` § 3.
+
 
 ## Versiunea 2: verdictul pieței (18.10.2026, hotărâtă de Marius)
 

@@ -10,6 +10,12 @@ function summary(data) {
 function position(p) {
   return {ticker:text(p.instrument?.ticker),name:text(p.instrument?.name),isin:text(p.instrument?.isin),instrumentCurrency:text(p.instrument?.currency),quantity:number(p.quantity),averagePrice:number(p.averagePricePaid),currentPrice:number(p.currentPrice),currency:text(p.walletImpact?.currency),value:number(p.walletImpact?.currentValue),unrealized:number(p.walletImpact?.unrealizedProfitLoss),openedAt:text(p.createdAt)};
 }
+// 20.10.2026 (I-723): un ordin în așteptare (GET /api/v0/equity/orders). Trading 212 pune vânzările cu cantitate negativă; `side` e dedus când lipsește.
+function pendingOrder(o) {
+  if (!o || typeof o !== 'object' || Array.isArray(o)) throw new Error('schema');
+  const quantity=number(o.quantity), sideRaw=text(o.side), side=sideRaw?sideRaw.toUpperCase():quantity!=null?(quantity<0?'SELL':'BUY'):null;
+  return {id:text(o.id),ticker:text(o.ticker??o.instrument?.ticker),type:text(o.type),side:side==='BUY'||side==='SELL'?side:null,quantity:quantity!=null?Math.abs(quantity):null,stopPrice:number(o.stopPrice),limitPrice:number(o.limitPrice),status:text(o.status),timeValidity:text(o.timeValidity),createdAt:text(o.createdAt??o.creationTime),currency:text(o.instrument?.currency)};
+}
 function historyItem(item, kind) {
   if (kind === 'orders') {
     const o=item.order||{}, f=item.fill||{},w=f.walletImpact||{};
@@ -18,11 +24,12 @@ function historyItem(item, kind) {
   return {id:text(item.reference),ticker:text(item.instrument?.ticker||item.ticker),date:text(kind==='dividends'?item.paidOn:item.dateTime),type:text(item.type),amount:number(item.amount),currency:text(item.currency)};
 }
 
-return {number,summary,position,historyItem};
+return {number,summary,position,pendingOrder,historyItem};
 })();
 const TTBrokerRelay=(()=>{
-const {summary,position,historyItem}=TTBrokerModel;
-const ROUTES = Object.freeze({summary:'/api/v0/equity/account/summary',positions:'/api/v0/equity/positions',orders:'/api/v0/equity/history/orders',dividends:'/api/v0/equity/history/dividends',transactions:'/api/v0/equity/history/transactions'});
+const {summary,position,historyItem,pendingOrder}=TTBrokerModel;
+// 20.10.2026 (I-723): `orders-pending` = ordinele în așteptare (GET /api/v0/equity/orders), DOAR citire — ca aplicația să vadă dacă stopul documentat e și ordin la broker.
+const ROUTES = Object.freeze({summary:'/api/v0/equity/account/summary',positions:'/api/v0/equity/positions',orders:'/api/v0/equity/history/orders',dividends:'/api/v0/equity/history/dividends',transactions:'/api/v0/equity/history/transactions','orders-pending':'/api/v0/equity/orders'});
 const ORIGIN='https://mferent80-source.github.io';
 async function equalSecret(a,b) {
   const hash=async s=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)));
@@ -137,6 +144,7 @@ async function handle(request,env,upstream=fetch) {
     stage='schema';
     if(kind==='summary')output=summary(data);
     else if(kind==='positions'){if(!Array.isArray(data))throw new Error('schema');output=data.map(position);}
+    else if(kind==='orders-pending'){if(!Array.isArray(data))throw new Error('schema');output=data.map(pendingOrder);}
     else {if(!Array.isArray(data.items))throw new Error('schema');output={items:data.items.map(item=>historyItem(item,kind)),nextCursor:nextCursor(data.nextPagePath,ROUTES[kind],base)};}
     return reply({source:'Trading 212',environment,fetchedAt:new Date().toISOString(),data:output});
   }catch(error){
@@ -506,7 +514,26 @@ function monitorRules({scope,positions,summary,notes={},previous=null,now=Date.n
  if(previous?.scope===scope&&Array.isArray(previous.positions)){const old=new Map(previous.positions.map(p=>[p.ticker,p]));for(const p of current){const before=old.get(p.ticker);if(!before)add('position-added:'+p.ticker,'change',p.ticker,'Poziție nouă față de verificarea precedentă.');else if(before.quantity!==p.quantity)add('quantity:'+p.ticker+':'+p.quantity,'change',p.ticker,'Cantitate schimbată: '+before.quantity+' → '+p.quantity+'.');old.delete(p.ticker);}for(const p of old.values())add('position-removed:'+p.ticker,'change',p.ticker,'Poziția nu mai apare în lista completă raportată de broker.');}
  return {scope,checkedAt:now,summary:{currency:summary.currency,totalValue:summary.totalValue},positions:current.map(p=>({ticker:p.ticker,quantity:p.quantity,currentPrice:p.currentPrice,instrumentCurrency:p.instrumentCurrency})),coverage,alerts};
 }
-function empty(){return {version:1,enabled:false,scope:null,startedAt:null,lastAttempt:null,lastChecked:null,lastError:null,report:null,events:[],activeKeys:[]};}
+// 20.10.2026 (I-734): fișa de risc a zilei — la prima rulare după închiderea SUA (16:05 New York, luni–vineri), o dată pe zi NY, din cifrele pe care
+// monitorul le are deja: căldura (riscul până la stopurile documentate / cont), cea mai mare poziție, pozițiile fără stop, scăderea de la vârful
+// observațiilor zilnice (dacă istoricul contului e sincronizat), raportările din 7 zile. Nimic nou de decis; inbox + Discord dacă e webhook.
+const F_ZI=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}),F_ORA=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+function dupaInchidere(now=Date.now()){try{const p=Object.fromEntries(F_ORA.formatToParts(new Date(now)).map(q=>[q.type,q.value]));return !['Sat','Sun'].includes(p.weekday)&&Number(p.hour)*60+Number(p.minute)>=965;}catch{return false;}}
+function fisaZilei({scope,summary,positions=[],notes={},istoric=null,now=Date.now()}={}){
+ const c=summary?.currency,total=finite(summary?.totalValue)&&summary.totalValue>0?summary.totalValue:null,n1=v=>finite(v)?(Math.round(v*10)/10).toLocaleString('ro-RO',{minimumFractionDigits:1,maximumFractionDigits:1}):'—',sym=t=>String(t).replace(/_[A-Z]{2}_EQ$/,'');
+ const cur=(Array.isArray(positions)?positions:[]).filter(p=>p&&typeof p.ticker==='string'&&finite(p.quantity)&&p.quantity>0),faraStop=[],conc=[];let risc=0,riscOk=true;
+ for(const p of cur){const n=notes[scope+'|'+p.ticker]||{},rate=p.currency===c&&finite(p.value)&&p.value>0&&finite(p.currentPrice)&&p.currentPrice>0?p.value/(p.quantity*p.currentPrice):null,stop=finite(n.stop)&&n.stop>0&&n.stopCurrency===p.instrumentCurrency?n.stop:null;
+  if(!stop)faraStop.push(p.ticker);else if(rate==null)riscOk=false;else if(p.currentPrice>stop)risc+=(p.currentPrice-stop)*p.quantity*rate;
+  if(total&&p.currency===c&&finite(p.value))conc.push({t:p.ticker,pct:p.value/total*100});}
+ conc.sort((a,b)=>b.pct-a.pct);
+ const varf=(Array.isArray(istoric)?istoric:[]).filter(x=>x&&finite(x.total)&&x.currency===c&&finite(Date.parse(x.at))&&Date.parse(x.at)<=now).reduce((m,x)=>Math.max(m,x.total),-Infinity),dd=total&&varf>0?Math.max(0,(1-total/varf)*100):null;
+ const zi=F_ZI.format(new Date(now)),rap=[];
+ for(const p of cur){const e=(notes[scope+'|'+p.ticker]||{}).earnings;if(typeof e==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(e)){const d=(Date.parse(e+'T12:00:00Z')-Date.parse(zi+'T12:00:00Z'))/86400000;if(d>=0&&d<=7)rap.push(sym(p.ticker)+' ('+e.slice(8,10)+'.'+e.slice(5,7)+')');}}
+ const caldura=faraStop.length||!riscOk?null:risc,caldPct=caldura!=null&&total?caldura/total*100:null;
+ const text='Fișa zilei '+zi.slice(8,10)+'.'+zi.slice(5,7)+' · cont '+(total?n1(total)+' '+c:'—')+' · '+cur.length+(cur.length===1?' poziție':' poziții')+' · căldura până la stopuri '+(caldura==null?'NECUNOSCUTĂ ('+(faraStop.length?faraStop.length+' fără stop':'curs neverificat')+')':n1(caldura)+' '+c+(caldPct!=null?' = '+n1(caldPct)+' % din cont':''))+' · cea mai mare poziție '+(conc[0]?sym(conc[0].t)+' '+n1(conc[0].pct)+' %':'—')+' · fără stop documentat: '+(faraStop.length?faraStop.map(sym).join(', '):'niciuna')+' · scăderea de la vârf '+(dd!=null?n1(dd)+' %':'— (istoricul contului nesincronizat)')+' · raportări în 7 zile: '+(rap.length?rap.join(', '):'niciuna')+'.';
+ return {zi,text,total,currency:c||null,pozitii:cur.length,caldura,caldPct,faraStop,concentrare:conc[0]||null,dd,raportari:rap};
+}
+function empty(){return {version:1,enabled:false,scope:null,startedAt:null,lastAttempt:null,lastChecked:null,lastError:null,report:null,events:[],activeKeys:[],fisaZi:null};}
 async function read(db,subject,key,env,unseal){const row=await db.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=? AND key=?').bind(subject,key).first();return row?{...row,value:await unseal(row.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+key+'|'+row.revision)}:null;}
 async function write(db,subject,key,value,revision,env,seal,now){const next=revision+1,packet=await seal(value,env.CLOUD_ENCRYPTION_KEY,subject+'|'+key+'|'+next),seconds=Math.floor(now/1000);const result=revision?await db.prepare('UPDATE cloud_records SET revision=?,packet=?,updated=? WHERE subject=? AND key=? AND revision=?').bind(next,packet,seconds,subject,key,revision).run():await db.prepare('INSERT OR IGNORE INTO cloud_records(subject,key,revision,packet,updated) VALUES(?,?,?,?,?)').bind(subject,key,next,packet,seconds).run();return result.meta.changes===1?next:null;}
 async function schedulerStatus(env){let at=null;if(env.CLOUD_DB)try{const r=await env.CLOUD_DB.prepare('SELECT updated FROM cloud_records WHERE subject=? AND key=?').bind('__monitor_service__',HEARTBEAT_KEY).first();if(r)at=r.updated*1000;}catch{}return {protocol:'tt-account-monitor-v1',intervalSeconds:300,notification:'inbox',schedulerAt:at,schedulerFresh:finite(at)&&at<=Date.now()+60000&&Date.now()-at<900000};}
@@ -522,7 +549,12 @@ async function runOne(subject,env,deps,upstream,now){
   const headers={Origin:ORIGIN,Authorization:'Basic '+btoa(credentials.key+':'+credentials.secret),'X-T212-Environment':'live'},responses=await Promise.all(['summary','positions'].map(kind=>brokerHandle(new Request('https://monitor/api/trading212/'+kind,{headers}),{...env,T212_AUTH_MODE:'session'},upstream))),payload=[];
   for(const response of responses){const b=await response.json();if(!response.ok)throw Error(['rate_limited','broker_credentials_invalid','broker_permission_missing','broker_timeout'].includes(b.error)?b.error:'monitor_broker_unavailable');if(b.source!=='Trading 212'||b.environment!=='live'||!finite(Date.parse(b.fetchedAt))||Math.abs(Date.parse(b.fetchedAt)-now)>300000)throw Error('monitor_schema_invalid');payload.push(b.data);}
   const notes=(await read(db,subject,'tt_holdings_theses_v1',env,unseal))?.value||{},report=monitorRules({scope:state.scope,summary:payload[0],positions:payload[1],notes,previous:state.report,now}),active=new Set(state.activeKeys||[]),newEvents=report.alerts.filter(a=>!active.has(a.key)).map(a=>({...a,id:now+':'+a.key}));
-  state={...state,lastChecked:now,lastError:null,report,activeKeys:report.alerts.map(a=>a.key),events:[...newEvents,...(state.events||[])].slice(0,200)};
+  // I-734: fișa zilei — o dată pe zi NY, la prima rulare după închidere
+  const ziNY=F_ZI.format(new Date(now));let fisa=null;
+  if(dupaInchidere(now)&&state.fisaZi!==ziNY){let istoric=null;try{const h=(await read(db,subject,'tt_trading212_account_history_v1',env,unseal))?.value;istoric=h&&Array.isArray(h[state.scope])?h[state.scope]:null;}catch{istoric=null;}fisa=fisaZilei({scope:state.scope,summary:payload[0],positions:payload[1],notes,istoric,now});}
+  const fisaEvents=fisa?[{id:now+':fisa:'+ziNY,key:'fisa:'+ziNY,type:'fisa',ticker:'Fișa zilei',text:fisa.text,at:now}]:[];
+  state={...state,lastChecked:now,lastError:null,report,activeKeys:report.alerts.map(a=>a.key),events:[...newEvents,...fisaEvents,...(state.events||[])].slice(0,200),...(fisa?{fisaZi:ziNY}:{})};
+  if(fisa&&typeof env.DISCORD_WEBHOOK==='string'&&/^https:\/\/(discord\.com|discordapp\.com)\/api\/webhooks\//.test(env.DISCORD_WEBHOOK))try{await upstream(env.DISCORD_WEBHOOK,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({content:'🧾 '+fisa.text})});}catch{}
  }catch(e){const allowed=['monitor_credentials_missing','monitor_account_changed','monitor_schema_invalid','rate_limited','broker_credentials_invalid','broker_permission_missing','broker_timeout','monitor_broker_unavailable'],code=allowed.includes(e.message)?e.message:'monitor_broker_unavailable',key='error:'+code,event={id:now+':'+key,key,type:'error',ticker:null,text:code,at:now};state={...state,lastError:{code,at:now},activeKeys:[key],events:[...(state.activeKeys?.includes(key)?[]:[event]),...(state.events||[])].slice(0,200)};}
  const saved=await write(db,subject,MONITOR_KEY,state,locked,env,seal,now);if(saved&&state.events[0]&&now-state.events[0].at<=600000)try{await deliverPush(subject,state.events[0],env,deps,upstream,now);}catch{}return (await read(db,subject,MONITOR_KEY,env,unseal))?.value||empty();
 }
@@ -544,7 +576,7 @@ async function runMonitors(env,deps,upstream=fetch,now=Date.now()){
  const heartbeat=await read(db,'__monitor_service__',HEARTBEAT_KEY,env,deps.unseal);await write(db,'__monitor_service__',HEARTBEAT_KEY,{at:now,checked,failed},heartbeat?.revision||0,env,deps.seal,now);return {checked,failed};
 }
 
-return {MONITOR_KEY,HEARTBEAT_KEY,monitorScope,monitorRules,schedulerStatus,handleMonitor,runMonitors};
+return {MONITOR_KEY,HEARTBEAT_KEY,monitorScope,monitorRules,dupaInchidere,fisaZilei,schedulerStatus,handleMonitor,runMonitors};
 })();
 const TTCloudWorker=(()=>{
 const {KEYS,validateValue,ForecastCloud,FillsCloud}=TTCloudModel;const {handle:brokerHandle}=TTBrokerRelay;const {handleMonitor,runMonitors,schedulerStatus}=TTCloudMonitor;const {handlePush,pushReceipt}=TTCloudPush;const {handleAudit}=TTCloudAudit;
@@ -556,7 +588,9 @@ const PROTOCOL='tt-cloud-sync-v1';
 async function readiness(env){
  const checks={database:!!env.CLOUD_DB,google:/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(env.GOOGLE_CLIENT_ID||''),encryption:/^[A-Za-z0-9_-]{43}$/.test(env.CLOUD_ENCRYPTION_KEY||''),schema:false};
  if(checks.database)try{await env.CLOUD_DB.prepare('SELECT s.hash,s.subject,s.email,s.expires,c.nonce,c.expires,r.subject,r.key,r.revision,r.packet,r.updated,l.key,l.bucket,l.count FROM cloud_sessions s,cloud_challenges c,cloud_records r,cloud_limits l WHERE 0').first();checks.schema=true;}catch{}
- const enabled=Object.values(checks).every(v=>v===true);return {enabled,protocol:PROTOCOL,clientId:enabled?env.GOOGLE_CLIENT_ID:null,checks,supportedKeys:KEYS,records:{protocol:'tt-cloud-records-v2',maxKeys:1},monitor:await schedulerStatus(env),push:{protocol:'tt-web-push-v1',available:enabled},audit:{protocol:'tt-audit-v1',available:enabled}};
+ const enabled=Object.values(checks).every(v=>v===true);
+ // 20.10.2026 (I-733): dacă lipsește GOOGLE_ALLOWED_SUB orice cont Google poate folosi workerul ca stocare; starea (nu valoarea) e la vedere ca să se poată verifica
+ return {enabled,protocol:PROTOCOL,clientId:enabled?env.GOOGLE_CLIENT_ID:null,checks,allowlist:/^\d{1,128}$/.test(env.GOOGLE_ALLOWED_SUB||''),supportedKeys:KEYS,records:{protocol:'tt-cloud-records-v2',maxKeys:1},monitor:await schedulerStatus(env),push:{protocol:'tt-web-push-v1',available:enabled},audit:{protocol:'tt-audit-v1',available:enabled}};
 }
 const hash=async s=>b64(await crypto.subtle.digest('SHA-256',E.encode(s)));
 async function seal(value,secret,aad){const raw=bytes(secret);if(raw.length!==32)throw Error('encryption_key_invalid');const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt']),iv=crypto.getRandomValues(new Uint8Array(12));return JSON.stringify({v:1,iv:b64(iv),cipher:b64(await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:E.encode(aad)},key,E.encode(JSON.stringify(value))))});}

@@ -28,11 +28,11 @@ jobs:
       group: trading-tools-breadth-eod-v2
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: main
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
       - run: python -m unittest discover -s tools/market-breadth -p 'test_*.py'
@@ -67,3 +67,11 @@ jobs:
             git pull --rebase origin main
             git push origin HEAD:main
           fi
+      # 20.10.2026 (I-733): robotul Breadth nu mai cade tăcut — Discord la eșec, ca ceilalți roboți
+      - name: Discord la eșec
+        if: failure()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          [ -n "$DISCORD_WEBHOOK" ] || exit 0
+          node -e "fetch(process.env.DISCORD_WEBHOOK,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({content:'**Robotul Market Breadth (EOD) a PICAT** · '+process.argv[1]+'\nAstăzi și Planuri rămân pe ultima lățime publicată.'})}).then(r=>console.log('Discord: '+r.status)).catch(e=>console.log('Discord: '+e.message))" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

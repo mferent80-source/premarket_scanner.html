@@ -1,0 +1,77 @@
+name: Suita de teste
+
+# 20.10.2026 (I-724): poarta de teste la publicare. GitHub Pages publică din `main` la fiecare push, fără nicio verificare (build „legacy”);
+# aici rulează SUITA ÎNTREAGĂ (node:test pe tools/*.test.mjs + unittest Python) la fiecare push, scrie starea în health/generated/suita.json
+# (Health o arată lângă versiune) și anunță pe Discord la roșu, cu testele picate. Nu poate OPRI publicarea; poate spune în câteva minute
+# că ce s-a publicat are un test picat. Commiturile roboților au [skip ci] și nu intră; datele generate sunt excluse din declanșare.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/generated/**'
+      - 'market-breadth/data/**'
+      - 'tools/alerts.json'
+      - 'europe-stocks/calendar.json'
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: suita-de-teste
+  cancel-in-progress: true
+
+jobs:
+  suita:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Suita Node (node:test, tools/*.test.mjs)
+        id: node
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node --test tools/*.test.mjs 2>&1 | tee suita-node.log
+      - name: Suita Python (unittest, tools/test_*.py)
+        id: python
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          python -m unittest discover -s tools -p 'test_*.py' 2>&1 | tee suita-python.log
+      - name: Starea suitei (health/generated/suita.json)
+        run: |
+          mkdir -p health/generated
+          node tools/suita-stare.mjs suita-node.log suita-python.log "${{ steps.node.outcome }}" "${{ steps.python.outcome }}" "${{ github.sha }}" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" > health/generated/suita.json
+          cat health/generated/suita.json
+      - name: Publică starea
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add health/generated/suita.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data(teste): starea suitei la ultimul push [skip ci]'
+            ok=0; for i in 1 2 3; do if git pull --rebase origin main && git push origin HEAD:main; then ok=1; break; fi; git rebase --abort 2>/dev/null || true; sleep 10; done
+            [ "$ok" = 1 ] || echo 'Push eșuat de 3 ori: starea suitei NU e publicată (rezultatul testelor rămâne în jurnalul rulării).'
+          fi
+      - name: Discord la roșu
+        if: steps.node.outcome == 'failure' || steps.python.outcome == 'failure'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          [ -n "$DISCORD_WEBHOOK" ] || exit 0
+          node -e "const s=JSON.parse(require('fs').readFileSync('health/generated/suita.json','utf8'));const p=(s.node.picate||[]).slice(0,10).map(x=>'• '+x).join('\n');const m={content:'**Suita de teste a PICAT** după push · commit '+String(s.commit).slice(0,8)+' ('+process.argv[1]+')\nNode: '+s.node.pass+' / '+s.node.tests+' trecute, '+s.node.fail+' picate · Python: '+(s.python.ok?'ok':'PICAT')+'\n'+p+'\n'+process.argv[2]+'\nSite-ul e deja publicat cu acest commit — verifică înainte să te bazezi pe el.'};fetch(process.env.DISCORD_WEBHOOK,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(m)}).then(r=>console.log('Discord: '+r.status)).catch(e=>console.log('Discord: '+e.message))" "${{ github.actor }}" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      - name: Verdictul rulării
+        if: steps.node.outcome == 'failure' || steps.python.outcome == 'failure'
+        run: |
+          echo 'Suita are teste picate (vezi pașii de mai sus).'
+          exit 1

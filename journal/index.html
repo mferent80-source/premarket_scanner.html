@@ -354,6 +354,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <button class="btn ghost" id="btnAcctSnap" type="button" title="Copiază ultimul snapshot Trade212 din secțiunea Capital">📈 Preia din snapshot</button>
       <button class="btn ghost" id="btnTgTest" type="button">📲 Test Telegram</button>
     </div>
+    <details id="gvLimiteJurnal" style="margin-top:8px"><summary>Jurnalul schimbărilor de limite · <span id="gvLimiteN">0</span></summary><ol id="gvLimiteLista" style="margin:6px 0 0;padding-left:18px;font-size:12px"></ol><p class="muted" style="margin:6px 0 0;font-size:12px">Limitele sunt un document (docs/politica-de-risc.md); orice schimbare rămâne scrisă: ora, aparatul, de la → la (I-728, 20.10.2026).</p></details>
     <p class="note">Frână disciplinară — nu blochează brokerul. Cont $ = fallback manual; tab <a href="#capital" data-jtab-link="capital" style="color:var(--accent)">Capital</a> → drill-down reconciliere.</p>
     <details style="margin-top:12px;border-top:1px solid var(--b1);padding-top:10px">
       <summary style="cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--t2)">📉 Alerte DD · Notificări · Raport săptămânal</summary>
@@ -651,6 +652,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <div class="panel">
   <h2>📋 Poziții deschise — risc agregat (jurnal manual)</h2>
   <div id="jrPfTblWrap"><div class="empty">Deschide tab-ul sau apasă Scan — citesc OPEN din journal + prețuri live.</div></div>
+  <div id="jrPfStres" style="margin-top:12px"><h3>Stresul istoric</h3><p class="muted">Apare după „Scan poziții”: cele mai proaste 5 săptămâni ale SPY din 10 ani × beta portofoliului de acum, față de bugetul săptămânii și plafonul DD (I-730).</p></div>
 </div>
 
 <div class="panel" id="jrPfConc" style="display:none">
@@ -692,7 +694,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/indicators.js?v=plans-audit"></script>
 <script src="../lib/setup-levels.js?v=26.10.04.0102"></script>
 <script src="../lib/setup-builder.js?v=26.10.19.1845"></script>
-<script src="../lib/portfolio-risk.js?v=26.10.18.1400"></script>
+<script src="../lib/stres-istoric.js?v=26.10.20.0001"></script><script src="../lib/portfolio-risk.js?v=26.10.18.1400"></script>
 <script src="../lib/journal-workspace.js?v=26.10.18.1100"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
@@ -1372,6 +1374,8 @@ function loadGovCfg(){
   $('cDdOn').checked = c.ddRollingOn !== false;
   $('cTg').checked = !!c.tgOnHalt;
   if ($('cTgRisk')) $('cTgRisk').checked = c.tgOnRiskHalt !== false;
+  // 20.10.2026 (I-728): ultimele 10 schimbări de limite (append-only, GV.limiteJurnal)
+  try { const j = GV.limiteJurnal ? GV.limiteJurnal() : [], L = $('gvLimiteLista'), N = $('gvLimiteN'); if (N) N.textContent = j.length; if (L) L.innerHTML = j.slice(-10).reverse().map(x => '<li>' + new Date(x.ts).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' · ' + String(x.aparat || '').replace(/[<>&]/g, '') + ' · <b>' + String(x.cheia).replace(/[<>&]/g, '') + '</b>: ' + String(x.de).replace(/[<>&]/g, '') + ' → ' + String(x.la).replace(/[<>&]/g, '') + '</li>').join('') || '<li>Nicio schimbare notată încă (de la 20.10.2026).</li>'; } catch (e) {}
 }
 $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
   const acct = +$('cAcct').value;
