@@ -17,7 +17,7 @@ test('fișa: căldura din stopurile documentate, cea mai mare poziție, fără s
   assert.equal(f.zi, '2026-10-20'); assert.equal(f.pozitii, 3); assert.deepEqual(f.faraStop, ['NVDA_US_EQ']);
   assert.equal(f.caldura, null, 'o poziție fără stop ⇒ căldura NECUNOSCUTĂ, nu suma celorlalte'); assert.match(f.text, /căldura până la stopuri NECUNOSCUTĂ \(1 fără stop\)/);
   assert.equal(f.concentrare.t, 'MU_US_EQ'); assert.ok(Math.abs(f.dd - (1 - 10000 / 11000) * 100) < 1e-9); assert.deepEqual(f.raportari, ['MU (23.10)']);
-  assert.match(f.text, /^Fișa zilei 20\.10 · cont 10.000,0 EUR · 3 poziții/); assert.match(f.text, /fără stop documentat: NVDA/); assert.match(f.text, /scăderea de la vârf 9,1 %/); assert.match(f.text, /raportări în 7 zile: MU \(23\.10\)\./);
+  assert.match(f.text, /^Fișa zilei 20\.10 · cont 10.000,0 EUR · 3 poziții/); assert.match(f.text, /fără stop documentat: NVDA/); assert.match(f.text, /scăderea de la vârful observațiilor 9,1 % \(fără ajustare la depuneri \/ retrageri\)/); assert.match(f.text, /raportări în 7 zile: MU \(23\.10\)\./);
 });
 test('fișa cu toate stopurile puse: căldura = Σ (preț − stop) × cantitate × curs, în moneda contului; fără istoric ⇒ spus', () => {
   const n2 = { ...notes, [scope + '|NVDA_US_EQ']: { stop: 45, stopCurrency: 'USD' } }, f = fisaZilei({ scope, summary, positions, notes: n2, istoric: null, now: NOW });
