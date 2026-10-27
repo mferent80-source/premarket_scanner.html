@@ -107,3 +107,15 @@ body.cap-journal .jrv-head,body.cap-journal #jrrRaport header{position:static!im
 /* 27.10.2026 (I-761): tiparele de comportament și Tiltmeter-ul — notele zilei pe un rând, regula tiparului se rupe pe rânduri */
 .jrr-tilt{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:6px 0 10px}.jrr-tilt select{margin-left:4px}
 #jrrRaport .jrr-tab td.l small{white-space:normal;color:var(--t3)}
+/* 27.10.2026 (I-763): heatmap-ul zi × oră — divergent din token-uri (--jrr-gain / --jrr-loss, mijloc --jrr-mid; validate dataviz în ambele moduri),
+   intensitatea în --a, valoarea scrisă în celulă (tabelul e și vederea accesibilă), liniuță pe pierderi (nu doar culoarea), 2px spațiu între celule */
+.jrr-hm{border-collapse:separate;border-spacing:2px;font-size:12px;font-variant-numeric:tabular-nums;min-width:640px}
+.jrr-hm th{font-weight:600;color:var(--t3);font-size:11px;padding:4px 6px;text-align:center}.jrr-hm th[scope=row]{text-align:left}
+.jrr-hm td{position:relative;padding:6px 6px 8px;border-radius:4px;text-align:center;color:var(--t1);min-width:78px}
+.jrr-hm td b{display:block;font-weight:600}.jrr-hm td small{display:block;color:var(--t1);font-size:10.5px}
+.jrr-hm td.hm-gain{background:color-mix(in srgb,var(--jrr-gain) var(--a),var(--jrr-mid))}
+.jrr-hm td.hm-loss{background:color-mix(in srgb,var(--jrr-loss) var(--a),var(--jrr-mid))}
+.jrr-hm td.hm-loss::after{content:"";position:absolute;left:35%;right:35%;bottom:3px;height:2px;background:var(--panel);opacity:.8}
+.jrr-hm td.hm-gol{background:var(--jrr-mid);color:var(--t3)}
+.jrr-hm td:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.jrr-leg .k-mid{background:var(--jrr-mid)}

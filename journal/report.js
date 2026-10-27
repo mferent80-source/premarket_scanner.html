@@ -61,6 +61,36 @@
     JM.scrieCache(undefined, cache); maeRuleaza = false;
     maeStare = rau ? rau + ' tranzacții fără bare în fereastră acum (Yahoo / rețea) — încearcă mai târziu.' : 'Calculat.'; desen();
   }
+  /* 27.10.2026 (I-763): etichetele zilei, tranzacțiile ratate (cu ce a făcut prețul în 5 sesiuni după) și heatmap-ul oră × zi (lib/journal-zile.js);
+     etichetele și ratatele stau în setările sincronizate ale Jurnalului (zile, ratate) */
+  const JZ = window.JournalZile;
+  let zileMsg = ''; const ratateDupa = new Map(), ratateCerute = new Set();
+  const setariJ = () => (ML ? ML.setari() : {});
+  function citesteCampuri(sel, cheie) { const o = {}; host.querySelectorAll(sel).forEach((s) => { o[s.dataset[cheie]] = s.value; }); return o; }
+  function salveazaZi(zi) {
+    if (!JZ || !ML || !/^\d{4}-\d{2}-\d{2}$/.test(zi || '')) return;
+    const o = citesteCampuri('[data-jrr-zi]', 'jrrZi'), v = JZ.valideazaZi(o);
+    if (!v.ok) { zileMsg = v.erori.join(' '); desen(); return; }
+    ML.scrie(JZ.cuZi(setariJ(), zi, o)); zileMsg = 'Ziua ' + zi + ' e etichetată.'; desen();
+  }
+  function adaugaRatata() {
+    if (!JZ || !ML) return;
+    const x = citesteCampuri('[data-jrr-rat]', 'jrrRat'), r = JZ.adaugaRatata(setariJ(), x, Date.now());
+    if (!r.ok) { zileMsg = r.erori.join(' '); desen(); return; }
+    ML.scrie({ ratate: r.ratate }); zileMsg = 'Notată: ' + String(x.simbol || '').trim().toUpperCase() + '.'; desen(); ratateBare();
+  }
+  function stergeRatata(id) { if (!ML) return; ML.scrie({ ratate: (setariJ().ratate || []).filter((r) => r && r.id !== id) }); desen(); }
+  async function ratateBare() {
+    const fetchStock = window.D?.fetchStock; if (!JZ || typeof fetchStock !== 'function') return;
+    const lista = (Array.isArray(setariJ().ratate) ? setariJ().ratate : []).filter((r) => r && r.id && !ratateDupa.has(r.id) && !ratateCerute.has(r.id)).slice(-20);
+    if (!lista.length) return;
+    const pe = new Map(); for (const r of lista) { ratateCerute.add(r.id); if (!pe.has(r.simbol)) pe.set(r.simbol, []); pe.get(r.simbol).push(r); }
+    for (const [s, rs] of pe) {
+      try { const b = await fetchStock(s.replace('.', '-'), { range: '1y', interval: '1d', ttl: 21600 }); for (const r of rs) ratateDupa.set(r.id, JZ.dupaRatata(r, b) || { pending: true }); }
+      catch (_) { for (const r of rs) ratateDupa.set(r.id, { eroare: true }); }
+    }
+    desen();
+  }
   function desen() {
     const baseTr = filtrate();
     det = JC && baza ? JC.detectoare(baseTr, baza.fills || [], { now: Date.now() }) : null;
@@ -68,8 +98,10 @@
     const tr = deAfisat(baseTr), azi = aziNY(), note = noteTilt();
     const comportamentHtml = det ? JC.html(det, JC.tilt(baza?.rows || [], note, { now: Date.now() }), { activ: st.detector, azi, notaAzi: note[azi] }) + (tiltMsg ? '<p class="jrr-nota" role="status">' + tiltMsg.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) + '</p>' : '') : '';
     const maeCache = JM ? JM.citesteCache() : {}, maeHtml = JM ? JM.html(tr, maeCache, { eligibile: maeRuleaza ? 0 : tr.filter((x) => !maeCache[x.id] && JM.eligibil(x, Date.now()).ok).length, stare: maeStare }) : '';
+    const sj = setariJ(), zileHtml = JZ ? JZ.htmlZile({ azi, zile: sj.zile, ratate: sj.ratate, dupa: ratateDupa, agregat: JZ.peEticheteZi(baseTr, sj.zile), moneda: baza?.moneda, mesaj: zileMsg }) : '';
+    const heatmapHtml = JZ ? JZ.htmlHeatmap(JZ.heatmap(tr), baza?.moneda) : '';
     const filtruDet = st.detector && det ? ' Filtru activ: ' + det[st.detector].titlu + ' (' + tr.length + ' tranzacții) — „Arată toate” în „Tiparele tale de comportament”.' : '';
-    host.innerHTML = J.render({ tr, toate: baza?.rows || [], moneda: baza?.moneda, perioada: st.perioada, ticker: st.ticker, tickere: baza ? [...new Set(baza.rows.map((x) => x.ticker))].sort() : [], comportamentHtml, maeHtml,
+    host.innerHTML = J.render({ tr, toate: baza?.rows || [], moneda: baza?.moneda, perioada: st.perioada, ticker: st.ticker, tickere: baza ? [...new Set(baza.rows.map((x) => x.ticker))].sort() : [], comportamentHtml, maeHtml, zileHtml, heatmapHtml,
       ex, exStare, spy, spyEsuat, limita: limita(), stare: stare + filtruDet, faraCumparare: baza?.faraCumparare || 0, alteMonede: baza?.alteMonede || 0, partiale: baza?.partiale || 0, corporative: baza?.corporative || 0,
       rows: baza?.fills || [], jurnal: (window.GV && typeof GV.jurnal === 'function') ? GV.jurnal() : [], analize: baza?.analizeToate || [], plans: planuriShadow(), gov: (window.GV && typeof GV.cfg === 'function') ? GV.cfg() : null, cont: contValoare(baza?.moneda),
       toateRandurile: st.toateRandurile, editez: st.editez, now: Date.now() });
@@ -87,6 +119,10 @@
     if (dt) { st.detector = st.detector === dt.dataset.jrrDet ? null : dt.dataset.jrrDet; desen(); return; }
     if (ts) { salveazaTilt(ts.dataset.jrrTiltSalveaza); return; }
     if (ev.target.closest('[data-jrr-mae]')) { maeCalculeaza(); return; } // I-762
+    const zs = ev.target.closest('[data-jrr-zi-salveaza]'), ra = ev.target.closest('[data-jrr-rat-adauga]'), rs = ev.target.closest('[data-jrr-rat-sterge]'); // I-763
+    if (zs) { salveazaZi(zs.dataset.jrrZiSalveaza); return; }
+    if (ra) { adaugaRatata(); return; }
+    if (rs) { stergeRatata(rs.dataset.jrrRatSterge); return; }
     if (p) { st.perioada = Number(p.dataset.jrrPer); try { localStorage.setItem(K_ST, JSON.stringify({ perioada: st.perioada })); } catch (_) { /* doar preferință */ } desen(); barele(); return; }
     if (t) { st.ticker = t.dataset.jrrTk; desen(); host.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (et) { puneEticheta(et.dataset.jrrId, et.dataset.jrrEt); desen(); host.querySelector(`[data-jrr-et="${et.dataset.jrrEt}"][data-jrr-id="${CSS.escape(et.dataset.jrrId)}"]`)?.focus(); return; }
@@ -140,7 +176,7 @@
     stare = report.state === 'partial' ? 'Istoricul importat e parțial: o parte din execuții lipsesc sau au fost respinse.' : report.state === 'error' ? (report.reason || '') : '';
     if (report.state === 'missing') stare = report.reason || '';
     if (!curs) stare += (stare ? ' ' : '') + 'Cursul BNR nu e încă publicat de robot: mărimea pozițiilor apare după prima rulare.';
-    desen(); barele();
+    desen(); barele(); ratateBare(); // I-763: ce a făcut prețul după tranzacțiile ratate
   }
   // 19.10.2026 (perf): raportul (SPY 5 ani + până la 40 de simboluri unul după altul + bootstrap) se calcula la fiecare deschidere a
   // Jurnalului, pe orice filă, și cu pagina parcată în aplicație. Acum: complet doar cu fila Raport deschisă și pagina pe ecran; altfel

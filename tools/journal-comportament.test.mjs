@@ -62,3 +62,16 @@ test('panoul: fiecare detector cu regula, n, R cu o zecimală, trendul și buton
   assert.match(html, /data-jrr-tilt="somn"/); assert.match(html, /convenții/);
   assert.doesNotMatch(html, /−1,50/, 'o singură zecimală');
 });
+
+test('poza de probă: o medie care se rotunjește la zero nu are semn („0,0 R”, nu „−0,0 R”); o notă fără zile spune „fără zile”', () => {
+  const d = K.detectoare(tr.map((x) => ({ ...x, R: x.id === 'sa' ? -0.03 : x.R })), rows, { now: NOW });
+  const html = K.html({ ...d, lista: [{ ...d.frig, R: -0.03, restR: 0.02 }] }, K.tilt(tr, { '2026-10-19': { somn: 2, concentrare: 3, stres: 4 } }, { now: NOW }), {});
+  assert.doesNotMatch(html, /−0,0/); assert.match(html, /0,0 R/);
+  assert.match(html, /Concentrare: slabă \(1–2\) — fără zile/); assert.doesNotMatch(html, /— —/);
+});
+
+test('poza de probă: „0,0 R” nu e colorat ca pierdere; butonul unui tipar fără cazuri e dezactivat', () => {
+  const d = K.detectoare(tr, rows, { now: NOW });
+  const html = K.html({ ...d, lista: [{ ...d.frig, R: -0.03 }, { ...d.revenge, n: 0, ids: [] }] }, K.tilt(tr, {}, { now: NOW }), {});
+  assert.doesNotMatch(html, /class="neg">0,0 R/); assert.match(html, /data-jrr-det="revenge" aria-pressed="false" disabled/);
+});

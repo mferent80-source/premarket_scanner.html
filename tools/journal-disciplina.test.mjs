@@ -84,3 +84,16 @@ test('render: secțiunile Disciplina și Alunecarea apar cu datele din model; f�
   const fara = R.render({ tr, toate: tr, moneda: 'EUR', perioada: 0, ticker: '', tickere: [], ex: new Map(), rows: [], jurnal: [], analize: [], plans: [], now });
   assert.match(fara, /Registrul verdictelor începe la activarea acestei versiuni/);
 });
+
+// 27.10.2026 (I-763, contractul cu lotul D): bifele lui din tichet (plan.bife = [{id, text, da}]) ⇒ „n/m reguli respectate” pe intrările legate de plan
+test('I-763: Raportul citește plan.bife ⇒ „n/m reguli respectate” pe intrările legate de un plan cu bife', () => {
+  const R = J(), cuBife = [{ ...plans[0], bife: [{ id: 'plan', text: 'plan scris', da: true }, { id: 'stop', text: 'stop pus', da: true }, { id: 'nu-dupa-pierdere', text: 'nu după o pierdere', da: false }] }];
+  const rows = [fill('b1', 'BUY', T0 + H), fill('b2', 'BUY', T0 + 4 * H)];
+  const d = R.disciplina(rows, { jurnal, plans: cuBife, now: T0 + 7 * H });
+  assert.deepEqual(JSON.parse(JSON.stringify(d.randuri[0].bife)), { da: 2, total: 3 });
+  assert.equal(d.randuri[1].bife, null, 'intrarea fără plan nu are bife');
+  assert.deepEqual(JSON.parse(JSON.stringify(d.bife)), { intrari: 1, da: 2, total: 3 });
+  const html = R.render({ tr: [{ id: 's', ticker: 'AAPL_US_EQ', sym: 'AAPL', iesire: T0 + 6 * H, intrare: T0 + H, rez: 5, buyIds: ['b1'], moneda: 'EUR' }], moneda: 'EUR', perioada: 0, rows, jurnal, plans: cuBife, now: T0 + 7 * H });
+  assert.match(html, /2\/3 reguli respectate/);
+  const fara = R.disciplina(rows, { jurnal, plans, now: T0 + 7 * H }); assert.deepEqual(JSON.parse(JSON.stringify(fara.bife)), { intrari: 0, da: 0, total: 0 });
+});

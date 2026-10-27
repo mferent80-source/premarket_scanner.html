@@ -69,3 +69,8 @@ test('panoul: butonul „la cerere” cu numărul de eligibile, cifrele cu o zec
   assert.match(html, /\+3,0 R/); assert.match(html, /−0,5 R/); assert.match(html, /se vede doar după/);
   assert.doesNotMatch(html, /3,00/);
 });
+
+test('poza de probă: zero după rotunjire fără semn', () => {
+  const { X } = lume(), r = X.calcul(rand(), bare, '5m');
+  assert.doesNotMatch(X.html([rand()], { s1: { ...r, lasatR: -0.04, maeR: -0.01 } }, { eligibile: 0 }), /−0,0/);
+});
