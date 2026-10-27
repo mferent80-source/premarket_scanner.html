@@ -6,18 +6,20 @@
 #
 #   npx wrangler deploy --config tools/cf-proxy-wrangler.toml --keep-vars
 #
-# ATENTIE, cele doua lucruri care se pot PIERDE la un deploy:
+# ATENTIE la deploy:
 #
-#  1. CRON TRIGGER-ul. Worker-ul loveste la fiecare 5 minute `workflow_dispatch` pe
-#     GitHub, ceea ce PORNESTE verificarea de alerte (GitHub singur nu tine cadenta).
-#     Un deploy fara sectiunea [triggers] de mai jos STERGE cron-ul, iar alertele se
-#     opresc in tacere. Cron-ul exista din 2026-06-14 si e declarat aici ca sa
-#     supravietuiasca fiecarui deploy.
+#  1. FARA CRON (27.10.2026, audit E / I-755). Dispatch-ul la 5 minute spre workflow-ul
+#     „Price Alerts" a fost scos pe 27.09.2026 (manca toata cota lunara de Actions in ~6 zile),
+#     dar sectiunea [triggers] a ramas aici pana azi: urmatorul deploy ar fi REPORNIT 288 de
+#     rulari/zi. Handler-ul `scheduled` a fost retras din cf-worker-proxy.js. Singurul cron
+#     Cloudflare al suitei e monitorul contului, declarat in tools/cloud-sync-wrangler.jsonc.
+#     Testul tools/wrangler-cron.test.mjs pazeste amandoua.
 #
-#  2. VARIABILELE. `--keep-vars` pastreaza ce e setat in dashboard. Secretul
-#     GH_DISPATCH_TOKEN (singurul, la 22.09.2026) e gestionat separat prin
-#     `wrangler secret` si nu se pierde la deploy - dar `--keep-vars` ramane
-#     obligatoriu cat timp configul de aici nu declara [vars].
+#  2. VARIABILELE. `--keep-vars` pastreaza ce e setat in dashboard. Secretele
+#     (JOURNAL_INGEST_SECRET, JOURNAL_GIST_ID, JOURNAL_GIST_TOKEN) sunt gestionate separat
+#     prin `wrangler secret` si nu se pierd la deploy - dar `--keep-vars` ramane
+#     obligatoriu cat timp configul de aici nu declara [vars]. GH_DISPATCH_TOKEN nu mai e folosit
+#     de nimic si poate fi sters din dashboard.
 #
 # `compatibility_date` e EXACT cea cu care ruleaza worker-ul acum (citita din API).
 # Nu o urca fara motiv: schimba comportamentul runtime-ului sub un cod care merge.
@@ -32,6 +34,3 @@ workers_dev = true
 # setarea lipseste din config, ceea ce ar expune URL-uri de preview care pana acum
 # nu existau. Declarat explicit ca sa ramana cum era.
 preview_urls = false
-
-[triggers]
-crons = ["*/5 * * * *"]

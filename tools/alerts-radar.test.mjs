@@ -107,26 +107,28 @@ test('v140: moneda care nu e pe Binance nu se mai cere 30 de minute; botul făr�
 });
 // v135 (el, 29.09: „de ce nu se sincronizează pagina alerts cu GitHub?”): tokenul salvat avea doar dreptul „gist” -> GET merge (repo
 // public), PUT e refuzat (404/403); auto-sync-ul scria doar in consola, deci ultima urcare reusita era din 08.09 si nimeni nu stia
-test('v135: urcarea refuzată spune că tokenul n-are drept de scriere, iar auto-sync-ul eșuat se vede pe ecran (o dată), nu doar în consolă', () => {
-  assert.match(HTML, /if \(p\.status === 401 \|\| p\.status === 403 \|\| p\.status === 404\) throw new Error\('tokenul poate citi, dar nu are voie să scrie/);
+// 27.10.2026 (I-756): urcarea merge prin releu; refuzul are motivul tradus (cheia greșită, releu neconfigurat), iar eșecul auto-sync-ului
+// se vede tot o dată pe ecran.
+test('v135: urcarea refuzată spune motivul, iar auto-sync-ul eșuat se vede pe ecran (o dată), nu doar în consolă', () => {
+  assert.match(HTML, /cheie_gresita: 'cheia releului e greșită — pune-o din nou din ⋯ → 🔑 Cheia releului'/);
   assert.match(HTML, /if \(!_syncAvertizat\) \{ _syncAvertizat = true; toast\('☁️ Alertele NU se mai salvează pe GitHub: ' \+ e\.message, 'error'/);
 });
-// v136 (el, 29.09: „nu găsesc” - tokenul se punea DOAR prin click-dreapta pe ☁️, în meniul ⋯; pe telefon click-dreapta nu există)
-test('v136: meniul ⋯ are butonul vizibil „Pune tokenul GitHub”, care deschide pagina GitHub precompletată și apoi urcă lista', () => {
-  assert.match(HTML, /<button id="ghTokenBtn"[^>]*>🔑<\/button><span class="hm-lbl">Pune tokenul GitHub<\/span>/);
-  assert.match(HTML, /const GH_TOKEN_NOU = 'https:\/\/github\.com\/settings\/personal-access-tokens\/new\?[^']*contents=write/);
+// v136 (el, 29.09: „nu găsesc” - setarea era DOAR prin click-dreapta pe ☁️; pe telefon click-dreapta nu există) — 27.10.2026: butonul
+// vizibil din ⋯ pune acum cheia releului, nu un token GitHub.
+test('v136: meniul ⋯ are butonul vizibil „Cheia releului”, care deschide caseta și apoi urcă lista', () => {
+  assert.match(HTML, /<button id="ghTokenBtn"[^>]*>🔑<\/button><span class="hm-lbl">Cheia releului<\/span>/);
   assert.match(HTML, /\$\('ghTokenBtn'\)\.addEventListener\('click'/);
   assert.doesNotMatch(HTML, /click-dreapta pe ☁️'\)/, 'mesajele de eroare nu mai trimit la click-dreapta');
-  assert.match(HTML, /⋯ → 🔑 Pune tokenul GitHub/);
+  assert.match(HTML, /⋯ → 🔑 Cheia releului/);
 });
 // v137 (el, 29.09: „am făcut dar nu văd caseta”): tokenul se cerea cu prompt() chiar când GitHub se deschidea în altă filă -
 // browserul închide singur dialogul unei file din fundal (prompt -> null). Acum caseta e ÎN pagină și rămâne până la Salvează.
-test('v137: tokenul GitHub se pune într-o casetă din pagină (nu prompt), deschisă de 🔑 și de „+ Token”; Salvează urcă lista', () => {
+test('v137: cheia releului se pune într-o casetă din pagină (nu prompt), deschisă de 🔑 și de „+ Cheie”; Salvează urcă lista', () => {
   assert.match(HTML, /<div id="ghTokBox" class="gh-tok-box" hidden>/);
   assert.match(HTML, /<input id="ghTokInput" type="password"/);
   assert.match(HTML, /<button type="button" id="ghTokSave">Salvează și urcă lista<\/button>/);
   assert.match(HTML, /\.gh-tok-box\[hidden\] *\{ *display: *none/, 'hidden nu e bătut de display din CSS');
-  assert.match(HTML, /\$\('ghTokenBtn'\)\.addEventListener\('click', \(\) => \{[\s\S]{0,120}ghTokArata\(true\)/);
+  assert.match(HTML, /\$\('ghTokenBtn'\)\.addEventListener\('click', \(\) => \{[\s\S]{0,120}ghTokArata\(/);
   assert.match(HTML, /\$\('syncBannerToken'\)\?\.addEventListener\('click', \(\) => \{ ghTokArata\(/);
   const h = HTML.slice(HTML.indexOf("$('ghTokenBtn').addEventListener('click'"), HTML.indexOf("$('ghTokenBtn').addEventListener('click'") + 400);
   assert.doesNotMatch(h, /ghAskToken\(/, '🔑 nu mai folosește prompt()');

@@ -8,7 +8,8 @@
     earlyReversal: {name:'Early Reversal',mode:'reversal',description:'Scădere de cel puțin 20%, stabilizare timpurie și mișcare încă aproape de bază.'}
   };
   // Native-currency screening policy, not exchange rates or a currency conversion.
-  const liquidity = {EUR:3000000,GBP:2500000,CHF:3000000,DKK:22000000,SEK:30000000};
+  // 27.10.2026 (audit E B7): SEK scos — nicio piață SE în listă și nici curs SEK în EuropeFinance (calculatorul ar fi picat pe „Monedă nesuportată”)
+  const liquidity = {EUR:3000000,GBP:2500000,CHF:3000000,DKK:22000000};
   function mean(a) { return a.reduce((s,n)=>s+n,0)/a.length; }
   function pct(a,b) { return a>0 ? (b/a-1)*100 : null; }
   function ret(c,n) { return c.length>n ? pct(c[c.length-1-n],c[c.length-1]) : null; }

@@ -1,7 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════
 // CORS proxy PROPRIU pe Cloudflare Workers — pentru Trading Tools.
-// + CRON TRIGGER: pornește la fix 5 min workflow-ul „Price Alerts" din GitHub
-//   (vezi handler-ul `scheduled` de jos) — GitHub singur nu garantează cadența.
+// 27.10.2026 (audit E, I-755): FĂRĂ cron. Dispatch-ul la 5 minute spre „Price Alerts" a fost scos pe 27.09.2026
+//   (mânca toată cota lunară de Actions în ~6 zile); handler-ul `scheduled` și GH_DISPATCH_TOKEN au fost retrase
+//   de aici, iar `tools/cf-proxy-wrangler.toml` nu mai declară [triggers]. Robotul de știri rulează pe cronul
+//   GitHub (la 2 ore); singurul cron Cloudflare al suitei e monitorul contului din `premarket-scanner-html`.
 //
 // DE CE proxy: proxy-urile free partajate (codetabs/corsproxy/cors.lol) pică sau
 // rate-limitează IP-ul când toată suita trage date. Worker-ul ăsta e doar al
@@ -15,22 +17,6 @@
 //      a suitei (F12 → Console):
 //        localStorage.setItem('tt_custom_proxy', 'https://tt-proxy.<ceva>.workers.dev')
 //      → lib/data.js îl folosește PRIMUL, cu fallback pe lanțul vechi.
-//
-// SETUP CRON ALERTE (5 min REAL, 24/7 — o singură dată):
-//   A. Creează un GitHub token care poate porni workflow-uri:
-//      github.com/settings/personal-access-tokens → Generate new token (fine-grained)
-//        · Resource owner: mferent80-source
-//        · Repository access: Only select repositories → premarket_scanner.html
-//        · Permissions → Actions: Read and write   (ASTA dă voie la workflow_dispatch)
-//      Copiază tokenul (github_pat_...).
-//   B. În worker: Settings → Variables and Secrets → Add → tip „Secret"
-//        Name: GH_DISPATCH_TOKEN   Value: <tokenul de la A>   → Save and deploy
-//   C. În worker: Settings → Triggers → Cron Triggers → Add Cron Trigger
-//        Cron expression: */5 * * * *   → Add   (rulează la fix 5 min, non-stop)
-//   Gata: la fiecare 5 min Cloudflare lovește GitHub → rulează check-alerts.mjs →
-//   Telegram. Cron-ul nativ GitHub rămâne ca fallback (concurrency serializează,
-//   deci nu se dublează alertele). Test: Triggers → lângă cron → „...” poate fi
-//   declanșat manual, sau wrangler: `npx wrangler dev --test-scheduled` + curl /__scheduled.
 //
 // Securitate proxy: acceptă DOAR host-urile din ALLOW (Yahoo + CoinGecko) și DOAR
 // origin-ul GitHub Pages al suitei (sau lipsă origin — ex. test din terminal).
@@ -46,31 +32,6 @@ function isAllowedOrigin(origin) {
   if (origin === ALLOW_ORIGIN) return true;
   // Dev local (Live Server, python -m http.server etc.)
   return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-}
-
-// Repo + workflow care se declanșează din cron (workflow-ul are `workflow_dispatch:`).
-const GH_OWNER = 'mferent80-source';
-const GH_REPO = 'premarket_scanner.html';
-const GH_WORKFLOW = 'price-alerts.yml';
-const GH_REF = 'main';
-
-// Logica de declanșare workflow_dispatch — apelată de handler-ul `scheduled` (cron).
-// Întoarce {status, text} ca să poată fi logat (Workers → Logs / `wrangler tail`).
-async function ghDispatch(env) {
-  if (!env || !env.GH_DISPATCH_TOKEN) return { status: 0, text: 'GH_DISPATCH_TOKEN lipsește din secrets' };
-  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/actions/workflows/${GH_WORKFLOW}/dispatches`;
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${env.GH_DISPATCH_TOKEN}`,
-      'Accept': 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'tt-proxy-cron',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ ref: GH_REF })
-  });
-  return { status: r.status, text: r.status === 204 ? 'OK (204)' : await r.text() };
 }
 
 async function handleJournalIngest(request, env) {
@@ -177,18 +138,5 @@ export default {
     // CORS aparent aleatorie, exact genul de „merge la mine, nu merge la tine" greu de prins.
     headers.set('Vary', 'Origin');
     return new Response(upstream.body, { status: upstream.status, headers });
-  },
-
-  // CRON TRIGGER — rulat de Cloudflare la cadența din „Cron Triggers" (*/5 * * * *).
-  // Lovește GitHub API workflow_dispatch → pornește „Price Alerts" → check-alerts.mjs.
-  // GitHub răspunde 204 la succes; orice altceva e logat (Workers → Logs / `wrangler tail`).
-  async scheduled(event, env, ctx) {
-    try {
-      const res = await ghDispatch(env);
-      if (res.status === 204) console.log('✓ workflow Price Alerts declanșat (204).');
-      else console.log(`⚠ GitHub dispatch HTTP ${res.status}: ${res.text}`);
-    } catch (e) {
-      console.log('⚠ Cron dispatch a eșuat: ' + e.message);
-    }
   }
 };

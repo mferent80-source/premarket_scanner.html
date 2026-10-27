@@ -8,6 +8,18 @@ test('forget invoked during encryption waits for that save and leaves no resurre
  let release,started;const entered=new Promise(r=>started=r),cryptography={getRandomValues:v=>webcrypto.getRandomValues(v),subtle:{generateKey:async(...args)=>{started();await new Promise(r=>release=r);return webcrypto.subtle.generateKey(...args);},encrypt:(...args)=>webcrypto.subtle.encrypt(...args),decrypt:(...args)=>webcrypto.subtle.decrypt(...args)}};
  const {vault}=setup(cryptography),saving=vault.save(payload);await entered;const forgetting=vault.clear();release();await Promise.all([saving,forgetting]);assert.equal(await vault.read(),null);
 });
+// 27.10.2026 (I-764): a doua cheie — cea cu „Orders: Execute” — stă într-o înregistrare separată, DOAR pe aparatul activ: nu intră în codul de transfer
+// pe telefon, se șterge odată cu conexiunea și e citită doar de ordine (stop, kill switch). Cititorii (sincronizare, monitor) rămân pe cheia doar-citire.
+test('cheia cu ordine: înregistrare separată, criptată, niciodată în codul de transfer; „Șterge conexiunea” o șterge și pe ea',async()=>{
+ const {vault,records}=setup(),ordine={key:'ordine-key',secret:'ordine-secret',environment:'live'};
+ assert.equal(await vault.readOrdine(),null);await vault.save(payload);await vault.saveOrdine(ordine);
+ assert.ok(records.has('ordine'));assert.equal(JSON.stringify(records.get('ordine')).includes('ordine-secret'),false);
+ assert.deepEqual(JSON.parse(JSON.stringify(await vault.readOrdine())),ordine);assert.deepEqual(JSON.parse(JSON.stringify(await vault.read())),payload,'conexiunea de citire rămâne neatinsă');
+ const code=await vault.pack('phone-transfer-password');const other=setup().vault;assert.deepEqual(JSON.parse(JSON.stringify(await other.unpack(code,'phone-transfer-password'))),payload);assert.equal(code.includes('ordine'),false);
+ await assert.rejects(vault.saveOrdine({...ordine,environment:'demo'}),/mediu|cont/i,'cheia cu ordine e pentru același cont ca cea de citire');
+ await vault.clearOrdine();assert.equal(await vault.readOrdine(),null);assert.ok(await vault.read());
+ await vault.saveOrdine(ordine);await vault.clear();assert.equal(await vault.read(),null);assert.equal(await vault.readOrdine(),null);
+});
 test('failed vault write cannot block subsequent credential save or forget',async()=>{
  const {vault}=setup();const invalid=vault.save({...payload,key:''}),valid=vault.save(payload);await assert.rejects(invalid,/incompatibil/);await valid;assert.equal((await vault.read()).key,payload.key);await vault.clear();assert.equal(await vault.read(),null);
 });

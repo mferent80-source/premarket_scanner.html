@@ -136,7 +136,7 @@
       +'<p>Calendar rezultate: '+known.length+' / '+EuropeUniverse.stocks.length+' date viitoare disponibile; '+known.filter(x=>x.status==='confirmed').length+' confirmate de sursă, '+known.filter(x=>x.status==='estimated').length+' estimate. Celelalte date sunt necunoscute sau necesită reverificare. Actualizarea publică rulează în zilele lucrătoare; în pagină se reverifică snapshot-ul la o oră.</p>'
       +'<div class="checks-grid"><div><b>Indici de comparație</b><ul>'+state.benchmarks.map(x=>'<li>'+esc(x.name)+' · '+esc(x.index)+' · '+esc(x.asOf||x.reason||'indisponibil')+'</li>').join('')+'</ul></div><div><b>Simboluri excluse</b><ul>'
       +state.failures.map(x=>'<li>'+esc(x.symbol)+' · '+esc(x.reason)+'</li>').join('')+'</ul>'+(state.failures.length?'':'<p>Nicio eroare de date în scanarea curentă.</p>')+'</div></div>'
-      +'<p>Calendarul sărbătorilor nu este confirmat; o serie cu sesiunea așteptată absentă este exclusă. PDF-ul nu precizează bursa de execuție și moneda din Salt Bank; verifică instrumentul după ISIN în aplicația băncii. Lista este o copie consultată la data indicată, nu o verificare în timp real a disponibilității.</p>';
+      +'<p>Sărbătorile vin din calendarul bursier al aplicației (13 piețe; anii marcați „provizoriu” se reverifică); o serie cu sesiunea așteptată absentă este exclusă. PDF-ul nu precizează bursa de execuție și moneda din Salt Bank; verifică instrumentul după ISIN în aplicația băncii. Lista este o copie consultată la data indicată, nu o verificare în timp real a disponibilității.</p>';
   }
   async function readBenchmark(market){
     try{
