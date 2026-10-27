@@ -28,3 +28,12 @@ test('journal search discloses when counts cover only the most recent 5,000 exec
 test('sync never infers a current successful reconciliation from authentication alone',()=>{
  assert.equal(api.cloudStatus({connected:true,ready:true}).kind,'pending');assert.equal(api.cloudStatus({connected:true,ready:true,conflicts:['a'],lastSync:Date.now()}).kind,'conflict');assert.equal(api.cloudStatus({connected:true,ready:true,error:'failed',lastSync:Date.now()}).kind,'error');assert.equal(api.cloudStatus({connected:true,ready:true,lastSync:Date.now()},false).kind,'offline');assert.equal(api.cloudStatus({connected:true,ready:true,lastSync:Date.now(),pending:true}).kind,'pending');assert.match(api.cloudStatus({connected:true,ready:true,lastSync:Date.now()}).label,/^Sincronizat la /);
 });
+// 27.10.2026 (lotul A, audit [3] + I-748): fără rețea starea e „offline”, nu „eroare” — chiar dacă pornirea a lăsat o eroare de rețea în urmă; rețeaua slabă se vede
+test('offline sau fără răspuns de la rețea ⇒ „date locale”, nu „Eroare de sincronizare”; rețeaua slabă se recunoaște',()=>{
+ assert.equal(api.cloudStatus({connected:true,ready:true,error:'network_error'},false).kind,'offline','offline înaintea erorii');
+ const fara=api.cloudStatus({connected:false,ready:false,error:'network_error'},true);assert.equal(fara.kind,'offline');assert.match(fara.label,/date locale/);
+ assert.equal(api.cloudStatus({connected:true,ready:true,error:'cloud_unavailable'},true).kind,'error','alte erori rămân erori');
+ assert.match(api.cloudStatus({connected:true,ready:true,error:'network_error'},true,true).label,/Rețea slabă/);
+ assert.equal(api.reteaSlaba({connection:{saveData:true}}),true);assert.equal(api.reteaSlaba({connection:{effectiveType:'2g'}}),true);assert.equal(api.reteaSlaba({connection:{effectiveType:'slow-2g'}}),true);assert.equal(api.reteaSlaba({connection:{effectiveType:'3g'}}),true);
+ assert.equal(api.reteaSlaba({connection:{effectiveType:'4g',saveData:false}}),false);assert.equal(api.reteaSlaba({}),false);assert.equal(api.reteaSlaba(undefined),false);
+});

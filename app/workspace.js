@@ -17,7 +17,7 @@
  function cloud(){if(!$('settingsAccount'))return;let state;try{state=source.TTCloud?.state();}catch(_){}
   if(!state){$('settingsAccount').textContent='Neverificat';$('settingsSync').textContent='Stare neconfirmată';$('settingsSync').dataset.state='checking';$('settingsCloudDetail').textContent='Starea contului nu este încă disponibilă. Deschide Cont & sincronizare pentru verificări.';return;}
   $('settingsAccount').textContent=state.checking?'Verific contul…':state.connected?'Google conectat':'Google neconectat';
-  const status=g.TTAppSearch.cloudStatus(state,g.navigator.onLine!==false);$('settingsSync').textContent=status.label;$('settingsSync').dataset.state=status.kind;
+  const status=g.TTAppSearch.cloudStatus(state,g.navigator.onLine!==false,!!(g.TTAppSearch.reteaSlaba&&g.TTAppSearch.reteaSlaba(g.navigator)));$('settingsSync').textContent=status.label;$('settingsSync').dataset.state=status.kind;
   $('settingsCloudDetail').textContent=state.error?'Sincronizarea necesită atenție: '+String(state.error):state.conflicts?.length?'Există '+state.conflicts.length+' conflicte. Verifică ambele versiuni înainte de înlocuire.':status.kind==='confirmed'?'Ultima sincronizare confirmată este afișată mai sus. Datele de piață au propriile verificări de actualitate.':'Verificările complete, backupul și starea sincronizării sunt în Cont & sincronizare.';
  }
  document.addEventListener('click',e=>{
