@@ -19,7 +19,7 @@ const join=values=>{let data={accounts:{}};for(const [k,v] of values)data=F.appl
 test('cheile: 16 pachete fixe + starea importului, după toate cheile vechi; cheia veche rămâne',()=>{
  assert.equal(F.keys.length,17);assert.equal(F.META,'tt_trading212_fills_v1:cont');assert.ok(KEYS.includes('tt_trading212_fills_v1'));
  assert.deepEqual(F.keys.slice(1),Array.from({length:16},(_,i)=>'tt_trading212_fills_v1:'+i.toString(16).padStart(2,'0')));
- assert.deepEqual(KEYS.slice(-17),F.keys,'pachetele vin după cheia veche: întâi se citește cheia veche, apoi starea, apoi execuțiile');
+ const i=KEYS.indexOf(F.META);assert.ok(i>KEYS.indexOf('tt_trading212_fills_v1'));assert.deepEqual(KEYS.slice(i,i+17),F.keys,'pachetele vin după cheia veche: întâi se citește cheia veche, apoi starea, apoi execuțiile'); /* 27.10.2026 (lotul A): după pachete urmează cheile noi (ordine, kill switch, Governor) */
  for(const k of F.keys)assert.equal(F.isKey(k),true);assert.equal(F.isKey('tt_trading212_fills_v1'),false);
  assert.equal(F.bucket(SCOPE,'42'),F.bucket(SCOPE,42),'același pachet pentru id numeric și text');
 });
