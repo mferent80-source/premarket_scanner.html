@@ -152,7 +152,7 @@ vigoare ce scrie aici.
   ~22.08.2031, cu puterea 32,0 %. Spus cinstit: 5 sesiuni răspund la „ajută pe o săptămână?”, nu la „ajută planul de 20 de zile?”.
   „Nu s-a văzut un avantaj” rămâne rezultatul cel mai probabil dacă avantajul e mic și **nu înseamnă „s-a dovedit că nu”**.
 - **Primul verdict posibil:** 30 de perioade de 5 sesiuni de la prima zi v2 (28.10.2026) + 10 sesiuni până la înghețarea ultimei ⇒ optimist
-  ~**17.06.2027** (calendarul oficial NYSE); realist mai târziu, cu cât pierde robotul zile (`primulVerdict.realist` în fișier). Dincolo de
+  ~**21.06.2027** dacă prima zi v2 e 28.10.2026 (25.06.2027 dacă e 03.11; revizia F2, 🔵9: data veche, 17.06, era numărată de la 27.10), pe calendarul oficial NYSE, cu cele 10 sesiuni de așteptare dinaintea înghețului; realist mai târziu, cu cât pierde robotul zile (`primulVerdict.realist` în fișier). Dincolo de
   2027, sărbătorile NYSE se calculează după regulile bursei (🔵12), nu se mai numără doar zilele lucrătoare.
 - **Dacă LUI îi alege altfel (tot înaintea primei zile v2):** (b) **20 de sesiuni principal** ⇒ în `lib/v1-proba.mjs` `principal: 20` și
   `perioadeCerute: { 5: 30, 20: N20 }` (cu regula de mai sus N20 > 120, ~9,5 ani; cu 60 de perioade puterea e 32,0 % ⇒ de scris cinstit
@@ -175,3 +175,4 @@ v2 notată înseamnă o regulă nouă ⇒ o probă nouă, scrisă înainte (nu u
 | 27.10.2026 | `v1-e7e7526efd5a` | revizia F 🔴2: perioadele și judecata înghețate în `v1-inghetat.jsonl` (evaluatorul citește fișierul) | 0 |
 | 27.10.2026 | `v1-e78c757c68c7` | revizia F 🟡7 / 🟡9: evaluatorul acoperă și `inregistrare` (cu `COD`) și `adauga`; prima notare a unei zile rămâne | 0 |
 | 27.10.2026 | `v1-bec732f9281a` | revizia F, decizia (a): principal 5 sesiuni la N = 30, 20 de sesiuni doar monitorizare; textul rezervei la N = 30 (evaluatorul `7fc3524ca5ba`) | 0 |
+| 28.10.2026 | `v1-cf90f3811a5c` | revizia F2 🟡3: versiunea acoperă și funcțiile din `lib/daily-series.js` chemate de reguli (`DailySeries.read`, garda sesiunilor neînchise, și `DailySeries.date`); evaluatorul e închiderea calculată din sursă (intră și `ziValida`, `baraValida` — filtrul barelor mutat din robot —, `COD`, `INDEX`) plus înregistrarea judecății din contract; ρ din textul rezervei cu o zecimală (🔵15). Calendarul bursei, scannerul întreg, contractul și robotul se notează pe zi (`d`), fără repornire (evaluatorul `c4b973eb9617`) | 0 |

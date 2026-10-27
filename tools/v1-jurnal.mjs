@@ -3,7 +3,8 @@
 // scanner-verdicts/generated/v1-jurnal.json și scrie evaluarea în scanner-verdicts/generated/v1-proba.json. Fără chei.
 import vm from 'node:vm';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
-import { PROTOCOL, inregistrare, adauga, evalueaza, versiuneV1, contractProba, citesteInghetat, liniiInghetat } from '../lib/v1-proba.mjs';
+import { PROTOCOL, inregistrare, adauga, evalueaza, versiuneV1, contractProba, citesteInghetat, liniiInghetat, baraValida, amprentaDependinteV1 } from '../lib/v1-proba.mjs';
+import { istoricDependinte } from '../lib/premarket-proba.mjs';
 import { calendarSUA, intervalPentru, simboluriDeReluat, taieLaZi } from '../lib/proba-contract.mjs';
 
 const DIR = 'scanner-verdicts/generated', JURNAL = DIR + '/v1-jurnal.json', PROBA = DIR + '/v1-proba.json';
@@ -26,7 +27,7 @@ export async function fetchStock(symbol, opts = {}) {
   const ts = res.timestamp || [], q = res.indicators?.quote?.[0] || {}, out = [];
   for (let i = 0; i < ts.length; i++) {
     const o = q.open?.[i], h = q.high?.[i], l = q.low?.[i], c = q.close?.[i], v = q.volume?.[i];
-    if (Number.isFinite(ts[i]) && [o, h, l, c].every((x) => x != null && isFinite(x) && x > 0) && h >= l && h >= Math.max(o, c) - 1e-9 && l <= Math.min(o, c) + 1e-9) out.push({ t: ts[i] * 1000, o, h, l, c, v: v != null && isFinite(v) ? v : 0 });
+    /* 28.10.2026 (revizia F2, 🟡3): filtrul barelor stă în bibliotecă, în amprenta evaluatorului */ if (baraValida(ts[i], o, h, l, c)) out.push({ t: ts[i] * 1000, o, h, l, c, v: v != null && isFinite(v) ? v : 0 });
   }
   if (!out.length) throw Error('Yahoo: serie goală pentru ' + symbol);
   const m = res.meta || {};
@@ -53,6 +54,7 @@ export function continutProba({ jurnal, V, rec, report, serii: s, sesiuni, cal, 
   return { protocol: PROTOCOL.id, scrisLa: PROTOCOL.scrisLa, versiune: V,
     precedent: { ...PROTOCOL.precedent, nota: 'zilele probei ' + PROTOCOL.precedent.id + ' (' + PROTOCOL.precedent.versiune + ') rămân în jurnal sub versiunea veche; nu intră în proba de acum' },
     inceput: zileVersiune[0]?.zi || null, zile: zileVersiune.length, ultimaZi: rec.zi, ultimaRulare: rec.la,
+    dependinte: istoricDependinte(jurnal, V),
     azi: { verificate: report.verifiedCount, total: report.items.length, indeplinesc: rec.r.filter((x) => x[1] === 'm').length, sus: rec.r.filter((x) => x[1] !== 'u' && x[2] >= PROTOCOL.pragSus).length },
     orizonturi: c.orizonturi, putere: c.putere, primulVerdict: c.primulVerdict, judecata: c.judecata, sesiuni: c.sesiuni, deScris };
 }
@@ -66,7 +68,7 @@ export function planReluare({ jurnal, V, azi = new Date().toISOString().slice(0,
 async function main() {
   const c = motor(), V = versiuneaDeAzi('.');
   const report = await c.IndependentScanner.scan({ symbols: [...PROTOCOL.univers], concurrency: 3 });
-  const rec = inregistrare(report, Date.now(), V);
+  const rec = { ...inregistrare(report, Date.now(), V), d: amprentaDependinteV1((f) => readFileSync(f, 'utf8')) };   // 28.10.2026 (revizia F2, 🟡3): amprenta dependențelor pe zi, ca la Top Long
   if (!rec.zi) throw Error('Nicio acțiune verificată azi (' + report.failures.length + ' eșecuri) — jurnalul rămâne neschimbat.');
   mkdirSync(DIR, { recursive: true });
   const vechi = existsSync(JURNAL) ? JSON.parse(readFileSync(JURNAL, 'utf8')) : { zile: [] };

@@ -180,7 +180,7 @@ vigoare ce scrie aici. Evaluatorul e comun cu Reguli V1 (`docs/v1-proba-protocol
   ~22.08.2031, cu puterea 29,6 %. Spus cinstit: 5 sesiuni răspund la „ajută pe o săptămână?”, nu la „ajută planul de 20 de zile?”.
   „Nu s-a văzut un avantaj” rămâne rezultatul cel mai probabil dacă avantajul e mic și **nu înseamnă „s-a dovedit că nu”**.
 - **Primul verdict posibil:** 30 de perioade de 5 sesiuni de la prima zi v2 (28.10.2026) + 10 sesiuni până la înghețarea ultimei ⇒ optimist
-  ~**17.06.2027** (calendarul oficial NYSE); realist mai târziu, cu cât pierde robotul zile (`primulVerdict.realist` în fișier). Dincolo de
+  ~**21.06.2027** dacă prima zi v2 e 28.10.2026 (25.06.2027 dacă e 03.11; revizia F2, 🔵9: data veche, 17.06, era numărată de la 27.10), pe calendarul oficial NYSE, cu cele 10 sesiuni de așteptare dinaintea înghețului; realist mai târziu, cu cât pierde robotul zile (`primulVerdict.realist` în fișier). Dincolo de
   2027, sărbătorile NYSE se calculează după regulile bursei (🔵12), nu se mai numără doar zilele lucrătoare.
 - **Dacă LUI îi alege altfel (tot înaintea primei zile v2):** (b) **20 de sesiuni principal** ⇒ în `lib/v1-proba.mjs` `principal: 20` și
   `perioadeCerute: { 5: 30, 20: N20 }` (cu regula de mai sus N20 > 120, ~9,5 ani; cu 60 de perioade puterea e 29,6 % ⇒ de scris cinstit
@@ -194,7 +194,7 @@ vigoare ce scrie aici. Evaluatorul e comun cu Reguli V1 (`docs/v1-proba-protocol
   `lib/early-long.js` (decide `capSectors`; `CFG` exclus — robotul pornește cu stocarea goală) —, cu închiderea lor tranzitivă; `inregistrare`
   (codul „în Top Long”), `adauga`, perioadele cerute și orizontul principal. `lib/daily-series.js`, `lib/exchange-calendar.js` și restul
   motorului rămân în amprenta dependențelor notată pe zi (`d`): se văd, dar nu repornesc proba. Test: `tools/probe-amprente-acoperire.test.mjs`.
-- **Plafonul (I-709) rămâne 0,25 %** până la un „Top Long ajută” fără rezerve la judecata unică — cel devreme ~17.06.2027.
+- **Plafonul (I-709) rămâne 0,25 %** până la un „Top Long ajută” fără rezerve la judecata unică — cel devreme ~21.06.2027 (revizia F2, 🔵9).
 - **Anexa A** (alarma bilanțului, −1,645 × 3,4 % / √k) e scrisă pentru perioade de 20 de sesiuni și rămâne pe orizontul de 20 (monitorizare).
   Spus cinstit (revizia, 🔵13): cu abaterea reală (4,9 %) alarma sună fără motiv mai des decât scrie Anexa (revizia: 39–63 % până la 60 de
   perioade); e o alarmă de revăzut, nu un verdict — pragul nu s-a schimbat aici (decizia LUI).
@@ -212,3 +212,4 @@ v2 notată înseamnă o regulă nouă ⇒ o probă nouă, scrisă înainte (nu u
 | 27.10.2026 | `pm-55900c0f3060` | revizia F 🔴2: perioadele și judecata înghețate în `premarket-inghetat.jsonl` (evaluatorul comun citește fișierul) | 0 |
 | 27.10.2026 | `pm-8184f0aef323` | revizia F 🟡7 / 🟡9: versiunea acoperă și indicatorii apelați (`TI.calcEMA`, `TI.calcRSI`, `TI.calcATR` din `lib/indicators.js`), harta de sectoare (`EL.sectorOf` din `lib/early-long.js`, fără `CFG`), `inregistrare`, `adauga`, perioadele cerute și orizontul principal; prima notare a unei zile rămâne | 0 |
 | 27.10.2026 | `pm-20f73dff32f3` | revizia F, decizia (a): principal 5 sesiuni la N = 30 (puterea Top Long, abaterea măsurată 2,27 %), 20 de sesiuni doar monitorizare | 0 |
+| 28.10.2026 | `pm-febbaa42e895` | revizia F2 🟡3: versiunea acoperă și funcțiile din `lib/daily-series.js` chemate din `analyze` (`DailySeries.read`, garda sesiunilor neînchise, și `DailySeries.date`) și evaluatorul V1 nou (filtrul barelor robotului `baraValida`, `ziValida`, ρ cu o zecimală) | 0 |
