@@ -69,6 +69,28 @@ test('I-746: cache-ul contului e persistat (IndexedDB) — la a doua pornire se 
  assert.equal(aDoua.priv.get('records:123').records.tt_journal_v1.revision,4,'cache-ul persistat ține pasul');
 });
 
+test('I-746 (securitate): cache-ul persistat NU ține valoarea conexiunii Trading 212 și nici cheia Radarului; la deconectare și la ștergerea conexiunii cache-ul dispare',async()=>{
+ const remote={cloud_credentials:{revision:2,updated:9,value:{key:'fixture-key',secret:'fixture-secret',environment:'live'}},tt_radar_access_v1:{revision:1,updated:8,value:{cheie:'abcdefghijklmnop',parola:'p'}},wl_stocks:{revision:1,updated:7,value:['AAPL']}};
+ const s=await setup({remote});
+ const cache=s.priv.get('records:123').records;
+ assert.ok(cache.wl_stocks&&'value' in cache.wl_stocks,'registrele obișnuite stau cu valoare');
+ assert.ok(!cache.cloud_credentials||!('value' in cache.cloud_credentials),'conexiunea Trading 212 nu stă în clar în cache');
+ assert.ok(!cache.tt_radar_access_v1||!('value' in cache.tt_radar_access_v1),'cheia Radarului nu stă în clar în cache');
+ assert.ok(!/fixture-secret|abcdefghijklmnop/.test(JSON.stringify(s.priv.get('records:123'))));
+ // după repornire, conexiunea se recitește din cont (nu e în cache), restul nu
+ const again=await setup({remote,privateStore:s.priv,local:Object.fromEntries([...s.storage])});
+ assert.deepEqual(again.reads().map(c=>new URL(c.url).searchParams.get('key')).sort(),['cloud_credentials','tt_radar_access_v1']);
+ // ștergerea conexiunii șterge cache-ul persistat; sincronizarea de după îl reface din cont, tot fără secrete
+ const sterse=[],sterge=again.priv.delete.bind(again.priv);again.priv.delete=k=>{sterse.push(k);return sterge(k);};
+ await again.api.deleteCredentials();await again.settled();assert.ok(sterse.includes('records:123'),'ștergerea conexiunii curăță cache-ul');
+ assert.ok(!/fixture-secret|abcdefghijklmnop/.test(JSON.stringify(again.priv.get('records:123')??null)),'cache-ul refăcut după ștergere nu ține secrete');
+ const t=await setup({remote});await t.api.logout();assert.ok(!t.priv.has('records:123'),'deconectarea curăță cache-ul');
+ // un cache vechi (dinaintea corecturii) cu valoarea conexiunii nu se mai încarcă în memorie din stocare: valoarea se recitește din cont
+ const vechi=new Map([['session',{token:'token',subject:'123',email:'me@example.test'}],['baseline:123',{}],['owner',null],['records:123',{subject:'123',at:1,records:{cloud_credentials:{revision:2,updated:9,value:{key:'fixture-key',secret:'fixture-secret',environment:'live'}}}}]]);
+ const u=await setup({remote,privateStore:vechi});assert.ok(u.reads().some(c=>c.url.endsWith('key=cloud_credentials')),'conexiunea se recitește din cont');
+ assert.ok(!/fixture-secret/.test(JSON.stringify(u.priv.get('records:123'))),'cache-ul vechi cu secretul e rescris fără el');
+});
+
 test('I-746: cache-ul persistat al ALTUI cont nu se folosește (owner-ul contului)',async()=>{
  const remote={tt_journal_v1:{revision:3,updated:9,value:[{id:'a'}]}};
  const prima=await setup({remote});
