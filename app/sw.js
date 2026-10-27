@@ -65,7 +65,7 @@ self.addEventListener('fetch', event => {
 // se servește copia din cache, iar răspunsul rețelei o actualizează în fundal. Carcasa e doar meniul: modulele își cer datele singure.
 // Fără rețea deloc (cererea pică) rămâne ecranul „Ești offline”, ca înainte.
 const HTML_NET_TIMEOUT_MS = 3500;
-const offlineScreen = () => new Response('<!doctype html><html lang="ro"><meta name="viewport" content="width=device-width"><title>Trading Tools — Offline</title><body style="background:#090d12;color:#e9eef1;font:18px system-ui;padding:30px"><h1>Trading Tools</h1><p>Ești offline. Conectează telefonul la internet pentru date și scanări actualizate.</p><button onclick="location.reload()" style="padding:14px;font:inherit">Reîncearcă</button></body></html>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+const offlineScreen = () => new Response('<!doctype html><html lang="ro"><meta name="viewport" content="width=device-width"><title>Trading Tools — Offline</title><body style="background:#0b1017;color:#e9eef1;font:18px system-ui;padding:30px"><h1>Trading Tools</h1><p>Ești offline. Conectează telefonul la internet pentru date și scanări actualizate.</p><button onclick="location.reload()" style="padding:14px;font:inherit">Reîncearcă</button></body></html>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 function cachedShell(request) {
   const at = path => new URL(path, self.registration.scope).href;
   return caches.match(request, { ignoreSearch: true }).then(hit => hit || caches.match(at('./'))).then(hit => hit || caches.match(at('./index.html'))).catch(() => null);
