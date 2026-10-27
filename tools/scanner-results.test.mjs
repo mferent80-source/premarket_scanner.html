@@ -175,3 +175,29 @@ test('Piață shows the Premarket Top Long time test next to the V1 one, each wi
  assert.match(pm,/9 în Top Long/);assert.match(pm,/Top Long ajută/);assert.match(pm,/premarket-proba-protocol\.md/);assert.match(pm,/pm-82e7354996ce/);assert.doesNotMatch(pm,/6–8 verificări/);
  assert.match(v1,/30 cu 6–8 verificări/);assert.match(v1,/v1-proba-protocol\.md/);assert.doesNotMatch(v1,/Top Long/);
 });
+// 27.10.2026 — lotul D (I-744, I-754): pe panourile probelor din Piață, când poate veni primul verdict și ce poate vedea proba;
+// proba stopului Early Reversal „în umbră” (I-716) are panoul ei. Doar citire din generated/; cifrele vin din protocol + calendarul SUA.
+test('I-744 Piață: panourile Top Long și Reguli V1 spun primul verdict posibil (protocol + calendarul SUA) și „putere nescrisă” cât lotul F nu a scris puterea',async()=>{
+ const ui=scannerUI(),o={k:20,principal:true,perioade:0,necesare:8,pozitive:0,p:1,verdict:'astept',descriptiv:{sus:{n:0},jos:{n:0}}};
+ vm.runInContext(readFileSync('lib/proba-termen.js','utf8'),ui.c);
+ const files={'v1-proba.json':{versiune:'experimental-1.0.0',inceput:'2026-10-16',zile:1,ultimaZi:'2026-10-16',ultimaRulare:new Date().toISOString(),azi:{verificate:82,total:85,sus:30},orizonturi:[o]},
+  'premarket-proba.json':{versiune:'pm-82e7354996ce',inceput:'2026-10-16',zile:1,ultimaZi:'2026-10-16',ultimaRulare:new Date().toISOString(),azi:{verificate:85,total:85,topLong:9},orizonturi:[o],putere:{laPlus:[{pct:0.5,putere:0.41},{pct:1,putere:0.86}]}}};
+ ui.c.setInterval=()=>0;ui.c.fetch=async u=>{const k=Object.keys(files).find(x=>u.startsWith('generated/'+x));return {ok:!!k,json:async()=>files[k]};};ui.load();for(let i=0;i<6;i++)await tick();
+ const v1=ui.dom.node('v1ProbaBody').innerHTML,pm=ui.dom.node('pmProbaBody').innerHTML;
+ for(const h of [v1,pm])assert.match(h,/Primul verdict posibil: ~(mai|iunie|iulie) 2027 \(8 perioade de 20 de sesiuni care nu se suprapun\)/);
+ assert.match(v1,/putere nescrisă/);assert.match(pm,/poate vedea un avantaj de cel puțin \+1,0 %\/perioadă \(putere 86 %\)/,'câmpul putere scris de lotul F are întâietate');
+ const html=readFileSync('scanner-verdicts/index.html','utf8');assert.ok(html.indexOf('proba-termen.js?v=')>0&&html.indexOf('proba-termen.js?v=')<html.indexOf('view.js?v='));
+});
+test('I-754 Piață: proba stopului Early Reversal „în umbră” e la vedere — ipoteza, protocolul, perioadele, pragul t, stopurile A/B de azi, termenul și puterea din protocol',async()=>{
+ const ui=scannerUI(),umbra=JSON.parse(readFileSync('scanner-verdicts/generated/reversal-umbra-proba.json','utf8'));
+ vm.runInContext(readFileSync('lib/proba-termen.js','utf8'),ui.c);
+ ui.c.setInterval=()=>0;ui.c.fetch=async u=>u.startsWith('generated/reversal-umbra-proba.json')?{ok:true,json:async()=>umbra}:{ok:false,json:async()=>null};ui.load();for(let i=0;i<6;i++)await tick();
+ const h=ui.dom.node('ruProbaBody').innerHTML;
+ assert.match(h,/QCOM/);assert.match(h,/175,9/);assert.match(h,/167,4/);assert.match(h,/141,2/);assert.match(h,/−14,9 %/,'B față de A, din prețul de intrare');
+ assert.match(h,/0 din 8 perioade/);assert.match(h,/t &gt; 3,0/);assert.match(h,/Încă nu se poate spune/);assert.match(h,/9 candidați/);
+ assert.match(h,/reversal-stop-umbra-protocol\.md/);assert.match(h,/nu înseamnă că stopul sub bază e rău/);
+ assert.match(h,/Primul verdict posibil: ~\S+ 2027/);assert.match(h,/\+0,3 R\/tranzacție l-ar vedea doar în 11 % din cazuri \(din protocol\)/);
+ assert.match(readFileSync('scanner-verdicts/index.html','utf8'),/id="ruProbaBody"/);
+ const lipsa=scannerUI();lipsa.c.setInterval=()=>0;lipsa.c.fetch=async()=>({ok:false,json:async()=>null});lipsa.load();for(let i=0;i<6;i++)await tick();
+ assert.match(lipsa.dom.node('ruProbaBody').innerHTML,/Jurnalul umbrei nu e disponibil/);
+});

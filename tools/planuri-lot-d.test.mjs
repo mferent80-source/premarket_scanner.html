@@ -181,6 +181,17 @@ test('audit D 🔵: între 16:15 și 18:00 la New York (zi lucrătoare) scanneru
   assert.equal(f(Date.parse('2026-10-24T20:30:00Z')), false, 'sâmbătă');
   assert.match(readFileSync('candidate-engine/engine.js', 'utf8'), /se stabilizează după 18:00 ET/);
 });
+test('I-744 scanner: nota probei Top Long spune și când poate veni primul verdict (lib/proba-termen.js încărcat înaintea probei, ca în pagină)', () => {
+  const s = scanner(), PROBA = JSON.parse(readFileSync('scanner-verdicts/generated/premarket-proba.json', 'utf8'));
+  vm.runInContext(readFileSync('lib/proba-termen.js', 'utf8'), s.ctx); s.ctx.TTProbaTopLong.set(PROBA);
+  s.ctx.hooks.state.momentum = []; s.ctx.hooks.render();
+  assert.match(s.node('probaNota').textContent, /Top Long e în proba în timp: 0 din 8/); assert.match(s.node('probaNota').textContent, /Primul verdict posibil: ~\S+ 2027 \(8 perioade de 20 de sesiuni/); assert.match(s.node('probaNota').textContent, /putere nescrisă/);
+  const h = readFileSync('candidate-engine/index.html', 'utf8'); assert.ok(h.indexOf('proba-termen.js?v=') > 0 && h.indexOf('proba-termen.js?v=') < h.indexOf('desk-proba.js?v='));
+});
+test('audit D 🟡: lângă verdictul pieței (care aplică regula) macro-rail-ul nu mai spune „Informativ — nu blochează execuțiile”', () => {
+  const m = readFileSync('lib/desk-macro-rail.js', 'utf8');
+  assert.doesNotMatch(m, /Informativ — nu blochează execuțiile/); assert.match(m, /verdictul pieței/);
+});
 
 // ───────────── Shadow Book: poarta de capital estimată la riscul unui plan, evaluările neverificabile spuse ─────────────
 test('audit D 🔵: Shadow Book estimează poarta la 0,5 % din cont (riscul unui plan), nu 1 %; evaluarea neverificabilă (split) se vede în tabel', () => {
