@@ -116,7 +116,7 @@ async function apply(key,next,expected,locked=false){if(ForecastCloud.isBucket(k
 // 27.10.2026 (audit [2]): copia se face MEREU înaintea unei schimbări venite din cont (pragul de o oră era cod mort — toate apelurile îl săreau); lista ține
 // cel mult BACKUP_MAX copii și cel mult BACKUP_BYTES octeți (cele mai vechi ies), ca să nu umple stocarea telefonului.
 // Alegerea explicită dintr-un conflict face copia împreună cu registrul ales. Un registru care nu se poate citi sau lipsește nu intră în copie (restaurarea nu-l șterge).
-const HUMAN_KEYS=['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','tt_europe_risk_settings_v1',RADAR_KEY,EvidenceCloud.KEY,GOVERNOR_CFG,'tt_governor_limite_jurnal_v1'];
+const HUMAN_KEYS=['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','tt_europe_risk_settings_v1',RADAR_KEY,EvidenceCloud.KEY,GOVERNOR_CFG,'tt_governor_limite_jurnal_v1','tt_journal_incidente_v1','tt_governor_override_v1'];
 const humanKey=k=>HUMAN_KEYS.includes(k)||EvidenceCloud.isBucket(k);
 const BACKUP_MAX=10,BACKUP_BYTES=6000000;
 async function backup(extra=[]){const list=await Store.get('backups:'+session.subject)||[];const want=[...new Set([...HUMAN_KEYS,...extra.map(k=>FillsCloud.isKey(k)?FillsCloud.KEY:k)])].filter(k=>LOCAL_KEYS.includes(k)),keys=[],snapshot={};for(const k of want){let v;try{v=await value(k);}catch{continue;}if(v===undefined)continue;keys.push(k);snapshot[k]=v;}list.unshift({at:Date.now(),keys,snapshot});

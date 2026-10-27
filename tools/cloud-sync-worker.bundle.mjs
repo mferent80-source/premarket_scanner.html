@@ -5,7 +5,7 @@ const number = value => typeof value === 'number' && Number.isFinite(value) ? va
 const text = value => typeof value === 'string' || typeof value === 'number' ? String(value).slice(0,200) : null;
 function summary(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('schema');
-  return {currency:text(data.currency),totalValue:number(data.totalValue),available:number(data.cash?.availableToTrade),reserved:number(data.cash?.reservedForOrders),invested:number(data.investments?.currentValue),cost:number(data.investments?.totalCost),realized:number(data.investments?.realizedProfitLoss),unrealized:number(data.investments?.unrealizedProfitLoss)};
+  return {currency:text(data.currency),totalValue:number(data.totalValue),available:number(data.cash?.availableToTrade),reserved:number(data.cash?.reservedForOrders),inPies:number(data.cash?.inPies),invested:number(data.investments?.currentValue),cost:number(data.investments?.totalCost),realized:number(data.investments?.realizedProfitLoss),unrealized:number(data.investments?.unrealizedProfitLoss)};
 }
 function position(p) {
   return {ticker:text(p.instrument?.ticker),name:text(p.instrument?.name),isin:text(p.instrument?.isin),instrumentCurrency:text(p.instrument?.currency),quantity:number(p.quantity),averagePrice:number(p.averagePricePaid),currentPrice:number(p.currentPrice),currency:text(p.walletImpact?.currency),value:number(p.walletImpact?.currentValue),unrealized:number(p.walletImpact?.unrealizedProfitLoss),openedAt:text(p.createdAt)};
@@ -75,50 +75,90 @@ async function credentials(request,env){
   if(env.T212_ENV!=='live'&&env.T212_ENV!=='demo')return no('environment_not_configured',503);
   return {brokerAuthorization:'Basic '+btoa(env.T212_API_KEY+':'+env.T212_API_SECRET),environment:env.T212_ENV};
 }
-// 18.10.2026 (Marius, „fă tot” — butonul care pune stopul ca ordin REAL în Trading 212). SINGURA scriere a releului: un ordin STOP de VÂNZARE,
+// 18.10.2026 (Marius, „fă tot” — butonul care pune stopul ca ordin REAL în Trading 212). Prima scriere a releului: un ordin STOP de VÂNZARE,
 // GTC, pe o poziție care există, cel mult cât deții, cu stopul sub prețul de acum și nu sub jumătatea lui, și numai dacă nu ai deja o vânzare
-// în așteptare pe aceeași acțiune. Nicio cumpărare, nicio anulare, nicio altă rută de scriere. Fără permisiunea „Orders: execute” pe cheie,
+// în așteptare pe aceeași acțiune. Nicio cumpărare. Singura altă scriere e anularea (I-757, mai jos). Fără permisiunea „Orders: execute” pe cheie,
 // Trading 212 refuză (403) și aplicația spune exact ce lipsește.
 const STOP_ROUTE='/api/trading212/stop-order';
 const STOP_CONFIRM='PUN-STOPUL';
 function roundStop(price){const decimals=price>=1?2:4,f=10**decimals;return Math.floor(price*f+1e-7)/f;}
 function roundQuantity(q){return Math.floor(q*1e8+1e-6)/1e8;}
-async function stopOrder(request,env,upstream,headers,reply){
+// 27.10.2026 (audit E, I-755): (1) cele trei apeluri ale unui ordin împart UN termen de 20 s (sub cele 25 s ale clientului — altfel ordinul putea fi pus
+// după ce aplicația spusese „timeout” și o reîncercare îl dubla); (2) cheie de idempotență ticker + stop + cantitate + minut (+ contul), ținută
+// 10 minute în memoria releului: aceeași cerere retrimisă primește răspunsul primei plasări, fără niciun apel nou la broker. Memoria e a izolatei
+// (best effort); plasa a doua rămâne verificarea ordinelor în așteptare de la broker (sell_order_exists).
+const BUDGET_MS=20000,IDEMPOTENT_MS=600000,recentOrders=new Map();
+async function idempotencyKey(auth,ticker,stop,quantity,now){const h=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(auth.brokerAuthorization)));return auth.environment+'|'+Array.from(h.slice(0,12),x=>x.toString(16).padStart(2,'0')).join('')+'|'+ticker+'|'+stop+'|'+quantity+'|'+Math.floor(now/60000);}
+function brokerCall(auth,upstream,deadline){const base=`https://${auth.environment}.trading212.com`;return (path,init={})=>upstream(new URL(path,base).href,{...init,redirect:'manual',signal:deadline,headers:{Authorization:auth.brokerAuthorization,Accept:'application/json',...(init.body?{'Content-Type':'application/json'}:{})}});}
+function refusal(reply,raw){if(raw.status>=300&&raw.status<400)return reply({error:'broker_redirected'},502);if(raw.status===429){const h=Number(raw.headers.get('x-ratelimit-reset'));return reply({error:'rate_limited',retryAfter:Math.min(300,Math.max(10,Number.isFinite(h)?Math.ceil(h-Date.now()/1000):60))},429);}return reply({error:raw.status===401?'broker_credentials_invalid':raw.status===403?'broker_permission_missing':'broker_unavailable'},502);}
+const failureCode=error=>error?.name==='AbortError'||error?.name==='TimeoutError'?'broker_timeout':'broker_network_error';
+async function readJson(request,reply){if(!/^application\/json\b/.test(request.headers.get('Content-Type')||''))return {error:reply({error:'invalid_body'},415)};try{const text=await request.text();if(text.length>1000)throw Error('size');return {body:JSON.parse(text)};}catch(_){return {error:reply({error:'invalid_body'},400)};}}
+async function stopOrder(request,env,upstream,headers,reply,{now=Date.now(),memory=recentOrders}={}){
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{...headers,'Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Authorization, X-T212-Environment, Content-Type','Access-Control-Max-Age':'600'}});
   if(request.method!=='POST')return reply({error:'method_not_allowed'},405);
-  if(!/^application\/json\b/.test(request.headers.get('Content-Type')||''))return reply({error:'invalid_body'},415);
+  const parsed=await readJson(request,reply);if(parsed.error)return parsed.error;const body=parsed.body;
   const auth=await credentials(request,env);if(auth.error)return reply({error:auth.error},auth.status);
-  let body;try{const text=await request.text();if(text.length>1000)throw Error('size');body=JSON.parse(text);}catch(_){return reply({error:'invalid_body'},400);}
   const ticker=body?.ticker,quantity=roundQuantity(Number(body?.quantity)),asked=Number(body?.stopPrice);
   if(body?.confirm!==STOP_CONFIRM||typeof ticker!=='string'||!/^[A-Za-z0-9._-]{1,40}$/.test(ticker)||!(quantity>0)||quantity>1e7||!(asked>0)||asked>1e7)return reply({error:'invalid_order'},400);
-  const base=`https://${auth.environment}.trading212.com`;
-  async function call(path,init={}){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);try{return await upstream(new URL(path,base).href,{...init,redirect:'manual',signal:controller.signal,headers:{Authorization:auth.brokerAuthorization,Accept:'application/json',...(init.body?{'Content-Type':'application/json'}:{})}});}finally{clearTimeout(timer);}}
-  function refused(raw){if(raw.status>=300&&raw.status<400)return reply({error:'broker_redirected'},502);if(raw.status===429){const h=Number(raw.headers.get('x-ratelimit-reset'));return reply({error:'rate_limited',retryAfter:Math.min(300,Math.max(10,Number.isFinite(h)?Math.ceil(h-Date.now()/1000):60))},429);}return reply({error:raw.status===401?'broker_credentials_invalid':raw.status===403?'broker_permission_missing':'broker_unavailable'},502);}
+  const stop=roundStop(asked),key=await idempotencyKey(auth,ticker,stop,quantity,now);
+  for(const [k,v] of memory)if(now-v.at>IDEMPOTENT_MS)memory.delete(k);
+  const seen=memory.get(key);if(seen)return reply({...seen.body,idempotent:true});
+  const call=brokerCall(auth,upstream,AbortSignal.timeout(BUDGET_MS)),refused=raw=>refusal(reply,raw);
   try{
     const rp=await call(ROUTES.positions);if(!rp.ok)return refused(rp);
     const positions=await rp.json();if(!Array.isArray(positions))return reply({error:'broker_schema_mismatch'},502);
     const p=positions.find(x=>x?.instrument?.ticker===ticker);if(!p)return reply({error:'position_not_found'},409);
-    const owned=Number(p.quantityAvailableForTrading??p.quantity),current=Number(p.currentPrice),stop=roundStop(asked);
+    const owned=Number(p.quantityAvailableForTrading??p.quantity),current=Number(p.currentPrice);
     if(!(owned>0)||quantity>owned+1e-9)return reply({error:'quantity_exceeds_position',owned:Number.isFinite(owned)?owned:null},409);
     if(!(current>0)||!(stop>0)||stop>=current)return reply({error:'stop_not_below_price',currentPrice:current>0?current:null},409);
     if(stop<current*0.5)return reply({error:'stop_too_far',currentPrice:current},409);
-    const ro=await call('/api/v0/equity/orders');if(!ro.ok)return refused(ro);
+    const ro=await call(ROUTES['orders-pending']);if(!ro.ok)return refused(ro);
     const pending=await ro.json();if(!Array.isArray(pending))return reply({error:'broker_schema_mismatch'},502);
     const existing=pending.find(o=>(o?.ticker??o?.instrument?.ticker)===ticker&&(Number(o?.quantity)<0||String(o?.side||'').toUpperCase()==='SELL'));
     if(existing)return reply({error:'sell_order_exists',stopPrice:Number(existing.stopPrice)>0?Number(existing.stopPrice):null},409);
     const rs=await call('/api/v0/equity/orders/stop',{method:'POST',body:JSON.stringify({ticker,quantity:-quantity,stopPrice:stop,timeValidity:'GOOD_TILL_CANCEL'})});
     if(!rs.ok){if(rs.status===400||rs.status===422){let detail='';try{const b=await rs.json();detail=String(b?.message||b?.code||b?.clarification||'').replace(/[^\w .,:%()\-]/g,'').slice(0,160);}catch(_){}return reply({error:'broker_rejected',detail},502);}return refused(rs);}
     let placed={};try{placed=await rs.json();}catch(_){}
-    return reply({source:'Trading 212',environment:auth.environment,placedAt:new Date().toISOString(),data:{id:placed?.id??null,status:typeof placed?.status==='string'?placed.status:null,ticker,quantity,stopPrice:stop,currentPrice:current}});
-  }catch(error){return reply({error:error?.name==='AbortError'||error?.name==='TimeoutError'?'broker_timeout':'broker_network_error'},502);}
+    const out={source:'Trading 212',environment:auth.environment,placedAt:new Date(now).toISOString(),data:{id:placed?.id??null,status:typeof placed?.status==='string'?placed.status:null,ticker,quantity,stopPrice:stop,currentPrice:current}};
+    memory.set(key,{at:now,body:out});return reply(out);
+  }catch(error){return reply({error:failureCode(error)},502);}
 }
-async function handle(request,env,upstream=fetch) {
+// 27.10.2026 (I-757, kill switch): a DOUA scriere a releului — anularea ordinelor în așteptare. `DELETE /api/trading212/orders/{id}` anulează unul;
+// `POST /api/trading212/orders/cancel-all` cu confirmarea explicită le anulează pe toate (vânzări și cumpărări), în ordine, într-un singur termen de 20 s.
+// Un ordin care nu se lasă anulat intră la „esuate”, restul merg mai departe; răspunsul spune cinstit dacă oprirea e completă. Nicio cumpărare, nicio altă scriere.
+const CANCEL_ALL_ROUTE='/api/trading212/orders/cancel-all',CANCEL_ONE=/^\/api\/trading212\/orders\/(\d{1,20})$/,CANCEL_CONFIRM='OPRESC-TOT';
+async function cancelOrders(request,env,upstream,headers,reply,{now=Date.now()}={}){
+  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{...headers,'Access-Control-Allow-Methods':'DELETE, POST, OPTIONS','Access-Control-Allow-Headers':'Authorization, X-T212-Environment, Content-Type','Access-Control-Max-Age':'600'}});
+  const path=new URL(request.url).pathname,one=CANCEL_ONE.exec(path);
+  if(one?request.method!=='DELETE':request.method!=='POST')return reply({error:'method_not_allowed'},405);
+  let body=null;if(!one){const parsed=await readJson(request,reply);if(parsed.error)return parsed.error;body=parsed.body;}
+  const auth=await credentials(request,env);if(auth.error)return reply({error:auth.error},auth.status);
+  if(!one&&body?.confirm!==CANCEL_CONFIRM)return reply({error:'invalid_order'},400);
+  const call=brokerCall(auth,upstream,AbortSignal.timeout(BUDGET_MS)),refused=raw=>refusal(reply,raw),at=new Date(now).toISOString();
+  try{
+    if(one){const id=one[1],rd=await call('/api/v0/equity/orders/'+id,{method:'DELETE'});if(rd.status===404)return reply({error:'order_not_found'},409);if(!rd.ok)return refused(rd);return reply({source:'Trading 212',environment:auth.environment,cancelledAt:at,data:{id}});}
+    const ro=await call(ROUTES['orders-pending']);if(!ro.ok)return refused(ro);
+    const raw=await ro.json();if(!Array.isArray(raw))return reply({error:'broker_schema_mismatch'},502);
+    let orders;try{orders=raw.map(pendingOrder);}catch(_){return reply({error:'broker_schema_mismatch'},502);}
+    // 27.10.2026 (lotul E): niciun ordin nu dispare tăcut din răspuns — cel fără id valid și cele rămase neîncercate după termen intră la „esuate”
+    const anulate=[],esuate=[],row=o=>({id:o.id,ticker:o.ticker,stopPrice:o.stopPrice,side:o.side,quantity:o.quantity,type:o.type});let expirat=false;
+    for(const o of orders){
+      if(expirat){esuate.push({...row(o),error:'broker_timeout'});continue;}
+      if(typeof o.id!=='string'||!/^\d{1,20}$/.test(o.id)){esuate.push({...row(o),error:'invalid_id'});continue;}
+      try{const rd=await call('/api/v0/equity/orders/'+o.id,{method:'DELETE'});if(rd.ok||rd.status===404)anulate.push(row(o));else esuate.push({...row(o),error:rd.status===401?'broker_credentials_invalid':rd.status===403?'broker_permission_missing':rd.status===429?'rate_limited':'broker_unavailable'});}
+      catch(error){esuate.push({...row(o),error:failureCode(error)});if(error?.name==='TimeoutError'||error?.name==='AbortError')expirat=true;}}
+    return reply({source:'Trading 212',environment:auth.environment,cancelledAt:at,data:{anulate,esuate,total:orders.length,complet:esuate.length===0&&anulate.length===orders.length}});
+  }catch(error){return reply({error:failureCode(error)},502);}
+}
+async function handle(request,env,upstream=fetch,options={}) {
   const origin=request.headers.get('Origin');
   const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Vary':'Origin'};
   if(origin===ORIGIN)headers['Access-Control-Allow-Origin']=ORIGIN;
   const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
   if(origin!==ORIGIN)return reply({error:'origin_forbidden'},403);
-  if(new URL(request.url).pathname===STOP_ROUTE)return stopOrder(request,env,upstream,headers,reply);
+  const path=new URL(request.url).pathname;
+  if(path===STOP_ROUTE)return stopOrder(request,env,upstream,headers,reply,options);
+  if(path===CANCEL_ALL_ROUTE||CANCEL_ONE.test(path))return cancelOrders(request,env,upstream,headers,reply,options);
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{...headers,'Access-Control-Allow-Methods':'GET, OPTIONS','Access-Control-Allow-Headers':'Authorization, X-T212-Environment','Access-Control-Max-Age':'600'}});
   if(request.method!=='GET')return reply({error:'read_only'},405);
   const url=new URL(request.url),kind=url.pathname.replace(/^\/api\/trading212\//,'');
@@ -176,7 +216,8 @@ const TTCloudModel=(()=>{
 
 const KEYS=Object.freeze(['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_trading212_fills_v1','tt_trading212_portfolio_v1','tt_trading212_account_history_v1','tt_trading212_cash_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','cloud_credentials','tt_europe_signals_v1','tt_europe_risk_settings_v1','tt_radar_access_v1',globalThis.TradeEvidenceSchema.KEY,...Array.from({length:64},(_,i)=>globalThis.TradeEvidenceSchema.KEY+':'+i.toString(16).padStart(2,'0')),...Array.from({length:64},(_,i)=>'tt_holdings_forecast_sync_v1:'+i.toString(16).padStart(2,'0')),'tt_trading212_fills_v1:cont',...Array.from({length:16},(_,i)=>'tt_trading212_fills_v1:'+i.toString(16).padStart(2,'0')),
  // 27.10.2026 (lotul A, I-749 + contractele dintre loturi): ordinele în așteptare de la broker, kill switch-ul, limitele Governor (fără capital), jurnalul limitelor, cititorii Trading 212 (I-748)
- 'tt_trading212_orders_pending_v1','tt_governor_oprire_v1','tt_governor_cfg_v1','tt_governor_limite_jurnal_v1','tt_t212_cititori_v1']);
+ 'tt_trading212_orders_pending_v1','tt_governor_oprire_v1','tt_governor_cfg_v1','tt_governor_limite_jurnal_v1','tt_t212_cititori_v1',
+ 'tt_journal_incidente_v1','tt_governor_override_v1']); // 27.10 (lotul 2, C ↔ A): registrul de incidente și relaxările programate, unire pe id (îmbinarea generică a listelor cu id)
 // Captures are immutable. Fixed buckets keep each encrypted record below the
 // service limit without discarding older analyses or changing their local identity.
 const EvidenceSchema=globalThis.TradeEvidenceSchema,EVIDENCE_KEY=EvidenceSchema.KEY;
@@ -384,6 +425,11 @@ function validateOprire(v){
 const CFG_INTERZISE=['accountSize','_accountBasis','configIssues','capitalNecunoscut'];
 function validateGovernorCfg(v){if(!object(v)||Object.keys(v).length>60)throw Error('invalid_value');for(const [k,x] of Object.entries(v))if(CFG_INTERZISE.includes(k)||k.length>60||!(x===null||['number','boolean','string'].includes(typeof x))||typeof x==='number'&&!Number.isFinite(x)||typeof x==='string'&&x.length>200)throw Error('invalid_value');}
 function validateLimite(v){if(!Array.isArray(v)||v.length>LIMITE_MAX)throw Error('invalid_value');for(const r of v)if(!object(r)||!Number.isFinite(r.ts)||typeof r.aparat!=='string'||!r.aparat||r.aparat.length>100||typeof r.cheia!=='string'||!r.cheia||r.cheia.length>60)throw Error('invalid_value');}
+/* 27.10.2026 (lotul 2): incidentele (lib/journal-incidente.js) și relaxările programate ale limitelor (lib/governor.js, OVERRIDE_KEY) — liste cu id text unic. */
+const INCIDENTE_KEY='tt_journal_incidente_v1',OVERRIDE_KEY='tt_governor_override_v1';
+function uniceDupaId(v,max){if(!Array.isArray(v)||v.length>max)throw Error('invalid_value');const ids=new Set();for(const x of v){if(!object(x)||typeof x.id!=='string'||!x.id||x.id.length>80||ids.has(x.id))throw Error('invalid_value');ids.add(x.id);}}
+function validateIncidente(v){uniceDupaId(v,500);for(const x of v)if(!iso(x.la)||typeof x.titlu!=='string'||x.titlu.length>200||!['mic','mediu','mare'].includes(x.gravitate)||!['deschis','inchis'].includes(x.stare)||typeof x.ce!=='string'||x.ce.length>3000)throw Error('invalid_value');}
+function validateOverride(v){uniceDupaId(v,100);for(const x of v)if(typeof x.cheia!=='string'||!x.cheia||x.cheia.length>60||!Number.isFinite(x.intraLa)||!Number.isFinite(x.expiraLa)||x.expiraLa<x.intraLa||typeof x.motiv!=='string'||x.motiv.length>600||!(x.anulatLa==null||Number.isFinite(x.anulatLa)))throw Error('invalid_value');}
 function validateCititori(v){if(!object(v)||Object.keys(v).length>50)throw Error('invalid_value');for(const [k,x] of Object.entries(v))if(!k||k.length>100||!object(x)||!iso(x.la)||!(x.env==null||typeof x.env==='string'&&x.env.length<=20))throw Error('invalid_value');}
 // pe cheie (cont / aparat): cea mai nouă oră câștigă; la egalitate aceeași alegere pe ambele aparate
 function newestByKey(local,remote,at){const value={...remote,...local};for(const k of Object.keys(remote)){const l=local[k],r=remote[k];if(!object(l)||!object(r))continue;const tl=at(l),tr=at(r);value[k]=tr>tl?r:tl>tr?l:smaller(l,r);}return {value,conflicts:[]};}
@@ -438,6 +484,8 @@ function validateValue(key,value,{limita=true}={}){
  else if(key===CFG_KEY)validateGovernorCfg(value);
  else if(key===LIMITE_KEY)validateLimite(value);
  else if(key===CITITORI_KEY)validateCititori(value);
+ else if(key===INCIDENTE_KEY)validateIncidente(value);
+ else if(key===OVERRIDE_KEY)validateOverride(value);
  else if(forecastKeys.includes(key))validateForecast(key,value);
  else if(fillsKeys.includes(key))validateFills(key,value);
  else if(key==='tt_europe_signals_v1')validateEuropeHistory(value);
@@ -576,7 +624,16 @@ function dupaInchidere(now=Date.now()){try{const p=Object.fromEntries(F_ORA.form
 /* 27.10.2026 (I-749): `ordine` = ordinele în așteptare citite de la broker prin releu (null ⇒ necitite, cu `ordineEroare`). Cu ele: pozițiile fără ORDIN
    de stop întreg la broker (stop doar pe hârtie / ordin doar pentru o parte), iar căldura se socotește până la stopul care execută (ordinul întreg,
    altfel stopul documentat). Fără ele, stopurile din fișă sunt spuse „documentate, neverificate la broker”. */
-function fisaZilei({scope,summary,positions=[],notes={},istoric=null,ordine=null,ordineEroare=null,now=Date.now()}={}){
+/* 27.10.2026 (lotul 2, contractul C ↔ A): rândul incidentelor din fișă = JournalIncidente.randFisa din lib/journal-incidente.js (copie, ca stopul;
+   echivalența caz cu caz e în tools/lot2-legaturi.test.mjs). Ziua New York; un incident e „deschis” cât n-are stare „inchis”. */
+function incidenteRand(lista,zi){
+ const l=Array.isArray(lista)?lista:[],zz=t=>{const d=F_ZI.format(new Date(t));return d.slice(8,10)+'.'+d.slice(5,7);};
+ const noi=l.filter(x=>x&&F_ZI.format(new Date(Date.parse(x.la)))===zi),desc=l.filter(x=>x&&x.stare!=='inchis').slice().sort((a,b)=>Date.parse(a.la)-Date.parse(b.la));
+ const p1=noi.length?noi.length+(noi.length===1?' nou azi (':' noi azi (')+noi.map(x=>x.titlu).join('; ')+')':'niciunul nou azi';
+ const p2=desc.length?desc.length+(desc.length===1?' deschis':' deschise')+', cel mai vechi din '+zz(Date.parse(desc[0].la)):'niciunul deschis';
+ return 'Incidente: '+p1+(noi.length?' · ':', ')+p2+'.';
+}
+function fisaZilei({scope,summary,positions=[],notes={},istoric=null,ordine=null,ordineEroare=null,incidente=null,now=Date.now()}={}){
  const c=summary?.currency,total=finite(summary?.totalValue)&&summary.totalValue>0?summary.totalValue:null,n1=v=>finite(v)?(Math.round(v*10)/10).toLocaleString('ro-RO',{minimumFractionDigits:1,maximumFractionDigits:1}):'—',sym=t=>String(t).replace(/_[A-Z]{2}_EQ$/,'');
  const citite=Array.isArray(ordine),stopuri=citite?ordineStop(ordine):new Map(),faraOrdin=citite?[]:null,peHartie=citite?[]:null,partial=citite?[]:null;
  const cur=(Array.isArray(positions)?positions:[]).filter(p=>p&&typeof p.ticker==='string'&&finite(p.quantity)&&p.quantity>0),faraStop=[],conc=[];let risc=0,riscOk=true;
@@ -588,9 +645,10 @@ function fisaZilei({scope,summary,positions=[],notes={},istoric=null,ordine=null
  const varf=(Array.isArray(istoric)?istoric:[]).filter(x=>x&&finite(x.total)&&x.currency===c&&finite(Date.parse(x.at))&&Date.parse(x.at)<=now).reduce((m,x)=>Math.max(m,x.total),-Infinity),dd=total&&varf>0?Math.max(0,(1-total/varf)*100):null;
  const zi=F_ZI.format(new Date(now)),rap=[];
  for(const p of cur){const e=(notes[scope+'|'+p.ticker]||{}).earnings;if(typeof e==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(e)){const d=(Date.parse(e+'T12:00:00Z')-Date.parse(zi+'T12:00:00Z'))/86400000;if(d>=0&&d<=7)rap.push(sym(p.ticker)+' ('+e.slice(8,10)+'.'+e.slice(5,7)+')');}}
+ const rInc=Array.isArray(incidente)?incidenteRand(incidente,zi):null;
  const caldura=faraStop.length||!riscOk?null:risc,caldPct=caldura!=null&&total?caldura/total*100:null;
- const text='Fișa zilei '+zi.slice(8,10)+'.'+zi.slice(5,7)+' · cont '+(total?n1(total)+' '+c:'—')+' · '+cur.length+(cur.length===1?' poziție':' poziții')+' · căldura până la stopuri '+(caldura==null?'NECUNOSCUTĂ ('+(faraStop.length?faraStop.length+' fără stop':'curs neverificat')+')':n1(caldura)+' '+c+(caldPct!=null?' = '+n1(caldPct)+' % din cont':''))+' · cea mai mare poziție '+(conc[0]?sym(conc[0].t)+' '+n1(conc[0].pct)+' %':'—')+(citite?' · fără niciun stop (nici ordin întreg, nici documentat): ':' · fără stop documentat: ')+(faraStop.length?faraStop.map(sym).join(', '):'niciuna')+ordineText(cur.length,citite,faraOrdin,peHartie,partial,ordineEroare,sym)+' · scăderea de la vârful observațiilor '+(dd!=null?n1(dd)+' % (fără ajustare la depuneri / retrageri)':'— (istoricul contului nesincronizat)')+' · raportări în 7 zile: '+(rap.length?rap.join(', '):'niciuna')+'.';
- return {zi,text,total,currency:c||null,pozitii:cur.length,caldura,caldPct,faraStop,concentrare:conc[0]||null,dd,raportari:rap,ordineCitite:citite,ordineEroare:citite?null:ordineEroare||null,faraOrdin,peHartie,partial};
+ const text='Fișa zilei '+zi.slice(8,10)+'.'+zi.slice(5,7)+' · cont '+(total?n1(total)+' '+c:'—')+' · '+cur.length+(cur.length===1?' poziție':' poziții')+' · căldura până la stopuri '+(caldura==null?'NECUNOSCUTĂ ('+(faraStop.length?faraStop.length+' fără stop':'curs neverificat')+')':n1(caldura)+' '+c+(caldPct!=null?' = '+n1(caldPct)+' % din cont':''))+' · cea mai mare poziție '+(conc[0]?sym(conc[0].t)+' '+n1(conc[0].pct)+' %':'—')+(citite?' · fără niciun stop (nici ordin întreg, nici documentat): ':' · fără stop documentat: ')+(faraStop.length?faraStop.map(sym).join(', '):'niciuna')+ordineText(cur.length,citite,faraOrdin,peHartie,partial,ordineEroare,sym)+' · scăderea de la vârful observațiilor '+(dd!=null?n1(dd)+' % (fără ajustare la depuneri / retrageri)':'— (istoricul contului nesincronizat)')+' · raportări în 7 zile: '+(rap.length?rap.join(', '):'niciuna')+'.'+(rInc?' '+rInc:'');
+ return {zi,text,total,currency:c||null,pozitii:cur.length,caldura,caldPct,faraStop,concentrare:conc[0]||null,dd,raportari:rap,ordineCitite:citite,ordineEroare:citite?null:ordineEroare||null,faraOrdin,peHartie,partial,incidente:rInc};
 }
 function ordineText(n,citite,faraOrdin,peHartie,partial,eroare,sym){
  if(!citite)return ' · ordinele brokerului NECITITE ('+(eroare||'necerute')+') — stopurile de mai sus sunt documentate, neverificate la broker';
@@ -620,7 +678,8 @@ async function runOne(subject,env,deps,upstream,now){
   if(dupaInchidere(now)&&state.fisaZi!==ziNY){let istoric=null;try{const h=(await read(db,subject,'tt_trading212_account_history_v1',env,unseal))?.value;istoric=h&&Array.isArray(h[state.scope])?h[state.scope]:null;}catch{istoric=null;}
    // I-749: ordinele în așteptare, DOAR citire prin releu, o dată pe zi (la fișă); o citire picată nu oprește fișa — motivul intră în text
    let ordine=null,ordineEroare=null;try{const r=await brokerHandle(new Request('https://monitor/api/trading212/orders-pending',{headers}),{...env,T212_AUTH_MODE:'session'},upstream),b=await r.json();if(!r.ok)throw Error(BROKER_ERRORS.includes(b?.error)?b.error:'monitor_broker_unavailable');if(b.source!=='Trading 212'||b.environment!=='live'||!Array.isArray(b.data))throw Error('monitor_schema_invalid');ordine=b.data;}catch(e){ordineEroare=[...BROKER_ERRORS,'monitor_schema_invalid'].includes(e?.message)?e.message:'monitor_broker_unavailable';}
-   fisa=fisaZilei({scope:state.scope,summary:payload[0],positions:payload[1],notes,istoric,ordine,ordineEroare,now});}
+   let incidente=null;try{const v=(await read(db,subject,'tt_journal_incidente_v1',env,unseal))?.value;incidente=Array.isArray(v)?v:null;}catch{incidente=null;}
+   fisa=fisaZilei({scope:state.scope,summary:payload[0],positions:payload[1],notes,istoric,ordine,ordineEroare,incidente,now});}
   const fisaEvents=fisa?[{id:now+':fisa:'+ziNY,key:'fisa:'+ziNY,type:'fisa',ticker:'Fișa zilei',text:fisa.text,at:now}]:[];
   state={...state,lastChecked:now,lastError:null,report,activeKeys:report.alerts.map(a=>a.key),events:[...newEvents,...fisaEvents,...(state.events||[])].slice(0,200),...(fisa?{fisaZi:ziNY}:{})};
  }catch(e){const allowed=['monitor_credentials_missing','monitor_account_changed','monitor_schema_invalid','rate_limited','broker_credentials_invalid','broker_permission_missing','broker_timeout','monitor_broker_unavailable'],code=allowed.includes(e.message)?e.message:'monitor_broker_unavailable',key='error:'+code,event={id:now+':'+key,key,type:'error',ticker:null,text:code,at:now};state={...state,lastError:{code,at:now},activeKeys:[key],events:[...(state.activeKeys?.includes(key)?[]:[event]),...(state.events||[])].slice(0,200)};}
@@ -647,7 +706,7 @@ async function runMonitors(env,deps,upstream=fetch,now=Date.now()){
  const heartbeat=await read(db,'__monitor_service__',HEARTBEAT_KEY,env,deps.unseal);await write(db,'__monitor_service__',HEARTBEAT_KEY,{at:now,checked,failed},heartbeat?.revision||0,env,deps.seal,now);return {checked,failed};
 }
 
-return {MONITOR_KEY,HEARTBEAT_KEY,monitorScope,stopLa,stopValabil,ordineStop,monitorRules,US_INCHIS,US_SCURT,dupaInchidere,fisaZilei,schedulerStatus,handleMonitor,runMonitors};
+return {MONITOR_KEY,HEARTBEAT_KEY,monitorScope,stopLa,stopValabil,ordineStop,monitorRules,US_INCHIS,US_SCURT,dupaInchidere,incidenteRand,fisaZilei,schedulerStatus,handleMonitor,runMonitors};
 })();
 const TTCloudWorker=(()=>{
 const {KEYS,validateValue,ForecastCloud,FillsCloud}=TTCloudModel;const {handle:brokerHandle}=TTBrokerRelay;const {handleMonitor,runMonitors,schedulerStatus}=TTCloudMonitor;const {handlePush,pushReceipt}=TTCloudPush;const {handleAudit}=TTCloudAudit;
