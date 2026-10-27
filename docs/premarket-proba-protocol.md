@@ -136,3 +136,4 @@ v2 notată înseamnă o regulă nouă ⇒ o probă nouă, scrisă înainte (nu u
 | 27.10.2026 | `pm-f9f254159993` | protocolul v2 (lotul F) | 0 |
 | 27.10.2026 | `pm-0dc4d07a4a73` | lipirea lotului D: doar textul din `earningsInfo` / `gardaEarnings` (penalizarea, `blocked` și ramurile în care garda e nevidă, identice) | 0 |
 | 27.10.2026 | `pm-55900c0f3060` | revizia F 🔴2: perioadele și judecata înghețate în `premarket-inghetat.jsonl` (evaluatorul comun citește fișierul) | 0 |
+| 27.10.2026 | `pm-8184f0aef323` | revizia F 🟡7 / 🟡9: versiunea acoperă și indicatorii apelați (`TI.calcEMA`, `TI.calcRSI`, `TI.calcATR` din `lib/indicators.js`), harta de sectoare (`EL.sectorOf` din `lib/early-long.js`, fără `CFG`), `inregistrare`, `adauga`, perioadele cerute și orizontul principal; prima notare a unei zile rămâne | 0 |

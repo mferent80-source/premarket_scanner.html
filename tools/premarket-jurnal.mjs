@@ -101,6 +101,9 @@ async function main() {
   const rec = { ...inregistrare(s, V), d: amprentaDependinte((f) => readFileSync(f, 'utf8'), h) };   // 19.10.2026: amprenta dependențelor pe zi
   mkdirSync(DIR, { recursive: true });
   const vechi = existsSync(JURNAL) ? JSON.parse(readFileSync(JURNAL, 'utf8')) : { zile: [] };
+  // 27.10.2026 (revizia F, 🟡9): rularea de rezervă de dimineață (DOAR_LIPSA=1) notează ziua doar dacă lipsește; cea notată seara nu se rescrie
+  // (volumele revizuite ar muta RVOL, deci scorul) — nici Top Long, nici umbra stopului (același pas)
+  if (process.env.DOAR_LIPSA && (vechi.zile || []).some((z) => z && z.zi === rec.zi && z.v === V)) { console.log('Premarket ' + V + ' · ziua ' + rec.zi + ' e deja notată — nimic de făcut (rularea de rezervă).'); return; }
   const jurnal = { ...adauga(vechi, rec), protocol: PROTOCOL.id };
   // motorul cere acțiunile pe 1 an și reperele pe 6 luni; evaluarea are nevoie de tot intervalul jurnalului ⇒ toate se reiau (19.10.2026)
   // 27.10.2026 (revizia F): doar zilele versiunii de acum (zilele probei precedente nu se mai evaluează)

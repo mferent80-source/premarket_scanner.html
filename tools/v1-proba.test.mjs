@@ -24,12 +24,12 @@ function lume(seed, { sesiuni = 8 * 5 + 6, k = 5, avantaj = 0, nAct = 40 } = {})
 }
 const ev = (w, k = 5, o = {}) => evalueaza(w.jurnal, w.serii, { k, versiune: V, sesiuni: w.sesiuni, judecaLa: 8, ...o });
 
-test('the day record keeps verdict, checks passed, EOD date and benchmark; the same day is replaced, never duplicated; v2 takes the SHA version', () => {
+test('the day record keeps verdict, checks passed, EOD date and benchmark; the same day is never duplicated and (27.10 review) its first notation stays; v2 takes the SHA version', () => {
   const rep = { version: V, items: [{ symbol: 'AAPL', verdict: 'rules_not_met', passed: 6, sourceDate: '2026-10-16', metrics: { benchmarkSymbol: 'SPY' } }, { symbol: 'SAP.DE', verdict: 'research_match', passed: 8, sourceDate: '2026-10-16', metrics: { benchmarkSymbol: '^STOXX' } }, { symbol: 'X', verdict: 'unverifiable', passed: 0, sourceDate: null, metrics: {} }] };
   const r = inregistrare(rep, Date.parse('2026-10-16T22:00:00Z'));
   assert.equal(r.zi, '2026-10-16'); assert.deepEqual(r.r[1], ['SAP.DE', 'm', 8, '2026-10-16', '^STOXX']); assert.equal(r.r[2][1], 'u'); assert.equal(r.v, V);
   assert.equal(inregistrare(rep, Date.now(), 'v1-abc').v, 'v1-abc', 'v2: amprenta SHA înlocuiește șirul constant');
-  let j = adauga({ zile: [] }, r); j = adauga(j, { ...r, la: 'altă rulare' }); assert.equal(j.zile.length, 1); assert.equal(j.zile[0].la, 'altă rulare');
+  let j = adauga({ zile: [] }, r); j = adauga(j, { ...r, la: 'altă rulare' }); assert.equal(j.zile.length, 1); assert.equal(j.zile[0].la, r.la, 'revizia F (🟡9): prima notare rămâne');
   j = adauga(j, { ...r, v: 'v1-abc' }); assert.equal(j.zile.length, 2, 'altă versiune = altă probă (jurnalul v1 rămâne sub versiunea veche)');
   assert.equal(j.protocol, 'v1-proba-2');
   assert.equal(inregistrare({ version: V, items: [{ symbol: 'X', verdict: 'unverifiable' }] }).zi, null);
