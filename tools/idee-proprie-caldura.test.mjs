@@ -181,3 +181,43 @@ test('I-719 Planuri: a 3-a poziție din același grup de corelație (≥ 0,7 pe 
   assert.match(h, /function garziComune\(x,rows,capital,riskPct\)/); assert.match(h, /return garziComune\(x,rows,capital,allowedRisk\(x\)\);/);
   assert.match(h, /lib\/caldura-portofoliu\.js\?v=[\d.]+/); assert.match(h, /lib\/idee-proprie\.js\?v=[\d.]+/); assert.match(h, /lib\/earnings\.js\?v=[\d.]+/);
 });
+
+// ───────────── 27.10.2026 — I-752 / I-753 (auditul D): gărzile deschise la eroare se închid ─────────────
+test('I-753: corelația cu serii lipsă NU trece tăcut — perechile neverificate sunt numite în text și riscul se înmulțește cu 0,75', () => {
+  const K = load('lib/caldura-portofoliu.js').TTCaldura;
+  const nec = K.evalueazaGrup('AVGO', new Map([['AVGO', corelat(3)], ['NVDA', corelat(1)], ['XYZ', null]]), ['NVDA', 'XYZ']);
+  assert.equal(nec.blocat, false); assert.equal(nec.neverificat, true); assert.equal(nec.mult, 0.75);
+  assert.match(nec.text, /corelație neverificată cu XYZ/); assert.match(nec.text, /×0,75/);
+  const ok = K.evalueazaGrup('AVGO', new Map([['AVGO', corelat(3)], ['KO', independent()]]), ['KO']);
+  assert.equal(ok.neverificat, false); assert.equal(ok.mult, 1);
+  const gol = K.evalueazaGrup('AVGO', new Map([['AVGO', corelat(3)]]), []); assert.equal(gol.neverificat, false); assert.equal(gol.mult, 1);
+  assert.equal(K.MULT_NEVERIFICAT, 0.75);
+});
+
+test('I-752: ADV necunoscut (sub 20 de sesiuni cu volum) blochează ideea proprie cu motiv — închis la eroare, nu „trece”', async () => {
+  const scurta = corelat(2).slice(-12); scurta.meta = { currency: 'USD' };
+  const c = load(['lib/pret-viu.js', 'lib/idee-proprie.js'], { D: { fetchStock: async (sym, o) => (o.interval === '1m' ? [{ t: Date.now(), c: 210 }] : scurta) }, EARN: { calendar: async () => ({ ok: true, items: [] }) } });
+  const a = await c.TTIdeeProprie.pregateste('NOU');
+  assert.equal(a.ok, false); assert.match(a.mesaj, /lichiditatea nu se poate verifica/); assert.match(a.mesaj, /20 de sesiuni/);
+  assert.equal(c.TTIdeeProprie.advUsd(corelat(2).slice(-12), 20), null);
+  const faraVolum = corelat(2); faraVolum[faraVolum.length - 3].v = undefined; assert.equal(c.TTIdeeProprie.advUsd(faraVolum, 20), null);
+});
+
+test('audit D (🔵): ATR-ul și ADV-ul ideii proprii se calculează pe sesiuni ÎNCHEIATE (DailySeries.read) — bara parțială a zilei nu strânge stopul; seria fără identitate ⇒ seria brută, cu nota la vedere', async () => {
+  const NOW = Date.parse('2026-10-27T15:00:00Z'); // marți, 11:00 la New York — ședința e deschisă, ultima sesiune încheiată e luni 26.10
+  class Clock extends Date { constructor(...a) { super(...(a.length ? a : [NOW])); } static now() { return NOW; } }
+  const c = load(['lib/exchange-calendar.js', 'lib/daily-series.js', 'lib/pret-viu.js', 'lib/idee-proprie.js'], { Date: Clock, EARN: { calendar: async () => ({ ok: true, items: [] }) }, D: {} });
+  const asOf = c.DailySeries.expected(NOW, 'America/New_York', 960); assert.equal(asOf, '2026-10-26');
+  const zile = []; let d = asOf; while (zile.length < 140) { if (c.ExchangeCalendar.session('US', d).state === 'open') zile.unshift(d); d = c.ExchangeCalendar.add(d, -1); }
+  const r = mulberry32(7), incheiate = zile.map((zi) => { const p = 100 + (r() - 0.5) * 4; return { t: Date.parse(zi + 'T13:30:00Z'), o: p, h: p + 1, l: p - 1, c: p, v: 2e6 }; });
+  const partiala = { t: Date.parse('2026-10-27T13:30:00Z'), o: 100, h: 140, l: 60, c: 100, v: 1e5 }; // TR uriaș, volum mic: ar strica ATR și ADV
+  const meta = { symbol: 'MSFT', currency: 'USD', timezone: 'America/New_York', exchange: 'NMS', regularEnd: Date.parse('2026-10-27T20:00:00Z'), interval: '1d' };
+  const cuIdentitate = incheiate.concat([partiala]); cuIdentitate.meta = meta;
+  c.D.fetchStock = async (sym, o) => (o.interval === '1m' ? [{ t: NOW, c: 100 }] : cuIdentitate);
+  const a = await c.TTIdeeProprie.pregateste('MSFT');
+  assert.equal(a.ok, true); assert.ok(Math.abs(a.atr - c.TTIdeeProprie.atr(incheiate, 14)) < 1e-9, 'ATR pe sesiunile încheiate, fără bara zilei'); assert.equal(a.nota, null);
+  const bruta = incheiate.concat([partiala]); bruta.meta = { currency: 'USD' };
+  c.D.fetchStock = async (sym, o) => (o.interval === '1m' ? [{ t: NOW, c: 100 }] : bruta);
+  const b = await c.TTIdeeProprie.pregateste('MSFT');
+  assert.equal(b.ok, true); assert.match(b.nota, /sesiunilor încheiate/); assert.ok(b.atr > a.atr, 'pe seria brută bara parțială intră în ATR — de aceea se spune');
+});

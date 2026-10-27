@@ -59,3 +59,21 @@ test('failed storage update does not return a completed evaluation',async()=>{
  const original=store.set.bind(store);store.set=()=>{throw Error('quota');};
  assert.equal(await SH.evaluateOne(e.id,async()=>bars()),null);store.set=original;assert.equal(SH.all()[0].evalPct,null);
 });
+// 27.10.2026 (I-754): un split între semnal și ieșire ⇒ evaluare „neverificabilă” (Yahoo reajustează istoricul, prețul semnalului rămâne cel vechi);
+// stopul se verifică și pe restul zilei semnalului (varianta mai proastă), nu abia de la sesiunea următoare.
+test('I-754: un split în fereastra semnal → ieșire face evaluarea neverificabilă, cu motivul; nu intră în statistici și nu se mai cere',async()=>{
+ const {SH}=setup();const e=SH.log({...signal,blockedBy:'gate'});const b=bars();b.meta={corporateEvents:[{type:'splits',at:Date.UTC(2026,8,23,13,30),numerator:2,denominator:1}]};
+ const r=await SH.evaluateOne(e.id,async()=>b);assert.equal(r.neverificabil,true);assert.match(r.motiv,/split 2:1 pe 2026-09-23/);
+ const saved=SH.all()[0];assert.equal(saved.evalPct,null);assert.equal(SH.evaluated(saved),false);assert.match(saved.neverificabil.motiv,/split/);
+ assert.equal(await SH.evaluateAll(async()=>b),0,'nu se mai cere');assert.equal(SH.statsByFilter().gate.nEval,0);
+});
+test('I-754: un split DUPĂ ieșire nu blochează; un dividend în fereastră doar se notează (OHLC-ul Yahoo nu e ajustat la dividend)',async()=>{
+ const {SH}=setup();const e=SH.log(signal);const b=bars();b.meta={corporateEvents:[{type:'splits',at:Date.UTC(2026,9,15,13,30),numerator:2,denominator:1},{type:'dividends',at:Date.UTC(2026,8,24,13,30),amount:.5}]};
+ const r=await SH.evaluateOne(e.id,async()=>b);assert.equal(r.evalPct,3);assert.match(r.evalNota,/dividend/);assert.equal(SH.all()[0].neverificabil,undefined);
+});
+test('I-754: stopul se verifică și pe restul zilei semnalului când semnalul a venit în ședință; după închidere bara zilei nu mai contează',async()=>{
+ const {SH}=setup();const e=SH.log(signal);/* 15:00Z = 11:00 la New York */const b=bars();b[0]=bar(21,{l:94});
+ const r=await SH.evaluateOne(e.id,async()=>b);assert.equal(r.evalR,-1);assert.equal(r.exitReason,'stop-ziua-semnalului');assert.equal(r.exitPrice,95);
+ const s2=setup();const e2=s2.SH.log({...signal,ts:Date.UTC(2026,8,18,20,30)});/* vineri 16:30 la New York, după închidere */const c=[bar(18,{l:94}),...bars()];
+ const r2=await s2.SH.evaluateOne(e2.id,async()=>c);assert.equal(r2.exitReason,'horizon-close');assert.equal(r2.evalPct,3);
+});

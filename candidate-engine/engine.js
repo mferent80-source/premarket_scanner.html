@@ -112,13 +112,15 @@
 
   async function earningsGate() {
     state.earningsOk = false; state.earningsMap = {};
+    /* 27.10.2026 (auditul D): motivul REAL al gardei — „fără cheie” și „Finnhub nu a răspuns” sunt două lucruri diferite pentru om */
+    state.earningsMotiv = 'modulul calendarului de raportări nu s-a încărcat';
     if (!window.EARN || !EARN.calendar) return;
     try {
       var r = await EARN.calendar({ zile: 14, toate: true });
-      if (!r || !r.ok) return;
-      state.earningsOk = true;
+      if (!r || !r.ok) { state.earningsMotiv = r && r.motiv ? String(r.motiv) : 'calendarul de raportări nu a răspuns'; return; }
+      state.earningsOk = true; state.earningsMotiv = '';
       (r.items || []).forEach(function (e) { if (e && e.symbol && !state.earningsMap[e.symbol]) state.earningsMap[e.symbol] = e; });
-    } catch (_) {}
+    } catch (e) { state.earningsMotiv = e && e.message ? e.message : 'calendarul de raportări a dat eroare'; }
   }
   // Audit 14.10.2026: zilele pana la raportare se numara pe calendarul New York (la 23:30 ora Romaniei e inca azi la New York),
   // iar o raportare in fereastra de 14 zile NU mai lasa candidatul actionable: planul Desk-ului se tine zile/saptamani si ar
@@ -129,7 +131,7 @@
   }
   function earningsInfo(sym) {
     var e = state.earningsMap[sym];
-    if (!state.earningsOk) return { penalty: 5, blocked: false, unverified: true, text: 'earnings neverificat' };
+    if (!state.earningsOk) return { penalty: 5, blocked: false, unverified: true, motiv: state.earningsMotiv || 'calendar necitit', text: 'earnings neverificat' };
     // EL, 14.10 („lasă și Europa”): Finnhub nu acoperă raportările EU ⇒ rămâne neverificat, dar NU blochează planul — avertismentul rămâne la vedere
     if (regionOf(sym) === 'EU') return { penalty: 5, blocked: false, unverified: true, eu: true, text: 'earnings EU neverificat — verifică singur calendarul' };
     // revizie 14.10: calendarul vede doar tickere US de forma AAAA sau AAAA-B (BRK-B) — orice altceva NU e „verificat curat”
@@ -143,7 +145,7 @@
   function gardaEarnings(earn) {
     if (!earn) return '';
     if (earn.unverified && earn.eu) return '';   // Europa: excepție hotărâtă de EL pe 14.10 — avertisment, nu blocaj
-    if (earn.unverified) return 'earnings neverificat — fără cheia Finnhub nu se construiește plan';
+    if (earn.unverified) return 'earnings neverificat (' + (earn.motiv || state.earningsMotiv || 'calendar necitit') + ') — fără calendarul de raportări nu se construiește plan';
     if (earn.inFereastra) return 'raportează în ' + earn.days + ' zile — planul (zile, nu ore) ar traversa raportarea';
     return '';
   }
@@ -325,6 +327,7 @@
       +'<p>Governor: '+escapeHtml(risk?.verdict||'neverificat')+(blocked?' · candidații tehnici rămân vizibili pentru analiză; planurile noi sunt blocate. '+escapeHtml((risk.reasons||[]).join(' · ')):'. '+confirmed+' '+(confirmed===1?'candidat cu confirmare':'candidați cu confirmare')+' în clasamentul curent.')+'</p>'
       +(state.trendMeta?'<p>Trend 12 luni: clasament EOD '+escapeHtml(state.trendMeta.dataUltimei)+(state.trendMeta.vechime>7?' (VECHI, '+state.trendMeta.vechime+' zile)':'')+' · '+(state.trendMeta.univers?escapeHtml(String(state.trendMeta.univers.n))+' acțiuni clasate':'')+' · regim '+(state.trendMeta.regim&&state.trendMeta.regim.peste?'pornit':'oprit')+' · '+escapeHtml(state.trendMeta.eticheta)+'</p>':state.trendEroare?'<p>Trend 12 luni: clasamentul robotului nu s-a putut citi ('+escapeHtml(state.trendEroare)+').</p>':'')
       +'<p>Sectoare: '+(state.sectorPending?'completare în fundal; rezultatele sunt deja disponibile.':'sunt folosite clasificările disponibile; cele lipsă rămân „Necunoscut”.')+'</p>'
+      +(state.updatedAt&&fereastraVolum(state.updatedAt)?'<p>Volum: scanat între 16:15 și 18:00 la New York — Yahoo încă revizuiește volumul zilei, așa că RVOL și starea FIRE (pragul 1,15×) pot pâlpâi între rescanări; se stabilizează după 18:00 ET.</p>':'')
       +'<div class="ce-coverage-grid"><div><b>Indici de comparație</b><ul>'+state.benchmarks.map(function(x){return '<li>'+escapeHtml(x.region+' · '+x.symbol+' · '+(x.asOf||x.reason))+'</li>';}).join('')+'</ul></div><div><b>Surse excluse</b><ul>'+state.failures.map(function(x){return '<li>'+escapeHtml(x.symbol+' · '+x.reason)+'</li>';}).join('')+'</ul>'+(state.failures.length?'':'<p>Nicio eroare de serie raportată.</p>')+'</div></div>';
   }
 
@@ -412,7 +415,8 @@
   }
   // 19.10.2026 (I-709): Top Long e în proba în timp (scanner-verdicts/generated/premarket-proba.json) ⇒ lângă FIRE / ARMED scrie „în probă · N/8”,
   // iar deasupra listei, nota probei. Doar afișare: regulile de clasament (amprenta probei) nu se ating.
-  function probaTag(x) { if (!x || x.mode !== 'momentum' || ['FIRE', 'ARMED'].indexOf(x.state) < 0) return ''; return window.TTProbaTopLong ? TTProbaTopLong.tag(x) : 'în probă'; }
+  // 27.10.2026 (I-742): și Early Reversal — nejudecat de nicio probă ⇒ „în probă · nejudecat”, plafon 0,25 % ca Top Long
+  function probaTag(x) { if (!x || ['momentum', 'reversal'].indexOf(x.mode) < 0 || ['FIRE', 'ARMED'].indexOf(x.state) < 0) return ''; return window.TTProbaTopLong ? TTProbaTopLong.tag(x) : 'în probă'; }
   // 19.10.2026 (audit Long & Reversal): verdictul pieței (robotul zilnic) stătea doar în Planuri; aici FIRE apărea verde și într-o zi DEFENSIVĂ
   // I-714 (19.10.2026): planul spus cinstit — cifrele măsurate ale regulii (cercetarea pre-înregistrată din 19.10, H2:
   // E:/Backup-Claude/premarket-suite/audit-long-reversal-2026-10-19/RAPORT.md). Doar text; regula rămâne neschimbată (proba Top Long).
@@ -433,9 +437,17 @@
   }
   function notaProba() {
     var el = $('probaNota'); if (!el) return;
-    var s = window.TTProbaTopLong ? TTProbaTopLong.state() : null;
-    el.hidden = state.mode !== 'momentum' || !!(s && s.dovedit);
-    if (!el.hidden) el.textContent = s ? s.text : 'Top Long e în proba în timp; până la verdict riscul unui plan Top Long e plafonat la 0,25 %.';
+    var s = window.TTProbaTopLong ? TTProbaTopLong.state() : null, rev = state.mode === 'reversal';
+    el.hidden = !(state.mode === 'momentum' || rev) || (!rev && !!(s && s.dovedit));
+    if (!el.hidden) el.textContent = rev ? (window.TTProbaTopLong && TTProbaTopLong.text ? TTProbaTopLong.text({ mode: 'reversal' }) : 'Early Reversal nu e judecat de nicio probă în timp; riscul unui plan Early Reversal e plafonat la 0,25 %, ca Top Long.') : s ? s.text : 'Top Long e în proba în timp; până la verdict riscul unui plan Top Long e plafonat la 0,25 %.';
+  }
+  // 27.10.2026 (auditul D 🔵): între 16:15 și ~18:00 la New York Yahoo încă revizuiește volumul zilei ⇒ RVOL (și FIRE la pragul 1,15) poate pâlpâi între rescanări
+  function fereastraVolum(ts) {
+    try {
+      var p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', weekday: 'short', hourCycle: 'h23' }).formatToParts(new Date(ts)).filter(function (x) { return x.type !== 'literal'; }).map(function (x) { return [x.type, x.value]; }));
+      var m = Number(p.hour) * 60 + Number(p.minute);
+      return ['Sat', 'Sun'].indexOf(p.weekday) < 0 && m >= 975 && m < 1080;
+    } catch (_) { return false; }
   }
   function stateClass(x) { return x.mode === 'trend' ? (x.state === 'VECHI' ? 'vechi' : x.state === 'RAPORTEAZĂ' ? 'raporteaza' : x.state === 'FĂRĂ REGIM' ? 'regim' : 'proba') : String(x.state || '').toLowerCase(); }
   // Modul „Trend 12 luni” (14.10.2026): clasamentul vine de la robotul zilnic (tools/trend-12-1.mjs ⇒ generated/trend-12-1.json).
@@ -491,7 +503,7 @@
     lista.forEach(function (x) {
       if (x.earningsDinRobot) return;
       x.fapte = x.fapte || [];
-      if (!cal || !cal.ok) { x.earnings = 'earnings neverificat (fără cheia Finnhub)'; x.fapte.push({ k: 'earnings', v: 'neverificat', rol: 'attention' }); return; }
+      if (!cal || !cal.ok) { x.earnings = 'earnings neverificat (' + (cal && cal.motiv ? cal.motiv : 'calendarul de raportări nu a răspuns') + ')'; x.fapte.push({ k: 'earnings', v: 'neverificat', rol: 'attention' }); return; }
       var e = harta[x.symbol];
       if (!e) { x.earnings = 'fără raportare în 14z'; x.fapte.push({ k: 'earnings', v: 'fără raportare în 14z', rol: 'info' }); return; }
       var z = Math.max(0, zileNY(e.date));
