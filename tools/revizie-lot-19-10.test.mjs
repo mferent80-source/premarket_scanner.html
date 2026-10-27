@@ -21,5 +21,6 @@ test('pagina contului pornește și după „about:blank”, dar nu cât e suspe
 test('copia: doar registrele citite intră în listă; copie înaintea fiecărei schimbări venite din cont', () => {
   const b = sync.match(/async function backup\([^\n]*/)[0];
   assert.match(b, /try\{v=await value\(k\);\}catch\{continue;\}if\(v===undefined\)continue;keys\.push\(k\);/, 'cheia necitită (și, din 27.10, cea absentă) nu intră în listă');
-  assert.match(sync, /humanKey\(key\)\)\{await backup\(\[\],true\);/);
+  // 27.10.2026 (lotul A, auditul A [2]): pragul de o oră (parametrul `force`) era cod mort și a ieșit — copia se face MEREU înaintea schimbării
+  assert.match(sync, /humanKey\(key\)\)\{await backup\(\);backedUp=true;\}/);
 });

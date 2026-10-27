@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://mferent80-source.github.io https://*.mferent80.workers.dev https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://finnhub.io https://api.binance.com https://fapi.binance.com https://api.coingecko.com https://api.alternative.me https://api.twelvedata.com https://api.frankfurter.dev https://raw.githubusercontent.com https://api.github.com https://api.anthropic.com https://discord.com https://discordapp.com https://accounts.google.com/gsi/ https://*.tail9144fe.ts.net:*; frame-src 'self' https://accounts.google.com/gsi/; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#090d12">
+<meta name="theme-color" content="#0b1017">
 <title>Trading Tools — Decision App</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -24,20 +24,20 @@
   <section class="workspace">
     <header class="topbar">
       <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.27.1759</span></small><b id="pageName">Astăzi</b></div>
-      <div class="account-state"><button class="google-account" id="googleAccount" data-state="checking" title="Deschide Cont & sincronizare"><i aria-hidden="true"></i><span id="googleAccountLabel" aria-live="polite">Verific Google…</span></button><button class="sync-state" id="syncStatus" data-state="checking" aria-live="polite">Verific sincronizarea</button><small class="sync-error-detail" id="syncErrorDetail" role="status" hidden></small></div>
+      <div class="account-state"><button class="google-account" id="googleAccount" data-state="checking" title="Deschide Cont & sincronizare"><i aria-hidden="true"></i><span id="googleAccountLabel">Verific Google…</span></button><button class="sync-state" id="syncStatus" data-state="checking">Verific sincronizarea</button><span class="sr-only" id="syncAnnounce" role="status"></span><small class="sync-error-detail" id="syncErrorDetail" role="status" hidden></small></div>
       <div class="spacer"></div><button class="app-update" data-update hidden>Actualizează</button>
-      <input class="search" id="search" aria-label="Caută module, tickere, dețineri și jurnal" aria-controls="palette" aria-expanded="false" placeholder="Caută · Ctrl K" autocomplete="off">
+      <input class="search" id="search" role="combobox" aria-autocomplete="list" aria-label="Caută module, tickere, dețineri și jurnal" aria-controls="palette" aria-expanded="false" placeholder="Caută · Ctrl K" autocomplete="off">
       <button class="old-shell" id="reloadModule" aria-label="Reîncarcă modulul" title="Reîncarcă modulul">↻</button>
     </header>
     <div class="route-notice" id="routeNotice" role="status" hidden></div>
     <div id="breadthDailyState" class="breadth-daily" role="status" aria-live="polite" hidden></div>
-    <main class="stage"><div class="loading" id="loading">SE ÎNCARCĂ MODULUL…</div><iframe id="frame" title="Trading Tools module"></iframe><iframe id="brokerFrame" title="Trading 212 · sincronizare" hidden></iframe></main>
+    <main class="stage"><div class="loading" id="loading" role="status">SE ÎNCARCĂ MODULUL…</div><iframe id="frame" title="Trading Tools module"></iframe><iframe id="brokerFrame" title="Trading 212 · sincronizare" hidden></iframe></main>
   </section>
   <nav class="mobile-nav" id="mobileNav" aria-label="Navigare principală"></nav>
 </div>
 <dialog class="mobile-menu" id="mobileMenu" aria-labelledby="mobileMenuTitle"><div class="mobile-menu-head"><h2 id="mobileMenuTitle">Toate modulele</h2><button class="mobile-menu-close" id="closeMobileMenu" aria-label="Închide meniul">×</button></div><button class="install-app" data-install>Instalează pe telefon ↓</button><div class="mobile-menu-list" id="mobileMenuList"></div></dialog>
 <dialog id="installHelp" class="mobile-menu install-help" aria-labelledby="installTitle"><div class="mobile-menu-head"><h2 id="installTitle">Instalează Trading Tools</h2><button class="mobile-menu-close" id="closeInstallHelp" aria-label="Închide instrucțiunile">×</button></div><p>Pe Android, deschide aplicația în <b>Chrome</b> sau <b>Samsung Internet</b>, apoi alege din meniul browserului <b>Instalează aplicația</b> sau <b>Adaugă la ecranul de pornire</b>.</p><p>Pe iPhone: Safari → Partajează → Adaugă pe ecranul principal.</p><p>Dacă ai deschis linkul în ChatGPT, alege mai întâi deschiderea în browser.</p><p>Scanările și datele actualizate necesită internet.</p></dialog>
-<div class="palette" id="palette" hidden></div>
+<div class="palette" id="palette" role="listbox" aria-label="Rezultatele căutării" hidden></div>
 <!-- 19.10.2026 (I-705): pornirea în două trepte. Meniul și modulul pornesc primele; bibliotecile de mai jos (Portofoliu, jurnal, dovezi,
      verdict) nu sunt necesare primului desen și se încarcă amânat (defer), în aceeași ordine. Rămân sincrone doar cele citite de meniu. -->
 <script src="../lib/candidate-plan-handoff.js?v=26.10.09.2242"></script>
@@ -68,7 +68,7 @@
 <script defer src="../lib/trade-evidence-auto.js?v=26.10.18.1500"></script>
 <script defer src="../lib/holdings-model-storage.js?v=26.10.18.1500"></script>
 <script defer src="../lib/storage-hygiene.js?v=26.10.18.1500"></script>
-<script>/* 15.10.2026: rapoartele vechi ale modelelor din Portofoliu ies din spațiul local la pornire; sincronizarea are din nou loc. *//* 19.10.2026 (I-705): bibliotecile sunt amânate (defer) ⇒ ceasul de 2,5 s pornește după ele (DOMContentLoaded). */document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){try{var m=window.HoldingsModelStorage&&window.HoldingsModelStorage.migrateAll;if(m)m().then(function(r){if(r&&r.moved){try{sessionStorage.setItem('tt_reports_moved_v1',JSON.stringify({at:Date.now(),moved:r.moved,chars:r.chars}));}catch(_){}console.info('[Decision] rapoarte mutate în IndexedDB:',r.moved,'·',Math.round(r.chars/1000)+' mii caractere eliberate');}}).catch(function(){}).then(function(){/* plasa de siguranță: peste 80% din spațiul local se șterg doar cache-urile care se refac singure */var c=null;try{c=window.TTStorageHygiene&&window.TTStorageHygiene.clean();if(c){sessionStorage.setItem('tt_storage_hygiene_v1',JSON.stringify({at:Date.now(),cleaned:c.cleaned,freed:c.freed,ratio:c.after.ratio}));if(c.cleaned)console.info('[Decision] cache regenerabil șters:',c.cleaned,'chei ·',Math.round(c.freed/1000)+' mii caractere');}}catch(_){}try{document.querySelectorAll('iframe').forEach(function(f){try{f.contentWindow.postMessage({ttStorageHygiene:true},location.origin);}catch(_){}});}catch(_){}if(window.TTCloud&&window.TTCloud.sync)window.TTCloud.sync();});}catch(_){}},2500);});</script>
+<script>/* 15.10.2026: rapoartele vechi ale modelelor din Portofoliu ies din spațiul local la pornire; sincronizarea are din nou loc. *//* 19.10.2026 (I-705): bibliotecile sunt amânate (defer) ⇒ ceasul de 2,5 s pornește după ele (DOMContentLoaded). *//* 27.10.2026 (audit [17]): mutarea și curățenia parcurg tot spațiul local ⇒ pornesc în timpul liber al browserului (cel târziu la 10 s), nu pe firul ocupat cu primul ecran */document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){try{var m=window.HoldingsModelStorage&&window.HoldingsModelStorage.migrateAll;if(m)new Promise(function(ok){if(window.requestIdleCallback)requestIdleCallback(function(){ok();},{timeout:10000});else ok();}).then(function(){return m();}).then(function(r){if(r&&r.moved){try{sessionStorage.setItem('tt_reports_moved_v1',JSON.stringify({at:Date.now(),moved:r.moved,chars:r.chars}));}catch(_){}console.info('[Decision] rapoarte mutate în IndexedDB:',r.moved,'·',Math.round(r.chars/1000)+' mii caractere eliberate');}}).catch(function(){}).then(function(){/* plasa de siguranță: peste 80% din spațiul local se șterg doar cache-urile care se refac singure */var c=null;try{c=window.TTStorageHygiene&&window.TTStorageHygiene.clean();if(c){sessionStorage.setItem('tt_storage_hygiene_v1',JSON.stringify({at:Date.now(),cleaned:c.cleaned,freed:c.freed,ratio:c.after.ratio}));if(c.cleaned)console.info('[Decision] cache regenerabil șters:',c.cleaned,'chei ·',Math.round(c.freed/1000)+' mii caractere');}}catch(_){}try{document.querySelectorAll('iframe').forEach(function(f){try{f.contentWindow.postMessage({ttStorageHygiene:true},location.origin);}catch(_){}});}catch(_){}if(window.TTCloud&&window.TTCloud.sync)window.TTCloud.sync();});}catch(_){}},2500);});</script>
 <script src="../lib/app-search.js?v=26.10.19.1845"></script>
 <script>
 (function(){
@@ -79,19 +79,23 @@
   var pageName=document.getElementById('pageName'),search=document.getElementById('search'),palette=document.getElementById('palette');
   var active='today/',currentQuery='',pendingPlanCandidate=null,initialized=false;
   var mobileNav=document.getElementById('mobileNav'),mobileMenu=document.getElementById('mobileMenu'),mobileMenuList=document.getElementById('mobileMenuList');
-  var googleAccount=document.getElementById('googleAccount'),googleAccountLabel=document.getElementById('googleAccountLabel'),syncStatus=document.getElementById('syncStatus'),cloudState={checking:true};
+  var googleAccount=document.getElementById('googleAccount'),googleAccountLabel=document.getElementById('googleAccountLabel'),syncStatus=document.getElementById('syncStatus'),cloudState={checking:true},announcedKind=null;
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
   function known(u){return typeof u==='string'&&all.some(function(x){return x.u===u;});}
   function canonical(u){return window.TTAppRoutes.canonical(u);}
   function navActive(u){return window.TTAppRoutes.section(active)===u;}
   function appIcon(name){var paths={today:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',market:'<path d="M3 17l5-5 4 3 8-10M14 5h6v6M3 21h18"/>',portfolio:'<rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V4h8v3M3 12h18M10 12v3h4v-3"/>',journal:'<path d="M6 3h13v18H6a3 3 0 0 1 0-6h13M6 3a3 3 0 0 0-3 3v12M8 7h7M8 11h5"/>',risk:'<path d="M12 2l8 4v6c0 5-8 10-8 10S4 17 4 12V6zM8 11l3 3 5-6"/>',tools:'<path d="M14 6a4 4 0 0 0-5 5L3 17l4 4 6-6a4 4 0 0 0 5-5l-3 3-4-4z"/>',settings:'<path d="M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z"/><circle cx="12" cy="12" r="3"/>',search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="M16 16l5 5"/>'};var key=({'⌕':'search','◬':'portfolio','▤':'journal'})[name]||name;return '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+(paths[key]||paths.tools)+'</svg>';}
+  /* 27.10.2026 (I-748, audit [16]): rețea slabă (Save-Data, 2g/3g) ⇒ bara spune „Rețea slabă · date locale” în loc de eroare, iar scanarea ascunsă nu pornește */
+  function reteaSlaba(){try{return !!(window.TTAppSearch&&TTAppSearch.reteaSlaba&&TTAppSearch.reteaSlaba(navigator));}catch(_){return false;}}
   function renderGoogleAccount(s){
     cloudState=s||{};
     var connected=!!cloudState.connected,label=cloudState.checking?'Verific Google…':connected?'Google conectat':'Conectează Google';
     googleAccountLabel.textContent=label;googleAccount.dataset.state=cloudState.checking?'checking':connected?'connected':'disconnected';
     googleAccount.title=label+(connected&&cloudState.email?' · '+cloudState.email:'')+' · Deschide Cont & sincronizare';googleAccount.setAttribute?.('aria-label',googleAccount.title);
-    var status=window.TTAppSearch?TTAppSearch.cloudStatus(cloudState,typeof navigator==='undefined'||navigator.onLine!==false):{kind:'checking',label:'Verific sincronizarea'};
+    var status=window.TTAppSearch?TTAppSearch.cloudStatus(cloudState,typeof navigator==='undefined'||navigator.onLine!==false,reteaSlaba()):{kind:'checking',label:'Verific sincronizarea'};
     syncStatus.textContent=status.label;syncStatus.dataset.state=status.kind;syncStatus.title=status.label+(cloudState.error?' · '+cloudState.error:'')+' · Deschide Cont & sincronizare';
+    /* 27.10.2026 (audit [26]): cititorul de ecran aude starea doar când se schimbă felul ei (confirmat → eroare → offline …), nu la fiecare trecere de 30 s */
+    var announce=document.getElementById('syncAnnounce');if(announce&&status.kind!=='busy'&&status.kind!=='checking'&&status.kind!==announcedKind){announcedKind=status.kind;announce.textContent=status.label;}
     var detail=document.getElementById('syncErrorDetail');if(detail){detail.hidden=!cloudState.error;detail.textContent=cloudState.error?(window.TTCloudFailure?TTCloudFailure.describe(cloudState.failure):'Detaliile erorii sunt în Cont & sincronizare.')+' · v'+document.documentElement.dataset.appVersion:'';}
   }
   googleAccount.onclick=syncStatus.onclick=function(){openModule('app/sync/');};
@@ -153,7 +157,8 @@
   function startBroker(){try{var cs=window.TTCloud&&TTCloud.state&&TTCloud.state();if(cs&&cs.backupPaused)return;}catch(_){}if(!brokerFrame.src||brokerFrame.src==='about:blank')brokerFrame.src=brokerURL();}
   window.ttStartBroker=startBroker;
   if(typeof setTimeout==='function')setTimeout(firstScreenReady,15000);
-  var framePool=new Map(),FRAME_LIMIT=window.matchMedia&&matchMedia('(max-width: 760px)').matches?4:6,firstFrame=normalFrame,HOME='today/';
+  /* 27.10.2026 (audit [18]): pe telefon 4 cadre vii, dar 3 pe cele cu ≤ 4 GB (navigator.deviceMemory), ca Chrome să nu descarce tabul; PC 6 */
+  var framePool=new Map(),FRAME_LIMIT=window.matchMedia&&matchMedia('(max-width: 760px)').matches?(navigator.deviceMemory>0&&navigator.deviceMemory<=4?3:4):6,firstFrame=normalFrame,HOME='today/';
   function poolFrame(key){
     if(framePool.has(key)){var kept=framePool.get(key);framePool.delete(key);framePool.set(key,kept);return kept;}
     var f=firstFrame;if([].concat(Array.from(framePool.values())).indexOf(firstFrame)>=0){f=document.createElement('iframe');f.title=firstFrame.title;f.className=firstFrame.className;f.classList.add('parked');f.inert=true;f.onload=moduleLoaded;firstFrame.parentNode.insertBefore(f,brokerFrame);}
@@ -188,7 +193,7 @@
   function flushSearch(){if(searchTimer===null)return;clearTimeout(searchTimer);searchTimer=null;renderPalette(search.value);}
   function renderPalette(q){
     var rows=paletteRows(q)||(window.TTAppSearch?TTAppSearch.search(localStorage,all,q):all.filter(function(x){return !q||x.n.toLowerCase().indexOf(String(q).toLowerCase())>=0;}).map(function(x){return {group:'Module',label:x.n,detail:x.group,u:x.u,i:x.i};}));
-    var group='',markup='';rows.forEach(function(row,index){if(row.group!==group){group=row.group;markup+='<div class="palette-group">'+esc(group)+'</div>';}markup+='<button data-result="'+index+'"><span aria-hidden="true">'+appIcon(row.i)+'</span><span class="palette-copy"><b>'+esc(row.label)+'</b><small>'+esc(row.detail)+'</small></span></button>';});
+    var group='',markup='';rows.forEach(function(row,index){if(row.group!==group){group=row.group;markup+='<div class="palette-group" role="presentation">'+esc(group)+'</div>';}markup+='<button role="option" data-result="'+index+'"><span aria-hidden="true">'+appIcon(row.i)+'</span><span class="palette-copy"><b>'+esc(row.label)+'</b><small>'+esc(row.detail)+'</small></span></button>';});
     palette.innerHTML=markup||'<div class="search-empty" role="status">Niciun rezultat salvat. Caută un modul sau un ticker existent în scanări, portofoliu ori jurnal.</div>';palette.hidden=false;search.setAttribute?.('aria-expanded','true');palette.querySelectorAll('[data-result]').forEach(function(b){b.onclick=function(){selectSearch(rows[Number(b.dataset.result)]);};});
   }
   function moduleLoaded(){
@@ -262,7 +267,7 @@
     function inScanner(){return String(active||'').indexOf('candidate-engine/')===0;}
     // audit 18.10: pagina Piață rulează motorul în cadrul ei — atunci nu mai pornim încă o scanare completă aici
     function piataRuleaza(){var on=false;framePool.forEach(function(f){try{if(f.contentWindow&&typeof f.contentWindow.ttPiataPrimary==='function'&&f.contentWindow.ttPiataPrimary())on=true;}catch(_){}});return on;}
-    function maybe(){if(bg||document.hidden||navigator.onLine===false||inScanner()||piataRuleaza()||Date.now()-savedAt()<FRESH)return;
+    function maybe(){if(bg||document.hidden||navigator.onLine===false||reteaSlaba()||inScanner()||piataRuleaza()||Date.now()-savedAt()<FRESH)return;
       var started=Date.now();bg=document.createElement('iframe');bg.hidden=true;bg.tabIndex=-1;bg.setAttribute('aria-hidden','true');bg.title='Premarket Scanner · scanare în fundal';bg.dataset.ttBackground='candidate-engine';bg.src=moduleTarget('candidate-engine/','background=1');document.body.appendChild(bg);
       // pagina vizibilă a scannerului își face singură scanarea: cadrul ascuns nu mai e nevoie
       timer=setInterval(function(){if(savedAt()>=started||Date.now()-started>5*60000)stop();},3000);} // 19.10.2026: deschiderea scannerului nu mai oprește scanarea începută — pagina o așteaptă și preia rezultatul (I-702)

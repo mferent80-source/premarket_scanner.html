@@ -174,7 +174,9 @@ return globalThis.TradeEvidenceSchema;
 })();
 const TTCloudModel=(()=>{
 
-const KEYS=Object.freeze(['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_trading212_fills_v1','tt_trading212_portfolio_v1','tt_trading212_account_history_v1','tt_trading212_cash_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','cloud_credentials','tt_europe_signals_v1','tt_europe_risk_settings_v1','tt_radar_access_v1',globalThis.TradeEvidenceSchema.KEY,...Array.from({length:64},(_,i)=>globalThis.TradeEvidenceSchema.KEY+':'+i.toString(16).padStart(2,'0')),...Array.from({length:64},(_,i)=>'tt_holdings_forecast_sync_v1:'+i.toString(16).padStart(2,'0')),'tt_trading212_fills_v1:cont',...Array.from({length:16},(_,i)=>'tt_trading212_fills_v1:'+i.toString(16).padStart(2,'0'))]);
+const KEYS=Object.freeze(['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_trading212_fills_v1','tt_trading212_portfolio_v1','tt_trading212_account_history_v1','tt_trading212_cash_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','cloud_credentials','tt_europe_signals_v1','tt_europe_risk_settings_v1','tt_radar_access_v1',globalThis.TradeEvidenceSchema.KEY,...Array.from({length:64},(_,i)=>globalThis.TradeEvidenceSchema.KEY+':'+i.toString(16).padStart(2,'0')),...Array.from({length:64},(_,i)=>'tt_holdings_forecast_sync_v1:'+i.toString(16).padStart(2,'0')),'tt_trading212_fills_v1:cont',...Array.from({length:16},(_,i)=>'tt_trading212_fills_v1:'+i.toString(16).padStart(2,'0')),
+ // 27.10.2026 (lotul A, I-749 + contractele dintre loturi): ordinele în așteptare de la broker, kill switch-ul, limitele Governor (fără capital), jurnalul limitelor, cititorii Trading 212 (I-748)
+ 'tt_trading212_orders_pending_v1','tt_governor_oprire_v1','tt_governor_cfg_v1','tt_governor_limite_jurnal_v1','tt_t212_cititori_v1']);
 // Captures are immutable. Fixed buckets keep each encrypted record below the
 // service limit without discarding older analyses or changing their local identity.
 const EvidenceSchema=globalThis.TradeEvidenceSchema,EVIDENCE_KEY=EvidenceSchema.KEY;
@@ -360,7 +362,31 @@ function merge(base,local,remote,path=''){
 // aparate (Jurnalul, capitalul automat Trading 212, tichetul din Desk) ⇒ la două scrieri diferite câștigă cea mai nouă, fără conflict.
 // Ora locală o ține aplicația (evenimentul storage din pagini), ora din cont e `updated` de pe server (în secunde) ⇒ ambele în ms, comparate
 // la secundă; la egalitate sau fără oră locală câștigă contul.
-const LAST_WRITE_WINS=Object.freeze(['tt_pf_account','tt_ticket_capital']);
+const LAST_WRITE_WINS=Object.freeze(['tt_pf_account','tt_ticket_capital','tt_governor_cfg_v1']);
+/* 27.10.2026 (lotul A): formele cheilor noi. Ordinele în așteptare au exact forma scrisă de T212Pending.save (items ca în T212Pending.valid —
+   tools/cloud-sync-chei-noi.test.mjs le compară); kill switch-ul e contractul cu loturile C/E; limitele Governor circulă FĂRĂ capital
+   (accountSize / _accountBasis au cheile lor); jurnalul limitelor e append-only (unire pe ts + aparat + cheia: o salvare scrie mai multe
+   rânduri cu același ts); cititorii T212 (I-748) = pe aparat, ultima citire. Toate sunt observații sau stări cu oră ⇒ fără conflicte. */
+const ORDERS_KEY='tt_trading212_orders_pending_v1',OPRIRE_KEY='tt_governor_oprire_v1',CFG_KEY='tt_governor_cfg_v1',LIMITE_KEY='tt_governor_limite_jurnal_v1',CITITORI_KEY='tt_t212_cititori_v1',LIMITE_MAX=500;
+const iso=v=>typeof v==='string'&&Number.isFinite(Date.parse(v)),numOrNull=v=>v==null||typeof v==='number'&&Number.isFinite(v),ms=v=>{const t=Date.parse(v);return Number.isFinite(t)?t:-Infinity;};
+function validateOrders(value){
+ if(!object(value)||Object.keys(value).length>50)throw Error('invalid_value');
+ for(const [scope,a] of Object.entries(value)){
+  if(!scope||scope.length>200||!object(a)||!Array.isArray(a.items)||a.items.length>500||!(a.fetchedAt===null||iso(a.fetchedAt))||!(a.environment==null||typeof a.environment==='string'&&a.environment.length<=20))throw Error('invalid_value');
+  if(a.eroare!==undefined&&(!object(a.eroare)||!iso(a.eroare.la)||typeof a.eroare.mesaj!=='string'||a.eroare.mesaj.length>200))throw Error('invalid_value');
+  for(const o of a.items)if(!object(o)||typeof o.ticker!=='string'||!o.ticker||o.ticker.length>64||!numOrNull(o.quantity)||!numOrNull(o.stopPrice)||!numOrNull(o.limitPrice)||!(o.type==null||typeof o.type==='string')||!(o.side==null||o.side==='BUY'||o.side==='SELL'))throw Error('invalid_value');
+ }
+}
+function validateOprire(v){
+ if(!object(v)||typeof v.activ!=='boolean'||!iso(v.la)||typeof v.motiv!=='string'||v.motiv.length>2000||typeof v.aparat!=='string'||v.aparat.length>100||!Array.isArray(v.ordineAnulate)||v.ordineAnulate.length>500||!(v.rearmatLa==null||iso(v.rearmatLa))||!(v.rearmatMotiv==null||typeof v.rearmatMotiv==='string'&&v.rearmatMotiv.length<=2000))throw Error('invalid_value');
+ for(const o of v.ordineAnulate)if(!object(o)||!(o.id==null||typeof o.id==='string'||typeof o.id==='number')||!(o.ticker==null||typeof o.ticker==='string')||!numOrNull(o.stopPrice))throw Error('invalid_value');
+}
+const CFG_INTERZISE=['accountSize','_accountBasis','configIssues','capitalNecunoscut'];
+function validateGovernorCfg(v){if(!object(v)||Object.keys(v).length>60)throw Error('invalid_value');for(const [k,x] of Object.entries(v))if(CFG_INTERZISE.includes(k)||k.length>60||!(x===null||['number','boolean','string'].includes(typeof x))||typeof x==='number'&&!Number.isFinite(x)||typeof x==='string'&&x.length>200)throw Error('invalid_value');}
+function validateLimite(v){if(!Array.isArray(v)||v.length>LIMITE_MAX)throw Error('invalid_value');for(const r of v)if(!object(r)||!Number.isFinite(r.ts)||typeof r.aparat!=='string'||!r.aparat||r.aparat.length>100||typeof r.cheia!=='string'||!r.cheia||r.cheia.length>60)throw Error('invalid_value');}
+function validateCititori(v){if(!object(v)||Object.keys(v).length>50)throw Error('invalid_value');for(const [k,x] of Object.entries(v))if(!k||k.length>100||!object(x)||!iso(x.la)||!(x.env==null||typeof x.env==='string'&&x.env.length<=20))throw Error('invalid_value');}
+// pe cheie (cont / aparat): cea mai nouă oră câștigă; la egalitate aceeași alegere pe ambele aparate
+function newestByKey(local,remote,at){const value={...remote,...local};for(const k of Object.keys(remote)){const l=local[k],r=remote[k];if(!object(l)||!object(r))continue;const tl=at(l),tr=at(r);value[k]=tr>tl?r:tl>tr?l:smaller(l,r);}return {value,conflicts:[]};}
 function mergeRecord(key,base,local,remote,times){
  if(LAST_WRITE_WINS.includes(key)){const m=merge(base,local,remote,key);if(!m.conflicts.length)return m;const sec=t=>Math.floor((Number(t)||0)/1000);return {value:sec(times?.localAt)>sec(times?.remoteAt)?local:remote,conflicts:[]};}
  if(EvidenceCloud.isKey(key))return evidenceMerge(key,base,local,remote);
@@ -392,12 +418,26 @@ function mergeRecord(key,base,local,remote,times){
   const value={...remote,...local};for(const k of Object.keys(remote)){if(local[k]){const l=Date.parse(local[k].fetchedAt),r=Date.parse(remote[k].fetchedAt);if(Number.isFinite(r)&&(!Number.isFinite(l)||r>l))value[k]=remote[k];}}
   return {value,conflicts:[]};
  }
+ // 27.10.2026 (lotul A, I-749): ordinele în așteptare = observații ale brokerului — pe fiecare cont cea mai nouă citire (fetchedAt) câștigă; conturile se unesc
+ if(key===ORDERS_KEY&&object(local)&&object(remote))return newestByKey(local,remote,a=>ms(a.fetchedAt));
+ // kill switch (contractul cu E/C): cea mai nouă stare (oprirea sau re-armarea) câștigă
+ if(key===OPRIRE_KEY&&object(local)&&object(remote)){const t=v=>Math.max(ms(v.la),ms(v.rearmatLa));const tl=t(local),tr=t(remote);return {value:tr>tl?remote:tl>tr?local:smaller(local,remote),conflicts:[]};}
+ // jurnalul limitelor: unire pe ts + aparat + cheia, ordonat după ts, cel mult LIMITE_MAX (cele mai noi)
+ if(key===LIMITE_KEY&&Array.isArray(local)&&Array.isArray(remote)){const rows=new Map();for(const x of [...remote,...local])rows.set(x.ts+'|'+x.aparat+'|'+x.cheia,x);return {value:[...rows.values()].sort((a,b)=>a.ts-b.ts||String(a.aparat).localeCompare(String(b.aparat))||String(a.cheia).localeCompare(String(b.cheia))).slice(-LIMITE_MAX),conflicts:[]};}
+ // cititorii T212 (I-748): pe aparat, cea mai nouă citire
+ if(key===CITITORI_KEY&&object(local)&&object(remote))return newestByKey(local,remote,a=>ms(a.la));
  return merge(base,local,remote,key);
 }
-function validateValue(key,value){
+// 27.10.2026 (lotul A, audit [5]): limita de 1 MB e a CONTULUI — se verifică la trimitere (PUT, workerul și clientul), nu la o scriere pur locală (restaurarea copiei): {limita:false}
+function validateValue(key,value,{limita=true}={}){
  if(!KEYS.includes(key))throw Error('invalid_key');
  if(value===null)return true;
  if(EvidenceCloud.isKey(key))validateEvidence(key,value);
+ else if(key===ORDERS_KEY)validateOrders(value);
+ else if(key===OPRIRE_KEY)validateOprire(value);
+ else if(key===CFG_KEY)validateGovernorCfg(value);
+ else if(key===LIMITE_KEY)validateLimite(value);
+ else if(key===CITITORI_KEY)validateCititori(value);
  else if(forecastKeys.includes(key))validateForecast(key,value);
  else if(fillsKeys.includes(key))validateFills(key,value);
  else if(key==='tt_europe_signals_v1')validateEuropeHistory(value);
@@ -416,7 +456,7 @@ function validateValue(key,value){
  else if(['tt_pf_account','tt_ticket_capital'].includes(key)){if(typeof value!=='string'||value.length>256)throw Error('invalid_value');}
  else if(['tt_journal_v1','tt_trade_plans_v1','wl_stocks'].includes(key)){if(!Array.isArray(value))throw Error('invalid_value');}
  else if(!object(value))throw Error('invalid_value');
- const text=JSON.stringify(value);if(key!==EVIDENCE_KEY&&new TextEncoder().encode(text).length>1000000)throw Error('record_too_large');
+ const text=JSON.stringify(value);if(limita&&key!==EVIDENCE_KEY&&new TextEncoder().encode(text).length>1000000)throw Error('record_too_large');
  JSON.parse(text,(k,v)=>{if(['__proto__','constructor','prototype'].includes(k))throw Error('invalid_value');return v;});return true;
 }
 
@@ -497,14 +537,23 @@ const {deliverPush}=TTCloudPush;
 // Private opt-in monitor. Broker GET only; generic opt-in Web Push, no order execution.
 const MONITOR_KEY='__account_monitor_v1';
 const HEARTBEAT_KEY='__monitor_scheduler_v1';
-const ORIGIN='https://mferent80-source.github.io',finite=Number.isFinite,INTERVAL=300000;
+const ORIGIN='https://mferent80-source.github.io',finite=Number.isFinite,INTERVAL=300000,BROKER_ERRORS=['rate_limited','broker_credentials_invalid','broker_permission_missing','broker_timeout'];
 async function monitorScope(credentials){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(credentials.environment+':'+credentials.key));return credentials.environment+':'+Array.from(new Uint8Array(b),x=>x.toString(16).padStart(2,'0')).join('');}
+/* 27.10.2026 (I-749): O SINGURĂ definiție a stopului și pe server. Copii EXACTE ale StopSetter.stopLa / stopValabil (lib/stop-setter.js: stopul contează
+   doar dacă a fost pus / schimbat după deschiderea poziției de acum, −1 h toleranță) și ale T212Pending.ordineStop (lib/t212-pending.js: ordinele STOP
+   de vânzare, cel mai mic stop pe ticker). Workerul e un singur fișier, fără paginile aplicației ⇒ copia; tools/cloud-monitor-stop.test.mjs le compară. */
+function stopLa(t){if(!t||!(Number(t.stop)>0))return null;let la=null,prec=null;for(const h of (Array.isArray(t.history)?t.history:[]).slice().sort((a,b)=>Date.parse(a?.at)-Date.parse(b?.at))){const st=Number(h?.stop),at=Date.parse(h?.at);if(st>0&&st!==prec&&finite(at))la=at;prec=st>0?st:null;}return la??(finite(Date.parse(t.updatedAt))?Date.parse(t.updatedAt):null);}
+function stopValabil(t,p){if(!t||!(Number(t.stop)>0))return false;const deschisa=Date.parse(p&&p.openedAt),la=stopLa(t);return !finite(deschisa)||(la!=null&&la>=deschisa-3600000);}
+const STOP_TIP=/STOP/i;
+function ordineStop(items){const m=new Map();for(const o of items||[]){if(!o||!STOP_TIP.test(o.type||'')||o.side==='BUY'||!(o.stopPrice>0))continue;const v=m.get(o.ticker);if(!v||o.stopPrice<v.stopPrice)m.set(o.ticker,{stopPrice:o.stopPrice,quantity:finite(o.quantity)?Math.abs(o.quantity):null,type:o.type,id:o.id??null});}return m;}
+// stopul documentat al poziției, în moneda instrumentului, după definiția comună
+const stopDocumentat=(n,p)=>finite(n?.stop)&&n.stop>0&&n.stopCurrency===p.instrumentCurrency&&stopValabil(n,p)?n.stop:null;
 function monitorRules({scope,positions,summary,notes={},previous=null,now=Date.now()}={}){
  if(!summary||!finite(summary.totalValue)||summary.totalValue<0||!/^[A-Z]{3}$/.test(summary.currency||'')||!Array.isArray(positions)||positions.length>500||positions.some(p=>!p||typeof p.ticker!=='string'||!p.ticker||!finite(p.quantity)||p.quantity<0)||new Set(positions.map(p=>p.ticker)).size!==positions.length)throw Error('monitor_schema_invalid');
  const current=positions.filter(p=>p.quantity>0),alerts=[],coverage={positions:current.length,prices:0,stops:0,targets:0};
  const add=(key,type,ticker,text)=>alerts.push({key,type,ticker,text,at:now});
  for(const p of current){const n=notes[scope+'|'+p.ticker]||{},price=finite(p.currentPrice)&&p.currentPrice>0&&/^[A-Z]{3}$/.test(p.instrumentCurrency||'');if(price)coverage.prices++;else add('price:'+p.ticker,'data',p.ticker,'Preț sau monedă a instrumentului neverificată.');
-  const stop=finite(n.stop)&&n.stop>0&&n.stopCurrency===p.instrumentCurrency,target=finite(n.targetPrice)&&n.targetPrice>0&&n.targetCurrency===p.instrumentCurrency;
+  const stop=stopDocumentat(n,p)!=null,target=finite(n.targetPrice)&&n.targetPrice>0&&n.targetCurrency===p.instrumentCurrency;
   if(price&&stop){coverage.stops++;const pct=(p.currentPrice/n.stop-1)*100,near=finite(n.stopAlertPct)&&n.stopAlertPct>=.5&&n.stopAlertPct<=20?n.stopAlertPct:3;if(pct<=0)add('stop:'+p.ticker,'stop',p.ticker,'Prețul raportat de broker este la/sub stopul de reevaluare: '+p.currentPrice+' / '+n.stop+' '+p.instrumentCurrency+'.');else if(pct<=near)add('near-stop:'+p.ticker,'near-stop',p.ticker,'Preț la '+pct.toFixed(2)+'% peste stopul de reevaluare.');}
   else add('stop-missing:'+p.ticker,'coverage',p.ticker,'Stop sau monedă a stopului neverificată; poziția nu este acoperită de alerta la stop.');
   if(price&&target){coverage.targets++;if(p.currentPrice>=n.targetPrice)add('target:'+p.ticker,'target',p.ticker,'Prețul raportat este la/peste ținta de reevaluare.');}
@@ -518,11 +567,21 @@ function monitorRules({scope,positions,summary,notes={},previous=null,now=Date.n
 // monitorul le are deja: căldura (riscul până la stopurile documentate / cont), cea mai mare poziție, pozițiile fără stop, scăderea de la vârful
 // observațiilor zilnice (dacă istoricul contului e sincronizat), raportările din 7 zile. Nimic nou de decis; inbox + Discord dacă e webhook.
 const F_ZI=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}),F_ORA=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
-function dupaInchidere(now=Date.now()){try{const p=Object.fromEntries(F_ORA.formatToParts(new Date(now)).map(q=>[q.type,q.value]));return !['Sat','Sun'].includes(p.weekday)&&Number(p.hour)*60+Number(p.minute)>=965;}catch{return false;}}
-function fisaZilei({scope,summary,positions=[],notes={},istoric=null,now=Date.now()}={}){
+/* 27.10.2026 (auditul A [6]): zilele fără bursă la New York nu primesc fișă, iar în zilele scurte fișa vine după închiderea de la 13:00. Copie a
+   ExchangeCalendar.markets.US (lib/exchange-calendar.js, zile publicate de NYSE); testul le compară. Un an necunoscut cade pe regula luni–vineri. */
+const zileUS=(an,s)=>s.split(' ').map(d=>an+'-'+d);
+const US_INCHIS=Object.freeze([...zileUS(2026,'01-01 01-19 02-16 04-03 05-25 06-19 07-03 09-07 11-26 12-25'),...zileUS(2027,'01-01 01-18 02-15 03-26 05-31 06-18 07-05 09-06 11-25 12-24')]);
+const US_SCURT=Object.freeze({'2026-11-27':780,'2026-12-24':780,'2027-11-26':780});
+function dupaInchidere(now=Date.now()){try{const p=Object.fromEntries(F_ORA.formatToParts(new Date(now)).map(q=>[q.type,q.value])),zi=F_ZI.format(new Date(now));if(['Sat','Sun'].includes(p.weekday)||US_INCHIS.includes(zi))return false;const inchidere=finite(US_SCURT[zi])?US_SCURT[zi]:960;return Number(p.hour)*60+Number(p.minute)>=inchidere+5;}catch{return false;}}
+/* 27.10.2026 (I-749): `ordine` = ordinele în așteptare citite de la broker prin releu (null ⇒ necitite, cu `ordineEroare`). Cu ele: pozițiile fără ORDIN
+   de stop întreg la broker (stop doar pe hârtie / ordin doar pentru o parte), iar căldura se socotește până la stopul care execută (ordinul întreg,
+   altfel stopul documentat). Fără ele, stopurile din fișă sunt spuse „documentate, neverificate la broker”. */
+function fisaZilei({scope,summary,positions=[],notes={},istoric=null,ordine=null,ordineEroare=null,now=Date.now()}={}){
  const c=summary?.currency,total=finite(summary?.totalValue)&&summary.totalValue>0?summary.totalValue:null,n1=v=>finite(v)?(Math.round(v*10)/10).toLocaleString('ro-RO',{minimumFractionDigits:1,maximumFractionDigits:1}):'—',sym=t=>String(t).replace(/_[A-Z]{2}_EQ$/,'');
+ const citite=Array.isArray(ordine),stopuri=citite?ordineStop(ordine):new Map(),faraOrdin=citite?[]:null,peHartie=citite?[]:null,partial=citite?[]:null;
  const cur=(Array.isArray(positions)?positions:[]).filter(p=>p&&typeof p.ticker==='string'&&finite(p.quantity)&&p.quantity>0),faraStop=[],conc=[];let risc=0,riscOk=true;
- for(const p of cur){const n=notes[scope+'|'+p.ticker]||{},rate=p.currency===c&&finite(p.value)&&p.value>0&&finite(p.currentPrice)&&p.currentPrice>0?p.value/(p.quantity*p.currentPrice):null,stop=finite(n.stop)&&n.stop>0&&n.stopCurrency===p.instrumentCurrency?n.stop:null;
+ for(const p of cur){const n=notes[scope+'|'+p.ticker]||{},rate=p.currency===c&&finite(p.value)&&p.value>0&&finite(p.currentPrice)&&p.currentPrice>0?p.value/(p.quantity*p.currentPrice):null,doc=stopDocumentat(n,p),o=stopuri.get(p.ticker)||null,intreg=!!o&&!(finite(o.quantity)&&o.quantity<p.quantity*0.999),stop=intreg?o.stopPrice:doc;
+  if(citite&&!intreg){faraOrdin.push(p.ticker);if(o)partial.push(p.ticker);else if(doc)peHartie.push(p.ticker);}
   if(!stop)faraStop.push(p.ticker);else if(rate==null)riscOk=false;else if(p.currentPrice>stop)risc+=(p.currentPrice-stop)*p.quantity*rate;
   if(total&&p.currency===c&&finite(p.value))conc.push({t:p.ticker,pct:p.value/total*100});}
  conc.sort((a,b)=>b.pct-a.pct);
@@ -530,8 +589,14 @@ function fisaZilei({scope,summary,positions=[],notes={},istoric=null,now=Date.no
  const zi=F_ZI.format(new Date(now)),rap=[];
  for(const p of cur){const e=(notes[scope+'|'+p.ticker]||{}).earnings;if(typeof e==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(e)){const d=(Date.parse(e+'T12:00:00Z')-Date.parse(zi+'T12:00:00Z'))/86400000;if(d>=0&&d<=7)rap.push(sym(p.ticker)+' ('+e.slice(8,10)+'.'+e.slice(5,7)+')');}}
  const caldura=faraStop.length||!riscOk?null:risc,caldPct=caldura!=null&&total?caldura/total*100:null;
- const text='Fișa zilei '+zi.slice(8,10)+'.'+zi.slice(5,7)+' · cont '+(total?n1(total)+' '+c:'—')+' · '+cur.length+(cur.length===1?' poziție':' poziții')+' · căldura până la stopuri '+(caldura==null?'NECUNOSCUTĂ ('+(faraStop.length?faraStop.length+' fără stop':'curs neverificat')+')':n1(caldura)+' '+c+(caldPct!=null?' = '+n1(caldPct)+' % din cont':''))+' · cea mai mare poziție '+(conc[0]?sym(conc[0].t)+' '+n1(conc[0].pct)+' %':'—')+' · fără stop documentat: '+(faraStop.length?faraStop.map(sym).join(', '):'niciuna')+' · scăderea de la vârful observațiilor '+(dd!=null?n1(dd)+' % (fără ajustare la depuneri / retrageri)':'— (istoricul contului nesincronizat)')+' · raportări în 7 zile: '+(rap.length?rap.join(', '):'niciuna')+'.';
- return {zi,text,total,currency:c||null,pozitii:cur.length,caldura,caldPct,faraStop,concentrare:conc[0]||null,dd,raportari:rap};
+ const text='Fișa zilei '+zi.slice(8,10)+'.'+zi.slice(5,7)+' · cont '+(total?n1(total)+' '+c:'—')+' · '+cur.length+(cur.length===1?' poziție':' poziții')+' · căldura până la stopuri '+(caldura==null?'NECUNOSCUTĂ ('+(faraStop.length?faraStop.length+' fără stop':'curs neverificat')+')':n1(caldura)+' '+c+(caldPct!=null?' = '+n1(caldPct)+' % din cont':''))+' · cea mai mare poziție '+(conc[0]?sym(conc[0].t)+' '+n1(conc[0].pct)+' %':'—')+(citite?' · fără niciun stop (nici ordin întreg, nici documentat): ':' · fără stop documentat: ')+(faraStop.length?faraStop.map(sym).join(', '):'niciuna')+ordineText(cur.length,citite,faraOrdin,peHartie,partial,ordineEroare,sym)+' · scăderea de la vârful observațiilor '+(dd!=null?n1(dd)+' % (fără ajustare la depuneri / retrageri)':'— (istoricul contului nesincronizat)')+' · raportări în 7 zile: '+(rap.length?rap.join(', '):'niciuna')+'.';
+ return {zi,text,total,currency:c||null,pozitii:cur.length,caldura,caldPct,faraStop,concentrare:conc[0]||null,dd,raportari:rap,ordineCitite:citite,ordineEroare:citite?null:ordineEroare||null,faraOrdin,peHartie,partial};
+}
+function ordineText(n,citite,faraOrdin,peHartie,partial,eroare,sym){
+ if(!citite)return ' · ordinele brokerului NECITITE ('+(eroare||'necerute')+') — stopurile de mai sus sunt documentate, neverificate la broker';
+ if(!n)return '';
+ if(!faraOrdin.length)return ' · toate pozițiile au ORDIN de stop la broker';
+ return ' · '+faraOrdin.length+(faraOrdin.length===1?' poziție':' poziții')+' fără ORDIN de stop la broker: '+faraOrdin.map(sym).join(', ')+(peHartie.length?' — stop doar pe hârtie: '+peHartie.map(sym).join(', '):'')+(partial.length?' — ordin doar pentru o parte: '+partial.map(sym).join(', '):'');
 }
 function empty(){return {version:1,enabled:false,scope:null,startedAt:null,lastAttempt:null,lastChecked:null,lastError:null,report:null,events:[],activeKeys:[],fisaZi:null};}
 async function read(db,subject,key,env,unseal){const row=await db.prepare('SELECT key,revision,packet,updated FROM cloud_records WHERE subject=? AND key=?').bind(subject,key).first();return row?{...row,value:await unseal(row.packet,env.CLOUD_ENCRYPTION_KEY,subject+'|'+key+'|'+row.revision)}:null;}
@@ -552,7 +617,10 @@ async function runOne(subject,env,deps,upstream,now){
   const notes=(await read(db,subject,'tt_holdings_theses_v1',env,unseal))?.value||{},report=monitorRules({scope:state.scope,summary:payload[0],positions:payload[1],notes,previous:state.report,now}),active=new Set(state.activeKeys||[]),newEvents=report.alerts.filter(a=>!active.has(a.key)).map(a=>({...a,id:now+':'+a.key}));
   // I-734: fișa zilei — o dată pe zi NY, la prima rulare după închidere
   const ziNY=F_ZI.format(new Date(now));
-  if(dupaInchidere(now)&&state.fisaZi!==ziNY){let istoric=null;try{const h=(await read(db,subject,'tt_trading212_account_history_v1',env,unseal))?.value;istoric=h&&Array.isArray(h[state.scope])?h[state.scope]:null;}catch{istoric=null;}fisa=fisaZilei({scope:state.scope,summary:payload[0],positions:payload[1],notes,istoric,now});}
+  if(dupaInchidere(now)&&state.fisaZi!==ziNY){let istoric=null;try{const h=(await read(db,subject,'tt_trading212_account_history_v1',env,unseal))?.value;istoric=h&&Array.isArray(h[state.scope])?h[state.scope]:null;}catch{istoric=null;}
+   // I-749: ordinele în așteptare, DOAR citire prin releu, o dată pe zi (la fișă); o citire picată nu oprește fișa — motivul intră în text
+   let ordine=null,ordineEroare=null;try{const r=await brokerHandle(new Request('https://monitor/api/trading212/orders-pending',{headers}),{...env,T212_AUTH_MODE:'session'},upstream),b=await r.json();if(!r.ok)throw Error(BROKER_ERRORS.includes(b?.error)?b.error:'monitor_broker_unavailable');if(b.source!=='Trading 212'||b.environment!=='live'||!Array.isArray(b.data))throw Error('monitor_schema_invalid');ordine=b.data;}catch(e){ordineEroare=[...BROKER_ERRORS,'monitor_schema_invalid'].includes(e?.message)?e.message:'monitor_broker_unavailable';}
+   fisa=fisaZilei({scope:state.scope,summary:payload[0],positions:payload[1],notes,istoric,ordine,ordineEroare,now});}
   const fisaEvents=fisa?[{id:now+':fisa:'+ziNY,key:'fisa:'+ziNY,type:'fisa',ticker:'Fișa zilei',text:fisa.text,at:now}]:[];
   state={...state,lastChecked:now,lastError:null,report,activeKeys:report.alerts.map(a=>a.key),events:[...newEvents,...fisaEvents,...(state.events||[])].slice(0,200),...(fisa?{fisaZi:ziNY}:{})};
  }catch(e){const allowed=['monitor_credentials_missing','monitor_account_changed','monitor_schema_invalid','rate_limited','broker_credentials_invalid','broker_permission_missing','broker_timeout','monitor_broker_unavailable'],code=allowed.includes(e.message)?e.message:'monitor_broker_unavailable',key='error:'+code,event={id:now+':'+key,key,type:'error',ticker:null,text:code,at:now};state={...state,lastError:{code,at:now},activeKeys:[key],events:[...(state.activeKeys?.includes(key)?[]:[event]),...(state.events||[])].slice(0,200)};}
@@ -579,7 +647,7 @@ async function runMonitors(env,deps,upstream=fetch,now=Date.now()){
  const heartbeat=await read(db,'__monitor_service__',HEARTBEAT_KEY,env,deps.unseal);await write(db,'__monitor_service__',HEARTBEAT_KEY,{at:now,checked,failed},heartbeat?.revision||0,env,deps.seal,now);return {checked,failed};
 }
 
-return {MONITOR_KEY,HEARTBEAT_KEY,monitorScope,monitorRules,dupaInchidere,fisaZilei,schedulerStatus,handleMonitor,runMonitors};
+return {MONITOR_KEY,HEARTBEAT_KEY,monitorScope,stopLa,stopValabil,ordineStop,monitorRules,US_INCHIS,US_SCURT,dupaInchidere,fisaZilei,schedulerStatus,handleMonitor,runMonitors};
 })();
 const TTCloudWorker=(()=>{
 const {KEYS,validateValue,ForecastCloud,FillsCloud}=TTCloudModel;const {handle:brokerHandle}=TTBrokerRelay;const {handleMonitor,runMonitors,schedulerStatus}=TTCloudMonitor;const {handlePush,pushReceipt}=TTCloudPush;const {handleAudit}=TTCloudAudit;

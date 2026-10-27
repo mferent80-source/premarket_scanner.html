@@ -1,0 +1,70 @@
+name: Proba de ecran după publicare
+
+# 27.10.2026 (I-747): proba de ecran a Decision App (tools/proba-ecran-decizie.mjs, I-725) rulează AUTOMAT după fiecare publicare GitHub Pages
+# (fluxul „pages-build-deployment” al build-ului „legacy” din main) — dar doar când versiunea aplicației sau a suitei din depozit e NOUĂ față de
+# ultima probă (commiturile roboților republică și ele site-ul). Google Chrome headless pe Ubuntu, două deschideri cu același profil, după ce
+# site-ul servește versiunea din depozit. Rezultatul scurt în health/generated/proba-ecran.json (Health îl arată), Discord la roșu.
+on:
+  workflow_run:
+    workflows: ["pages-build-deployment"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: proba-ecran
+  cancel-in-progress: false
+
+jobs:
+  proba:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: main
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: E o versiune nouă față de ultima probă?
+        id: nou
+        env:
+          EVENIMENT: ${{ github.event_name }}
+        run: |
+          node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync('app/version.json','utf8')).version;const s=(fs.readFileSync('sw-app.js','utf8').match(/CACHE_VERSION\s*=\s*'([^']+)'/)||[])[1]||'';let p={};try{p=JSON.parse(fs.readFileSync('health/generated/proba-ecran.json','utf8'));}catch{}const nou=process.env.EVENIMENT==='workflow_dispatch'||p.versiunePublicata!==v||p.suitaPublicata!==s;fs.appendFileSync(process.env.GITHUB_OUTPUT,'versiune='+v+'\nnou='+nou+'\n');console.log('depozit '+v+' / '+s+' · ultima probă '+(p.versiunePublicata||'—')+' / '+(p.suitaPublicata||'—')+' ⇒ '+(nou?'probez':'nimic nou'));"
+      - name: Proba de ecran (Google Chrome headless)
+        id: proba
+        if: steps.nou.outputs.nou == 'true'
+        continue-on-error: true
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          command -v google-chrome && google-chrome --version || true
+          node tools/proba-ecran-decizie.mjs --browser "$(command -v google-chrome || true)" --fara-sandbox --rezumat health/generated/proba-ecran.json --asteapta-versiune "${{ steps.nou.outputs.versiune }}" --out "$RUNNER_TEMP/proba-ecran-raport.json"
+      - name: Publică rezultatul (health/generated/proba-ecran.json)
+        if: steps.nou.outputs.nou == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add health/generated/proba-ecran.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data(proba-ecran): proba de ecran după publicare [skip ci]'
+            ok=0; for i in 1 2 3; do if git pull --rebase origin main && git push origin HEAD:main; then ok=1; break; fi; git rebase --abort 2>/dev/null || true; sleep 10; done
+            [ "$ok" = 1 ] || echo 'Push eșuat de 3 ori: rezultatul probei NU e publicat (e în jurnalul rulării).'
+          fi
+      - name: Discord la roșu
+        if: steps.proba.outcome == 'failure'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [ -n "$DISCORD_WEBHOOK" ] || exit 0
+          node -e "let s={};try{s=JSON.parse(require('fs').readFileSync('health/generated/proba-ecran.json','utf8'));}catch{}const m=(s.motive||[]).slice(0,8).map(x=>'• '+x).join('\n');const t='**Proba de ecran a Decision App e ROȘIE** după publicare · versiunea '+(s.versiunePublicata||'?')+' · '+(s.nMotive??'?')+' motive\n'+m+'\n'+process.env.RUN_URL;fetch(process.env.DISCORD_WEBHOOK,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({content:t.slice(0,1900)})}).then(r=>console.log('Discord: '+r.status)).catch(e=>console.log('Discord: '+e.message))"
+      - name: Verdictul rulării
+        if: steps.proba.outcome == 'failure'
+        run: |
+          echo 'Proba de ecran e roșie (vezi pașii de mai sus și health/generated/proba-ecran.json).'
+          exit 1

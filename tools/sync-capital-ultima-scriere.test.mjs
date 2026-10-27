@@ -12,7 +12,7 @@ import {KEYS,mergeRecord,validateValue,EvidenceCloud,ForecastCloud,LAST_WRITE_WI
 import {handleCloud} from './cloud-sync-worker.bundle.mjs';
 
 test('regula: la capital câștigă scrierea cea mai nouă, fără conflict; fără oră locală câștigă contul', () => {
-  assert.deepEqual([...LAST_WRITE_WINS].sort(), ['tt_pf_account', 'tt_ticket_capital']);
+  assert.deepEqual([...LAST_WRITE_WINS].sort(), ['tt_governor_cfg_v1', 'tt_pf_account', 'tt_ticket_capital']); // 27.10.2026 (lotul A): și limitele Governor (fără capital) — ultima scriere câștigă
   for (const k of LAST_WRITE_WINS) {
     assert.ok(KEYS.includes(k));
     let m = mergeRecord(k, '5000', '5100', '5200', {localAt: 2000, remoteAt: 1000});
