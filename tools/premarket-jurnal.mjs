@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { fetchStock, serii } from './v1-jurnal.mjs';
 import { adauga, contractProba } from '../lib/v1-proba.mjs';
 import { PROTOCOL, versiune, inregistrare, evalueaza, amprentaDependinte, istoricDependinte } from '../lib/premarket-proba.mjs';
-import { calendarSUA } from '../lib/proba-contract.mjs';
+import { calendarSUA, intervalPentru, simboluriDeReluat, taieLaZi } from '../lib/proba-contract.mjs';
 import { pasUmbra, versiune as versiuneUmbra, bareZilnice, PROTOCOL as UMBRA } from '../lib/reversal-umbra.mjs';
 
 const DIR = 'scanner-verdicts/generated', JURNAL = DIR + '/premarket-jurnal.json', PROBA = DIR + '/premarket-proba.json';
@@ -57,13 +57,8 @@ export function motor(fetchSerie = fetchStock, { calendar } = {}) {
 // 19.10.2026 (audit Long & Reversal): motorul citește acțiunile pe 1 an ⇒ peste un an primele perioade ar ieși din fereastră și verdictul
 // s-ar calcula pe o fereastră alunecătoare, nu pe toate zilele din jurnal, cum cere protocolul. Înainte de evaluare se reiau TOATE
 // simbolurile din jurnal (acțiuni + repere) pe un interval care acoperă prima zi a jurnalului plus orizontul cel mai lung.
-export function intervalPentru(primaZi, azi = new Date().toISOString().slice(0, 10)) {
-  const zile = (Date.parse(azi + 'T00:00:00Z') - Date.parse(primaZi + 'T00:00:00Z')) / 86400000 + 60;
-  return zile <= 700 ? '2y' : zile <= 1800 ? '5y' : '10y';
-}
-export function simboluriDeReluat(jurnal) {
-  return [...new Set(jurnal.zile.flatMap((zi) => zi.r.flatMap((x) => [x[0], x[4]])).filter(Boolean).concat('SPY'))];
-}
+// 27.10.2026 (revizia F, 🔴1): cele două funcții s-au mutat în lib/proba-contract.mjs (le folosesc și V1, și Trend); aici rămân reexportate.
+export { intervalPentru, simboluriDeReluat };
 // 19.10.2026 — I-716: barele zilnice OHLC ale fiecărei cereri (aceleași pe care le vede motorul), pentru stopurile umbrei
 const bare = {};
 async function fetchCuBare(sym, o) { const out = await fetchStock(sym, o); if (!o || o.interval === '1d') { const b = bareZilnice(out); if (b) bare[sym] = b; } return out; }
@@ -104,10 +99,12 @@ async function main() {
   const vechi = existsSync(JURNAL) ? JSON.parse(readFileSync(JURNAL, 'utf8')) : { zile: [] };
   const jurnal = { ...adauga(vechi, rec), protocol: PROTOCOL.id };
   // motorul cere acțiunile pe 1 an și reperele pe 6 luni; evaluarea are nevoie de tot intervalul jurnalului ⇒ toate se reiau (19.10.2026)
-  const range = intervalPentru(jurnal.zile[0]?.zi || rec.zi);
-  for (const sym of simboluriDeReluat(jurnal)) { try { await fetchCuBare(sym, { range, interval: '1d' }); } catch (e) { console.log('serie ' + sym + ': ' + e.message); } }
-  const sesiuni = (serii.SPY || []).map((x) => x.d), calNY = calendarSUA('.'), azi = new Date().toISOString().slice(0, 10);
-  const j = continutProba({ jurnal, V, rec, s, serii, sesiuni, cal: calNY, azi });
+  // 27.10.2026 (revizia F): doar zilele versiunii de acum (zilele probei precedente nu se mai evaluează)
+  const range = intervalPentru(jurnal.zile.find((z) => z.v === V)?.zi || rec.zi);
+  for (const sym of simboluriDeReluat(jurnal, V)) { try { await fetchCuBare(sym, { range, interval: '1d' }); } catch (e) { console.log('serie ' + sym + ': ' + e.message); } }
+  // 27.10.2026 (revizia F, 🟡10): seriile de evaluare se taie la ziua notată (o rulare de dimineață vede bursele UE deschise)
+  const ev = taieLaZi(serii, rec.zi), sesiuni = (ev.SPY || []).map((x) => x.d), calNY = calendarSUA('.'), azi = new Date().toISOString().slice(0, 10);
+  const j = continutProba({ jurnal, V, rec, s, serii: ev, sesiuni, cal: calNY, azi });
   writeFileSync(JURNAL, JSON.stringify(jurnal));
   writeFileSync(PROBA, JSON.stringify(j, null, 1));
   console.log(`Premarket ${V} · ziua ${rec.zi} · ${s.verified}/${s.scanned} verificate · Top Long ${j.azi.topLong} · ${j.zile} zile în probă · primul verdict ~${j.primulVerdict?.realist || '—'}`);

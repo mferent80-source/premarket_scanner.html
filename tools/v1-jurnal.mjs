@@ -4,7 +4,7 @@
 import vm from 'node:vm';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { PROTOCOL, inregistrare, adauga, evalueaza, versiuneV1, contractProba } from '../lib/v1-proba.mjs';
-import { calendarSUA } from '../lib/proba-contract.mjs';
+import { calendarSUA, intervalPentru, simboluriDeReluat, taieLaZi } from '../lib/proba-contract.mjs';
 
 const DIR = 'scanner-verdicts/generated', JURNAL = DIR + '/v1-jurnal.json', PROBA = DIR + '/v1-proba.json';
 const z = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -52,6 +52,13 @@ export function continutProba({ jurnal, V, rec, report, serii: s, sesiuni, cal, 
     azi: { verificate: report.verifiedCount, total: report.items.length, indeplinesc: rec.r.filter((x) => x[1] === 'm').length, sus: rec.r.filter((x) => x[1] !== 'u' && x[2] >= PROTOCOL.pragSus).length },
     orizonturi: c.orizonturi, putere: c.putere, primulVerdict: c.primulVerdict, judecata: c.judecata, sesiuni: c.sesiuni };
 }
+/** 27.10.2026 (revizia F, 🔴1): ce se reia înainte de evaluare. Cât 2 ani acoperă prima zi a versiunii + orizontul, doar simbolurile fără
+ *  serie (scannerul a adus deja 2 ani de bare pentru acțiuni și repere); după aceea TOATE simbolurile zilelor versiunii + SPY, pe intervalul
+ *  lung (5y / 10y) — altfel perioadele vechi ar ieși din fereastră și judecata s-ar face pe o fereastră alunecătoare. */
+export function planReluare({ jurnal, V, azi = new Date().toISOString().slice(0, 10), serii: cunoscute = serii }) {
+  const prima = (jurnal?.zile || []).filter((z) => z.v === V && z.zi).map((z) => z.zi).sort()[0] || azi, range = intervalPentru(prima, azi), toate = simboluriDeReluat(jurnal, V);
+  return { range, simboluri: range === '2y' ? toate.filter((x) => !cunoscute[x]) : toate };
+}
 async function main() {
   const c = motor(), V = versiuneaDeAzi('.');
   const report = await c.IndependentScanner.scan({ symbols: [...PROTOCOL.univers], concurrency: 3 });
@@ -63,10 +70,11 @@ async function main() {
   if (process.env.DOAR_LIPSA && (vechi.zile || []).some((z) => z && z.zi === rec.zi && z.v === V)) { console.log('V1 ' + V + ' · ziua ' + rec.zi + ' e deja notată — nimic de făcut (rularea de rezervă).'); return; }
   const jurnal = adauga(vechi, rec);
   // reperele folosite în zilele vechi (EXSA.DE / ^STOXX / IVV…) trebuie să aibă bare și azi
-  const lipsa = [...new Set(jurnal.zile.flatMap((zi) => zi.r.map((x) => x[4]).filter(Boolean)))].filter((s) => !serii[s]);
-  for (const s of lipsa.concat(serii.SPY ? [] : ['SPY'])) { try { await fetchStock(s, { range: '2y', interval: '1d' }); } catch (e) { console.log('reper ' + s + ': ' + e.message); } }
-  const sesiuni = (serii.SPY || []).map((x) => x.d);
-  const j = continutProba({ jurnal, V, rec, report, serii, sesiuni, cal: calendarSUA('.'), azi: new Date().toISOString().slice(0, 10) });
+  // 27.10.2026 (revizia F, 🔴1 / 🟡10): seriile acoperă toată proba (planReluare), apoi se taie la ziua notată (fără bare intraday)
+  const plan = planReluare({ jurnal, V });
+  for (const s of plan.simboluri) { try { await fetchStock(s, { range: plan.range, interval: '1d' }); } catch (e) { console.log('serie ' + s + ' (' + plan.range + '): ' + e.message); } }
+  const ev = taieLaZi(serii, rec.zi), sesiuni = (ev.SPY || []).map((x) => x.d);
+  const j = continutProba({ jurnal, V, rec, report, serii: ev, sesiuni, cal: calendarSUA('.'), azi: new Date().toISOString().slice(0, 10) });
   writeFileSync(JURNAL, JSON.stringify(jurnal));
   writeFileSync(PROBA, JSON.stringify(j, null, 1));
   console.log(`V1 ${V} · ziua ${rec.zi} · ${report.verifiedCount}/${report.items.length} verificate · ${j.zile} zile în probă · primul verdict ~${j.primulVerdict?.realist || '—'}`);
