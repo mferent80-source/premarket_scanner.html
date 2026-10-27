@@ -43,8 +43,12 @@ test('I-673: protocolul nu se schimbă după primul rezultat al motorului în pr
   const ist = /## Istoria protocolului([\s\S]*?)(\n## |$)/.exec(readFileSync('docs/clasificator-protocol.md', 'utf8'))?.[1] || '', date = [...ist.matchAll(/\*\*(\d{2})\.(\d{2})\.(\d{4})\*\*/g)].map((m) => `${m[3]}-${m[2]}-${m[1]}`).sort();
   assert.ok(date.length, 'Istoria protocolului fără date.');
   if (!existsSync(d)) return;
-  const prim = readdirSync(d).filter((f) => f.startsWith('rezultate-')).flatMap((f) => citeste(readFileSync(d + '/' + f, 'utf8'))).map((r) => r.asOf).sort()[0];
-  if (prim) assert.ok(date.at(-1) <= prim, `Protocolul a fost schimbat (${date.at(-1)}) după primul rezultat (vot din ${prim}): o regulă nouă cere o probă nouă (motor nou, PROBA nou).`);
+  // 27.10.2026: un rezultat se SCRIE abia după h sesiuni de la ziua votului (asOf) — regula „nu după primul rezultat” se măsoară pe data scrierii
+  // (asOf + h sesiuni SUA), nu pe data votului; altfel reviziile din 17.10 (făcute fără niciun rezultat) picau testul din 24.10, când s-a notat primul rezultat.
+  const rez = readdirSync(d).filter((f) => f.startsWith('rezultate-')).flatMap((f) => citeste(readFileSync(d + '/' + f, 'utf8'))).filter((r) => r && /^\d{4}-\d{2}-\d{2}$/.test(r.asOf));
+  const cal = motor('.').ExchangeCalendar, scris = (r) => { let zi = r.asOf; for (let i = 0; i < (Number(r.h) || 0); i++) { const s = cal.next(zi, 'US'); if (!s || !s.day) return zi; zi = s.day; } return zi; };
+  const prim = rez.map((r) => ({ vot: r.asOf, scris: scris(r) })).sort((a, b) => (a.scris < b.scris ? -1 : a.scris > b.scris ? 1 : 0))[0];
+  if (prim) assert.ok(date.at(-1) <= prim.scris, `Protocolul a fost schimbat (${date.at(-1)}) după primul rezultat (scris pe ${prim.scris}, votul din ${prim.vot}): o regulă nouă cere o probă nouă (motor nou, PROBA nou).`);
 });
 test('calendarul oficial NYSE acoperă cel puțin următoarele 180 de zile (altfel notarea la timp nu se mai poate verifica)', () => {
   const cal = motor('.').ExchangeCalendar, d = new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10);

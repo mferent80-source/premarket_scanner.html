@@ -40,3 +40,12 @@ jobs:
             git pull --rebase origin main
             git push origin HEAD:main
           fi
+      # 27.10.2026 (audit): robotul nu mai cade tăcut — Discord la eșec, ca ceilalți roboți
+      - name: Discord la eșec
+        if: failure()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [ -n "$DISCORD_WEBHOOK" ] || exit 0
+          node -e "fetch(process.env.DISCORD_WEBHOOK,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({content:'**Bilanțul săptămânal al probei Top Long a PICAT** · '+process.env.RUN_URL})}).then(r=>console.log('Discord',r.status)).catch(e=>console.log('Discord',e.message))"

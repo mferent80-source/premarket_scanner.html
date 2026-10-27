@@ -34,7 +34,8 @@ test('garda: fișierul publicat (dacă există) are forma bună (și, după gene
 // Fișierul vechi (până la 17.10) trebuie să se regăsească întreg în dosarul nou, dacă mai e în commit.
 test('I-669: jurnalul doar crește (față de ultimul commit)', () => {
   let urmarite; try { urmarite = execFileSync('git', ['ls-tree', '-r', '--name-only', 'HEAD', '--', DIR, ISTORIC], { encoding: 'utf8' }).split('\n').filter(Boolean); } catch { return; } // fără git: nimic de comparat
-  const azi = (p) => (existsSync(p) ? readFileSync(p, 'utf8').replace(/\r\n/g, '\n') : null), ieri = (p) => execFileSync('git', ['show', 'HEAD:' + p], { encoding: 'utf8' }).replace(/\r\n/g, '\n');
+  // 27.10.2026: jurnalul de voturi trece de 1 MB după ~11 nopți ⇒ bufferul implicit al lui execFileSync (1 MiB) dădea ENOBUFS și oprea robotul (garda e pasul 1 din clasificator.yml)
+  const azi = (p) => (existsSync(p) ? readFileSync(p, 'utf8').replace(/\r\n/g, '\n') : null), ieri = (p) => execFileSync('git', ['show', 'HEAD:' + p], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }).replace(/\r\n/g, '\n');
   for (const p of urmarite) {
     if (p === ISTORIC) { const toate = new Set(readdirSync(DIR, { recursive: true }).filter((f) => /voturi-.*\.jsonl$/.test(f)).flatMap((f) => azi(DIR + '/' + f.replace(/\\/g, '/')).split('\n').filter(Boolean))); for (const l of ieri(p).split('\n').filter(Boolean)) assert.ok(toate.has(l), 'linia veche lipsește din jurnalul nou: ' + l.slice(0, 60)); continue; }
     const a = azi(p); assert.ok(a !== null, 'fișier șters din jurnal: ' + p); assert.ok(a.startsWith(ieri(p)), 'fișier rescris (nu doar crescut): ' + p);

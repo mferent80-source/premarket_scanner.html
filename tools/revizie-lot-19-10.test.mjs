@@ -20,6 +20,6 @@ test('pagina contului pornește și după „about:blank”, dar nu cât e suspe
 
 test('copia: doar registrele citite intră în listă; copie înaintea fiecărei schimbări venite din cont', () => {
   const b = sync.match(/async function backup\([^\n]*/)[0];
-  assert.match(b, /try\{v=await value\(k\);\}catch\{continue;\}keys\.push\(k\);/, 'cheia necitită nu intră în listă');
+  assert.match(b, /try\{v=await value\(k\);\}catch\{continue;\}if\(v===undefined\)continue;keys\.push\(k\);/, 'cheia necitită (și, din 27.10, cea absentă) nu intră în listă');
   assert.match(sync, /humanKey\(key\)\)\{await backup\(\[\],true\);/);
 });

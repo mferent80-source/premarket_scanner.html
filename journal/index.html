@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="../lib/plex.css?v=743">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=678">
 <link rel="stylesheet" href="../lib/capital-ui.css?v=678">
-<script src="../lib/suite-version.js?v=984"></script>
+<script src="../lib/suite-version.js?v=985"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -675,20 +675,20 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/trading212-snapshot.js?v=26.10.03.2316"></script><script src="../europe-stocks/finance.js?v=26.10.06.2324"></script><script src="../lib/capital-auto.js?v=26.10.19.1845"></script><script src="../lib/storage-write.js?v=26.10.15.0547"></script>
 <script src="../lib/trading212-fills-store.js?v=26.10.19.1845"></script>
 <script src="../lib/trading212-context.js?v=26.10.19.1930"></script>
-<script src="../lib/execution-review.js?v=26.10.03.2316"></script><script src="../lib/trading212-journal.js?v=26.10.19.1930"></script>
-<script src="../lib/journal.js?v=26.10.19.1845"></script>
+<script src="../lib/execution-review.js?v=26.10.03.2316"></script><script src="../lib/trading212-journal.js?v=26.10.27.1759"></script>
+<script src="../lib/journal.js?v=26.10.27.1759"></script>
 <script src="../lib/journal-insights.js?v=625"></script>
 <script src="../lib/tracker.js?v=26.10.04.0102"></script>
 <script src="../lib/telegram.js?v=625"></script>
 
 <script src="../lib/trading212-performance.js?v=26.10.15.0547"></script>
-<script src="../lib/trading212-capital.js?v=26.10.20.0953"></script>
+<script src="../lib/trading212-capital.js?v=26.10.27.1759"></script>
 <script src="../lib/trading212-capital-ui.js?v=26.10.19.1930"></script>
-<script src="../lib/governor.js?v=26.10.20.0953"></script>
+<script src="../lib/governor.js?v=26.10.27.1759"></script>
 <script src="../lib/macro-context.js?v=625"></script>
-<script src="../lib/desk-macro-rail.js?v=26.10.18.1100"></script>
+<script src="../lib/desk-macro-rail.js?v=26.10.27.1759"></script>
 <script src="../lib/equity.js?v=26.10.19.1910"></script>
-<script src="../lib/capital-desk.js?v=26.10.19.1845"></script>
+<script src="../lib/capital-desk.js?v=26.10.27.1759"></script>
 <script src="../lib/data.js?v=26.10.19.1845"></script>
 <script src="../lib/quote-bus.js?v=707"></script>
 <script src="../lib/exchange-calendar.js?v=26.10.19.1845"></script><script src="../lib/daily-series.js?v=26.10.19.1740"></script>
@@ -1029,7 +1029,8 @@ function fillForm(e){
 $('fExit') && $('fExit').addEventListener('input', toggleMarkField);
 
 $('btnSave').addEventListener('click', () => {
-  const closeTs = $('fDate').value ? new Date($('fDate').value + 'T16:00:00').getTime() : Date.now();
+  /* 27.10.2026 (audit): 16:00 local al zilei de azi era „în viitor” toată dimineața ⇒ orice execuție nouă era respinsă; acum cel mult „acum”, iar cele deschise n-au closeTs */
+  const closeTs = window.JR && JR.closeTsDin ? JR.closeTsDin($('fDate').value, $('fExit').value === '') : ($('fDate').value ? Math.min(Date.now(), new Date($('fDate').value + 'T16:00:00').getTime()) : Date.now());
   const num = v => { const n = parseFloat(v); return isFinite(n) ? n : null; };
   const payload = {
     sym: $('fSym').value, dir: $('fDir').value,
@@ -1944,7 +1945,7 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = 'tt-v984';
+  var ver = 'tt-v985';
   var full = window.SUITE_VERSION || 'tt-v625-2026-07-12';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
@@ -1965,14 +1966,14 @@ document.addEventListener('click', ev => {
 })();
 </script>
 <script src="../lib/trade-evidence-schema.js?v=26.10.09.2330"></script><script src="../lib/evidence-vault.js?v=26.10.15.1930"></script><script src="../lib/trade-evidence.js?v=26.10.15.1930"></script>
-<script src="../lib/market-verdict.js?v=26.10.20.0934"></script><script src="../lib/journal-review.js?v=26.10.17.2200"></script><script src="review.js?v=26.10.17.1800"></script>
-<link rel="stylesheet" href="report.css?v=26.10.18.0300"><script src="../lib/monthly-limit.js?v=26.10.20.0934"></script><script src="../lib/stop-setter.js?v=26.10.19.1845"></script><script src="../lib/journal-report.js?v=26.10.20.0934"></script><script src="report.js?v=26.10.20.0934"></script>
+<script src="../lib/market-verdict.js?v=26.10.27.1759"></script><script src="../lib/journal-review.js?v=26.10.17.2200"></script><script src="review.js?v=26.10.17.1800"></script>
+<link rel="stylesheet" href="report.css?v=26.10.18.0300"><script src="../lib/monthly-limit.js?v=26.10.20.0934"></script><script src="../lib/stop-setter.js?v=26.10.27.1759"></script><script src="../lib/journal-report.js?v=26.10.27.1759"></script><script src="report.js?v=26.10.20.0934"></script>
 <script src="../nav.js?v=26.10.15.1830" data-nav-root="../"></script>
 <!-- tt:sw-guard:start -->
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v984';
+  var PAGE_VER = 'tt-v985';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

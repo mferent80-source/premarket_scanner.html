@@ -62,16 +62,22 @@ test('copia locală: doar registrele scrise de om, înaintea FIECĂREI schimbăr
  const s=await setup({remote:{tt_trading212_portfolio_v1:{revision:1,updated:5,value:{'live:x':{fetchedAt:'2026-10-19T10:00:00Z',positions:[]}}},tt_trading212_fills_v1:{revision:1,updated:5,value:fills(3)}}});
  assert.equal(s.api.state().error,'');assert.equal(s.privateStore.get('backups:123'),undefined,'datele brokerului nu fac copie');
  s.records.tt_journal_v1={revision:1,updated:6,value:[{id:'telefon'}]};s.storage.set('tt_holdings_theses_v1','{"AAPL":{"t":1}}');await s.api.sync();
- const list=s.privateStore.get('backups:123');assert.equal(list.length,1);assert.ok(list[0].keys.includes('tt_journal_v1')&&list[0].keys.includes('tt_holdings_theses_v1'));
+ const list=s.privateStore.get('backups:123');assert.equal(list.length,1);assert.ok(!list[0].keys.includes('tt_journal_v1')&&list[0].keys.includes('tt_holdings_theses_v1'),'27.10: jurnalul nu exista local la prima copie ⇒ nu intră în lista cheilor (restaurarea nu-l mai șterge); tezele existau ⇒ intră');
  for(const k of ['tt_trading212_fills_v1','tt_trading212_portfolio_v1','tt_trading212_cash_v1'])assert.ok(!list[0].keys.includes(k)&&!(k in list[0].snapshot),k);
  s.records.tt_journal_v1={revision:2,updated:7,value:[{id:'telefon'},{id:'doi'}]};await s.api.sync();assert.equal(s.privateStore.get('backups:123').length,2,'revizia 19.10: și a doua schimbare din cont are copia ei (altfel restaurarea pierdea ce scrisese între timp)');
  // restaurarea unei copii noi nu atinge execuțiile
  const before=JSON.stringify((await s.fills.read()).data);await s.api.restore();assert.equal(JSON.stringify((await s.fills.read()).data),before);assert.deepEqual(JSON.parse(s.storage.get('tt_journal_v1')),[{id:'telefon'}],'jurnalul revine la starea dinaintea ultimei schimbări venite din cont');assert.equal(s.storage.get('tt_holdings_theses_v1'),'{"AAPL":{"t":1}}');
 });
 
-test('o copie veche (fără lista cheilor) se restaurează ca înainte, pe toate registrele locale',async()=>{
+// 27.10.2026 (audit A 🔴): restaurarea NU mai șterge registrele care nu erau în copie (teze/stopuri scrise după copie, watchlist…) — ștergerea pleca în cont și pe celălalt aparat
+test('o copie veche (fără lista cheilor) pune înapoi doar ce avea; registrele absente din copie rămân și sunt numite',async()=>{
  const s=await setup({backups:[{at:1,snapshot:{tt_journal_v1:[{id:'vechi'}]}}],local:{tt_journal_v1:'[{"id":"nou"}]',wl_stocks:'["X"]'}});
- await s.api.restore();assert.deepEqual(JSON.parse(s.storage.get('tt_journal_v1')),[{id:'vechi'}]);assert.equal(s.storage.has('wl_stocks'),false);
+ await s.api.restore();assert.deepEqual(JSON.parse(s.storage.get('tt_journal_v1')),[{id:'vechi'}]);assert.equal(s.storage.get('wl_stocks'),'["X"]','watchlist-ul creat după copie rămâne');assert.match(s.api.state().error,/neatinse.*wl_stocks/);
+});
+test('copia nu înregistrează registrele absente la momentul ei, iar restaurarea nu le șterge pe cele scrise între timp',async()=>{
+ const s=await setup({remote:{tt_journal_v1:{revision:1,updated:6,value:[{id:'telefon'}]}}});
+ const list=s.privateStore.get('backups:123');assert.ok(list&&list.length,'copia s-a făcut la schimbarea venită din cont');assert.equal(list[0].keys.includes('tt_holdings_theses_v1'),false,'tezele nu existau ⇒ nu intră în lista cheilor');
+ s.storage.set('tt_holdings_theses_v1','{"MU":{"stop":90}}');await s.api.restore();assert.equal(s.storage.get('tt_holdings_theses_v1'),'{"MU":{"stop":90}}','tezele scrise după copie rămân');
 });
 
 test('409 în timpul citirii: o reîncercare imediată; abia a doua cădere ajunge la eroare',async()=>{
@@ -80,7 +86,7 @@ test('409 în timpul citirii: o reîncercare imediată; abia a doua cădere ajun
 });
 
 test('configurația fără răspuns: verificarea se încheie cu eroare de termen, nu rămâne agățată',async()=>{
- const s=await setup({configHangs:true});await settle();
+ const s=await setup({configHangs:true});for(let i=0;i<40&&(s.api.state().checking||!s.api.state().error);i++)await settle(); // 27.10: termenul (setTimeout 0) și abort-ul se așază după câteva ture de setImmediate — se așteaptă starea, nu un număr fix de ture (testul clipea)
  assert.equal(s.api.state().checking,false);assert.match(s.api.state().error,/nu a răspuns în 10 s/);assert.equal(s.api.state().failure.code,'timeout');assert.equal(s.calls.length,1);
 });
 

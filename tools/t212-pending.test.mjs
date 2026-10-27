@@ -46,12 +46,28 @@ test('T212Pending: salvare / citire pe cont, ordinele STOP de vânzare pe ticker
   P.save(S, 'live:abc', 'live', items, new Date(NOW - 60000).toISOString());
   const m = P.ordineStop(items); assert.equal(m.get('MU_US_EQ').stopPrice, 790, 'stopul cel mai mic'); assert.equal(m.has('AAPL_US_EQ'), false, 'limita de cumpărare nu e stop'); assert.equal(m.has('NVDA_US_EQ'), false, 'STOP de cumpărare nu acoperă poziția');
   const st = P.stare({ scope: 'live:abc', positions: poz, storage: S, externe: new Set(['NVDA_US_EQ']) });
-  assert.equal(st.citit, true); assert.equal(st.pozitii.get('MU_US_EQ').stare, 'da'); assert.equal(st.pozitii.get('AAPL_US_EQ').stare, 'nu'); assert.deepEqual(J(st.pozitii.get('NVDA_US_EQ')), { stare: 'da', sursa: 'radar', ordin: null });
+  // 27.10.2026 (audit E 🔴): citirea PROASPĂTĂ a brokerului bate poza Radarului — NVDA n-are ordin STOP de vânzare la broker ⇒ „nu”, chiar dacă Radarul l-a văzut cândva
+  assert.equal(st.citit, true); assert.equal(st.pozitii.get('MU_US_EQ').stare, 'da'); assert.equal(st.pozitii.get('AAPL_US_EQ').stare, 'nu'); assert.deepEqual(J(st.pozitii.get('NVDA_US_EQ')), { stare: 'nu', ordin: null });
+  const radar = P.stare({ scope: 'live:abc', positions: poz, storage: S, externe: new Set(['NVDA_US_EQ']), now: NOW + 7 * 3600000 }); // ordinele locale vechi ⇒ Radarul (ordin stopT212) contează
+  assert.deepEqual(J(radar.pozitii.get('NVDA_US_EQ')), { stare: 'da', sursa: 'radar', ordin: null }); assert.equal(radar.pozitii.get('MU_US_EQ').stare, 'necitit'); assert.match(P.text(radar.pozitii.get('NVDA_US_EQ')), /văzut de Radar/);
   assert.deepEqual(J(P.peHartie(st, new Set(['MU_US_EQ', 'AAPL_US_EQ']))), ['AAPL_US_EQ']); assert.equal(P.peHartie(P.stare({ scope: 'alt', positions: poz, storage: S }), new Set(['AAPL_US_EQ'])), null, 'necitit ⇒ null, nu listă goală');
   const vechi = P.stare({ scope: 'live:abc', positions: poz, storage: S, now: NOW + 7 * 3600000 }); assert.equal(vechi.citit, false); assert.equal(vechi.pozitii.get('MU_US_EQ').stare, 'necitit');
   assert.match(P.text(st.pozitii.get('MU_US_EQ'), 'USD'), /^DA · 790 USD × 5\.5/); assert.match(P.text(st.pozitii.get('AAPL_US_EQ')), /^NU/); assert.match(P.text(null), /necitit/);
   assert.throws(() => P.save(S, 'live:abc', 'live', [{ nu: 1 }], new Date(NOW).toISOString()), /formă neașteptată/);
   assert.equal(P.KEY, 'tt_trading212_orders_pending_v1');
+});
+
+// 27.10.2026 (audit B 🟡 + E 🟡): ordinul STOP abia trimis din aplicație intră în copia locală; eșecul citirii ordinelor rămâne scris și se vede la „necitit”
+test('T212Pending.adauga: ordinul trimis din aplicație intră în copia locală ⇒ „da” la broker fără să aștepte recitirea; esuat ⇒ „necitit” spune ora și motivul', () => {
+  const c = ctx(['lib/t212-pending.js']), P = c.T212Pending, S = c.localStorage, poz = [{ ticker: 'MU_US_EQ', quantity: 5 }], J = (x) => JSON.parse(JSON.stringify(x));
+  assert.equal(P.adauga(S, 'live:abc', 'live', { ticker: 'MU_US_EQ', quantity: 5, stopPrice: 0 }, new Date(NOW).toISOString()), null, 'fără preț de stop nu se adaugă nimic');
+  P.adauga(S, 'live:abc', 'live', { id: 901, ticker: 'MU_US_EQ', quantity: 5, stopPrice: 780 }, new Date(NOW).toISOString());
+  const st = P.stare({ scope: 'live:abc', positions: poz, storage: S, now: NOW + 1000 }); assert.equal(st.citit, true); assert.deepEqual(J(st.pozitii.get('MU_US_EQ')), { stare: 'da', sursa: 'broker', ordin: { stopPrice: 780, quantity: 5, type: 'STOP', id: 901 } });
+  P.save(S, 'live:abc', 'live', [pendingOrder(t212({ id: 79, stopPrice: 790 }))], new Date(NOW + 60000).toISOString()); // citirea brokerului de după păstrează ora ei, iar lista e a brokerului
+  assert.equal(P.read(S, 'live:abc').items.length, 1); assert.equal(P.stare({ scope: 'live:abc', positions: poz, storage: S, now: NOW + 61000 }).pozitii.get('MU_US_EQ').ordin.stopPrice, 790);
+  P.esuat(S, 'alt', 'live', 'Trading 212: 429 Too Many Requests', new Date(NOW).toISOString());
+  const e = P.stare({ scope: 'alt', positions: poz, storage: S, now: NOW + 1000 }); assert.equal(e.citit, false); assert.equal(e.pozitii.get('MU_US_EQ').stare, 'necitit'); assert.match(P.text(e.pozitii.get('MU_US_EQ')), /citirea ordinelor a picat la \d{2}:\d{2}: Trading 212: 429/);
+  assert.match(P.text(P.stare({ scope: 'gol', positions: poz, storage: S }).pozitii.get('MU_US_EQ')), /^necitit \(sincronizează/, 'fără eroare scrisă textul vechi rămâne');
 });
 
 test('Astăzi: stop documentat fără ordin la broker ⇒ „doar pe hârtie” (grav 4, sever); ordin la broker fără notă ⇒ „notează-l” (grav 4); ordine necitite ⇒ ca înainte', () => {

@@ -6,6 +6,9 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '45 21 * * 1-5'
+    # 27.10.2026 (audit): rularea de seară a picat în 5 din 7 sesiuni (20–23.10, 27.10; rulări întârziate de GitHub la 00:07–00:48 UTC) ⇒ a doua șansă
+    # dimineața, înainte de deschiderea SUA, DOAR dacă ziua lipsește din jurnal (DOAR_LIPSA=1); ziua notată seara nu se rescrie.
+    - cron: '15 10 * * 2-6'
 
 permissions:
   contents: write
@@ -26,8 +29,22 @@ jobs:
           node-version: '20'
       # 19.10.2026: și garda amprentei Top Long + reluarea seriilor (auditul Long & Reversal)
       - run: node --test tools/v1-proba.test.mjs tools/independent-scanner.test.mjs tools/premarket-proba.test.mjs tools/candidate-autostart.test.mjs tools/top-long-proba.test.mjs tools/premarket-jurnal-serii.test.mjs tools/reversal-umbra.test.mjs tools/premarket-calendar.test.mjs
+      # 27.10.2026 (audit): pasul pica tăcut (5 din 7 sesiuni pierdute, nimeni n-a aflat) ⇒ o a doua încercare după 3 minute, mesajul erorii păstrat și Discord la eșec
       - name: Ziua în jurnal + evaluarea
-        run: node tools/v1-jurnal.mjs
+        id: v1
+        continue-on-error: true
+        env:
+          DOAR_LIPSA: ${{ github.event.schedule == '15 10 * * 2-6' && '1' || '' }}
+        run: node tools/v1-jurnal.mjs 2>&1 | tee v1-ziua.log || (sleep 180 && node tools/v1-jurnal.mjs 2>&1 | tee v1-ziua.log)
+      - name: Anunță pe Discord că ziua V1 lipsește
+        if: steps.v1.outcome == 'failure'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          if [ -n "$DISCORD_WEBHOOK" ]; then
+            MOTIV=$(tail -c 300 v1-ziua.log 2>/dev/null | tr '\n' ' ' | sed 's/"/'"'"'/g')
+            curl -sS -H 'Content-Type: application/json' -d "{\"content\":\"⚠️ Proba Reguli V1: robotul n-a putut nota ziua de azi (două încercări). Motiv: $MOTIV — a doua șansă vine dimineața la 10:15 UTC; altfel rulează manual fluxul «Reguli V1 — proba în timp».\"}" "$DISCORD_WEBHOOK" || true
+          fi
       # 18.10.2026: proba Premarket Scanner (Top Long), docs/premarket-proba-protocol.md; dacă pică, ziua V1 se salvează oricum
       # 19.10.2026 (audit): o a doua încercare după 3 minute; dacă pică de două ori, mesaj pe Discord (altfel ziua se pierdea pe tăcute)
       - name: Premarket Top Long în jurnal + evaluarea

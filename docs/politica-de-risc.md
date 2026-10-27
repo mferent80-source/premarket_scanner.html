@@ -57,8 +57,9 @@ Raportul din Jurnal (secțiunea „Cât de sigur e rezultatul tău”) trage 2.0
 
 - **dd95 pe blocuri** (scăderea în 5 % cele mai rele lumi) față de **plafonul DD de 10 %**: dacă dd95 e peste plafon, plafonul te oprește din
   ghinion normal, fără să fi greșit — asta e **pragul de revizuire**: fie plafonul urcă (cu rândul în jurnal), fie riscul pe plan scade.
-- **seria de pierderi la 95 %** față de **cooldown-ul de 3**: dacă în 95 % din lumi ajungi la 3 pierderi la rând din zgomot, cooldown-ul se va
-  declanșa des fără vină; revizuirea alege între 4 și a lăsa 3 ca frână conștientă.
+- **seria obișnuită de pierderi la rând** (mediana lumilor; percentila 95 e „în 5 % din lumi”, nu „în 95 %”) față de **cooldown-ul de 3**: dacă
+  seria obișnuită din simplu zgomot ajunge la 3, cooldown-ul se va declanșa des fără vină; revizuirea alege între 4 și a lăsa 3 ca frână conștientă.
+  (Corectat 27.10.2026, audit: formularea veche inversa percentila; verdictul ✓ / ⛔ din Raport se dă doar de la 30 de tranzacții.)
 - **Stresul istoric** (Portofoliu · risc): cele mai proaste 5 ferestre de 5 sesiuni ale SPY din 10 ani × beta pozițiilor de acum (1 an și 6 luni,
   interval) față de bugetul săptămânii și plafonul DD. Estimare liniară, fără corelațiile din panică — mai degrabă optimistă.
 

@@ -422,7 +422,7 @@
     el.hidden = !v || state.mode === 'trend';
     if (el.hidden) return;
     var zile = Math.round((Date.now() - Date.parse(v.asOf + 'T21:00:00Z')) / 86400000), vechi = !(zile <= 4);
-    var lab = String(v.label || '').toUpperCase(), regula = v.label === 'defensiv' ? 'fără intrări noi (în Planuri dimensionarea ×0,5, fără GO)' : v.label === 'prudent' ? 'dimensionare ×0,75 în Planuri' : 'fără restricție de piață';
+    var lab = String(v.label || '').toUpperCase(), regula = v.label === 'defensiv' ? 'fără plan nou în Planuri (verdict defensiv ⇒ blocaj)' : v.label === 'prudent' ? 'dimensionare ×0,75 în Planuri' : 'fără restricție de piață'; /* 27.10: același text ca regula (MarketVerdict.regula) */
     el.className = 'ce-trend-nota ce-verdict-nota ' + (vechi ? 'vechi' : String(v.label || ''));
     el.textContent = 'Piața (EOD ' + v.asOf + '): ' + lab + ' — ' + (vechi ? 'verdict VECHI, neverificat azi' : regula) + (v.fraza ? ' · ' + v.fraza : '');
   }
@@ -672,7 +672,9 @@
     }
     $('dSymbol').textContent = x.symbol; $('dName').textContent = (x.mode === 'momentum' ? 'Long momentum' : 'Early reversal')+' · '+(x.currency||'monedă neverificată');
     $('dScore').textContent = x.score; $('dSector').textContent = x.sector; $('dState').textContent = x.state + (probaTag(x) ? ' · ' + probaTag(x) : '');
-    $('dFresh').textContent = 'EOD ' + (x.sourceDate || '—') + ' · scanat ' + vechime(x.ts);   // 19.10.2026: data sesiunii, nu doar vechimea scanării $('dReason').textContent = x.reason + (window.T212C && T212C.held(x.symbol).length ? ' · DEȚII DEJA în snapshot Invest; verifică expunerea cumulată înainte de o nouă intrare.' : '');
+    $('dFresh').textContent = 'EOD ' + (x.sourceDate || '—') + ' · scanat ' + vechime(x.ts);   /* 19.10.2026: data sesiunii, nu doar vechimea scanării */
+    /* 27.10.2026 (audit): rândul de mai jos stătea DUPĂ un comentariu `//` pe același rând ⇒ panoul „DE CE ESTE ÎN TOP” nu se scria pentru Top Long / Reversal (garda: tools/comentariu-la-mijloc.test.mjs) */
+    $('dReason').textContent = x.reason + (window.T212C && T212C.held(x.symbol).length ? ' · DEȚII DEJA în snapshot Invest; verifică expunerea cumulată înainte de o nouă intrare.' : '');
     $('dEntry').textContent = fmt(x.entryLow, 2) + '–' + fmt(x.entryHigh, 2);
     $('dStop').textContent = fmt(x.stop, 2); $('dTarget').textContent = fmt(x.target, 2);
     if ($('planNota')) $('planNota').textContent = PLAN_MASURAT;   // I-714

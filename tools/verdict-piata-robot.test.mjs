@@ -37,7 +37,7 @@ test('robotul cap-coadă pe date controlate: verdict, linie de istoric, fișier 
 });
 test('garda: fișierul publicat (dacă există) are forma bună; istoricul doar crește față de ultimul commit', () => {
   if (existsSync(FISIER)) { const j = JSON.parse(readFileSync(FISIER, 'utf8')); assert.equal(j.version, VERSIUNE); assert.ok(Array.isArray(j.indicatori) && Array.isArray(j.istoric) && j.proba && typeof j.proba.mesaj === 'string'); }
-  let vechi = null; try { vechi = execFileSync('git', ['show', 'HEAD:' + ISTORIC], { encoding: 'utf8' }).replace(/\r\n/g, '\n'); } catch { return; }
+  let vechi = null; try { vechi = execFileSync('git', ['show', 'HEAD:' + ISTORIC], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }).replace(/\r\n/g, '\n'); } catch { return; } // 27.10: buffer peste 1 MiB (lecția clasificatorului)
   const azi = existsSync(ISTORIC) ? readFileSync(ISTORIC, 'utf8').replace(/\r\n/g, '\n') : ''; assert.ok(azi.startsWith(vechi), 'istoricul verdictului a fost rescris, nu doar crescut');
   assert.ok(citesteIstoric(azi).every((l) => /^\d{4}-\d{2}-\d{2}$/.test(l.asOf)));
 });

@@ -14,7 +14,7 @@
   const stops = (scope) => { try { const d = date(), th = JSON.parse(localStorage.getItem('tt_holdings_theses_v1') || '{}'), s = S.stopuriValide(th, scope, d ? d.snapshot.positions : []); for (const t of externe) s.add(t); return s; } catch (_) { return new Set(externe); } };
   async function pozaExterna() {
     let cheie = '', url = 'https://paznic-radar.mferent80.workers.dev'; try { cheie = String(localStorage.getItem('radar_cheie') || '').trim(); const u = String(localStorage.getItem('radar_url') || '').trim(); if (/^https:\/\/[^\s/?#]+\.[^\s/?#]+/i.test(u)) url = u.replace(/\/+$/, ''); } catch (_) { return; }
-    if (!cheie) return; try { const r = await fetch(url + '/poza', { headers: { authorization: 'Bearer ' + cheie }, cache: 'no-store' }); if (!r.ok) return; const e = S.stopuriExterne(await r.json()); if ([...e].sort().join() !== [...externe].sort().join()) { externe = e; window.__stopuriExterne = e; desen(); window.dispatchEvent(new Event('tt-stop-salvat')); } } catch (_) { /* fără poză: doar stopurile din aplicație */ }
+    if (!cheie) return; try { const r = await fetch(url + '/poza', { headers: { authorization: 'Bearer ' + cheie }, cache: 'no-store' }); if (!r.ok) return; const poza = await r.json(), e = S.stopuriExterne(poza), ord = S.ordineExterne ? S.ordineExterne(poza) : new Set(); /* 27.10 (audit): ordinele (stopT212) separat de stopurile documentate (și stopFix din plan) */ if ([...e].sort().join() !== [...externe].sort().join() || [...ord].sort().join() !== [...(window.__ordineExterne || [])].sort().join()) { externe = e; window.__stopuriExterne = e; window.__ordineExterne = ord; desen(); window.dispatchEvent(new Event('tt-stop-salvat')); } } catch (_) { /* fără poză: doar stopurile din aplicație */ }
   }
   function date() { const snap = window.T212Snapshot?.read?.('live'); return snap ? { scope: snap[0], snapshot: snap[1] } : null; }
   function desen() {
@@ -53,6 +53,8 @@
     const r = await window.T212Orders.pune({ ticker: c.ticker, quantity: c.qty, stopPrice: c.stop }); trimitOrdin = false; confirm = null;
     if (r.ok) {
       const d = date(), poz = d && (d.snapshot.positions || []).find((p) => p.ticker === c.ticker);
+      /* 27.10 (audit): ordinul abia pus intră în copia locală a ordinelor în așteptare ⇒ Astăzi nu mai spune „doar pe hârtie” până la următoarea citire a brokerului */
+      try { if (window.T212Pending && window.T212Pending.adauga && d) window.T212Pending.adauga(localStorage, c.scope || d.scope, d.snapshot.environment || 'live', { id: r.data.id ?? r.data.orderId ?? null, ticker: c.ticker, quantity: c.qty, stopPrice: r.data.stopPrice || c.stop, type: 'STOP' }, new Date().toISOString()); } catch (_) { /* copia ordinelor rămâne cum era */ }
       const err = poz ? S.salveaza({ scope: c.scope, poz: { ...poz, averagePrice: c.intrare ?? poz.averagePrice, currentPrice: r.data.currentPrice || c.acum || poz.currentPrice }, stop: r.data.stopPrice, tinta: c.tinta }) : 'poziția nu mai e în copia contului';
       stare = '✓ Ordinul STOP pentru ' + c.simbol + ' e în Trading 212 (stop ' + r.data.stopPrice + (r.data.status ? ', ' + r.data.status : '') + ').' + (err ? ' Nu l-am putut salva și în Portofoliu: ' + err : ' L-am salvat și în Portofoliu.');
       window.dispatchEvent(new Event('tt-stop-salvat')); trimite(true);

@@ -26,5 +26,9 @@ test('paritate cu Crypto Radar (dacă depozitul crypto e pe acest PC): același 
 test('amprenta formulei din Crypto Radar e cea copiată (dacă depozitul crypto e pe acest PC)', { skip: !existsSync('../crypto/public/lib/macro.js') }, async () => {
   const { createHash } = await import('node:crypto'), s = readFileSync('../crypto/public/lib/macro.js', 'utf8').replace(/\r\n/g, '\n');
   const seg = s.slice(s.indexOf('const TREPTE'), s.indexOf('const PARTIAL')) + s.slice(s.indexOf('function scor(d)'), s.indexOf('// histerezisul'));
-  assert.equal(createHash('sha256').update(seg.replace(/"/g, "'")).digest('hex').slice(0, 16), '5194fc4c7046a7cf', 'Crypto Radar a schimbat formula regimului macro: recopiază treptele și scor() în lib/macro-regime.js, apoi actualizează amprenta din acest test.');
+  assert.equal(createHash('sha256').update(seg.replace(/"/g, "'")).digest('hex').slice(0, 16), '0ccb8cd1104c0b24', 'Crypto Radar a schimbat formula regimului macro: recopiază treptele și scor() în lib/macro-regime.js, apoi actualizează amprenta din acest test.'); // 27.10.2026: v100.255 (F&G în afara 0–100 ⇒ nevalid)
+});
+test('F&G în afara scării 0–100 nu e semn valid (paritate v100.255): scor 0, text „în afara 0–100”; 0 și 100 rămân pe scară', () => {
+  const s = R.scor(date(20, 4, 4, 100, 100, 150)).semne.find((x) => x.cod === 'frica'); assert.equal(s.ok, false); assert.equal(s.scor, 0); assert.equal(s.text, 'în afara 0–100'); assert.equal(s.valoare, '150');
+  assert.equal(R.scor(date(20, 4, 4, 100, 100, 100)).semne.find((x) => x.cod === 'frica').scor, 2); assert.equal(R.scor(date(20, 4, 4, 100, 100, 0)).semne.find((x) => x.cod === 'frica').scor, -2);
 });

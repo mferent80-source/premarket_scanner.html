@@ -5,10 +5,11 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 
-function governor({ jurnal = [], broker = null } = {}) {
+function governor({ jurnal = [], broker = null, acct = null } = {}) {
   const store = new Map([['tt_journal_v1', JSON.stringify(jurnal)]]);
-  const ctx = { console, Date, Intl, JSON, Math, localStorage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) } };
+  const ctx = { console, Date, Intl, JSON, Math, Number, localStorage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) } };
   if (broker) ctx.T212Capital = { read: () => broker };
+  if (acct) ctx.ACCT = acct;
   ctx.window = ctx; vm.createContext(ctx);
   vm.runInContext(readFileSync('lib/governor.js', 'utf8'), ctx);
   return ctx.GV;
@@ -18,6 +19,17 @@ test('jurnal gol + fara Trading 212 => NEVERIFICAT, cu motivul; canTrade false; 
   const GV = governor(); const s = GV.status();
   assert.equal(s.verdict, 'NEVERIFICAT'); assert.match(s.reasons.join(' '), /[Jj]urnalul manual e gol/); assert.match(s.reasons.join(' '), /Trading 212/);
   assert.equal(GV.canTrade(), false); assert.equal(GV.labelOf('NEVERIFICAT').text, 'NEVERIFICAT');
+});
+
+// 27.10.2026 (audit C 🟡): capitalul „de pornire” (ACCT.known() = false) nu e un capital știut ⇒ CAUTION cu motivul, nu TRADE tăcut pe 10.000
+test('capital de pornire (ACCT.known false) => CAUTION cu motivul; capital scris de om => TRADE', () => {
+  const rand = [{ id: 'a1', sym: 'AAPL', dir: 'long', entry: 100, exit: 105, size: 1, openTs: Date.now() - 86400000 * 3, closeTs: Date.now() - 86400000 * 2, status: 'closed' }];
+  const nec = governor({ jurnal: rand, acct: { get: () => ({ value: 10000 }), known: () => false } }).status();
+  assert.equal(nec.verdict, 'CAUTION'); assert.match(nec.reasons.join(' '), /Capital necunoscut.*10\.000/);
+  const stiut = governor({ jurnal: rand, acct: { get: () => ({ value: 12670 }), known: () => true } }).status();
+  assert.equal(stiut.verdict, 'TRADE'); assert.doesNotMatch(stiut.reasons.join(' '), /Capital necunoscut/);
+  const vechi = governor({ jurnal: rand, acct: { get: () => ({ value: 12670 }) } }).status(); // ACCT fără known(): ca înainte
+  assert.equal(vechi.verdict, 'TRADE');
 });
 
 test('cu un rand in jurnal => TRADE ca inainte; cu Trading 212 conectat si jurnal gol => verdictul brokerului', () => {

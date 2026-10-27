@@ -91,4 +91,7 @@ test('revizia 18.10: lista goală nu pleacă fără o acțiune a ta; „prea des
   assert.match(S.salveaza({ scope: 'l', poz: { ticker: 'MU_US_EQ', averagePrice: 100, currentPrice: 90, instrumentCurrency: 'USD' }, stop: 92, storage: mem() }), /peste prețul de acum/);
   const e = S.stopuriExterne({ t212: [{ t212: 'A_US_EQ', stopT212: 10 }, { t212: 'B_US_EQ', plan: { stopFix: 5, trailPct: 15 } }, { t212: 'C_US_EQ', plan: { trailPct: 15 } }] });
   assert.equal(JSON.stringify([...e].sort()), JSON.stringify(['A_US_EQ', 'B_US_EQ']));
+  // 27.10.2026 (audit E 🔴): ordinele la broker văzute de Radar = DOAR stopT212; stopul fix din plan e nivel de alertă, nu ordin
+  const o = S.ordineExterne({ t212: [{ t212: 'A_US_EQ', stopT212: 10 }, { t212: 'B_US_EQ', plan: { stopFix: 5, trailPct: 15 } }, { t212: 'C_US_EQ', plan: { trailPct: 15 } }] });
+  assert.equal(JSON.stringify([...o].sort()), JSON.stringify(['A_US_EQ']));
 });

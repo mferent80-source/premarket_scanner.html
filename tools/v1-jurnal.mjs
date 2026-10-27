@@ -45,6 +45,8 @@ async function main() {
   if (!rec.zi) throw Error('Nicio acțiune verificată azi (' + report.failures.length + ' eșecuri) — jurnalul rămâne neschimbat.');
   mkdirSync(DIR, { recursive: true });
   const vechi = existsSync(JURNAL) ? JSON.parse(readFileSync(JURNAL, 'utf8')) : { zile: [] };
+  // 27.10.2026: rularea de rezervă de dimineață (DOAR_LIPSA=1) notează ziua doar dacă lipsește; cea notată seara, la timp, nu se rescrie cu ora de dimineață
+  if (process.env.DOAR_LIPSA && (vechi.zile || []).some((z) => z && z.zi === rec.zi && z.v === V)) { console.log('V1 ' + V + ' · ziua ' + rec.zi + ' e deja notată — nimic de făcut (rularea de rezervă).'); return; }
   const jurnal = adauga(vechi, rec);
   // reperele folosite în zilele vechi (EXSA.DE / ^STOXX / IVV…) trebuie să aibă bare și azi
   const lipsa = [...new Set(jurnal.zile.flatMap((zi) => zi.r.map((x) => x[4]).filter(Boolean)))].filter((s) => !serii[s]);

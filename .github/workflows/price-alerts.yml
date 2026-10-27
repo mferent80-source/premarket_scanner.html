@@ -70,7 +70,7 @@ jobs:
               sleep 3
             done
             if [ "$pushed" != "1" ]; then
-              echo "::warning::Nu am putut salva starea alertelor dupa 3 incercari."
-              exit 0
+              echo "::error::Nu am putut salva starea alertelor dupa 3 incercari (starea «seen» se pierde ⇒ alertele se retrimit)."
+              exit 1
             fi
           fi
