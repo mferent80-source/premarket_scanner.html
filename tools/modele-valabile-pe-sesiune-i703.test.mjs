@@ -71,3 +71,15 @@ test('Clasificatorul: aceleași bare ⇒ exact același raport, oricând în zi 
   const src = readFileSync('holdings/classifier.js', 'utf8');
   assert.doesNotMatch(felie(src, 'function auto('), /1800000/, 'pornirea automată nu mai are tranșă de 30 de minute');
 });
+
+// 27.10.2026 (I-750, audit B 🟡 [1] ×2, 🟡 [7], 🔵 [1], 🔵 [4]): rămășițele regulii de 30 de minute din lotul B au dispărut — valabilitatea e pe sesiune + închidere + amprentă
+test('I-750: fără „30 de minute” în decision-verdict, model-analysis, forecast (project / validEntry), retainVerifiedSource și în textele din Portofoliu', () => {
+  const f = (p) => readFileSync(p, 'utf8');
+  assert.doesNotMatch(f('lib/decision-verdict.js'), /MAX_AGE|1800000|30 de minute/);
+  assert.doesNotMatch(f('lib/holdings-model-analysis.js'), /1800000/);
+  const fc = f('lib/holdings-forecast.js');
+  assert.doesNotMatch(felie(fc, 'function project('), /1800000/, 'project: captura decide prin timely, nu prin vechimea antrenării');
+  assert.doesNotMatch(felie(fc, 'function validEntry('), /1800000/, 'validEntry: o intrare prinsă la ore după antrenare rămâne lizibilă');
+  assert.doesNotMatch(felie(f('holdings/holdings.js'), 'function retainVerifiedSource('), /1800000/);
+  for (const p of ['holdings/verdict.js', 'lib/holdings-model-storage.js']) { const s = f(p); assert.doesNotMatch(s, /maximum 30 de minute/, p); assert.match(s, /aceeași sesiune EOD/, p); }
+});

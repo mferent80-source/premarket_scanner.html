@@ -50,7 +50,9 @@ test('a below-stop scenario is blocked and a price beyond maximum entry requires
  const c=boot(),x=packet(c);assert.equal(verdict(c,x).canPlan,true);
  const below=verdict(c,{...x,entryLow:105,entryHigh:106,stop:101,target:118});assert.equal(below.code,'BLOCKED');assert.equal(below.canPlan,false);assert.ok(below.blockers.some(x=>x.id==='price-invalidated'));
  const beyond=verdict(c,{...x,entryLow:98,entryHigh:99,stop:95,target:110});assert.equal(beyond.code,'WATCH');assert.equal(beyond.canPlan,false);assert.ok(beyond.cautions.some(x=>x.id==='price-extension'));
- const stale=verdict(c,{...x,ts:NOW-1800001,entryLow:105,entryHigh:106,stop:101,target:118});assert.equal(stale.code,'VERIFY');assert.ok(!stale.blockers.some(x=>x.id==='price-invalidated'));
+ // 27.10.2026 (I-750): „vechi” = altă sesiune EOD (nu 30 de minute); scanarea de acum câteva ore pe aceeași sesiune rămâne valabilă
+ const stale=verdict(c,{...x,sourceDate:'2026-10-05',entryLow:105,entryHigh:106,stop:101,target:118});assert.equal(stale.code,'VERIFY');assert.ok(!stale.blockers.some(x=>x.id==='price-invalidated'));
+ assert.equal(verdict(c,{...x,ts:NOW-1800001,entryLow:105,entryHigh:106,stop:101,target:118}).code,'BLOCKED','aceeași sesiune, scanată acum 30 de minute ⇒ tot verificată');
 });
 test('trend compares two disjoint return windows and counts only verified directions',()=>{
  const c=boot(),x=packet(c),r=verdict(c,x),t=r.technical;assert.equal(r.trendDetail.agreement,3);assert.equal(r.trendDetail.known,3);assert.equal(r.trendDetail.comparison.changes.length,0);

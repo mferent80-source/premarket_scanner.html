@@ -66,9 +66,11 @@ function snapshotStatus(){if(!snapshot)return navigationWarning||'Fără portofo
    nu la 30 de minute. Înainte, fiecare deschidere rescana Yahoo pe toate pozițiile. */
 function scanDue(p){const r=cache[key(p)];if(!symbol(p))return false;if(r?.error&&r.symbol===symbol(p)&&Date.now()-r.fetchedAt<15*60000)return false;return !r?.model?.regime||!r||r.symbol!==symbol(p)||(r.model&&!currentModel(p));}
 function needsScan(){return positions.some(scanDue);}
+/* 27.10.2026 (I-750, audit B 🔵 [4]): amprenta verificată se păstrează pe aceeași sesiune + aceleași bare, oricât de veche e verificarea (nu 30 de minute) —
+   altfel, cu reantrenarea oprită, scanarea zilnică lăsa modelul fără amprentă și „Performanța AI” rămânea goală toată ziua. */
 function retainVerifiedSource(model,old,s,currency,now=Date.now()){
  const prior=old?.model;
- if(old?.symbol!==s||old.currency!==currency||typeof prior?.sourceFingerprint!=='string'||!Number.isFinite(prior.sourceVerifiedAt)||prior.sourceVerifiedAt>now||now-prior.sourceVerifiedAt>1800000||model.asOf!==prior.asOf||model.price!==prior.price||model.timezone!==prior.timezone||model.closeMinutes!==prior.closeMinutes||!Array.isArray(model.bars)||!Array.isArray(prior.bars))return false;
+ if(old?.symbol!==s||old.currency!==currency||typeof prior?.sourceFingerprint!=='string'||!Number.isFinite(prior.sourceVerifiedAt)||prior.sourceVerifiedAt>now||model.asOf!==prior.asOf||model.price!==prior.price||model.timezone!==prior.timezone||model.closeMinutes!==prior.closeMinutes||!Array.isArray(model.bars)||!Array.isArray(prior.bars))return false;
  if(HoldingsVerdict.fingerprint(model.bars)!==HoldingsVerdict.fingerprint(prior.bars))return false;
  model.sourceFingerprint=prior.sourceFingerprint;model.sourceVerifiedAt=prior.sourceVerifiedAt;return true;
 }
