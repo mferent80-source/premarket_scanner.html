@@ -13,7 +13,7 @@ function aparat(settings) {
   class Clock extends Date { constructor(...a) { super(...(a.length ? a : [now])); } static now() { return now; } }
   const c = { console, JSON, Math, Number, Intl, Date: Clock, localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) } };
   c.window = c; vm.createContext(c); vm.runInContext(readFileSync('lib/journal.js', 'utf8'), c);
-  return { JR: c.JR, store, set: (t) => { now = t; }, settings: () => JSON.parse(store.get('tt_journal_settings_v1')) };
+  return { JR: c.JR, ctx: c, store, set: (t) => { now = t; }, settings: () => JSON.parse(store.get('tt_journal_settings_v1')) };
 }
 
 test('marcajul săptămânii ISO, în ora României', () => {
@@ -54,4 +54,24 @@ test('Jurnalul nu mai scrie lastWeeklyReportTs și verificarea automată întrea
   assert.match(html, /JR\.markWeeklyReportSent\(\)/);
   const check = html.slice(html.indexOf('function checkWeeklyReport'), html.indexOf('function toggleMarkField'));
   assert.match(check, /JR\.weeklyReportDue\(\)/); assert.doesNotMatch(check, /7 \* 86400000/);
+});
+
+test('🔵 25: raportul pleacă luni de la 09:00 (ora României), nu la prima deschidere de după miezul nopții; aparatul care NU citește Trading 212 așteaptă până la 12:00 marcajul celuilalt', () => {
+  const a = aparat({ weeklyReportEnabled: true });
+  a.set(Date.parse('2026-10-26T05:30:00Z')); assert.equal(a.JR.weeklyReportDue(), false, 'luni 07:30 la București: încă nu');
+  a.set(Date.parse('2026-10-26T07:30:00Z')); assert.equal(a.JR.weeklyReportDue(), true, 'luni 09:30: da');
+  a.set(Date.parse('2026-10-27T03:00:00Z')); assert.equal(a.JR.weeklyReportDue(), true, 'marți dimineață, netrimis: da');
+  // aparatul pasiv (I-713): tt_t212_reader_v1 = NU
+  const pasiv = (t) => { const x = aparat({ weeklyReportEnabled: true }); x.set(t); return x; };
+  const p1 = pasiv(Date.parse('2026-10-26T07:30:00Z')); p1.ctx.TTT212Reader = { setting: () => false };
+  assert.equal(p1.JR.weeklyReportDue(), false, 'luni 09:30 pe aparatul pasiv: lasă aparatul care citește contul să trimită');
+  p1.set(Date.parse('2026-10-26T10:30:00Z')); assert.equal(p1.JR.weeklyReportDue(), true, 'luni 12:30, marcajul n-a venit: trimite el');
+  p1.ctx.TTT212Reader = { setting: () => { throw Error('x'); } };
+  p1.set(Date.parse('2026-10-26T07:30:00Z')); assert.equal(p1.JR.weeklyReportDue(), true, 'citirea setării pică ⇒ ca aparatul care citește');
+});
+
+test('Jurnalul încarcă TTT212Reader înaintea contului: aparatul pasiv e recunoscut (raportul săptămânal, pragul de 15 min al copiei — 🟡 11)', () => {
+  const html = readFileSync('journal/index.html', 'utf8');
+  const r = html.indexOf('lib/t212-reader.js'), c = html.indexOf('lib/trading212-capital.js'), j = html.indexOf('lib/journal.js');
+  assert.ok(r > 0, 't212-reader.js lipsește din Jurnal'); assert.ok(r < c, 'înaintea lui trading212-capital.js'); assert.ok(j > 0);
 });

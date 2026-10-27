@@ -46,6 +46,12 @@ function pf(t212) {
   const c = { console, JSON, Date, Math, Number, localStorage: { getItem: () => null, setItem() {} }, document: { getElementById: node, querySelectorAll: () => [] }, T212Capital: { read: () => t212 }, GV: { cfg: () => ({}) } };
   c.window = c; vm.createContext(c); vm.runInContext(readFileSync('lib/portfolio-risk.js', 'utf8'), c); c.PF.onTabActivate(); return node('jrPfTblWrap').innerHTML;
 }
+// 27.10.2026 (audit C 🔵 17): Portofoliu · risc nu mai citește sursele retrase (md_danger_daily — Macro retras pe 12.10, fără gardă de prospețime ⇒ „Danger 70 → sizing 0,375x” vechi); bara de risc se scalează pe pragul căldurii din Governor, nu pe 4 % fix
+test('Portfolio risk: no retired macro sources; the risk bar is scaled to the Governor heat threshold', () => {
+  const src = readFileSync('lib/portfolio-risk.js', 'utf8');
+  assert.equal(/md_danger_daily/.test(src), false, 'sursa retrasă nu se mai citește'); assert.equal(/dangerMult/.test(src), false);
+  assert.match(src, /maxHeatPct/, 'pragul căldurii vine din GV.cfg()'); assert.equal(/pct \/ 4 \* 100/.test(src), false, 'fără 4 % fix');
+});
 test('Portfolio risk: with no manual open entries but real Trading 212 positions, the empty table points to the real positions and their stop risk', () => {
   const h = pf({ positions: 4, totalStopRisk: 182.5, currency: 'EUR', stopCoverage: 3 });
   assert.match(h, /4 poziții reale în Trading 212/); assert.match(h, /182,5 EUR/); assert.match(h, /3 \/ 4 cu stop/); assert.doesNotMatch(h, /Adaugă în tab/);

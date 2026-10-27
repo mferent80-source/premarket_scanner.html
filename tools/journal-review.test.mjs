@@ -31,6 +31,18 @@ test('I-682: verdictul din ziua intrării — notat de robot, altfel parțial (d
   // fără privit în viitor: o prăbușire DUPĂ intrare nu schimbă verdictul zilei intrării
   const viitor = { ...serii, '^VIX': bare(700, (i) => (i > 430 ? 45 : 14)) }; assert.equal(J.partial('2026-03-02', viitor).label, 'favorabil');
 });
+// 27.10.2026 (audit C 🔵 16): vânzarea se leagă de DESCHIDEREA poziției (prima cumpărare după ce cantitatea era 0), ca Raportul (FIFO), nu de ultima adăugire
+test('🔵 16: la scalare, verdictul „din ziua intrării” e al deschiderii poziției, nu al ultimei adăugiri', () => {
+  const d2 = { accounts: { cont: { environment: 'live', items: [
+    fill(1, 'NVDA_US_EQ', 'BUY', '2026-10-13T15:00:00Z'), fill(2, 'NVDA_US_EQ', 'BUY', '2026-10-14T15:00:00Z'), fill(3, 'NVDA_US_EQ', 'SELL', '2026-10-15T15:00:00Z', { quantity: 2, realized: -20, currency: 'USD' }),
+    fill(4, 'NVDA_US_EQ', 'BUY', '2026-10-16T15:00:00Z'), fill(5, 'NVDA_US_EQ', 'SELL', '2026-10-19T15:00:00Z', { realized: 5, currency: 'USD' })] } } };
+  const tx = J.tranzactii(d2, 'cont'), istoric = [{ asOf: '2026-10-12', label: 'defensiv' }, { asOf: '2026-10-13', label: 'favorabil' }, { asOf: '2026-10-15', label: 'prudent' }];
+  const v = J.verdictTranzactii(tx, istoric, null);
+  assert.equal(v.rows.length, 2);
+  assert.equal(v.rows[0].intrare, Date.parse('2026-10-13T15:00:00Z'), 'deschiderea poziției, nu adăugirea din 14.10'); assert.equal(v.rows[0].label, 'defensiv');
+  assert.equal(v.rows[1].intrare, Date.parse('2026-10-16T15:00:00Z'), 'după închiderea completă, poziția nouă are propria deschidere'); assert.equal(v.rows[1].label, 'prudent');
+});
+
 test('I-686: raportul fiscal — la cursul MEDIU ANUAL BNR (venituri din străinătate), cu cursul zilei alături; câștig / pierdere separat, CSV', () => {
   const tx = J.tranzactii(data, 'cont'), curs = { '2026-03-19': { USD: 4.5 }, '2026-10-15': { USD: 4.7 } };
   const f = J.fiscal(tx, { an: 2026, curs }); assert.equal(f.rows.length, 2); assert.ok(Math.abs(f.castig - 50 * 4.6) < 1e-9); assert.ok(Math.abs(f.pierdere + 20 * 4.6) < 1e-9); assert.equal(f.lipsa, 0);
@@ -49,4 +61,13 @@ test('I-687: pozițiile care se mișcă împreună formează un grup, cu pondere
   const r = (k) => bare(130, (i) => 100 * (1 + 0.03 * Math.sin(i / 2 + k)));
   const g = MV.corelatii({ A: r(0), B: r(0.05), C: bare(130, (i) => 100 * (1 + 0.03 * Math.cos(i * 1.7))) }, [{ s: 'A', value: 300 }, { s: 'B', value: 200 }, { s: 'C', value: 500 }], 1000);
   assert.equal(g.length, 1); assert.equal(JSON.stringify(g[0].simboluri), JSON.stringify(['A', 'B'])); assert.equal(g[0].pondere, 50);
+});
+test('🔵 15: „Intrări cu stop pus (acum)” folosește definiția unică StopSetter.stopValabil când pozițiile sunt citite (stopul vechi, de dinaintea poziției, nu se numără)', () => {
+  const s = load(['lib/journal-review.js', 'lib/stop-setter.js']);
+  const teze = { 'cont|NVDA_US_EQ': { stop: 90, history: [{ at: '2026-09-01T10:00:00Z', stop: 90 }] }, 'cont|TSLA_US_EQ': { stop: 200, history: [{ at: '2026-10-14T16:00:00Z', stop: 200 }] } };
+  const storage = { getItem: (k) => (k === 'tt_holdings_theses_v1' ? JSON.stringify(teze) : null) };
+  const pozitii = [{ ticker: 'NVDA_US_EQ', openedAt: '2026-10-13T15:00:00Z' }, { ticker: 'TSLA_US_EQ', openedAt: '2026-10-14T15:00:00Z' }];
+  const acum = s.JournalReview.stopuri('cont', storage, { pozitii });
+  assert.deepEqual([...acum].sort(), ['TSLA_US_EQ'], 'stopul NVDA e din septembrie, pus înaintea poziției de acum');
+  assert.deepEqual([...s.JournalReview.stopuri('cont', storage)].sort(), ['NVDA_US_EQ', 'TSLA_US_EQ'], 'fără poziții citite: orice stop din teze, ca înainte');
 });

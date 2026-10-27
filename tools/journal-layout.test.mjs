@@ -299,7 +299,7 @@ test('closed cards retain net FX-aware PnL, R, fees and financial values from JR
   const {rows,cards} = ledgerParts($('tblWrap'));
   for (const entry of [a,b]) {
     const expected = '+' + money(context.JR.pnl(entry));
-    const expectedR = '+' + context.JR.rMult(entry).toFixed(2) + 'R';
+    const expectedR = '+' + context.JR.rMult(entry).toFixed(1) + 'R'; // 27.10.2026 (audit C 🟡 10): rezultatele cu o singură zecimală
     const row = rows.find(r => r.children[0].textContent === entry.sym);
     const card = cards.find(r => r.dataset.executionId === entry.id);
     assert.equal(row.children[2].textContent,expected);
@@ -353,7 +353,7 @@ test('closed desktop and mobile actions open real FX-aware execution details and
     assert.equal(execution['Ieșire · moneda instrumentului'],context.JR.quotePrice(entry,entry.exit));
     assert.equal(execution['Comisioane totale · USD'],money(entry.fees));
     assert.equal(execution['Valoare intrare · USD'],money(context.JR.initialNotionalUsd(entry)));
-    assert.equal(execution['R-multiple · net'],'+' + context.JR.rMult(entry).toFixed(2) + 'R');
+    assert.equal(execution['R-multiple · net'],'+' + context.JR.rMult(entry).toFixed(1) + 'R'); // 🟡 10: o singură zecimală
     assert.equal(execution['FX istoric la intrare'],'1,1 USD / 1 EUR');
     assert.equal(execution['FX istoric la ieșire'],'1,2 USD / 1 EUR');
     const detail = fields($('jrDetailsContext'));
@@ -670,6 +670,63 @@ test('capital details use labelled buttons, preserve disclosure after refresh an
   assert.equal(context.EQ.drawdownStats().current,before);
   refreshed.click();
   assert.equal(refreshed.getAttribute('aria-expanded'),'false');
+});
+
+test('I-751: pe un cont în EUR, detaliile de capital spun moneda curbei și arată baza la cursul de afișare', () => {
+  const {context,$} = workspace();
+  vm.runInContext(readFileSync('lib/equity.js','utf8'),context);
+  context.EQ.addSnapshot(11000,'Trading 212 automat · 10000 EUR × 1.1000',{ts:Date.now()-3*86400000,cur:'EUR',local:10000,rate:1.1});
+  context.EQ.addSnapshot(10670,'Trading 212 automat · 10000 EUR × 1.0670',{ts:Date.now()-86400000,cur:'EUR',local:10000,rate:1.067});
+  context.$ = $; context.esc = esc; context.openPriceCache = {}; context.isOpenE = context.JR.isOpen; context.setJTab = () => {};
+  vm.runInContext(region(journalPage,'function fmtUsd0(', 'function renderCapitalPanel('),context);
+  context.renderCapitalDrill();
+  const text = $('capDrill').textContent;
+  assert.match(text,/în EUR \(moneda contului\)/);
+  assert.match(text,/USD doar la afișare/);
+  assert.match(text,/10[.,]670/,'baza (10.000 EUR) arătată la cursul de afișare 1,067, nu la cursul zilei ei (11.000)');
+  assert.doesNotMatch(text,/11[.,]000/);
+});
+
+test('🔵 19: hero-ul Lite folosește formatorul paginii (o singură definiție fmtUsd0) și se desenează doar când modul Lite e cel vizibil', () => {
+  const {context,$} = workspace();
+  vm.runInContext(readFileSync('lib/equity.js','utf8'),context);
+  context.EQ.addSnapshot(1234,'Capital de test',{ts:Date.now()-86400000});
+  context.JWS.init({$,esc,fmt$:money,TAGS:[],isOpenE:context.JR.isOpen,fillForm:() => {},renderAll:() => {},openPriceCache:{},
+    fmtUsd0:v => 'F(' + Math.round(v) + ')',calcUnrealizedTotal:() => ({tot:0,n:0})});
+  $('capLiteHero').innerHTML = '';
+  context.JR.saveSettings({capViewMode:'full'});
+  context.JWS.renderCapitalLite();
+  assert.equal($('capLiteHero').innerHTML, '', 'modul Full e cel vizibil: Lite nu se mai desenează degeaba');
+  assert.equal(typeof context.JWS.capMode, 'function');
+  context.JR.saveSettings({capViewMode:'lite'});
+  context.JWS.renderCapitalLite();
+  assert.match($('capLiteHero').textContent, /F\(1234\)/, 'formatorul vine de la pagină');
+});
+
+test('I-760: registrul de incidente din Risc & capital — refuză fără „ce s-a întâmplat”, notează, închide doar cu măsura, rândul din fișa zilei, copia pentru docs/incidente.md', () => {
+  const {context,$} = workspace();
+  vm.runInContext(readFileSync('lib/journal-incidente.js','utf8'),context);
+  context.$ = $; context.esc = esc;
+  vm.runInContext(region(journalPage,'function renderIncidente(','/* — sfârșitul registrului de incidente — */'),context);
+  context.bindIncidente(); context.renderIncidente();
+  assert.match($('incFisa').textContent, /Incidente: niciunul nou azi, niciunul deschis/);
+  $('incTitlu').value = 'Robotul V1 a pierdut sesiuni'; $('incCe').value = 'scurt'; $('incGrav').value = 'mare';
+  $('btnIncNoteaza').click();
+  assert.match($('incMsg').textContent, /cel puțin 10 caractere/);
+  assert.equal(context.JournalIncidente.citeste(context.localStorage).length, 0, 'refuzat ⇒ nimic scris');
+  $('incCe').value = 'Robotul probei V1 a pierdut 5 din 7 sesiuni fără alarmă.';
+  $('btnIncNoteaza').click();
+  assert.match($('incFisa').textContent, /1 nou azi \(Robotul V1 a pierdut sesiuni\)/);
+  assert.equal($('incN').textContent, '1');
+  assert.equal($('incTitlu').value, '', 'formularul se golește după notare');
+  $('incLista').querySelector('[data-inc-inchide]').click();
+  assert.match($('incMsg').textContent, /măsura/);
+  $('incLista').querySelector('[data-inc-masura]').value = 'reîncercare după 3 min + Discord la eșec';
+  $('incLista').querySelector('[data-inc-inchide]').click();
+  assert.equal($('incN').textContent, '0');
+  assert.match($('incLista').textContent, /închis: reîncercare după 3 min/);
+  $('incLista').querySelector('[data-inc-copiaza]').click();
+  assert.match($('incCopie').textContent, /^### \d{4}-\d{2}-\d{2} · Robotul V1 a pierdut sesiuni · gravitate mare/);
 });
 
 test('scorecard segmentation does not capture execution filters or capital mode controls', () => {

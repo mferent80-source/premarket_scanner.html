@@ -9,13 +9,14 @@ const c = { Intl, Date, Math, JSON, Map, Set, URL, String, Number, Array, Object
 for (const f of ['lib/execution-review.js', 'lib/journal-report.js', 'lib/monthly-limit.js']) vm.runInContext(readFileSync(f, 'utf8'), c);
 const J = c.JournalReport, ML = c.MonthlyLimit, DAY = 86400000;
 
-test('I-692 — limita lunară: rezultatul lunii din execuții (ora României), stările, textul pentru Astăzi / Planuri; cheia veche se mută în setările sincronizate', () => {
+test('I-692 — limita lunară: rezultatul lunii din execuții (ziua de bursă New York — I-751, 27.10), stările, textul pentru Astăzi / Planuri; cheia veche se mută în setările sincronizate', () => {
   const s = mem(), now = Date.parse('2026-10-17T12:00:00Z');
   s.setItem('tt_journal_limita_luna_v1', '1000'); assert.equal(ML.limita(s), 1000); assert.equal(s.getItem('tt_journal_limita_luna_v1'), null); assert.equal(JSON.parse(s.getItem('tt_journal_settings_v1')).limitaLuna, 1000);
   assert.equal(ML.stare({ storage: s, now }).stare, 'neverificat');
   const items = [{ side: 'SELL', type: 'TRADE', realized: -500, currency: 'RON', date: '2026-10-05T12:00:00Z' }, { side: 'SELL', type: 'TRADE', realized: -320, currency: 'RON', date: '2026-10-16T12:00:00Z' },
-    { side: 'SELL', type: 'TRADE', realized: -9000, currency: 'RON', date: '2026-09-30T21:30:00Z' }]; // 1 oct. 00:30 ora României ⇒ în octombrie
-  const l = ML.dinExecutii(items, { now }); assert.equal(l.n, 3); assert.equal(l.rez, -9820);
+    { side: 'SELL', type: 'TRADE', realized: -9000, currency: 'RON', date: '2026-09-30T21:30:00Z' }]; // 1 oct. 00:30 ora României, dar 30 sept. 17:30 New York ⇒ în SEPTEMBRIE (ceasul unic NY, I-751)
+  const l = ML.dinExecutii(items, { now }); assert.equal(l.n, 2); assert.equal(l.rez, -820);
+  assert.equal(ML.dinExecutii(items, { now: Date.parse('2026-09-30T23:00:00Z') }).n, 1, 'la 19:00 NY pe 30 sept. luna e încă septembrie: vânzarea de la 21:30Z intră');
   ML.salveazaLuna(ML.dinExecutii(items.slice(0, 2), { now }), s); const st = ML.stare({ storage: s, now });
   assert.equal(JSON.parse(s.getItem('tt_journal_settings_v1')).t212Luna, undefined, 'rezultatul lunii NU intră în setările sincronizate (conflict la fiecare rescriere)'); assert.ok(s.getItem('tt_journal_luna_t212_v1')); assert.equal(st.stare, 'aproape'); assert.ok(Math.abs(st.folosit - 82) < 1e-9);
   assert.match(ML.text(st, now).text, /Ai pierdut 820,0 lei din 1\.000,0 lei în octombrie/);
