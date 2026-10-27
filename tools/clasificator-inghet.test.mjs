@@ -50,6 +50,20 @@ test('I-673: protocolul nu se schimbă după primul rezultat al motorului în pr
   const prim = rez.map((r) => ({ vot: r.asOf, scris: scris(r) })).sort((a, b) => (a.scris < b.scris ? -1 : a.scris > b.scris ? 1 : 0))[0];
   if (prim) assert.ok(date.at(-1) <= prim.scris, `Protocolul a fost schimbat (${date.at(-1)}) după primul rezultat (scris pe ${prim.scris}, votul din ${prim.vot}): o regulă nouă cere o probă nouă (motor nou, PROBA nou).`);
 });
+// 27.10.2026 — I-743 („amprenta judecătorului”, auditul F): codul care JUDECĂ proba (tools/clasificator-jurnal.mjs: rezultatele înghețate,
+// testul, verdictele, Holm, integritatea) e înghețat ca motorul. O schimbare ⇒ rând nou în docs/clasificator-versiuni.md, § „Amprenta
+// judecătorului”, cu motivul; dacă schimbă un verdict posibil, e o regulă nouă ⇒ probă nouă (protocolul, „Istoria”).
+const randuriJudecator = (t) => [...(/## Amprenta judecătorului([\s\S]*?)(\n## |$)/.exec(t)?.[1] || '').matchAll(/^\| (\d{4}-\d{2}-\d{2}) \| `(jc-[0-9a-f]{12})` \| (.+) \|\s*$/gm)].map((m) => ({ data: m[1], amprenta: m[2], motiv: m[3] }));
+test('I-743: judecătorul probei are amprenta de pe ultimul rând din „Amprenta judecătorului” (docs/clasificator-versiuni.md)', async () => {
+  const { amprentaJudecator } = await import('./clasificator-jurnal.mjs'), rows = randuriJudecator(readFileSync('docs/clasificator-versiuni.md', 'utf8'));
+  assert.ok(rows.length, 'Secțiunea „Amprenta judecătorului” lipsește sau n-are rânduri.');
+  assert.equal(rows.at(-1).amprenta, amprentaJudecator(), `Codul care judecă proba s-a schimbat (${amprentaJudecator()}): scrie rândul nou (data, amprenta, motivul) în docs/clasificator-versiuni.md.`);
+});
+test('I-743: rândurile judecătorului doar cresc (niciunul din ultimul commit nu dispare)', async () => {
+  const { execFileSync } = await import('node:child_process'); let vechi; try { vechi = execFileSync('git', ['show', 'HEAD:docs/clasificator-versiuni.md'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }); } catch { return; }
+  const azi = new Set(randuriJudecator(readFileSync('docs/clasificator-versiuni.md', 'utf8')).map((r) => JSON.stringify(r)));
+  for (const r of randuriJudecator(vechi)) assert.ok(azi.has(JSON.stringify(r)), 'rând al judecătorului șters sau schimbat: ' + r.amprenta);
+});
 test('calendarul oficial NYSE acoperă cel puțin următoarele 180 de zile (altfel notarea la timp nu se mai poate verifica)', () => {
   const cal = motor('.').ExchangeCalendar, d = new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10);
   assert.notEqual(cal.session('US', d).state, 'unknown', `Adaugă în lib/exchange-calendar.js sărbătorile NYSE pentru ${d.slice(0, 4)} (sursa oficială).`);

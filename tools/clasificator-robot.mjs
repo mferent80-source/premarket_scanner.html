@@ -11,7 +11,7 @@ import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { motor, adu, aduCache, aduNasdaq, universScanner, clasifica } from './clasificator-date.mjs';
 import { univers } from './clasificator-univers.mjs';
-import { PROBA, regim, ziua, adauga, incarca, incheie, deScris, sesiuniDupa, bilantDoua, nopti, mesajZilnic, schimbari, raportVerdict } from './clasificator-jurnal.mjs';
+import { PROBA, PRAG, regim, ziua, adauga, incarca, incheie, deScris, sesiuniDupa, bilantDoua, nopti, mesajZilnic, schimbari, raportVerdict, amprentaJudecator, contractClasificator, cuNotat } from './clasificator-jurnal.mjs';
 import { amprentaFisier, inlocuiriDin, inregistrat } from './clasificator-amprenta.mjs';
 
 export const FISIER = 'candidate-engine/generated/clasificator.json', VERSIUNE = 'clasificator-robot-v1', COMUN_MAX = 150, MOTOARE = 'tools/motoare';
@@ -86,9 +86,13 @@ export async function ruleaza({ c = motor('.', ['lib/desk-classifier.js']), simb
   for (const L of linii) for (const [ch, h] of [['voturi', 5], ['voturi20', 20]]) for (const s of Object.keys(L[ch] || {})) if (!intregi[s] && !fac.has(L.motor + '|' + L.asOf + '|' + h + '|' + s)) lipsa.add(s);
   for (const s of lipsa) { if (scurs() > minute + 5) break; try { intregi[s] = (await citesteSerie(s)).bars; } catch (e) { if (e && e.bare) intregi[s] = e.bare; } }
   // I-672: rezultatele înghețate în noaptea în care se încheie orizontul; I-660/668: bilanțul doar pe motorul în probă, notat la timp.
-  const rezNoi = incheie(linii, jurnal.rezultate, intregi, dateOf, { sesiuniDupa: sesiuniDupa(cal, now) }), rezultate = jurnal.rezultate.concat(rezNoi);
+  // 27.10.2026 (auditul F, 🔵): rezultatele noi poartă ora notării
+  const rezNoi = cuNotat(incheie(linii, jurnal.rezultate, intregi, dateOf, { sesiuniDupa: sesiuniDupa(cal, now) }), now), rezultate = jurnal.rezultate.concat(rezNoi);
   const { b5, b20 } = bilantDoua(linii, rezultate, { motor: PROBA, cal, now, faraUltima: PROBA !== C.VERSION }); // motorul în probă ca al doilea ⇒ ziua lui vine din jobul paralel
-  j.jurnal = b5; j.jurnal20 = b20; j.nopti = nopti(linii, cal, now, PROBA); j.durata = durata();
+  // 27.10.2026 (I-743 / I-744): judecătorul amprentat (docs/clasificator-versiuni.md) + putere / primulVerdict / judecata pe fiecare țintă
+  const azi = dateOf(now), c5 = contractClasificator(b5, { linii, cal, azi, h: 5, minim: PRAG.zileMinime }), c20 = contractClasificator(b20, { linii, cal, azi, h: 20, minim: PRAG.zileMinime20 });
+  j.jurnal = { ...b5, ...c5 }; j.jurnal20 = { ...b20, ...c20 }; j.nopti = nopti(linii, cal, now, PROBA); j.durata = durata();
+  j.judecator = amprentaJudecator(); j.putere = c5.putere; j.primulVerdict = c5.primulVerdict; j.judecata = c5.judecata;
   if (martor) j.martor = await martor(j, intregi, dateOf);
   return { ...j, jurnalNou: { voturi: nou, rezultate: rezNoi } };
 }
