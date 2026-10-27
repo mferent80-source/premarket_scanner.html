@@ -299,7 +299,7 @@ test('closed cards retain net FX-aware PnL, R, fees and financial values from JR
   const {rows,cards} = ledgerParts($('tblWrap'));
   for (const entry of [a,b]) {
     const expected = '+' + money(context.JR.pnl(entry));
-    const expectedR = '+' + context.JR.rMult(entry).toFixed(2) + 'R';
+    const expectedR = '+' + context.JR.rMult(entry).toFixed(1) + 'R'; // 27.10.2026 (audit C 🟡 10): rezultatele cu o singură zecimală
     const row = rows.find(r => r.children[0].textContent === entry.sym);
     const card = cards.find(r => r.dataset.executionId === entry.id);
     assert.equal(row.children[2].textContent,expected);
@@ -353,7 +353,7 @@ test('closed desktop and mobile actions open real FX-aware execution details and
     assert.equal(execution['Ieșire · moneda instrumentului'],context.JR.quotePrice(entry,entry.exit));
     assert.equal(execution['Comisioane totale · USD'],money(entry.fees));
     assert.equal(execution['Valoare intrare · USD'],money(context.JR.initialNotionalUsd(entry)));
-    assert.equal(execution['R-multiple · net'],'+' + context.JR.rMult(entry).toFixed(2) + 'R');
+    assert.equal(execution['R-multiple · net'],'+' + context.JR.rMult(entry).toFixed(1) + 'R'); // 🟡 10: o singură zecimală
     assert.equal(execution['FX istoric la intrare'],'1,1 USD / 1 EUR');
     assert.equal(execution['FX istoric la ieșire'],'1,2 USD / 1 EUR');
     const detail = fields($('jrDetailsContext'));

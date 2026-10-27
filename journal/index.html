@@ -802,7 +802,7 @@ function renderDdAlert(){
     if (!(prev.lastKey === nkey && Date.now() - (prev.ts || 0) < 3600000)) {
       try {
         new Notification('📓 Journal — Alertă Max Drawdown', {
-          body: breached.map(c => c.label + ': −$' + JR.maxDrawdown(c.subset).toFixed(2)).join('\n'),
+          body: breached.map(c => c.label + ': −$' + JR.maxDrawdown(c.subset).toFixed(1)).join('\n'),
           tag: 'journal-desk-dd'
         });
         localStorage.setItem(DD_NOTIFY_KEY, JSON.stringify({ lastKey: nkey, ts: Date.now() }));
@@ -810,7 +810,7 @@ function renderDdAlert(){
     }
   }
   host.innerHTML = '<div class="dd-alert">🚨 <strong>Alertă Max Drawdown</strong> — ' +
-    breached.map(c => '<strong>' + esc(c.label) + '</strong>: −$' + JR.maxDrawdown(c.subset).toFixed(2) + ' (prag $' + s[c.key] + ')').join(' · ') + '</div>';
+    breached.map(c => '<strong>' + esc(c.label) + '</strong>: −$' + JR.maxDrawdown(c.subset).toFixed(1) + ' (prag $' + s[c.key] + ')').join(' · ') + '</div>';
 }
 function renderDdCats(){
   const host = $('ddCats');
@@ -819,14 +819,14 @@ function renderDdCats(){
   if (!closed.length) { host.innerHTML = '<div class="note">DD pe categorii după prima execuție închisă.</div>'; return; }
   const srcDd = JR.drawdownByField(closed, 'source');
   const regDd = JR.drawdownByField(closed, 'regime');
-  let html = '<div class="dd-cat"><div class="lbl">🌐 TOATE</div><div class="val neg">−$' + JR.maxDrawdown(closed).toFixed(2) + '</div><div class="sub">rolling 30z: −$' + JR.rollingDdAt(closed, Date.now(), 30).toFixed(2) + '</div></div>';
+  let html = '<div class="dd-cat"><div class="lbl">🌐 TOATE</div><div class="val neg">−$' + JR.maxDrawdown(closed).toFixed(1) + '</div><div class="sub">rolling 30z: −$' + JR.rollingDdAt(closed, Date.now(), 30).toFixed(2) + '</div></div>';
   Object.keys(srcDd).sort((a, b) => srcDd[b] - srcDd[a]).forEach(k => {
     const sub = closed.filter(e => (e.source || '?') === k);
-    html += '<div class="dd-cat"><div class="lbl">📡 ' + esc(k) + '</div><div class="val neg">−$' + srcDd[k].toFixed(2) + '</div><div class="sub">30z: −$' + JR.rollingDdAt(sub, Date.now(), 30).toFixed(2) + ' · n' + sub.length + '</div></div>';
+    html += '<div class="dd-cat"><div class="lbl">📡 ' + esc(k) + '</div><div class="val neg">−$' + srcDd[k].toFixed(1) + '</div><div class="sub">30z: −$' + JR.rollingDdAt(sub, Date.now(), 30).toFixed(2) + ' · n' + sub.length + '</div></div>';
   });
   Object.keys(regDd).sort((a, b) => regDd[b] - regDd[a]).slice(0, 4).forEach(k => {
     const sub = closed.filter(e => (e.regime || '?') === k);
-    html += '<div class="dd-cat"><div class="lbl">🌍 ' + esc(k) + '</div><div class="val neg">−$' + regDd[k].toFixed(2) + '</div><div class="sub">regim · n' + sub.length + '</div></div>';
+    html += '<div class="dd-cat"><div class="lbl">🌍 ' + esc(k) + '</div><div class="val neg">−$' + regDd[k].toFixed(1) + '</div><div class="sub">regim · n' + sub.length + '</div></div>';
   });
   host.innerHTML = html;
 }
@@ -1151,9 +1151,9 @@ function scHtml(s){
     <div class="scard"><div class="lbl">EXECUȚII</div><div class="val">${s.n}${s.small ? ' <span class="wrn" style="font-size:11px">⚠ n&lt;10</span>' : ''}</div></div>
     <div class="scard"><div class="lbl">WIN RATE</div><div class="val">${s.winPct.toFixed(0)}%</div></div>
     <div class="scard"><div class="lbl">PnL NET</div><div class="val ${s.pnlNet >= 0 ? 'pos' : 'neg'}">${(s.pnlNet >= 0 ? '+' : '') + fmt$(s.pnlNet).replace('$-','-$')}</div></div>
-    <div class="scard"><div class="lbl">EXPECTANCY R</div><div class="val ${eCls}">${s.expectancyR != null ? (s.expectancyR >= 0 ? '+' : '') + s.expectancyR.toFixed(2) + 'R' : '—'}</div>
+    <div class="scard"><div class="lbl">EXPECTANCY R</div><div class="val ${eCls}">${s.expectancyR != null ? (s.expectancyR >= 0 ? '+' : '') + s.expectancyR.toFixed(1) + 'R' : '—'}</div>
       <div class="lbl" style="margin-top:2px">${s.nR}/${s.n} cu SL completat</div></div>
-    <div class="scard"><div class="lbl">PROFIT FACTOR</div><div class="val">${s.pf === Infinity ? '∞' : s.pf.toFixed(2)}</div></div>
+    <div class="scard"><div class="lbl">PROFIT FACTOR</div><div class="val">${s.pf === Infinity ? '∞' : s.pf.toFixed(1)}</div></div>
     <div class="scard"><div class="lbl">AVG WIN / LOSS</div><div class="val" style="font-size:14px">${fmt$(s.avgWin)} / ${fmt$(s.avgLoss)}</div></div>`;
 }
 let seg = 'source';
@@ -1204,8 +1204,8 @@ function renderSeg(){
         <td>${s.n}</td>
         <td>${s.winPct.toFixed(0)}%</td>
         <td class="${s.pnlNet >= 0 ? 'pos' : 'neg'}">${(s.pnlNet >= 0 ? '+' : '') + fmt$(s.pnlNet).replace('$-','-$')}</td>
-        <td class="${s.expectancyR == null ? '' : s.expectancyR >= 0 ? 'pos' : 'neg'}">${s.expectancyR != null ? (s.expectancyR >= 0 ? '+' : '') + s.expectancyR.toFixed(2) : '—'}</td>
-        <td>${s.pf === Infinity ? '∞' : s.pf.toFixed(2)}</td>
+        <td class="${s.expectancyR == null ? '' : s.expectancyR >= 0 ? 'pos' : 'neg'}">${s.expectancyR != null ? (s.expectancyR >= 0 ? '+' : '') + s.expectancyR.toFixed(1) : '—'}</td>
+        <td>${s.pf === Infinity ? '∞' : s.pf.toFixed(1)}</td>
         <td>${s.small ? '<span class="wrn">⚠ zgomot</span>' : ''}</td>
       </tr>
       <tr data-det="${i}" style="display:${opened ? '' : 'none'}"><td colspan="7" class="l" style="background:rgba(29,37,55,.5)">${segDetailHtml(groups[k])}</td></tr>`;
