@@ -4,10 +4,10 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 
-function setup({ vault = { key: 'k', secret: 's', environment: 'live' }, config = { enabled: true, endpoint: 'https://premarket-scanner-html.mferent80.workers.dev', directCredentials: true }, relay } = {}) {
+function setup({ vault = { key: 'k', secret: 's', environment: 'live' }, ordine, config = { enabled: true, endpoint: 'https://premarket-scanner-html.mferent80.workers.dev', directCredentials: true }, relay } = {}) {
   const calls = [];
   const c = { Intl, Date, Math, JSON, Map, Set, URL, String, Number, Array, Object, btoa, location: { href: 'https://mferent80-source.github.io/premarket_scanner.html/today/' } };
-  c.window = c; c.T212Vault = { read: async () => vault };
+  c.window = c; c.T212Vault = { read: async () => vault, ...(ordine !== undefined ? { readOrdine: async () => ordine } : {}) };
   c.fetch = async (url, opts = {}) => { calls.push({ url: String(url), opts }); if (String(url).endsWith('trading212-config.json')) return new Response(JSON.stringify(config)); return relay(url, opts); };
   vm.createContext(c);
   for (const f of ['lib/holdings-notes.js', 'lib/stop-setter.js', 'lib/t212-orders.js']) vm.runInContext(readFileSync(f, 'utf8'), c);
@@ -46,6 +46,18 @@ test('sending posts once to the relay with the saved key, the confirmation token
   assert.equal(post[0].url, 'https://premarket-scanner-html.mferent80.workers.dev/api/trading212/stop-order');
   assert.equal(post[0].opts.headers.Authorization, 'Basic ' + btoa('k:s')); assert.equal(post[0].opts.headers['X-T212-Environment'], 'live');
   assert.deepEqual(JSON.parse(post[0].opts.body), { ticker: 'MU_US_EQ', quantity: 5.5, stopPrice: 832.2, confirm: 'PUN-STOPUL' });
+});
+// 27.10.2026 (lotul 2, I-764): stopul pleacă pe cheia CU ORDINE când e pusă pe aparat (cheia de citire nu are „Orders: Execute”); fără ea, conexiunea salvată, ca până acum
+test('the stop order uses the order key when this device has one, otherwise the saved connection', async () => {
+  const ok = async () => new Response(JSON.stringify({ source: 'Trading 212', environment: 'live', data: { id: 9, status: 'NEW', ticker: 'MU_US_EQ', quantity: 5.5, stopPrice: 832.2, currentPrice: 876 } }));
+  const cu = setup({ ordine: { key: 'ko', secret: 'so', environment: 'live' }, relay: ok });
+  assert.equal((await cu.O.pune({ ticker: 'MU_US_EQ', quantity: 5.5, stopPrice: 832.2 }, { garda: garda() })).ok, true);
+  assert.equal(cu.calls.find((x) => x.opts.method === 'POST').opts.headers.Authorization, 'Basic ' + btoa('ko:so'), 'cheia cu ordine, nu cea de citire');
+  const fara = setup({ ordine: null, relay: ok });
+  assert.equal((await fara.O.pune({ ticker: 'MU_US_EQ', quantity: 5.5, stopPrice: 832.2 }, { garda: garda() })).ok, true);
+  assert.equal(fara.calls.find((x) => x.opts.method === 'POST').opts.headers.Authorization, 'Basic ' + btoa('k:s'), 'fără cheie cu ordine: conexiunea salvată');
+  const doarOrdine = setup({ vault: null, ordine: { key: 'ko', secret: 'so', environment: 'live' }, relay: ok });
+  assert.equal((await doarOrdine.O.disponibil()).ok, true, 'butonul apare și când e pusă doar cheia cu ordine');
 });
 test('refusals say the order was NOT sent; a lost answer says to check Trading 212 before retrying', async () => {
   const perm = setup({ relay: async () => new Response(JSON.stringify({ error: 'broker_permission_missing' }), { status: 502 }) });
