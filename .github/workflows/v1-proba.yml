@@ -36,7 +36,10 @@ jobs:
         continue-on-error: true
         env:
           DOAR_LIPSA: ${{ github.event.schedule == '15 10 * * 2-6' && '1' || '' }}
-        run: node tools/v1-jurnal.mjs 2>&1 | tee v1-ziua.log || (sleep 180 && node tools/v1-jurnal.mjs 2>&1 | tee v1-ziua.log)
+        # 28.10.2026 (revizia F2, 🔵6): fără pipefail, `node … | tee` întorcea codul lui tee (0) ⇒ a doua încercare și Discord-ul nu porneau niciodată
+        run: |
+          set -o pipefail
+          node tools/v1-jurnal.mjs 2>&1 | tee v1-ziua.log || (sleep 180 && node tools/v1-jurnal.mjs 2>&1 | tee v1-ziua.log)
       - name: Anunță pe Discord că ziua V1 lipsește
         if: steps.v1.outcome == 'failure'
         env:
@@ -70,13 +73,13 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add scanner-verdicts/generated/v1-jurnal.json scanner-verdicts/generated/v1-proba.json
-          # 27.10.2026 (revizia F, 🔴2): perioadele și judecata înghețate (fișierele doar cresc)
-          git add scanner-verdicts/generated/v1-inghetat.jsonl scanner-verdicts/generated/premarket-inghetat.jsonl 2>/dev/null || true
-          git add scanner-verdicts/generated/premarket-jurnal.json scanner-verdicts/generated/premarket-proba.json 2>/dev/null || true
+          # 27.10.2026 (revizia F, 🔴2): perioadele și judecata înghețate (fișierele doar cresc); jurnalul Top Long;
           # 19.10.2026 — I-716: jurnalul separat al stopului Early Reversal în umbră (docs/reversal-stop-umbra-protocol.md)
-          git add scanner-verdicts/generated/reversal-umbra-jurnal.json scanner-verdicts/generated/reversal-umbra-proba.json 2>/dev/null || true
+          # 28.10.2026 (revizia F2, 🟡1): câte un `git add` pe fișier — un singur `git add a b || true` nu salva NIMIC cât lipsea unul
+          node tools/git-add-existente.mjs scanner-verdicts/generated/v1-inghetat.jsonl scanner-verdicts/generated/premarket-inghetat.jsonl scanner-verdicts/generated/premarket-jurnal.json scanner-verdicts/generated/premarket-proba.json scanner-verdicts/generated/reversal-umbra-jurnal.json scanner-verdicts/generated/reversal-umbra-proba.json
           if ! git diff --cached --quiet; then
             git commit -m 'data(v1): ziua in proba [skip ci]'
-            git pull --rebase origin main
-            git push origin HEAD:main
+            # 28.10.2026 (revizia F2, 🔵13): o cursă cu alt robot nu mai pierde ziua — 3 încercări, apoi pică vizibil
+            ok=0; for i in 1 2 3; do if git pull --rebase origin main && git push origin HEAD:main; then ok=1; break; fi; git rebase --abort 2>/dev/null || true; sleep 10; done
+            [ "$ok" = 1 ] || { echo 'Push eșuat de 3 ori.'; exit 1; }
           fi

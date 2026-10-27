@@ -35,11 +35,12 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add candidate-engine/generated/trend-12-1-bilant.json
-          git add candidate-engine/generated/trend-12-1-inghetat.jsonl 2>/dev/null || true
+          node tools/git-add-existente.mjs candidate-engine/generated/trend-12-1-inghetat.jsonl   # 28.10.2026 (revizia F2, 🟡1): o eroare reală a lui git nu mai e ascunsă
           if ! git diff --cached --quiet; then
             git commit -m 'data(trend): bilantul probei [skip ci]'
-            git pull --rebase origin main
-            git push origin HEAD:main
+            # 28.10.2026 (revizia F2, 🔵13): o cursă cu alt robot nu mai pierde ziua — 3 încercări, apoi pică vizibil
+            ok=0; for i in 1 2 3; do if git pull --rebase origin main && git push origin HEAD:main; then ok=1; break; fi; git rebase --abort 2>/dev/null || true; sleep 10; done
+            [ "$ok" = 1 ] || { echo 'Push eșuat de 3 ori.'; exit 1; }
           fi
       - name: Discord la eșec (I-629)
         if: failure()
