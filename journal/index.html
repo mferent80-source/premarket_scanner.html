@@ -711,7 +711,8 @@ window.onerror = function(msg, src, line){
 'use strict';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const fmt$ = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: Math.abs(v) < 1 ? 4 : 2 });
+const fmt$ = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: Math.abs(v) < 1 ? 4 : 1 }); /* 27.10 (audit 🟡 10): o singură zecimală la rezultate */
+const ziNY = ts => (window.CT && CT.ziNY ? CT.ziNY(ts) : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(ts ? new Date(ts) : new Date())); /* 27.10 (I-751): ziua de bursă, nu ziua UTC */
 
 // Tag-uri predefinite de greșeli/execuție (click = toggle); rămân editabile ca listă în timp
 const TAGS = ['good-exec', 'fomo', 'chase', 'early-exit', 'late-exit', 'no-plan', 'oversize', 'revenge', 'contra-regim', 'news-trap', 'broke-rules'];
@@ -1002,7 +1003,7 @@ function resetForm(){
   ['fSym','fEntry','fExit','fSize','fSl','fNotes','fMark','fSetupDraftId','fCurrency','fFxEntry','fFxExit'].forEach(id => { if ($(id)) $(id).value = ''; });
   $('fFees').value = '0';
   $('fDir').value = 'long'; $('fSrc').value = 'manual';
-  $('fDate').value = new Date().toISOString().slice(0, 10);
+  $('fDate').value = ziNY();
   renderTagRow([]);
   $('frmTitle').textContent = '➕ Execuție nouă (fill închis)';
   $('btnSave').textContent = '💾 Salvează execuția';
@@ -1017,7 +1018,7 @@ function fillForm(e){
   $('fFees').value = e.fees || 0; $('fSl').value = e.slAtEntry != null ? e.slAtEntry : '';
   if ($('fMark')) $('fMark').value = e.markPrice != null ? e.markPrice : '';
   $('fSrc').value = e.source || 'manual'; $('fNotes').value = e.notes || '';
-  $('fDate').value = e.closeTs ? new Date(e.closeTs).toISOString().slice(0, 10) : '';
+  $('fDate').value = e.closeTs ? ziNY(e.closeTs) : ''; /* 27.10 (audit 🔵 23): ziua NY — re-salvarea la 01:00 RO nu mai muta închiderea cu o zi în urmă */
   renderTagRow(e.tags || []);
   $('frmTitle').textContent = '✏️ Editez ' + e.sym;
   $('btnSave').textContent = '💾 Actualizează';
@@ -1346,7 +1347,7 @@ function renderDesk(){
   $('budgetLbl').textContent = '$' + s.budgetLeftUsd.toFixed(0) + ' rămas din −$' + s.maxLossUsd.toFixed(0) + ' (' + used.toFixed(0) + '% consumat)' + (s.budgetSource && s.budgetSource !== 'jurnal manual' ? ' · rămas = ' + s.budgetSource : '');
   const pnlCls = s.todayPnl >= 0 ? 'pos' : 'neg';
   $('deskStrip').innerHTML = [
-    ['PnL manual azi', (s.todayPnl >= 0 ? '+' : '') + '$' + s.todayPnl.toFixed(2), pnlCls],
+    ['PnL manual azi', (s.todayPnl >= 0 ? '+' : '') + fmt$(s.todayPnl).replace('$-', '-$'), pnlCls],
     ['Trade-uri rămase', s.tradesRemaining + ' / ' + s.cfg.maxTradesDay, ''],
     ['Deschise', s.openCount + '/' + s.cfg.maxOpenPositions, ''],
     ['Pierderi consec.', String(s.consecutiveLosses), s.consecutiveLosses >= s.cfg.cooldownAfterLosses ? 'neg' : '']
@@ -1356,7 +1357,7 @@ function renderDesk(){
     today.map(e => {
       const p = GV.pnlOf(e);
       const st = e.exit == null ? 'OPEN' : (p >= 0 ? 'WIN' : 'LOSS');
-      return '<tr><td class="l">' + esc(e.sym) + '</td><td>' + st + '</td><td class="' + (p==null?'':p>=0?'pos':'neg') + '">' + (p!=null?(p>=0?'+':'')+'$'+p.toFixed(2):'—') + '</td><td>' + esc(e.source||'?') + '</td></tr>';
+      return '<tr><td class="l">' + esc(e.sym) + '</td><td>' + st + '</td><td class="' + (p==null?'':p>=0?'pos':'neg') + '">' + (p!=null?(p>=0?'+':'')+fmt$(p):'—') + '</td><td>' + esc(e.source||'?') + '</td></tr>';
     }).join('') + '</table>' : '<p class="note">Nicio execuție azi în journal.</p>';
   if (s.verdict === 'HALTED') GV.maybeNotifyHalted(s);
   if (window.DMR && DMR.render) DMR.render();
@@ -1428,7 +1429,7 @@ function renderCapitalDrill(){
   const openRows = JR.all().filter(isOpenE);
 
   const rows = [
-    { id: 'base', lbl: 'Baseline (primul snapshot)', val: base.value, sign: '', det: base.source === 'snapshot' ? 'Snapshot ' + (base.day || '—') + (base.note ? ' · ' + base.note : '') : 'Cont manual / governor — adaugă snapshot ★' },
+    { id: 'base', lbl: 'Baseline (primul snapshot)', val: base.value, sign: '', det: base.source === 'snapshot' ? 'Snapshot ' + esc(base.day || '—') + (base.note ? ' · ' + esc(base.note) : '') : 'Cont manual / governor — adaugă snapshot ★' },
     { id: 'pnl', lbl: 'PnL realizat (închis)', val: realized, sign: realized >= 0 ? '+' : '', det: closed.length ? closed.slice(0, 20).map(capTradeLineHtml).join('') + (closed.length > 20 ? '<p class="note">+' + (closed.length - 20) + ' mai vechi…</p>' : '') : '<span class="note">Nicio execuție închisă</span>' },
     { id: 'cev', lbl: 'Evenimente capital (net)', val: capNet, sign: capNet >= 0 ? '+' : '', det: caps.length ? caps.map(c => '<div class="cap-line"><span>' + esc(c.day) + '</span><b>' + (c.kind === 'withdraw' ? 'Retragere' : 'Depunere') + '</b><span class="' + (c.kind === 'withdraw' ? 'neg' : 'pos') + '">' + fmtUsd0(c.amountUsd) + '</span></div>').join('') : '<span class="note">Niciun eveniment — adaugă depuneri/retrageri</span>' },
     { id: 'sim', lbl: '= Simulat (curbă journal)', val: dd.current, sign: '', sum: true },
