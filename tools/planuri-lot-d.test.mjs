@@ -98,6 +98,15 @@ test('I-752: SIMULEAZĂ re-rulează gărzile salvării — căldura plină într
   b.cfg.maxHeatPct = 4; await clic(b, 'trigger', p.id, ['101']); await ticks();
   assert.equal(salvate(b)[0].status, 'TRIGGERED', 'cu loc sub plafon simularea trece');
 });
+test('I-752: SIMULEAZĂ pe o idee proprie trece prin aceleași gărzi, pe nivelurile planului (nu pe zona scannerului, care la idee începe la stop)', async () => {
+  const D = { fetchStock: async (sym, o) => { if (o.interval === '1m') { const m = [{ t: ACUM, c: 100 }]; m.meta = { quoteAt: ACUM }; return m; } const s = serie(5); s.meta = { currency: 'USD' }; return s; } };
+  const b = real({ files: ['lib/pret-viu.js', 'lib/caldura-portofoliu.js', 'lib/desk-proba.js', 'lib/idee-proprie.js'], D, before: (c) => { c.EARN = { calendar: async () => ({ ok: true, items: [] }) }; } });
+  await ticks(); b.nodes.queueIdee.onclick(); b.nodes.ideeSimbol.value = 'MSFT'; b.nodes.ideeAtrK.value = '1.5'; b.nodes.ideeCalc.onclick(); await ticks(10);
+  assert.match(b.nodes.ticketVerdict.textContent, /PLAN VALIDABIL/);
+  await b.nodes.ticketSave.onclick(); const p = salvate(b).find((x) => x.source === 'manual'); assert.ok(p, b.nodes.ticketVerdict.textContent);
+  await clic(b, 'trigger', p.id, [String(p.entry)]); await ticks();
+  assert.equal(salvate(b).find((x) => x.id === p.id).status, 'TRIGGERED', b.nodes.queueStatus.textContent);
+});
 
 // ───────────── Oprirea de urgență (contractul tt_governor_oprire_v1, scris de lotul E) ─────────────
 test('OPRIT: tt_governor_oprire_v1 activ ⇒ Planuri arată „OPRIT (motiv, ora)”, nu lasă plan nou și nici SIMULEAZĂ; re-armat ⇒ ca înainte', async () => {
