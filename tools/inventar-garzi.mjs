@@ -26,7 +26,7 @@ export const MODELE = [
   { nume: 'Clasificatorul Long / Hold / Short', fisier: 'lib/holdings-classifier.js', protocol: 'docs/clasificator-protocol.md', stare: 'în probă — versiunile în docs/clasificator-versiuni.md' },
   { nume: 'Căldura portofoliului + corelația', fisier: 'lib/caldura-portofoliu.js', protocol: 'docs/politica-de-risc.md', stare: 'prag prudent, nu optim' },
   { nume: 'Bootstrap pe blocuri „Cât de sigur” (Raport)', fisier: 'lib/journal-report.js', protocol: 'docs/politica-de-risc.md', stare: 'mulberry32, sămânță fixă; verdict doar de la n ≥ 30' },
-  { nume: 'Detectoarele de comportament (Raport, I-761)', fisier: 'lib/journal-report.js', protocol: 'docs/politica-adaugiri-C.md', stare: 'convenții deterministe, nu avantaj dovedit' }
+  { nume: 'Detectoarele de comportament + Tiltmeter (Raport, I-761)', fisier: 'lib/journal-comportament.js', protocol: 'docs/politica-adaugiri-C.md', stare: 'convenții deterministe, nu avantaj dovedit' }
 ];
 
 // ---------- citirea codului: argumentele apelurilor, cu ghilimele, șabloane și paranteze ----------

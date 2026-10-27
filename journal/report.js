@@ -5,7 +5,7 @@
   'use strict';
   const J = window.JournalReport, ML = window.MonthlyLimit, host = document.getElementById('jrrRaport'); if (!J || !host) return;
   const K_ST = 'tt_journal_raport_v1';
-  const st = { perioada: 365, ticker: '', toateRandurile: false, editez: null };
+  const st = { perioada: 365, ticker: '', toateRandurile: false, editez: null, detector: null };
   try { const s = JSON.parse(localStorage.getItem(K_ST) || '{}'); if ([0, 30, 90, 365].includes(s.perioada)) st.perioada = s.perioada; } catch (_) { /* fără preferință */ }
   let baza = null, stare = '', exStare = '', spy = null, spyEsuat = false;
   const ex = new Map(), ratate = new Set(); // ratate: simbolurile fără bare în sesiunea asta (nu se mai cer la fiecare schimbare de perioadă)
@@ -29,10 +29,30 @@
     const el = document.getElementById('jrMonthlyLimit'); if (!el || !ML) return;
     const t = ML.text(ML.stare()); el.hidden = !t; el.className = 'jrr-limita-banner' + (t ? ' grav-' + t.grav : ''); if (el.textContent !== (t ? t.text : '')) el.textContent = t ? t.text : '';
   }
+  /* 27.10.2026 (I-761): tiparele de comportament (lib/journal-comportament.js) pe tranzacțiile perioadei; butonul unui tipar filtrează tot raportul
+     la tranzacțiile lui (st.detector), a doua apăsare îl scoate. Notele Tiltmeter stau în setările sincronizate ale Jurnalului (tilt: { ziNY: note }). */
+  const JC = window.JournalComportament;
+  let det = null, tiltMsg = '';
+  const aziNY = () => (window.CT && typeof window.CT.ziNY === 'function' ? window.CT.ziNY(Date.now()) : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date()));
+  const noteTilt = () => { const t = ML ? ML.setari().tilt : null; return t && typeof t === 'object' && !Array.isArray(t) ? t : {}; };
+  function deAfisat(baseTr) { if (!st.detector || !det || !det[st.detector]) return baseTr; const ids = new Set(det[st.detector].ids); return baseTr.filter((x) => ids.has(x.id)); }
+  function salveazaTilt(zi) {
+    if (!JC || !ML || !/^\d{4}-\d{2}-\d{2}$/.test(zi || '')) return;
+    const nota = {}; host.querySelectorAll('[data-jrr-tilt]').forEach((s) => { nota[s.dataset.jrrTilt] = s.value === '' ? null : Number(s.value); });
+    const v = JC.valideazaNota(nota);
+    if (!v.ok) { tiltMsg = v.erori.join(' '); desen(); return; }
+    const toate = { ...noteTilt(), [zi]: { somn: nota.somn, concentrare: nota.concentrare, stres: nota.stres } }, chei = Object.keys(toate).sort().slice(-400); // un an și ceva, ca setările să rămână mici
+    ML.scrie({ tilt: Object.fromEntries(chei.map((k) => [k, toate[k]])) }); tiltMsg = 'Notele zilei ' + zi + ' sunt salvate.'; desen();
+  }
   function desen() {
-    const tr = filtrate();
-    host.innerHTML = J.render({ tr, toate: baza?.rows || [], moneda: baza?.moneda, perioada: st.perioada, ticker: st.ticker, tickere: baza ? [...new Set(baza.rows.map((x) => x.ticker))].sort() : [],
-      ex, exStare, spy, spyEsuat, limita: limita(), stare, faraCumparare: baza?.faraCumparare || 0, alteMonede: baza?.alteMonede || 0, partiale: baza?.partiale || 0, corporative: baza?.corporative || 0,
+    const baseTr = filtrate();
+    det = JC && baza ? JC.detectoare(baseTr, baza.fills || [], { now: Date.now() }) : null;
+    if (st.detector && det && det[st.detector] && !det[st.detector].ids.length) st.detector = null;
+    const tr = deAfisat(baseTr), azi = aziNY(), note = noteTilt();
+    const comportamentHtml = det ? JC.html(det, JC.tilt(baza?.rows || [], note, { now: Date.now() }), { activ: st.detector, azi, notaAzi: note[azi] }) + (tiltMsg ? '<p class="jrr-nota" role="status">' + tiltMsg.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) + '</p>' : '') : '';
+    const filtruDet = st.detector && det ? ' Filtru activ: ' + det[st.detector].titlu + ' (' + tr.length + ' tranzacții) — „Arată toate” în „Tiparele tale de comportament”.' : '';
+    host.innerHTML = J.render({ tr, toate: baza?.rows || [], moneda: baza?.moneda, perioada: st.perioada, ticker: st.ticker, tickere: baza ? [...new Set(baza.rows.map((x) => x.ticker))].sort() : [], comportamentHtml,
+      ex, exStare, spy, spyEsuat, limita: limita(), stare: stare + filtruDet, faraCumparare: baza?.faraCumparare || 0, alteMonede: baza?.alteMonede || 0, partiale: baza?.partiale || 0, corporative: baza?.corporative || 0,
       rows: baza?.fills || [], jurnal: (window.GV && typeof GV.jurnal === 'function') ? GV.jurnal() : [], analize: baza?.analizeToate || [], plans: planuriShadow(), gov: (window.GV && typeof GV.cfg === 'function') ? GV.cfg() : null, cont: contValoare(baza?.moneda),
       toateRandurile: st.toateRandurile, editez: st.editez, now: Date.now() });
     bannerGovernor();
@@ -45,13 +65,16 @@
   // filtre, limită, etichete, CSV, tickere — delegat (raportul se redesenează întreg)
   host.addEventListener('click', (ev) => {
     const p = ev.target.closest('[data-jrr-per]'), t = ev.target.closest('[data-jrr-tk]'), ed = ev.target.closest('[data-jrr-et-ed]'), et = ev.target.closest('[data-jrr-et]');
+    const dt = ev.target.closest('[data-jrr-det]'), ts = ev.target.closest('[data-jrr-tilt-salveaza]'); // I-761
+    if (dt) { st.detector = st.detector === dt.dataset.jrrDet ? null : dt.dataset.jrrDet; desen(); return; }
+    if (ts) { salveazaTilt(ts.dataset.jrrTiltSalveaza); return; }
     if (p) { st.perioada = Number(p.dataset.jrrPer); try { localStorage.setItem(K_ST, JSON.stringify({ perioada: st.perioada })); } catch (_) { /* doar preferință */ } desen(); barele(); return; }
     if (t) { st.ticker = t.dataset.jrrTk; desen(); host.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (et) { puneEticheta(et.dataset.jrrId, et.dataset.jrrEt); desen(); host.querySelector(`[data-jrr-et="${et.dataset.jrrEt}"][data-jrr-id="${CSS.escape(et.dataset.jrrId)}"]`)?.focus(); return; }
     if (ed) { const id = ed.dataset.jrrEtEd || null; st.editez = st.editez === id ? null : id; if (st.editez && !st.toateRandurile && !filtrate().slice(-15).some((x) => x.id === st.editez)) st.toateRandurile = true; desen(); if (st.editez) host.querySelector('[data-jrr-et][data-jrr-id="' + CSS.escape(st.editez) + '"]')?.focus(); return; }
     if (ev.target.closest('#jrrToate')) { st.toateRandurile = !st.toateRandurile; desen(); return; }
     if (ev.target.closest('#jrrCsv')) {
-      const blob = new Blob(['﻿' + J.csv(filtrate(), baza?.moneda || '')], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a');
+      const blob = new Blob(['﻿' + J.csv(deAfisat(filtrate()), baza?.moneda || '')], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a');
       a.href = URL.createObjectURL(blob); a.download = 'raport-executie-' + new Date().toISOString().slice(0, 10) + '.csv'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     }
   });

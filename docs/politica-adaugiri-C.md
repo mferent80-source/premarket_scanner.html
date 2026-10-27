@@ -26,3 +26,10 @@
 
 - Orice incident (ce a mers prost, când, impactul, cauza, ce s-a schimbat) se notează în Jurnal → Risc & capital → „Registrul de incidente” și se copiază în `docs/incidente.md`. Un incident rămâne **deschis** până are o măsură scrisă. Fișa zilei primește un rând cu incidentele noi și cele deschise.
 - **Inventarul gărzilor** (`docs/inventar-modele.md`) e generat din cod; fiecare gardă are testul care o declanșează; rularea de validare se face **trimestrial** (`node tools/inventar-garzi.mjs --ruleaza`), iar suita e roșie dacă o gardă nouă n-are test.
+
+## § 4 · Tiparele de comportament și Tiltmeter (I-761)
+
+- Raportul arată patru tipare, calculate **mecanic** din ordinele Trading 212 (nu din etichete puse de mână): **răzbunare** = o cumpărare la mai puțin de **30 de minute** după o ieșire pe pierdere; **mărime crescută după 2 pierderi** = după două ieșiri pe pierdere la rând, o cumpărare mai mare de **1,25 × mediana ultimelor 5 cumpărări** (în moneda contului); **pierdere peste stop** = R sub **−1,25** față de stopul **planului** (analiza salvată sau stopul pus la intrare — nu stopul pus ulterior în Portofoliu); **din frig** = prima cumpărare a fiecărei zile New York.
+- Pentru fiecare: n, R mediu față de restul, numărul pe ultimele **4 săptămâni** și un buton care filtrează tot raportul la tranzacțiile lui. **Sub 10 cazuri** cifrele se arată cu „prea puține cazuri” — nu se trage nicio concluzie.
+- **Tiltmeter**: trei note pe zi (somn, concentrare, stres; 1–5), salvate în setările Jurnalului (sincronizate), puse lângă R-ul zilei (suma R a ieșirilor din ziua New York); comparația „jos (1–2)” față de „sus (4–5)” apare pe zilele cu tranzacții. Sub 10 zile: „prea puține zile”.
+- Pragurile sunt **convenții de prudență scrise înainte**, nu avantaj dovedit; un tipar care nu „costă” încă nu e dovada că nu costă.

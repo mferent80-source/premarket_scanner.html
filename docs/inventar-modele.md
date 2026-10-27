@@ -15,7 +15,7 @@
 | Clasificatorul Long / Hold / Short | `lib/holdings-classifier.js` | `docs/clasificator-protocol.md` | în probă — versiunile în docs/clasificator-versiuni.md |
 | Căldura portofoliului + corelația | `lib/caldura-portofoliu.js` | `docs/politica-de-risc.md` | prag prudent, nu optim |
 | Bootstrap pe blocuri „Cât de sigur” (Raport) | `lib/journal-report.js` | `docs/politica-de-risc.md` | mulberry32, sămânță fixă; verdict doar de la n ≥ 30 |
-| Detectoarele de comportament (Raport, I-761) | `lib/journal-report.js` | `docs/politica-adaugiri-C.md` | convenții deterministe, nu avantaj dovedit |
+| Detectoarele de comportament + Tiltmeter (Raport, I-761) | `lib/journal-comportament.js` | `docs/politica-adaugiri-C.md` | convenții deterministe, nu avantaj dovedit |
 
 ## Gărzi · Governor (jurnal manual + verdictul comun) (`lib/governor.js`, 25)
 
