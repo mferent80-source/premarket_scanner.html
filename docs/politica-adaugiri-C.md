@@ -46,3 +46,12 @@
 - **Tranzacțiile ratate**: simbolul, ziua, motivul („Governor HALTED”, „fără plan”…) și, opțional, prețul de atunci; Raportul citește barele zilnice și arată ce a făcut prețul în **cel mult 5 sesiuni** după (față de prețul tău sau, fără el, de închiderea zilei). O ratată care a urcat nu înseamnă că regula a greșit: regula se judecă pe toate, nu pe una.
 - **Heatmap-ul zi × oră** (intrările din SUA, ora New York) arată media rezultatului și numărul de tranzacții pe celulă; culorile vin din token-urile Raportului (divergent: câștig / pierdere, mijloc neutru), cu valoarea scrisă în celulă și liniuță pe pierderi. O celulă cu câteva tranzacții nu e un obicei.
 - **Bifele planului** (`plan.bife`, scrise de tichetul Planuri): Disciplina arată „n/m reguli respectate” pe intrările legate de un plan cu bife; o regulă nebifată nu e încălcare de Governor, e disciplina ta, la vedere.
+
+## § 2 · Pragul raportului risc / randament (audit C 🔵 20)
+
+- **Singurul prag de politică** pentru raportul risc / randament e **1,5 R** la intrarea maximă (Planuri, `lib/trade-plans.js`). În Drafturi, „R:R structural” (de la intrare până la maximul de 20 de zile) e un **filtru de calitate a setup-ului**, nu pragul de risc: sub 1 ⇒ SKIP, între 1 și 2 ⇒ avertisment „marginal”. Cele două măsoară lucruri diferite și rămân așa.
+
+## § 2 · Ce înseamnă „are stop” (audit C 🔵 15)
+
+- **Stop valabil acum** = stopul pus sau schimbat după deschiderea poziției de acum (− 1 h): o singură definiție (`StopSetter.stopValabil`) pentru Astăzi, Portofoliu, Risc & capital și „Intrări cu stop pus (acum)” din bilanțul săptămânii (când pozițiile sunt citite).
+- **Stop la intrare** (Raport, rezultatul în R) = stopul pus între − 1 h și + 24 h de la intrare, înainte de ieșire: măsoară disciplina de la intrare, nu protecția de acum.
