@@ -40,6 +40,29 @@ test('I-729: alunecarea = fill față de intrarea planului, în bps și R; media
   assert.equal(a.peTicker.length, 2); assert.equal(a.peOra.length, 2, '10:00 și 14:00 NY = două ferestre');
 });
 
+// 27.10.2026 (audit C 🔵 14): disciplina și alunecarea judecă pe ORDINE, nu pe fill-uri — un BUY executat în 3 bucăți e o intrare (cu planul ei,
+// cantitatea însumată și prețul mediu), nu 3 „fără plan”; „peste-plan” se vede pe cantitatea întreagă a ordinului
+test('🔵 14: un BUY în 3 fill-uri cu același orderId = o singură intrare; cantitatea însumată declanșează „peste-plan”; prețul mediu intră în alunecare', () => {
+  const R = J(), buc = (id, q, price) => fill(id, 'BUY', T0 + H, { orderId: 'ord-1', quantity: q, price });
+  const rows = [buc('f1', 4, 100), buc('f2', 4, 101), buc('f3', 4, 102), fill('s1', 'SELL', T0 + 6 * H)];
+  const d = R.disciplina(rows, { jurnal, plans, now: T0 + 7 * H });
+  assert.equal(d.n, 1, 'trei fill-uri = o intrare'); assert.equal(d.randuri[0].plan.sursa, 'plan'); assert.deepEqual(JSON.parse(JSON.stringify(d.randuri[0].ids)), ['f1', 'f2', 'f3']);
+  assert.deepEqual(JSON.parse(JSON.stringify(d.randuri[0].incalcari)), ['peste-plan'], '12 acțiuni > 10 × 1,05, chiar dacă fiecare fill e sub plan');
+  const rez = R.disciplinaRezultat([{ buyIds: ['f3'], rez: -40 }], d); assert.equal(rez.cuIncalcari.n, 1, 'vânzarea legată FIFO de al 3-lea fill tot la intrarea cu încălcări se duce');
+  const a = R.alunecare(rows, { plans, now: T0 + 7 * H }); assert.equal(a.n, 1); assert.ok(Math.abs(a.randuri[0].fill - 101) < 1e-9, 'prețul mediu ponderat al ordinului'); assert.equal(Math.round(a.randuri[0].bps), 100);
+  const an2 = [{ id: 'te', buyIds: ['f2'], sellIds: [], record: { entryHigh: 100, stop: 95, createdAt: T0 + H - 5 * M } }];
+  assert.equal(R.disciplina(rows, { jurnal, analize: an2, plans: [], now: T0 + 7 * H }).randuri[0].plan.sursa, 'analiza', 'analiza legată de ORICARE fill al ordinului e planul ordinului');
+  const html = R.render({ tr: [], toate: [], moneda: 'EUR', perioada: 0, ticker: '', tickere: [], ex: new Map(), rows, jurnal, analize: [], plans, now: T0 + 7 * H });
+  assert.match(html, /Nicio vânzare/);
+});
+
+test('🔵 13: cozile și încrederea spun pe ce filtru sunt calculate (perioada, tickerul)', () => {
+  const R = J(), tr = [12, -8, -9, 15, -7, -6, -5, 20, 9, -4, 11, -3, 7, -10, 6, 14, -2, 8, -9, 5].map((rez, i) => ({ rez, iesire: T0 + i * 86400000 }));
+  const a = R.incredere(tr), gov = { maxDdPctRolling: 10, cooldownAfterLosses: 3 };
+  assert.match(R.coziHtml(a, { gov, cont: 100, perioada: 90, ticker: 'AAPL_US_EQ' }, 'EUR'), /pe filtrul ales: ultimele 90 de zile · AAPL/);
+  assert.match(R.coziHtml(a, { gov, cont: 100, perioada: 0, ticker: '' }, 'EUR'), /pe filtrul ales: tot istoricul · toate tickerele/);
+});
+
 test('I-730: bootstrap pe blocuri de 5 — scăderea și seria de pierderi la 95 % există, sunt deterministe și nu schimbă cifrele vechi', () => {
   const R = J(), tr = [12, -8, -9, 15, -7, -6, -5, 20, 9, -4, 11, -3, 7, -10, 6, 14, -2, 8, -9, 5].map((rez, i) => ({ rez, iesire: T0 + i * 86400000 }));
   const a = R.incredere(tr), b = R.incredere(tr);
@@ -57,6 +80,7 @@ test('render: secțiunile Disciplina și Alunecarea apar cu datele din model; f�
   const html = R.render({ tr, toate: tr, moneda: 'EUR', perioada: 0, ticker: '', tickere: ['AAPL_US_EQ'], ex: new Map(), spy: null, limita: null, stare: '', rows: [fill('b1', 'BUY', T0 + H, { price: 101 }), fill('s1', 'SELL', T0 + 6 * H, { price: 105, realized: 38 })], jurnal, analize: [], plans, gov: { maxDdPctRolling: 10, cooldownAfterLosses: 3 }, cont: 10000, now });
   assert.match(html, /Disciplina: regulile față de intrările reale/); assert.match(html, /100,0%<\/b><span class="jrr-sub">1 din 1 cumpărări/); assert.match(html, /Nicio încălcare notată/);
   assert.match(html, /Alunecarea la intrare/); assert.match(html, /\+100,0 bps/);
+  assert.match(html, /capătul de sus al intervalului/, '🔵 14: subtitlul spune față de ce se măsoară alunecarea'); assert.match(html, /pe ordine/);
   const fara = R.render({ tr, toate: tr, moneda: 'EUR', perioada: 0, ticker: '', tickere: [], ex: new Map(), rows: [], jurnal: [], analize: [], plans: [], now });
   assert.match(fara, /Registrul verdictelor începe la activarea acestei versiuni/);
 });

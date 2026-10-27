@@ -31,6 +31,18 @@ test('I-682: verdictul din ziua intrării — notat de robot, altfel parțial (d
   // fără privit în viitor: o prăbușire DUPĂ intrare nu schimbă verdictul zilei intrării
   const viitor = { ...serii, '^VIX': bare(700, (i) => (i > 430 ? 45 : 14)) }; assert.equal(J.partial('2026-03-02', viitor).label, 'favorabil');
 });
+// 27.10.2026 (audit C 🔵 16): vânzarea se leagă de DESCHIDEREA poziției (prima cumpărare după ce cantitatea era 0), ca Raportul (FIFO), nu de ultima adăugire
+test('🔵 16: la scalare, verdictul „din ziua intrării” e al deschiderii poziției, nu al ultimei adăugiri', () => {
+  const d2 = { accounts: { cont: { environment: 'live', items: [
+    fill(1, 'NVDA_US_EQ', 'BUY', '2026-10-13T15:00:00Z'), fill(2, 'NVDA_US_EQ', 'BUY', '2026-10-14T15:00:00Z'), fill(3, 'NVDA_US_EQ', 'SELL', '2026-10-15T15:00:00Z', { quantity: 2, realized: -20, currency: 'USD' }),
+    fill(4, 'NVDA_US_EQ', 'BUY', '2026-10-16T15:00:00Z'), fill(5, 'NVDA_US_EQ', 'SELL', '2026-10-19T15:00:00Z', { realized: 5, currency: 'USD' })] } } };
+  const tx = J.tranzactii(d2, 'cont'), istoric = [{ asOf: '2026-10-12', label: 'defensiv' }, { asOf: '2026-10-13', label: 'favorabil' }, { asOf: '2026-10-15', label: 'prudent' }];
+  const v = J.verdictTranzactii(tx, istoric, null);
+  assert.equal(v.rows.length, 2);
+  assert.equal(v.rows[0].intrare, Date.parse('2026-10-13T15:00:00Z'), 'deschiderea poziției, nu adăugirea din 14.10'); assert.equal(v.rows[0].label, 'defensiv');
+  assert.equal(v.rows[1].intrare, Date.parse('2026-10-16T15:00:00Z'), 'după închiderea completă, poziția nouă are propria deschidere'); assert.equal(v.rows[1].label, 'prudent');
+});
+
 test('I-686: raportul fiscal — la cursul MEDIU ANUAL BNR (venituri din străinătate), cu cursul zilei alături; câștig / pierdere separat, CSV', () => {
   const tx = J.tranzactii(data, 'cont'), curs = { '2026-03-19': { USD: 4.5 }, '2026-10-15': { USD: 4.7 } };
   const f = J.fiscal(tx, { an: 2026, curs }); assert.equal(f.rows.length, 2); assert.ok(Math.abs(f.castig - 50 * 4.6) < 1e-9); assert.ok(Math.abs(f.pierdere + 20 * 4.6) < 1e-9); assert.equal(f.lipsa, 0);
