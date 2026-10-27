@@ -84,3 +84,17 @@ pragul pentru privirile de după se rescrie ÎNAINTE, ca probă nouă.
 
 **Amprenta judecătorului: `jt-7098991f68d3`** (înlocuiește `jt-f0cc2da31fb4`, înaintea primei ferestre): același SHA, acum și pe
 zilele înghețate din `bilant`.
+
+## Amprentele clasamentului (revizia F2, 28.10.2026, 🟡3; tabel care doar crește, rândul de jos e cel în probă)
+Regula de clasament n-avea amprentă, iar liniile istoricului nu purtau versiunea: o regulă schimbată ar fi intrat tăcut în aceeași probă.
+Acum `amprentaClasamentTrend` (în `tools/trend-12-1-lib.mjs`) e SHA pe închiderea lui `clasament`, `curataUnivers`, `regim`,
+`taieBaraPartiala`, `liniaIstoric` și pe pragurile robotului (`MIN_CAP`, `N`, `TOP`); `instantaneuUnivers` (arhiva universului) și
+mesajele nu intră. Fiecare linie nouă de istoric o poartă (`v`), iar bilanțul judecă doar liniile versiunii de acum și scrie în fișier
+`versiune` și `liniiAltaVersiune`. Un rând nou aici înseamnă o regulă nouă: proba Trend repornește, liniile vechi rămân în istoric.
+
+Liniile scrise înainte de 28.10 n-au `v`; rândurile de mai jos sunt reconstruite din git (aceeași funcție pe fișierele de atunci):
+
+| De la | Amprenta | Ce s-a schimbat | Liniile ei |
+|---|---|---|---|
+| 14.10.2026 (`6c449ee7` … `c9df34a9`) | `tc-b7a4179a6e14` | regulile din ziua pornirii (ultima, din seara de 14.10) | 13.10 și 14.10 — în afara probei (linia din 14.10 a fost rescrisă la 15.10, 04:08:41 UTC, de un robot pornit pe codul vechi) |
+| 15.10.2026 04:08 UTC (`a3bd8443`) | `tc-86d0c9bbf68a` | o zi de întârziere a barei nu mai scoate acțiunea din clasament (se clasează pe ultima ei zi, marcată `intarziat`) | de la 15.10 (fără `v` până pe 28.10, cu `v` de atunci) |

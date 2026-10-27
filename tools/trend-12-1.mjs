@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { curataUnivers, instantaneuUnivers, caleArhivaUnivers, clasament, regim, liniaIstoric, adaugaIstoric, taieBaraPartiala, raporteazaDinCalendar, iesiri, intrari, mesajDiscord, validareFisiere, decizieDateVechi } from './trend-12-1-lib.mjs';
+import { amprentaClasamentTrend, curataUnivers, instantaneuUnivers, caleArhivaUnivers, clasament, regim, liniaIstoric, adaugaIstoric, taieBaraPartiala, raporteazaDinCalendar, iesiri, intrari, mesajDiscord, validareFisiere, decizieDateVechi } from './trend-12-1-lib.mjs';
 import zlib from 'node:zlib';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -120,7 +120,7 @@ const out = {
   intrari: intr.map((x) => x.s),
   clasament: rez.clasament.map((x) => ({ ...x, nume: info[x.s] ? info[x.s].nume : x.s, sector: info[x.s] && info[x.s].sector || 'Necunoscut', cap: info[x.s] ? info[x.s].cap : null, spark: serii[x.s].slice(-45).map((b) => +b.c.toFixed(4)), ...(harta[x.s] ? { raporteaza: harta[x.s] } : {}) })),
 };
-const istNou = adaugaIstoric(ist, liniaIstoric(rez, rg));
+const istNou = adaugaIstoric(ist, { ...liniaIstoric(rez, rg), v: amprentaClasamentTrend() });   // 28.10.2026 (revizia F2, 🟡3): amprenta clasamentului pe linie
 const probleme = validareFisiere(out, istNou);
 if (probleme.length) { console.error('garda de formă a picat: ' + probleme.join('; ') + ' ⇒ nu public'); process.exit(1); }
 fs.writeFileSync(F_OUT, JSON.stringify(out));

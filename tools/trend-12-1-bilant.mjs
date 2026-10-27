@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { bilant, mesajBilantDiscord, continutBilant, citesteInghetatTrend } from './trend-12-1-lib.mjs';
+import { bilant, mesajBilantDiscord, continutBilant, citesteInghetatTrend, amprentaClasamentTrend, liniiInProba } from './trend-12-1-lib.mjs';
 import { calendarSUA, intervalPentru } from '../lib/proba-contract.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -16,8 +16,11 @@ const F_IST = path.join(GEN, 'trend-12-1-istoric.jsonl'), F_OUT = path.join(GEN,
 // (garda: tools/trend-12-1-inghet.test.mjs); bilanțul nu le mai recalculează din Yahoo
 const F_INGHETAT = path.join(GEN, 'trend-12-1-inghetat.jsonl');
 const w = (ms) => new Promise((r) => setTimeout(r, ms));
-const istoric = (fs.existsSync(F_IST) ? fs.readFileSync(F_IST, 'utf8') : '').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-if (!istoric.length) { console.log('istoric gol ⇒ nimic de măsurat'); process.exit(0); }
+const istoricTot = (fs.existsSync(F_IST) ? fs.readFileSync(F_IST, 'utf8') : '').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+// 28.10.2026 (revizia F2, 🟡3): doar liniile versiunii de acum a clasamentului (o regulă schimbată repornește proba; liniile vechi rămân în istoric)
+const V = amprentaClasamentTrend(), istoric = liniiInProba(istoricTot, V);
+console.log('clasamentul ' + V + ': ' + istoric.length + ' din ' + istoricTot.length + ' linii în probă');
+if (!istoric.length) { console.log('nicio linie a versiunii de acum ⇒ nimic de măsurat'); process.exit(0); }
 const simboluri = new Set(['SPY']);
 istoric.forEach((l) => { (l.top || []).forEach(([s]) => simboluri.add(s)); (l.univers || []).forEach((s) => simboluri.add(s)); });
 const inghetate = fs.existsSync(F_INGHETAT) ? citesteInghetatTrend(fs.readFileSync(F_INGHETAT, 'utf8')) : [];
@@ -50,7 +53,7 @@ console.log('prețuri: ' + Object.keys(preturi).length + ' serii · picate ' + p
 let prev = null; try { prev = JSON.parse(fs.readFileSync(F_OUT, 'utf8')); } catch { prev = null; }   // I-631: verdictul dinainte
 const b = bilant(istoric, preturi, { h: [20, 60], inghetate });
 // 27.10.2026 (docs/trend-12-1-protocol.md): conținutul fișierului e construit de o funcție pură (testată), cu delistatele, judecătorul și contractul
-const out = continutBilant(b, istoric, { cal: calendarSUA(ROOT), azi: new Date().toISOString().slice(0, 10), la: new Date().toISOString() });
+const out = { ...continutBilant(b, istoric, { cal: calendarSUA(ROOT), azi: new Date().toISOString().slice(0, 10), la: new Date().toISOString() }), versiune: V, liniiAltaVersiune: istoricTot.length - istoric.length };
 fs.writeFileSync(F_OUT, JSON.stringify(out));
 if (b.deIngheta.length) { fs.appendFileSync(F_INGHETAT, b.deIngheta.map((x) => JSON.stringify(x)).join('\n') + '\n'); console.log('înghețate acum: ' + b.deIngheta.length + ' zile'); }
 // I-631: Discord DOAR când verdictul s-a schimbat (în probă → probat / picat); fără webhook, doar în jurnal

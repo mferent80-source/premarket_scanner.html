@@ -10,7 +10,8 @@
 //   mom12 = C[t−21] / C[t−252] − 1 · mom6 = C[t−21] / C[t−126] − 1 · rang = poziția / numărul de acțiuni clasate
 //   regim = SPY închis peste media simplă pe 200 de zile (2022, an negativ, cade când regimul e oprit)
 
-import { mulberry32, gauss, amprentaFunctii, dupaSesiuni, sesiuniIntre, primulVerdict, judecata as judecataDin } from '../lib/proba-contract.mjs';
+import { readFileSync } from 'node:fs';
+import { mulberry32, gauss, amprentaFunctii, amprentaText, inchidere, dupaSesiuni, sesiuniIntre, primulVerdict, judecata as judecataDin } from '../lib/proba-contract.mjs';
 import { ETICHETA_NEVERIFICAT } from './discord-mesaj.mjs';
 
 const zi = (t) => new Date(t).toISOString().slice(0, 10);
@@ -344,5 +345,26 @@ export function continutBilant(b, istoric, { cal = null, azi, la }) {
     putere: c.putere, primulVerdict: c.primulVerdict, judecata: c.judecata, sesiuni: { notate: zile.length, asteptate }
   };
 }
+/* ---------- 28.10.2026 (revizia F2, 🟡3): amprenta CLASAMENTULUI pe fiecare linie de istoric ---------- */
+/** Ce decide primele 20 și universul zilei: închiderea din acest fișier pornind de la `clasament`, `curataUnivers`, `regim`,
+ *  `taieBaraPartiala`, `liniaIstoric`, plus pragurile robotului (`MIN_CAP`, `N`, `TOP` din tools/trend-12-1.mjs). `instantaneuUnivers`
+ *  (arhiva zilnică a universului) nu decide clasamentul. Fiecare linie nouă de istoric poartă amprenta (`v`); bilanțul judecă doar liniile
+ *  versiunii de acum — o regulă schimbată repornește proba Trend, iar liniile vechi rămân în istoric. */
+export const RADACINI_CLASAMENT = Object.freeze(['clasament', 'curataUnivers', 'regim', 'taieBaraPartiala', 'liniaIstoric']);
+const citesteDepozit = (f) => readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+export function amprentaClasamentTrend(citeste = citesteDepozit) {
+  const lib = citeste('tools/trend-12-1-lib.mjs'), rob = citeste('tools/trend-12-1.mjs');
+  const m = /\bconst MIN_CAP = ([^,;]+), N = ([^,;]+), TOP = ([^,;]+)[,;]/.exec(rob);
+  if (!m) throw Error('Robotul Trend: pragurile MIN_CAP / N / TOP nu se găsesc — amprenta clasamentului nu se poate calcula (închis la eroare).');
+  return 'tc-' + amprentaText(lib, inchidere(lib, RADACINI_CLASAMENT), JSON.stringify({ MIN_CAP: m[1].trim(), N: m[2].trim(), TOP: m[3].trim() }));
+}
+/** Liniile scrise înainte de 28.10.2026 n-au `v`. Din git (revizia F2): amprenta e `tc-86d0c9bbf68a` de la a3bd8443 (15.10.2026, 04:08 UTC)
+ *  până azi, iar prima zi scrisă sub ea e 15.10 (linia din 14.10 a fost rescrisă la 04:08:41 UTC de un robot pornit pe codul vechi) ⇒
+ *  liniile fără `v` cu ziua ≥ 15.10 sunt ale ei; 13.10 și 14.10 sunt sub regula de dinainte (`tc-b7a4179a6e14`) și ies din probă. */
+export const LINII_FARA_V = Object.freeze({ deLa: '2026-10-15', v: 'tc-86d0c9bbf68a', inainte: 'tc-b7a4179a6e14' });
+export function versiuneLinie(l) { return l && typeof l.v === 'string' && l.v ? l.v : l && typeof l.d === 'string' && l.d >= LINII_FARA_V.deLa ? LINII_FARA_V.v : LINII_FARA_V.inainte; }
+/** Liniile istoricului care aparțin versiunii `V` (cea de acum, implicit). */
+export function liniiInProba(istoric, V = amprentaClasamentTrend()) { return (istoric || []).filter((l) => versiuneLinie(l) === V); }
+
 /** Amprenta judecătorului probei Trend: funcțiile care măsoară și judecă bilanțul + pragurile; scrisă în docs/trend-12-1-protocol.md. */
 export function amprentaJudecatorTrend() { return 'jt-' + amprentaFunctii({ bilant, ferestreNesuprapuse, pragAbatere, interval, rnd }, ['bilant', 'ferestreNesuprapuse', 'pragAbatere', 'interval', 'rnd'], JSON.stringify({ T_PRAG, PRAG_ABATERE, ASTEPTARE })); }
