@@ -100,7 +100,9 @@ pe grup, testul semnelor unilateral, α = 0,05; Early Reversal doar descriptiv.
   `closes`, `daysSinceLow`, `earningsInfo`, `gardaEarnings`, `highs`, `lastValue`, `lows`, `mean`, `pct`, `regionOf`, `retAt`, `safeNum`,
   `volumes`, `zileNY` — auditul F găsise 17 neamprentate), fără afișaj: `fmt`, `signed`, `procente`, `fapteCandidat`, `sparkValues`, `$`,
   `state` (containerul paginii) și `reversalScore` (decide doar lista Early Reversal, are amprenta umbrei); (c) evaluatorul comun (amprenta
-  lui din `lib/v1-proba.mjs` + `evalueaza` de aici). **Amprenta la pornirea v2: `pm-f9f254159993`.** Garda din suită
+  lui din `lib/v1-proba.mjs` + `evalueaza` de aici). **Amprenta la pornirea v2: `pm-0dc4d07a4a73`** (rescrisă pe 27.10.2026, înaintea
+  oricărei zile v2, după lipirea lotului D: `pm-f9f254159993` ⇒ `pm-0dc4d07a4a73`, doar textul din `earningsInfo` / `gardaEarnings`;
+  penalizarea, `blocked` și ramurile în care garda e nevidă au rămas identice). Garda din suită
   (`tools/probe-amprente.test.mjs`) pică dacă diferă de cea scrisă aici; garda din fluxul robotului (`tools/top-long-proba.test.mjs`) oprește
   notarea dacă diferă de cea din fișierul probei.
 - **Dependențele notate pe zi (`d`)** acoperă acum și `lib/me-early-bird.js`, `lib/decision-verdict.js` și **tot** `candidate-engine/engine.js`:
