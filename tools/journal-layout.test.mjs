@@ -703,6 +703,32 @@ test('🔵 19: hero-ul Lite folosește formatorul paginii (o singură definiție
   assert.match($('capLiteHero').textContent, /F\(1234\)/, 'formatorul vine de la pagină');
 });
 
+test('I-760: registrul de incidente din Risc & capital — refuză fără „ce s-a întâmplat”, notează, închide doar cu măsura, rândul din fișa zilei, copia pentru docs/incidente.md', () => {
+  const {context,$} = workspace();
+  vm.runInContext(readFileSync('lib/journal-incidente.js','utf8'),context);
+  context.$ = $; context.esc = esc;
+  vm.runInContext(region(journalPage,'function renderIncidente(','/* — sfârșitul registrului de incidente — */'),context);
+  context.bindIncidente(); context.renderIncidente();
+  assert.match($('incFisa').textContent, /Incidente: niciunul nou azi, niciunul deschis/);
+  $('incTitlu').value = 'Robotul V1 a pierdut sesiuni'; $('incCe').value = 'scurt'; $('incGrav').value = 'mare';
+  $('btnIncNoteaza').click();
+  assert.match($('incMsg').textContent, /cel puțin 10 caractere/);
+  assert.equal(context.JournalIncidente.citeste(context.localStorage).length, 0, 'refuzat ⇒ nimic scris');
+  $('incCe').value = 'Robotul probei V1 a pierdut 5 din 7 sesiuni fără alarmă.';
+  $('btnIncNoteaza').click();
+  assert.match($('incFisa').textContent, /1 nou azi \(Robotul V1 a pierdut sesiuni\)/);
+  assert.equal($('incN').textContent, '1');
+  assert.equal($('incTitlu').value, '', 'formularul se golește după notare');
+  $('incLista').querySelector('[data-inc-inchide]').click();
+  assert.match($('incMsg').textContent, /măsura/);
+  $('incLista').querySelector('[data-inc-masura]').value = 'reîncercare după 3 min + Discord la eșec';
+  $('incLista').querySelector('[data-inc-inchide]').click();
+  assert.equal($('incN').textContent, '0');
+  assert.match($('incLista').textContent, /închis: reîncercare după 3 min/);
+  $('incLista').querySelector('[data-inc-copiaza]').click();
+  assert.match($('incCopie').textContent, /^### \d{4}-\d{2}-\d{2} · Robotul V1 a pierdut sesiuni · gravitate mare/);
+});
+
 test('scorecard segmentation does not capture execution filters or capital mode controls', () => {
   const {context,document} = tabs();
   let renders = 0;
