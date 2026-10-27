@@ -1469,12 +1469,15 @@ function renderCapitalDrill(){
   const acct = window.ACCT ? ACCT.get().value : (window.GV ? GV.cfg().accountSize : null);
   const closed = JR.all().filter(e => e && e.exit != null).sort((a, b) => (b.closeTs || 0) - (a.closeTs || 0));
   const openRows = JR.all().filter(isOpenE);
+  /* 27.10.2026 (I-751): curba și DD în moneda contului; USD doar la afișare, la un singur curs (baza nu mai e la cursul zilei ei) */
+  const cv = EQ.curve(), inMoneda = cv.cur && cv.cur !== 'USD';
+  const monedaNota = inMoneda ? ' · Curba și DD în ' + esc(cv.cur) + ' (moneda contului): ' + Math.round(cv.currentLocal).toLocaleString('ro-RO') + ' ' + esc(cv.cur) + '; USD doar la afișare, la ' + esc(cv.monedaSursa) + ' (' + Number(cv.displayRate).toFixed(4) + ').' : '';
 
   const rows = [
-    { id: 'base', lbl: 'Baseline (primul snapshot)', val: base.value, sign: '', det: base.source === 'snapshot' ? 'Snapshot ' + esc(base.day || '—') + (base.note ? ' · ' + esc(base.note) : '') : 'Cont manual / governor — adaugă snapshot ★' },
+    { id: 'base', lbl: 'Baseline (primul snapshot)', val: inMoneda ? cv.start : base.value, sign: '', det: (base.source === 'snapshot' ? 'Snapshot ' + esc(base.day || '—') + (base.note ? ' · ' + esc(base.note) : '') : 'Cont manual / governor — adaugă snapshot ★') + (inMoneda ? ' · în ' + esc(cv.cur) + ' (moneda contului), arătat în USD la cursul de afișare' : '') },
     { id: 'pnl', lbl: 'PnL realizat (închis)', val: realized, sign: realized >= 0 ? '+' : '', det: closed.length ? closed.slice(0, 20).map(capTradeLineHtml).join('') + (closed.length > 20 ? '<p class="note">+' + (closed.length - 20) + ' mai vechi…</p>' : '') : '<span class="note">Nicio execuție închisă</span>' },
     { id: 'cev', lbl: 'Evenimente capital (net)', val: capNet, sign: capNet >= 0 ? '+' : '', det: caps.length ? caps.map(c => '<div class="cap-line"><span>' + esc(c.day) + '</span><b>' + (c.kind === 'withdraw' ? 'Retragere' : 'Depunere') + '</b><span class="' + (c.kind === 'withdraw' ? 'neg' : 'pos') + '">' + fmtUsd0(c.amountUsd) + '</span></div>').join('') : '<span class="note">Niciun eveniment — adaugă depuneri/retrageri</span>' },
-    { id: 'sim', lbl: '= Simulat (curbă journal)', val: dd.current, sign: '', sum: true },
+    { id: 'sim', lbl: '= Simulat (curbă journal)', val: dd.current, sign: '', sum: true, det: inMoneda ? monedaNota.slice(3) : '' },
     { id: 'snap', lbl: 'Snapshot Trade212 (ultim)', val: drift.snapshot ? drift.snapshot.equity : null, sign: '', det: drift.snapshot ? 'Înregistrat ' + drift.snapshot.day + (drift.snapshot.note ? ' · ' + esc(drift.snapshot.note) : '') : 'Lipsește — pune totalul din app' },
     { id: 'drf', lbl: 'Drift (Sim − Snap)', val: drift.driftUsd, sign: drift.driftUsd != null && drift.driftUsd >= 0 ? '+' : '', warn: drift.warn, det: 'Sub 2% = OK. Peste = journal incomplet, snapshot vechi, sau poziții open (vezi mai jos).' },
     { id: 'unr', lbl: 'Nerealizat (open, nu în Sim)', val: unreal.tot, sign: unreal.tot >= 0 ? '+' : '', det: openRows.length ? openRows.map(e => {
@@ -1531,6 +1534,11 @@ function renderCapitalPanel(){
   $('capBaseLine').textContent = base.source === 'snapshot'
     ? 'Baseline ' + fmtUsd0(base.value) + ' · snapshot ' + base.day + ' + PnL închis + capital'
     : 'Baseline ' + fmtUsd0(base.value) + ' · cont risc — adaugă primul snapshot Trade212';
+  /* 27.10.2026 (I-751): moneda curbei la vedere — DD-ul nu mai măsoară cursul EUR/USD */
+  try {
+    const cv = EQ.curve();
+    if (cv.cur && cv.cur !== 'USD') $('capBaseLine').textContent = 'Baseline ' + fmtUsd0(cv.start) + ' · curba și DD în ' + cv.cur + ' (moneda contului); USD doar la afișare, la ' + cv.monedaSursa + ' (' + Number(cv.displayRate).toFixed(4) + ')';
+  } catch (e) {}
   const unreal = calcUnrealizedTotal();
   const dd = EQ.drawdownStats();
   /* 18.10.2026 (revizia Jurnalului): fără cont cunoscut și fără snapshot, 10.000 e doar valoarea de pornire — nu bani ai contului */

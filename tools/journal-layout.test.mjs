@@ -672,6 +672,21 @@ test('capital details use labelled buttons, preserve disclosure after refresh an
   assert.equal(refreshed.getAttribute('aria-expanded'),'false');
 });
 
+test('I-751: pe un cont în EUR, detaliile de capital spun moneda curbei și arată baza la cursul de afișare', () => {
+  const {context,$} = workspace();
+  vm.runInContext(readFileSync('lib/equity.js','utf8'),context);
+  context.EQ.addSnapshot(11000,'Trading 212 automat · 10000 EUR × 1.1000',{ts:Date.now()-3*86400000,cur:'EUR',local:10000,rate:1.1});
+  context.EQ.addSnapshot(10670,'Trading 212 automat · 10000 EUR × 1.0670',{ts:Date.now()-86400000,cur:'EUR',local:10000,rate:1.067});
+  context.$ = $; context.esc = esc; context.openPriceCache = {}; context.isOpenE = context.JR.isOpen; context.setJTab = () => {};
+  vm.runInContext(region(journalPage,'function fmtUsd0(', 'function renderCapitalPanel('),context);
+  context.renderCapitalDrill();
+  const text = $('capDrill').textContent;
+  assert.match(text,/în EUR \(moneda contului\)/);
+  assert.match(text,/USD doar la afișare/);
+  assert.match(text,/10[.,]670/,'baza (10.000 EUR) arătată la cursul de afișare 1,067, nu la cursul zilei ei (11.000)');
+  assert.doesNotMatch(text,/11[.,]000/);
+});
+
 test('scorecard segmentation does not capture execution filters or capital mode controls', () => {
   const {context,document} = tabs();
   let renders = 0;
