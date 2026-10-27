@@ -47,9 +47,13 @@ test('scannerul: data sesiunii la vedere, Europa fără buton de plan în USD, v
 });
 
 test('funcțiile înghețate de proba Top Long au rămas neatinse (amprenta pm-cb956aef5680)', async () => {
-  const {versiune} = await import('../lib/premarket-proba.mjs');
-  const {motor} = await import('./premarket-jurnal.mjs');
-  assert.equal(versiune(motor().hooks), 'pm-cb956aef5680');
+  // 27.10.2026: proba a repornit ca premarket-proba-2 (doar judecata și acoperirea amprentei s-au schimbat); cele 5 funcții de clasament
+  // sunt aceleași ca în premarket-proba-1 — amprenta lor în forma veche (doar cele 5) rămâne cea din 19.10
+  const {versiune, PROTOCOL} = await import('../lib/premarket-proba.mjs');
+  const {motor} = await import('./premarket-jurnal.mjs'), {createHash} = await import('node:crypto'), h = motor().hooks, x = createHash('sha256');
+  for (const n of PROTOCOL.functii) x.update(n + '\n' + h[n].toString().replace(/\r\n?/g, '\n') + '\n');
+  assert.equal('pm-' + x.digest('hex').slice(0, 12), 'pm-cb956aef5680'); assert.equal(PROTOCOL.precedent.versiune, 'pm-cb956aef5680');
+  assert.match(versiune(h), /^pm-[0-9a-f]{12}$/);
 });
 
 test('I-714: sub nivelurile planului, cifrele măsurate ale regulii (limită de risc, nu promisiune)', () => {
