@@ -348,6 +348,9 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <label>Max risc total la stop Invest % <input id="cStopRisk" type="number" min="0.1" max="100" step="0.1"></label>
       <label title="19.10.2026 (I-719): stopurile reale + planurile Shadow deschise + planul nou; prag prudent, nu optim">Max căldură portofoliu % (stopuri reale + Shadow) <input id="cHeat" type="number" min="0.1" max="100" step="0.1"></label>
       <label>Max pierdere %/săpt <input id="cWeekLoss" type="number" min="0.5" step="0.5" value="3"></label>
+      <!-- 27.10.2026 (I-760): o limită RELAXATĂ intră abia peste 24 h, cu motiv și expirare; strângerea intră imediat -->
+      <label class="wide" title="Obligatoriu când ridici o limită (pierdere, DD, trade-uri, poziții, cooldown, concentrare, căldură) sau oprești frâna DD; relaxarea intră peste 24 de ore">Motivul relaxării (obligatoriu când ridici o limită) <input id="gvMotiv" maxlength="500" placeholder="de ce, revizuit când"></label>
+      <label title="După expirare limita revine singură la valoarea strictă">Relaxarea expiră în (zile, 1–90) <input id="gvExpira" type="number" min="1" max="90" step="1" value="7"></label>
     </div>
     <label class="chkrow"><input type="checkbox" id="cDdOn" checked> Frână pe DD rolling (Equity curve)</label>
     <label class="chkrow"><input type="checkbox" id="cTg"> Alertă Telegram la HALTED (o dată/zi)</label>
@@ -357,7 +360,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <button class="btn ghost" id="btnAcctSnap" type="button" title="Copiază ultimul snapshot Trade212 din secțiunea Capital">📈 Preia din snapshot</button>
       <button class="btn ghost" id="btnTgTest" type="button">📲 Test Telegram</button>
     </div>
-    <details id="gvLimiteJurnal" style="margin-top:8px"><summary>Jurnalul schimbărilor de limite · <span id="gvLimiteN">0</span></summary><ol id="gvLimiteLista" style="margin:6px 0 0;padding-left:18px;font-size:12px"></ol><p class="muted" style="margin:6px 0 0;font-size:12px">Limitele sunt un document (docs/politica-de-risc.md); orice schimbare rămâne scrisă: ora, aparatul, de la → la (I-728, 20.10.2026).</p></details>
+    <div id="gvOverrideBox" class="note" style="margin-top:8px" hidden><b>Relaxări de limite programate / active</b><ol id="gvOverrideLista" style="margin:6px 0 0;padding-left:18px;font-size:12px"></ol></div>
+    <details id="gvLimiteJurnal" style="margin-top:8px"><summary>Jurnalul schimbărilor de limite · <span id="gvLimiteN">0</span></summary><ol id="gvLimiteLista" style="margin:6px 0 0;padding-left:18px;font-size:12px"></ol><p class="muted" style="margin:6px 0 0;font-size:12px">Limitele sunt un document (docs/politica-de-risc.md); orice schimbare rămâne scrisă: ora, aparatul, de la → la (I-728, 20.10.2026). O relaxare intră peste 24 h, cu motiv și expirare; strângerea imediat (I-760, 27.10.2026).</p></details>
     <p class="note">Frână disciplinară — nu blochează brokerul. Cont $ = fallback manual; tab <a href="#capital" data-jtab-link="capital" style="color:var(--accent)">Capital</a> → drill-down reconciliere.</p>
     <details style="margin-top:12px;border-top:1px solid var(--b1);padding-top:10px">
       <summary style="cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--t2)">📉 Alerte DD · Notificări · Raport săptămânal</summary>
@@ -1405,8 +1409,16 @@ function loadGovCfg(){
   $('cTg').checked = !!c.tgOnHalt;
   if ($('cTgRisk')) $('cTgRisk').checked = c.tgOnRiskHalt !== false;
   // 20.10.2026 (I-728): ultimele 10 schimbări de limite (append-only, GV.limiteJurnal)
-  try { const j = GV.limiteJurnal ? GV.limiteJurnal() : [], L = $('gvLimiteLista'), N = $('gvLimiteN'); if (N) N.textContent = j.length; if (L) L.innerHTML = j.slice(-10).reverse().map(x => '<li>' + new Date(x.ts).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' · ' + String(x.aparat || '').replace(/[<>&]/g, '') + ' · <b>' + String(x.cheia).replace(/[<>&]/g, '') + '</b>: ' + String(x.de).replace(/[<>&]/g, '') + ' → ' + String(x.la).replace(/[<>&]/g, '') + '</li>').join('') || '<li>Nicio schimbare notată încă (de la 20.10.2026).</li>'; } catch (e) {}
+  try { const j = GV.limiteJurnal ? GV.limiteJurnal() : [], L = $('gvLimiteLista'), N = $('gvLimiteN'); if (N) N.textContent = j.length; if (L) L.innerHTML = j.slice(-10).reverse().map(x => '<li>' + new Date(x.ts).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' · ' + esc(x.aparat || '') + ' · <b>' + esc(x.cheia) + '</b>: ' + esc(x.de) + ' → ' + esc(x.la) + (x.stare === 'programata' ? ' · <i>relaxare programată, intră ' + esc(ora(x.intraLa)) + ', expiră ' + esc(ora(x.expiraLa)) + ' — ' + esc(x.motiv || '') + '</i>' : '') + '</li>').join('') || '<li>Nicio schimbare notată încă (de la 20.10.2026).</li>'; } catch (e) {}
+  // 27.10.2026 (I-760): relaxările programate / active, cu „Renunță”
+  try { const ov = GV.overrides ? GV.overrides().filter(o => o.stare === 'activ' || o.stare === 'programat') : [], B = $('gvOverrideBox'), L = $('gvOverrideLista'); if (B && L) { B.hidden = !ov.length; L.innerHTML = ov.map(o => '<li><b>' + esc(o.cheia) + '</b> ' + esc(o.de) + ' → ' + esc(o.la) + (o.stare === 'activ' ? ' · activă până la ' + esc(ora(o.expiraLa)) : ' · intră la ' + esc(ora(o.intraLa)) + ', expiră la ' + esc(ora(o.expiraLa))) + ' · ' + esc(o.motiv || '') + ' <button type="button" class="act" data-ov-cancel="' + esc(o.id) + '">Renunță</button></li>').join(''); } } catch (e) {}
 }
+const ora = ts => { const t = typeof ts === 'number' ? ts : Date.parse(ts); return Number.isFinite(t) ? new Date(t).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'; };
+$('gvOverrideLista') && $('gvOverrideLista').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-ov-cancel]'); if (!b) return;
+  if (!confirm('Renunți la relaxarea programată / activă? Limita revine la valoarea strictă.')) return;
+  if (GV.anuleazaOverride && GV.anuleazaOverride(b.dataset.ovCancel, 'renunțat din formular')) { loadGovCfg(); renderDesk(); }
+});
 $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
   const acct = +$('cAcct').value;
   const saved = GV.saveCfg({
@@ -1415,9 +1427,12 @@ $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
     maxDdPctRolling: +$('cDdRoll').value, maxLossPctWeek: +$('cWeekLoss').value,
     ddRollingOn: $('cDdOn').checked, tgOnHalt: $('cTg').checked,
     tgOnRiskHalt: $('cTgRisk') ? $('cTgRisk').checked : true
-  });
-  if (!saved) { alert('Limite invalide sau salvare nereușită. Folosește capital și praguri pozitive, iar numărul de trade-uri/poziții trebuie întreg.'); return; }
-  renderDesk(); if(window.T212CapitalUI)T212CapitalUI.refresh();
+  }, { motiv: $('gvMotiv') ? $('gvMotiv').value : '', expiraZile: $('gvExpira') ? Math.round(+$('gvExpira').value) : 7 });
+  if (!saved) { alert(GV.ultimaEroare || 'Limite invalide sau salvare nereușită. Folosește capital și praguri pozitive, iar numărul de trade-uri/poziții trebuie întreg.'); return; }
+  /* 27.10.2026 (I-760): relaxările nu intră acum — se spune când intră și când expiră */
+  if (saved.amanate && saved.amanate.length) alert('Relaxarea intră peste 24 de ore, nu acum: ' + saved.amanate.map(a => a.cheia + ' ' + a.de + ' → ' + a.la + ' (de la ' + ora(a.intraLa) + ' până la ' + ora(a.expiraLa) + ')').join(', ') + '. Până atunci rămâne limita de acum; o poți anula din „Relaxări de limite”.');
+  if ($('gvMotiv')) $('gvMotiv').value = '';
+  loadGovCfg(); renderDesk(); if(window.T212CapitalUI)T212CapitalUI.refresh();
 });
 function fmtUsd0(v){ return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
 
