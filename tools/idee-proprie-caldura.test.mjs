@@ -123,7 +123,9 @@ function desk({ earnings = { ok: true, items: [] }, seedPlans = null, serii = {}
   const D = { fetchStock: async (sym, o) => { cereri.push(sym + ':' + o.interval); if (o.interval === '1m') { const m = [{ t: ACUM, c: 200 }]; m.meta = { quoteAt: ACUM }; return m; } const s = (serii[sym] || (() => corelat(9)))(); s.meta = { currency: sym === 'SAPX' ? 'EUR' : 'USD' }; return s; } };
   const GV = { status: () => ({ verdict: 'TRADE', reasons: [], openCount: 0, budgetLeftUsd: 200, maxLossWeekUsd: 300, weekPnl: 0, cfg: { maxOpenPositions: 4, maxHeatPct: 4 }, broker: null, ...gv }) };
   const seed = { tt_ticket_capital: '10000' }; if (seedPlans) seed.tt_trade_plans_v1 = seedPlans;
-  const b = boot({ demo: false, now: ACUM, seed, files: ['lib/pret-viu.js', 'lib/idee-proprie.js', 'lib/caldura-portofoliu.js'], extra: { D, GV, EARN: { calendar: async () => earnings } }, before: (c) => { const create = c.TTPlanStore.create; c.TTPlanStore.create = (s, o) => create(s, { ...o, durable }); } });
+  // 27.10.2026 (I-753): modulele-gardă sunt cerute în modul real ⇒ verdictul pieței (aici neutru, ca să nu schimbe mărimile testate) e încărcat
+  const MarketVerdict = { regula: () => ({ label: 'neutru', mult: 1, go: true, asOf: '2026-10-07', nota: '' }), robotFile: async () => null };
+  const b = boot({ demo: false, now: ACUM, seed, files: ['lib/pret-viu.js', 'lib/idee-proprie.js', 'lib/caldura-portofoliu.js'], extra: { D, GV, MarketVerdict, EARN: { calendar: async () => earnings } }, before: (c) => { const create = c.TTPlanStore.create; c.TTPlanStore.create = (s, o) => create(s, { ...o, durable }); } });
   return { ...b, durable, cereri };
 }
 async function idee(b, { sym = 'MSFT', k = '1.5', stop = '' } = {}) {

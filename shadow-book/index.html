@@ -122,7 +122,8 @@ function renderCdGate(){
   if (!el || !window.CD) return;
   CD.renderRail('capitalRail', 'shadow');
   const b = CD.unified();
-  const est = b.account > 0 ? b.account * 0.01 : 100;
+  // 27.10.2026 (auditul D 🔵): poarta estimată la riscul unui plan (0,5 % din cont, ca în Planuri), nu 1 %
+  const est = b.account > 0 ? b.account * 0.005 : 100;
   const gate = CD.canAddRisk(est);
   el.innerHTML = CD.gateBannerHtml(gate) + '<p class="note">Semnalele shadow = „ce-ar fi fost" dacă nu erau blocate — compară cu Capital Desk înainte de a ignora un filtru.</p>';
 }
@@ -138,7 +139,7 @@ function render(){
   const rows = history.slice(0, visibleRows);
   $('btnMore').hidden = visibleRows >= history.length;
   $('tbl').innerHTML = rows.length ? '<table><tr><th class="l">Zi</th><th>Sym</th><th>Filtru</th><th>eval%</th><th>R</th></tr>' +
-    rows.map(e => '<tr><td class="l">' + esc(e.day) + '</td><td>' + esc(e.sym) + '</td><td>' + esc(e.blockedBy) + '</td><td>' + (SH.evaluated(e)?e.evalPct.toFixed(2)+'%':'—') + '</td><td>' + (SH.evaluated(e) && Number.isFinite(e.evalR)?e.evalR.toFixed(2):'—') + '</td></tr>').join('') + '</table>' : '<p class="note">Gol.</p>';
+    rows.map(e => '<tr><td class="l">' + esc(e.day) + '</td><td>' + esc(e.sym) + '</td><td>' + esc(e.blockedBy) + '</td><td>' + (SH.evaluated(e)?e.evalPct.toFixed(2)+'%':e.neverificabil?'<span title="' + esc(e.neverificabil.motiv) + '">neverificabil</span>':'—') + '</td><td>' + (SH.evaluated(e) && Number.isFinite(e.evalR)?e.evalR.toFixed(2):'—') + '</td></tr>').join('') + '</table>' : '<p class="note">Gol.</p>';
 }
 $('btnMore').onclick = () => { visibleRows += 40; render(); };
 $('btnLog').onclick = () => { const saved = SH.log({ sym:$('fSym').value, price:$('fPx').value, sl:$('fSl').value||null, blockedBy:$('fBlk').value, src:$('fSrc').value, reason:$('fWhy').value }); if (!saved) alert('Intrarea nu a fost salvată: verifică prețul/stopul și spațiul disponibil.'); render(); };

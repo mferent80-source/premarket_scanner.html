@@ -77,3 +77,7 @@ test('I-754: stopul se verifică și pe restul zilei semnalului când semnalul a
  const s2=setup();const e2=s2.SH.log({...signal,ts:Date.UTC(2026,8,18,20,30)});/* vineri 16:30 la New York, după închidere */const c=[bar(18,{l:94}),...bars()];
  const r2=await s2.SH.evaluateOne(e2.id,async()=>c);assert.equal(r2.exitReason,'horizon-close');assert.equal(r2.evalPct,3);
 });
+test('I-754: evaluateAll nu numără drept „evaluat” un semnal găsit neverificabil (split)',async()=>{
+ const {SH}=setup();const e=SH.log(signal);const b=bars();b.meta={corporateEvents:[{type:'splits',at:Date.UTC(2026,8,23,13,30),numerator:3,denominator:1}]};
+ assert.equal(await SH.evaluateAll(async()=>b),0);const s=SH.all().find(x=>x.id===e.id);assert.match(s.neverificabil.motiv,/split 3:1/);assert.equal(SH.evaluated(s),false);
+});
