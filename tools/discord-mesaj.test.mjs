@@ -46,3 +46,18 @@ test('trimite fără @everyone, cu numele botului, și raportează eșecul', asy
   const fara = await trimiteDiscord('x', { webhook: '', fetch: fetchFals, pauzaMs: 0, jurnal: () => {} });
   assert.equal(fara, false);
 });
+
+// 27.10.2026 (I-764): rezumatele trimise automat poartă eticheta „neverificat de om”, o singură dată, la capătul mesajului (sub-text Discord).
+test('eticheta „neverificat de om” se pune o dată, pe ultima bucată, fără să treacă de limită; botul de știri o cere', async () => {
+  const cereri = [];
+  const fetchFals = async (url, o) => { cereri.push(JSON.parse(o.body).content); return { ok: true, status: 204, text: async () => '' }; };
+  const { ETICHETA_NEVERIFICAT } = await import('./discord-mesaj.mjs');
+  assert.match(ETICHETA_NEVERIFICAT, /neverificat de om/);
+  await trimiteDiscord('<b>AAPL</b> rezumat', { webhook: 'https://discord.com/api/webhooks/1/a', fetch: fetchFals, pauzaMs: 0, eticheta: ETICHETA_NEVERIFICAT });
+  assert.equal(cereri[0], '**AAPL** rezumat\n-# ' + ETICHETA_NEVERIFICAT);
+  cereri.length = 0;
+  await trimiteDiscord(Array.from({ length: 30 }, () => 'y'.repeat(150)).join('\n'), { webhook: 'https://discord.com/api/webhooks/1/a', fetch: fetchFals, pauzaMs: 0, eticheta: ETICHETA_NEVERIFICAT });
+  assert.equal(cereri.filter((c) => c.includes('neverificat de om')).length, 1); assert.ok(cereri.at(-1).endsWith(ETICHETA_NEVERIFICAT)); for (const c of cereri) assert.ok(c.length <= 2000);
+  const { readFileSync } = await import('node:fs');
+  assert.match(readFileSync(new URL('./check-news-watch.mjs', import.meta.url), 'utf8'), /eticheta:\s*ETICHETA_NEVERIFICAT/);
+});
