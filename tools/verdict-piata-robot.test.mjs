@@ -44,7 +44,7 @@ test('one judgment (fixed sample): the verdict is given when BOTH groups first r
   assert.ok(r.monitorizare.redus.n > 20 && r.monitorizare.redus.cadere < r.monitorizare.normal.cadere, 'după judecată se vede doar ca monitorizare');
   assert.match(r.mesaj, /o singură dată/);
 });
-test('SIZE (written before, 2000 worlds, mulberry32): with labels unrelated to the future, the one-time Welch judgment says “ajută” in ≤ 6 %; nightly re-judging would say it far more often', () => {
+test('SIZE (written before, 2000 worlds, mulberry32): with labels unrelated to the future, the one-time judgment (episode permutation since the 27.10 review) says “ajută” in ≤ 6 %; nightly re-judging would say it far more often', () => {
   let fix = 0, oric = 0; const L = 2000;
   for (let w = 0; w < L; w++) {
     const { spy, r } = spyH0(9000 + w, 506); let red = r() < 0.3; const linii = [];
@@ -61,7 +61,7 @@ test('contract with the panels (lot D): putere / primulVerdict / judecata in the
   assert.deepEqual(c.judecata, { la: 20, data: null, verdict: null, unic: true });
   assert.match(amprentaJudecator(), /^jv-[0-9a-f]{12}$/);
 });
-test('the written power is the one the real judge gives (2000 worlds, fixed seed): +1 pp extra drop after “redus” days; size 4 %', () => {
+test('the written power is the one the real judge gives (2000 worlds, fixed seed): +1 pp extra drop after “redus” days; size 4,1 %', () => {
   assert.equal(Math.round(1000 * rataAjuta({ lumi: 2000, efect: 1 })) / 1000, PUTERE.laPlus[1].putere);
   assert.equal(Math.round(1000 * rataAjuta({ lumi: 2000, efect: 0 })) / 1000, PUTERE.marime);
 });
