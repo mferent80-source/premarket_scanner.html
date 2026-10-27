@@ -53,6 +53,15 @@ test('I-752: prețul de acum sub stop ⇒ salvarea planului candidatului e refuz
   assert.match(ok.nodes.ticketVerdict.textContent, /PLAN VALIDABIL/); assert.equal(ok.nodes.ticketSave.disabled, false);
 });
 
+// ───────────── revizia lotului 2 (🟡): prețul de acum NECITIT sau NEVERIFICAT nu mai trece la salvare (închis la eroare) ─────────────
+test('revizia lotului 2: prețul de acum necitit / neverificat ⇒ salvarea planului candidatului e refuzată cu motivul', async () => {
+  const nev = real({ pret: { stare: 'neverificat', text: 'prețul de acum nu s-a putut citi — verifică-l în Trading 212 înainte de ordin' } }); await deschide(nev);
+  assert.match(nev.nodes.ticketVerdict.textContent, /prețul de acum nu s-a putut citi/); assert.doesNotMatch(nev.nodes.ticketVerdict.textContent, /PLAN VALIDABIL/); assert.equal(nev.nodes.ticketSave.disabled, true);
+  const lipsa = real({ pret: null }); await deschide(lipsa); // prețul încă necitit: cifrele se văd, salvarea îl citește acum și refuză dacă nu vine
+  assert.equal(lipsa.nodes.ticketSave.disabled, false); await lipsa.nodes.ticketSave.onclick(); await ticks();
+  assert.match(lipsa.nodes.ticketVerdict.textContent, /SALVARE RESPINSĂ · Prețul de acum nu s-a putut citi/); assert.equal(lipsa.durable.record, null, 'nimic salvat');
+});
+
 // ───────────── I-753: modulele-gardă declarate; lipsa unuia ⇒ tichet blocat ─────────────
 test('I-753: un modul-gardă care nu s-a încărcat (căldura, verdictul pieței, prețul de acum) blochează tichetul cu numele lui', async () => {
   const fara = real({ files: ['lib/pret-viu.js', 'lib/desk-proba.js'] }); await deschide(fara);

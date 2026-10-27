@@ -26,7 +26,7 @@ async function boot({search='?symbol=QCOM&mode=momentum&ticket=1&handoff=1',hash
     vm.runInContext(fs.readFileSync('lib/trade-plans.js','utf8')+fs.readFileSync('lib/trade-plan-store.js','utf8'),ctx);
     if(durable){const create=ctx.TTPlanStore.create;ctx.TTPlanStore.create=(storage,options)=>create(storage,{...options,durable});}
     // 27.10.2026 (I-753): Planuri cere modulele-gardă în modul real (lipsa unuia blochează tichetul) ⇒ căldura și prețul de acum reale, verdictul pieței neutru
-    vm.runInContext(fs.readFileSync('lib/caldura-portofoliu.js','utf8')+fs.readFileSync('lib/pret-viu.js','utf8'),ctx);ctx.MarketVerdict={regula:()=>({label:'neutru',mult:1,go:true,asOf:'2026-10-02',nota:''}),robotFile:async()=>null};
+    vm.runInContext(fs.readFileSync('lib/caldura-portofoliu.js','utf8')+fs.readFileSync('lib/pret-viu.js','utf8'),ctx);ctx.TTPretViu.verifica=async x=>({stare:'in-zona',symbol:x&&x.symbol,text:'prețul de acum e în zona de intrare (test)'}); /* 27.10 (revizia lotului 2): fără prețul citit salvarea e refuzată; aceste teste privesc predarea, nu prețul */ctx.MarketVerdict={regula:()=>({label:'neutru',mult:1,go:true,asOf:'2026-10-02',nota:''}),robotFile:async()=>null};
     vm.runInContext(deskScript,ctx);
   }else if(page==='scanner'){
     vm.runInContext(engine.slice(0,engine.lastIndexOf('  validateDeps(); bind();'))+'  bind();window.scannerState=state;})();',ctx);
