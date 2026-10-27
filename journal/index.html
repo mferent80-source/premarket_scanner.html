@@ -332,6 +332,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
     </div>
     <div class="desk-strip" id="deskStrip"></div>
     <div class="desk-today" id="deskToday"></div>
+    <!-- 27.10.2026 (contract E → C, I-757): starea kill switch-ului „Oprește tot” + re-armarea cu motiv, DOAR de aici -->
+    <div id="deskOprire" class="panel" style="border-color:var(--bear-s);margin:10px 0 0" hidden></div>
   </div>
   <details class="desk-cfg" style="margin-top:12px">
     <summary>⚙ Limite Risk Governor</summary>
@@ -1359,9 +1361,34 @@ function renderDesk(){
       const st = e.exit == null ? 'OPEN' : (p >= 0 ? 'WIN' : 'LOSS');
       return '<tr><td class="l">' + esc(e.sym) + '</td><td>' + st + '</td><td class="' + (p==null?'':p>=0?'pos':'neg') + '">' + (p!=null?(p>=0?'+':'')+fmt$(p):'—') + '</td><td>' + esc(e.source||'?') + '</td></tr>';
     }).join('') + '</table>' : '<p class="note">Nicio execuție azi în journal.</p>';
+  renderOprire(s);
   if (s.verdict === 'HALTED') GV.maybeNotifyHalted(s);
   if (window.DMR && DMR.render) DMR.render();
 }
+/* 27.10.2026 (contract E → C, I-757): kill switch-ul scris de „Oprește tot” (tt_governor_oprire_v1) se vede aici cât e activ; re-armarea DOAR de aici,
+   cu motiv obligatoriu (GV.rearmeaza scrie activ:false, rearmatLa, rearmatMotiv). Caseta nu se redesenează cât scrii motivul. */
+function renderOprire(s){
+  const ob = $('deskOprire'); if (!ob) return;
+  const o = s && s.oprire;
+  if (!o || o.activ !== true) { ob.hidden = true; ob.innerHTML = ''; ob.dataset.la = ''; return; }
+  const sem = String(o.la) + '|' + (Array.isArray(o.ordineAnulate) ? o.ordineAnulate.length : 0);
+  if (ob.dataset.la === sem && $('gvRearmMotiv')) return;
+  const ora = iso => { const t = Date.parse(iso); return Number.isFinite(t) ? new Date(t).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'; };
+  const ordine = Array.isArray(o.ordineAnulate) ? o.ordineAnulate : [];
+  ob.hidden = false; ob.dataset.la = sem;
+  ob.innerHTML = '<h2 style="color:var(--bear-s)">⛔ OPRIT — „Oprește tot” apăsat ' + esc(ora(o.la)) + ' pe ' + esc(o.aparat || 'aparat necunoscut') + '</h2>' +
+    '<p>Motivul: <b>' + esc(o.motiv || 'fără motiv scris') + '</b> · ' + ordine.length + ' ordine anulate la broker' + (ordine.length ? ': ' + ordine.slice(0, 8).map(x => esc((x && x.ticker) || '?') + (x && Number.isFinite(x.stopPrice) ? ' @ ' + esc(String(x.stopPrice)) : '')).join(', ') : '') + '</p>' +
+    '<p class="note">Fără intrări noi până la re-armare. Înainte: verifică pozițiile și ordinele la broker, pune la loc stopurile anulate (Astăzi / Portofoliu), notează incidentul (docs/incidente.md, formularul de mai jos).</p>' +
+    '<div class="frm" style="margin-top:8px"><label class="wide">Motivul re-armării (obligatoriu) <input id="gvRearmMotiv" maxlength="500" placeholder="ce ai verificat, ce ai schimbat"></label></div>' +
+    '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="btnGovRearm" type="button">🔓 Re-armează Governor</button></div>';
+  $('btnGovRearm').addEventListener('click', () => {
+    const m = ($('gvRearmMotiv').value || '').trim();
+    if (!m) { alert('Scrie motivul re-armării: ce ai verificat și ce ai schimbat. Fără motiv nu se re-armează.'); $('gvRearmMotiv').focus(); return; }
+    if (!GV.rearmeaza(m)) { alert('Re-armarea nu s-a putut scrie (sau oprirea nu mai e activă).'); return; }
+    ob.dataset.la = ''; renderDesk(); if (window.T212CapitalUI) T212CapitalUI.refresh();
+  });
+}
+window.addEventListener('tt-oprire', () => { try { renderDesk(); } catch (e) {} });
 function loadGovCfg(){
   if (!window.GV) return;
   const c = GV.cfg();
