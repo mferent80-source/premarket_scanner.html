@@ -148,7 +148,7 @@ test('authentication and synchronization display separate visible states',()=>{
  const b=boot();b.events['tt-cloud-state']({detail:{ready:true,connected:true,lastSync:Date.now(),conflicts:['tt_journal_v1']}});
  assert.equal(b.elements.googleAccountLabel.textContent,'Google conectat');assert.equal(b.elements.syncStatus.textContent,'Conflict de sincronizare');assert.equal(b.elements.syncStatus.dataset.state,'conflict');
  b.events['tt-cloud-state']({detail:{ready:true,connected:true,lastSync:Date.now(),error:'network_failed'}});assert.equal(b.elements.syncStatus.textContent,'Eroare de sincronizare');
- b.ctx.navigator.onLine=false;b.events.offline();assert.equal(b.elements.syncStatus.textContent,'Eroare de sincronizare');
+ b.ctx.navigator.onLine=false;b.events.offline();assert.equal(b.elements.syncStatus.textContent,'Offline · date locale'); /* 27.10.2026 (audit [3]): fără rețea, offline-ul vine înaintea unei erori rămase în urmă */
  b.events['tt-cloud-state']({detail:{ready:true,connected:true,lastSync:Date.now()}});assert.equal(b.elements.syncStatus.textContent,'Offline · date locale');
  b.ctx.navigator.onLine=true;b.events.online();assert.match(b.elements.syncStatus.textContent,/Sincronizat la/);
 });

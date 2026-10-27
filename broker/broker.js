@@ -6,6 +6,9 @@ const numeric=v=>typeof v==='number'&&Number.isFinite(v);
 const fmt=(v,c)=>numeric(v)?new Intl.NumberFormat('ro-RO',{maximumFractionDigits:6}).format(v)+(c?' '+c:''):'—';
 const stamp=v=>{const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString('ro-RO'):'—';};
 let configuredBase='',ready=false,base='',token='',brokerEnvironment='live',session=0,busy=false,kind='orders',cursor=null,rows=[],seen=new Set(),controller=new AbortController(),times={},lastFetched=0,environment='';
+// 27.10.2026 (I-759): ora ultimei recitiri a execuțiilor recente (capul jurnalului) — reconcilierea deosebește cu ea o execuție încă necitită
+// de o diferență reală. `var`, nu `let`: reconectarea de la pornire o citește înainte să ajungă execuția la declarațiile de mai jos (TDZ).
+var journalHeadAt=null;
 // 19.10.2026 (I-713): pe aparatul care nu citește Trading 212 pagina ascunsă a contului nu mai cere T212 la 60/12/15 s — primește
 // instantaneul prin sincronizare; regula și preluarea după 15 minute sunt în lib/t212-reader.js. Pagina deschisă pe ecran citește oricum.
 let wokeAt=Date.now();
@@ -16,7 +19,7 @@ function readerNote(){return !previewMode&&window.TTT212Reader?window.TTT212Read
 document.addEventListener?.('visibilitychange',()=>{if(!document.hidden)wokeAt=Date.now();});
 const errors={broker_redirected:'API-ul Trading 212 redirecționează cererea; conexiunea a fost oprită pentru protejarea cheilor.',broker_timeout:'Trading 212 nu a răspuns în 20 de secunde.',broker_network_error:'Worker-ul nu poate deschide conexiunea către Trading 212.',broker_non_json_response:'Trading 212 a răspuns cu o pagină sau un format incompatibil, nu cu date API.',broker_schema_mismatch:'Datele Trading 212 au un format diferit de cel așteptat.',backend_not_configured:'Backendul nu are încă secretele configurate.',environment_not_configured:'Mediul Invest nu este configurat.',session_unauthorized:'Codul de acces la integrare este incorect.',broker_credentials_invalid:'Cheia Trading 212 nu este validă pentru mediul configurat.',broker_permission_missing:'Cheia Trading 212 nu are permisiunea de citire necesară.',broker_unavailable:'Trading 212 nu răspunde momentan.',broker_response_unavailable:'Răspunsul Trading 212 nu a putut fi verificat.',origin_forbidden:'Această origine nu este autorizată de backend.'};
 function validEndpoint(value){const u=new URL(value);if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash||u.pathname!=='/'||!u.hostname.endsWith('.workers.dev'))throw Error('Introdu adresa HTTPS a Workerului privat (workers.dev), fără cale sau parametri.');return u.origin;}
-function reset(){clearPortfolio();$('connectionSettings').open=true;journalScope='';journalCursor=null;journalStarted=false;journalDone=false;journalRunning=false;journalHeadNext=0;journalHeadRevision=0;journalHeadRejected=false;session++;controller.abort();controller=new AbortController();token='';base='';rows=[];seen.clear();cursor=null;times={};lastFetched=0;busy=false;$('apiKey').value='';$('apiSecret').value='';$('account').hidden=true;$('metrics').replaceChildren();$('positions').replaceChildren();$('history').replaceChildren();$('more').hidden=true;$('refresh').hidden=true;$('disconnect').hidden=true;$('connectButton').disabled=!ready;$('status').textContent='Neconectat · datele contului au fost eliminate din ecran.';}
+function reset(){clearPortfolio();$('connectionSettings').open=true;journalScope='';journalCursor=null;journalStarted=false;journalDone=false;journalRunning=false;journalHeadNext=0;journalHeadRevision=0;journalHeadRejected=false;journalHeadAt=null;session++;controller.abort();controller=new AbortController();token='';base='';rows=[];seen.clear();cursor=null;times={};lastFetched=0;busy=false;$('apiKey').value='';$('apiSecret').value='';$('account').hidden=true;$('metrics').replaceChildren();$('positions').replaceChildren();$('history').replaceChildren();$('more').hidden=true;$('refresh').hidden=true;$('disconnect').hidden=true;$('connectButton').disabled=!ready;$('status').textContent='Neconectat · datele contului au fost eliminate din ecran.';}
 async function api(name,next){
  const wait=(times[name]||0)-Date.now();if(wait>0)throw Error(`Așteaptă ${Math.ceil(wait/1000)} secunde înainte de următoarea citire.`);
  times[name]=Date.now()+(name==='summary'||name==='orders-pending'?6000:['orders','dividends','transactions'].includes(name)?11000:1500);
@@ -128,8 +131,12 @@ async function sync({refreshOrders=false,onComplete=null}={}){const report=state
  if(success)lastFetched=Math.min(...results.filter(r=>r.status==='fulfilled').map(r=>Date.parse(r.value.fetchedAt)));
  if(success&&window.TTT212Reader)window.TTT212Reader.markOwn(localStorage,brokerEnvironment,lastFetched); // I-713: citirea acestui aparat, ca s-o deosebească de cea sincronizată
  // 20.10.2026 (I-723): ordinele în așteptare (doar citire) ⇒ „stop la broker DA / NU” pe poziții; dacă citirea pică, starea rămâne „necitit”, sincronizarea nu suferă
- if(success&&journalScope&&window.T212Pending){try{const po=await api('orders-pending');if(id===session)window.T212Pending.save(localStorage,journalScope,brokerEnvironment,po.data,po.fetchedAt);}catch(e){/* 27.10 (audit): eșecul nu se mai înghite — rămâne scris (ora + motivul) și apare la „necitit” */try{if(window.T212Pending.esuat)window.T212Pending.esuat(localStorage,journalScope,brokerEnvironment,e&&e.message||String(e),new Date().toISOString());}catch(_){}}}
+ // 27.10.2026 (I-759): copia ordinelor de DINAINTEA citirii (are STOP-urile abia trimise din aplicație) merge la reconciliere, apoi e rescrisă
+ let ordersRead=null,ordersCopy=null;
+ if(success&&journalScope&&window.T212Pending){try{ordersCopy=window.T212Pending.read(localStorage,journalScope);}catch(_){ordersCopy=null;}try{const po=await api('orders-pending');if(id===session){window.T212Pending.save(localStorage,journalScope,brokerEnvironment,po.data,po.fetchedAt);ordersRead=po.data;}}catch(e){/* 27.10 (audit): eșecul nu se mai înghite — rămâne scris (ora + motivul) și apare la „necitit” */try{if(window.T212Pending.esuat)window.T212Pending.esuat(localStorage,journalScope,brokerEnvironment,e&&e.message||String(e),new Date().toISOString());}catch(_){}}}
  let persisted=false;if(success&&journalScope&&window.T212J){try{await window.T212J.saveSnapshot(journalScope,brokerEnvironment,results[0].status==='fulfilled'?results[0].value.data:null,results[1].status==='fulfilled'?results[1].value.data:null,new Date(lastFetched).toISOString());persisted=true;}catch(e){warnings.push('Portofoliu nesalvat: '+e.message);}}if(id!==session){report('error');return false;}
+ // 27.10.2026 (I-759): după fiecare citire completă (sumar + poziții) copiile aplicației sunt comparate cu Trading 212 ⇒ tt_reconciliere_v1
+ if(success&&results.every(r=>r.status==='fulfilled'))reconcile(ordersRead,ordersCopy);renderOrdine();
  $('account').hidden=!success;$('refresh').hidden=false;$('disconnect').hidden=false;$('status').textContent=success?`${environment==='demo'?'DEMO · bani virtuali':'INVEST LIVE'} · citire ${stamp(lastFetched)}${warnings.length?' · PARȚIAL: '+warnings.join(' / '):''}`:'Conectare nereușită: '+warnings.join(' / ');
  if(portfolioPositions===null)positions(null);renderRealized();$('account').setAttribute('aria-busy','false');busy=false;$('refresh').disabled=false;$('connectButton').disabled=!ready;const headReadBefore=journalHeadNext,headRevisionBefore=journalHeadRevision;if(success&&!rows.length)await loadHistory();if(id!==session){report('error');return false;}if(success)$('connectionSettings').open=false;if(success||refreshOrders)await importJournalPage({forceHead:refreshOrders&&journalHeadNext===headReadBefore});if(id!==session){report('error');return false;}report(!success?'error':results.every(r=>r.status==='fulfilled')&&persisted&&(!refreshOrders||journalHeadRevision>headRevisionBefore&&!journalHeadRejected)?'ready':'partial');return success;
 }
@@ -157,11 +164,85 @@ async function startConnection(payload,persist,{read=true}={}){
  return success;
 }
 $('connect').addEventListener('submit',async e=>{e.preventDefault();try{if(!ready)throw Error('Conectarea online nu este încă activată. Nu introduce cheia până când releul este disponibil.');const key=$('apiKey').value.trim(),secret=$('apiSecret').value.trim(),mode=$('brokerEnvironment').value;if(!key||!secret||key.includes(':')||!/^live$|^demo$/.test(mode))throw Error('Introdu API Key și API Secret pentru contul selectat.');await startConnection({key,secret,environment:mode},true);}catch(error){$('status').textContent=error.message;}});
-$('forgetConnection').onclick=async()=>{reset();const id=session;try{if(window.T212Vault)await window.T212Vault.clear();if(id===session)$('configState').textContent='Conexiunea salvată a fost eliminată. Jurnalul și snapshot-urile sunt păstrate.';}catch(e){if(id===session)$('status').textContent=e.message;}};
+$('forgetConnection').onclick=async()=>{reset();const id=session;try{if(window.T212Vault)await window.T212Vault.clear();if(id===session){$('configState').textContent='Conexiunea salvată (și cheia cu ordine, dacă era pusă) a fost eliminată. Jurnalul și snapshot-urile sunt păstrate.';renderOrdineCheie();}}catch(e){if(id===session)$('status').textContent=e.message;}};
 $('exportConnection').onclick=async()=>{try{$('transferState').textContent='Criptez conexiunea…';$('transferCode').value=await window.T212Vault.pack($('transferPassword').value);$('transferState').textContent='Cod generat. Copiază-l pe telefon și importă-l cu aceeași parolă.';}catch(e){$('transferState').textContent=e.message;}finally{$('transferPassword').value='';}};
 $('copyConnection').onclick=async()=>{try{if(!$('transferCode').value)throw Error('Generează mai întâi codul.');await navigator.clipboard.writeText($('transferCode').value);$('transferState').textContent='Cod criptat copiat.';}catch(e){$('transferState').textContent='Selectează codul și copiază-l manual.';}};
 $('importConnection').onclick=async()=>{try{if(!ready)throw Error('Releul nu este activ.');const payload=await window.T212Vault.unpack($('transferCode').value.trim(),$('transferPassword').value);await startConnection(payload,true);$('transferState').textContent='Transfer preluat. Verifică starea conexiunii de mai sus.';}catch(e){$('transferState').textContent=e.message;}finally{$('transferPassword').value='';$('transferCode').value='';}};
 $('disconnect').onclick=reset;$('refresh').onclick=()=>sync({refreshOrders:true});$('more').onclick=()=>loadHistory(true);
+
+// 27.10.2026 (I-759): reconcilierea după fiecare citire completă — copiile aplicației (baza reconciliată, jurnalul execuțiilor, numerarul, STOP-urile
+// trimise din aplicație) față de Trading 212; rezultatul în tt_reconciliere_v1 (Governor ⇒ prudență cât sunt diferențe) și în panoul paginii.
+function reconcile(orders,ordersCopy){
+ const R=window.TTReconciliere;if(!R||previewMode||!journalScope)return;
+ let fills=null,cash=null;
+ try{const a=window.T212J?.read?.().accounts?.[journalScope];if(a&&Array.isArray(a.items))fills={items:a.items,complete:a.complete===true,fetchedAt:journalHeadAt};}catch(_){fills=null;}
+ try{cash=JSON.parse(localStorage.getItem('tt_trading212_cash_v1')||'{}')[journalScope]||null;}catch(_){cash=null;}
+ try{R.ruleaza({storage:localStorage,scope:journalScope,broker:{summary:portfolioSummary,positions:portfolioPositions,orders,la:new Date(lastFetched).toISOString()},fills,cash,ordineCopie:ordersCopy,now:Date.now()});}
+ catch(e){$('reconciliere').textContent='Reconcilierea nu a putut rula ('+(e&&e.message||'eroare')+'): copiile NU sunt verificate la această citire.';return;}
+ renderReconcile();
+}
+function renderReconcile(){
+ const R=window.TTReconciliere;if(!R)return;const r=R.citeste(localStorage),own=r&&journalScope&&r.scope===journalScope?r:null;
+ $('reconciliere').innerHTML=R.html(own,esc);$('reconciliereAcceptBox').hidden=!(own&&(own.diferente.length||(own.deConfirmat||[]).length));
+}
+$('reconciliereAccepta').addEventListener('click',e=>{
+ e?.preventDefault?.();const R=window.TTReconciliere;if(!R||!journalScope)return;
+ const out=R.accepta({storage:localStorage,scope:journalScope,motiv:$('reconciliereMotiv').value});
+ $('reconciliereAcceptStare').textContent=out.ok?'Acceptat: starea Trading 212 e noua bază a reconcilierii; motivul rămâne la vedere.':out.mesaj;if(out.ok){$('reconciliereMotiv').value='';renderReconcile();}
+});
+// 27.10.2026 (I-757): „Oprește tot” — două trepte: prima apăsare deschide caseta (ce se întâmplă + motivul), a doua anulează ordinele prin releu
+// (TTOprire scrie tt_governor_oprire_v1 și emite tt-oprire). Ordinele anulate ies din copia locală și explică dispariția lor la reconciliere.
+function renderOprire(stare){const O=window.TTOprire;if(!O)return;const s=stare===undefined?O.citeste():stare;$('oprireStare').textContent=O.text(s);$('oprirePanel').classList?.toggle?.('activ',!!(s&&s.activ));}
+function scoateAnulate(ids){
+ if(!ids.length||!journalScope)return;
+ try{window.TTReconciliere?.anulat({storage:localStorage,scope:journalScope,ids});}catch(_){}
+ try{const P=window.T212Pending,a=P&&P.read(localStorage,journalScope);if(a){const gone=new Set(ids.map(String));P.save(localStorage,journalScope,a.environment||brokerEnvironment,a.items.filter(o=>!(o.id!=null&&gone.has(String(o.id)))),a.fetchedAt);}}catch(_){}
+ renderOrdine();
+}
+$('oprireConfirm').hidden=true;
+$('opresteTot').addEventListener('click',e=>{e?.preventDefault?.();$('oprireConfirm').hidden=false;try{$('oprireMotiv').focus();}catch(_){}});
+$('opresteNu').addEventListener('click',e=>{e?.preventDefault?.();$('oprireConfirm').hidden=true;$('oprireMotiv').value='';});
+$('opresteConfirmDa').addEventListener('click',async e=>{
+ e?.preventDefault?.();const O=window.TTOprire;
+ if(!O){$('oprireStare').textContent='Modulul de oprire nu s-a încărcat: ordinele NU au fost anulate. Anulează-le din aplicația Trading 212.';return;}
+ $('opresteConfirmDa').disabled=true;$('opresteTot').disabled=true;$('oprireStare').textContent='Opresc: anulez ordinele în Trading 212…';
+ try{const r=await O.opreste({motiv:$('oprireMotiv').value.trim()});$('oprireConfirm').hidden=true;$('oprireMotiv').value='';renderOprire(r.stare||O.citeste());if(r.mesaj)$('oprireStare').textContent+=' '+r.mesaj;scoateAnulate((r.stare?.ordineAnulate||[]).map(o=>o.id).filter(id=>id!=null));}
+ catch(err){$('oprireStare').textContent='Oprirea nu s-a încheiat ('+(err&&err.message||'eroare')+'): anulează ordinele manual, din aplicația Trading 212.';}
+ finally{$('opresteConfirmDa').disabled=false;$('opresteTot').disabled=false;}
+});
+window.addEventListener('tt-oprire',e=>renderOprire(e&&e.detail));
+// Ordinele în așteptare unul câte unul: anularea cere a doua apăsare pe același buton (lasă și un STOP parțial să fie refăcut din Astăzi)
+function renderOrdine(){
+ const host=$('ordineLista'),P=window.T212Pending;if(!P)return;
+ let a=null;try{a=journalScope?P.read(localStorage,journalScope):null;}catch(_){a=null;}
+ if(!a){host.innerHTML='<p class="note">Ordinele în așteptare apar după prima sincronizare pe acest aparat.</p>';return;}
+ const sym=t=>String(t||'').replace(/_US_EQ$|_[A-Z]{2}_EQ$|_EQ$/,'');
+ host.innerHTML=a.items.length?a.items.map(o=>`<div class="ordin-rand"><span><b>${esc(sym(o.ticker))}</b> · ${esc(o.side==='BUY'?'cumpărare':'vânzare')} ${esc(o.type||'')} · ${esc(fmt(o.quantity))} buc.${numeric(o.stopPrice)?' · stop '+esc(fmt(o.stopPrice)):''}${numeric(o.limitPrice)?' · limită '+esc(fmt(o.limitPrice)):''}</span>${o.id!=null&&/^\d{1,20}$/.test(String(o.id))?`<button type="button" class="secondary" data-anuleaza="${esc(o.id)}">Anulează</button>`:'<small>fără id: anulează-l din aplicația Trading 212</small>'}</div>`).join('')+`<p class="note">Citite la ${esc(stamp(a.fetchedAt))}.</p>`:`<p class="note">Niciun ordin în așteptare la citirea din ${esc(stamp(a.fetchedAt))}.</p>`;
+}
+$('ordineLista').addEventListener('click',async e=>{
+ const b=e.target?.closest?.('[data-anuleaza]');if(!b)return;const id=b.dataset.anuleaza,O=window.TTOprire;
+ if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='Confirmă anularea';return;}
+ if(!O){$('ordineMesaj').textContent='Modulul de oprire nu s-a încărcat: anulează ordinul din aplicația Trading 212.';return;}
+ b.disabled=true;b.textContent='Anulez…';
+ const r=await O.anuleazaOrdin(id);$('ordineMesaj').textContent=r.mesaj||'';
+ if(r.ok||r.error==='order_not_found')scoateAnulate([id]);else{b.disabled=false;b.dataset.confirm='';b.textContent='Anulează';}
+});
+// 27.10.2026 (I-764): a doua cheie Trading 212 — cea cu „Orders: Execute” — separată de conexiunea de citire, doar pe acest aparat (seiful).
+async function renderOrdineCheie(){
+ const V=window.T212Vault;if(!V||!V.readOrdine){$('ordineStare').textContent='Seiful cheilor nu e disponibil în acest browser.';return;}
+ try{const o=await V.readOrdine();$('ordineStare').textContent=o?'Cheia cu ordine e pusă pe acest aparat ('+(o.environment==='demo'?'Demo':'Invest real')+'). Ordinele puse din aplicație o folosesc pe ea; citirea rămâne pe cheia doar-citire.':'Nicio cheie cu ordine pe acest aparat: ordinele folosesc conexiunea salvată, care atunci trebuie să aibă „Orders: Execute”.';}
+ catch(e){$('ordineStare').textContent='Cheia cu ordine nu se poate citi: '+e.message;}
+}
+$('salveazaOrdine').addEventListener('click',async e=>{
+ e?.preventDefault?.();const V=window.T212Vault,key=$('ordineKey').value.trim(),secret=$('ordineSecret').value.trim();
+ try{if(!V||!V.saveOrdine)throw Error('seiful cheilor nu e disponibil în acest browser.');if(!key||!secret)throw Error('lipește API Key și API Secret ale cheii cu ordine.');if(!token||!journalScope)throw Error('conectează întâi contul cu cheia de citire.');
+  await V.saveOrdine({key,secret,environment:brokerEnvironment});$('ordineStare').textContent='Cheia cu ordine a fost salvată criptat pe acest aparat. Ordinele puse din aplicație o folosesc pe ea; citirea rămâne pe cheia doar-citire.';}
+ catch(err){$('ordineStare').textContent='Cheia cu ordine nu a fost salvată: '+err.message;}
+ finally{$('ordineKey').value='';$('ordineSecret').value='';}
+});
+$('stergeOrdine').addEventListener('click',async e=>{e?.preventDefault?.();try{await window.T212Vault?.clearOrdine?.();$('ordineStare').textContent='Cheia cu ordine a fost ștearsă de pe acest aparat. Ordinele folosesc din nou conexiunea salvată.';}catch(err){$('ordineStare').textContent=err.message;}});
+window.addEventListener('storage',e=>{if(e.key===window.TTOprire?.KEY)renderOprire();if(e.key===window.TTReconciliere?.KEY)renderReconcile();if(e.key===window.T212Pending?.KEY)renderOrdine();});
+renderOprire();renderReconcile();renderOrdine();renderOrdineCheie();
 document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{if(busy)return;kind=b.dataset.kind;rows=[];seen.clear();cursor=null;$('history').replaceChildren();$('more').hidden=true;document.querySelectorAll('[data-kind]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));loadHistory();});
 // 19.10.2026 (I-702): pagina contului parcată în aplicație nu-și mai redesenează pozițiile la 30 s; la revenire se redesenează o dată
 setInterval(()=>{if(portfolioReport&&shellVisible())renderPositions();else updatePortfolioTime();if(token&&!readAllowed())$('status').textContent=readerNote();else if(lastFetched&&Date.now()-lastFetched>300000)$('status').textContent=`DATE NEACTUALIZATE · ultima citire ${stamp(lastFetched)} · apasă Sincronizează.`;},30000);
@@ -175,7 +256,7 @@ async function acceptJournalPage(page,restart,id=session,scope=journalScope,mode
  // Sampling recent executions must not restart an unfinished walk through older pages.
  const preserveCursor=head&&journalStarted&&!journalDone,next=preserveCursor?journalCursor:page.data.nextCursor,result=await window.T212J.merge(scope,mode,page.data.items,next,page.fetchedAt,{restart:restart&&!preserveCursor});
  // A page is progress only after durable persistence; an old session cannot advance the current cursor.
- if(id!==session||scope!==journalScope)return null;renderRealized();journalStarted=true;journalCursor=next;journalDone=!journalCursor;if(head){journalHeadNext=Date.now()+300000;journalHeadRevision++;journalHeadRejected=!!result?.rejected;}
+ if(id!==session||scope!==journalScope)return null;renderRealized();journalStarted=true;journalCursor=next;journalDone=!journalCursor;if(head){journalHeadAt=page.fetchedAt;journalHeadNext=Date.now()+300000;journalHeadRevision++;journalHeadRejected=!!result?.rejected;}
  $('journalState').textContent=`${result.count} execuții în jurnal și Performance Control · ${result.complete?'istoric disponibil parcurs integral':journalDone?'PARȚIAL · execuții incompatibile, necesită reverificare':'import în curs, urmează pagina următoare'}${result.rejected?' · '+result.rejected+' execuții incompatibile excluse':''}${result.excluded?' · '+result.excluded+' ordine fără execuție excluse':''}`;
  return result;
 }
@@ -211,7 +292,7 @@ setInterval(()=>{if(token&&$('autoSync').checked&&navigator.onLine!==false&&docu
 
 if(previewMode){
  previewFixture=window.T212Portfolio.demo();journalScope=previewFixture.scope;portfolioSummary=previewFixture.summary;portfolioAt=summaryAt=new Date().toISOString();
- $('previewBanner').hidden=false;$('brokerVerification').hidden=true;$('connectionSettings').hidden=true;$('syncPanel').hidden=true;$('autoSync').checked=false;$('account').hidden=false;
+ $('previewBanner').hidden=false;$('brokerVerification').hidden=true;$('oprirePanel').hidden=true;$('reconcilierePanel').hidden=true;$('connectionSettings').hidden=true;$('syncPanel').hidden=true;$('autoSync').checked=false;$('account').hidden=false;
  $('status').textContent='DEMO FICTIV · date simulate; nu citesc brokerul și nu salvez aceste rezultate.';
  metrics(portfolioSummary);positions(previewFixture.positions);renderRealized();
  $('historyState').textContent='DEMO FICTIV · vânzări simulate';rows=previewFixture.account.items;history();

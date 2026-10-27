@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="../lib/plex.css?v=743">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=678">
 <link rel="stylesheet" href="../lib/capital-ui.css?v=678">
-<script src="../lib/suite-version.js?v=985"></script>
+<script src="../lib/suite-version.js?v=986"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -273,7 +273,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 #jpaneCapital .panel{ border-top:3px solid var(--crypto-1); }
 </style>
 <link rel="stylesheet" href="../lib/mobile-ui.css?v=20261002m1">
-<script src="../lib/shell-visibility.js?v=26.10.19.1930"></script><link rel="stylesheet" href="../lib/decision-panel.css?v=26.10.16.1630"><script src="../lib/decision-verdict.js?v=26.10.09.1548"></script><script src="../lib/decision-bridge.js?v=26.10.08.1850"></script><script src="../lib/ai.js?v=26.10.07.2305"></script><link rel="stylesheet" href="../lib/decision-insights.css?v=26.10.08.1850"><script src="../lib/decision-insights.js?v=26.10.08.1850"></script><script src="../lib/decision-panel.js?v=26.10.19.1845" data-decision-module="journal"></script><link rel="stylesheet" href="../lib/trading212-capital.css?v=26.10.08.0923"><link rel="stylesheet" href="design.css?v=26.10.16.1300"><link rel="stylesheet" href="astazi.css?v=26.10.16.1300"><link rel="stylesheet" href="review.css?v=26.10.17.1800"></head>
+<script src="../lib/shell-visibility.js?v=26.10.19.1930"></script><link rel="stylesheet" href="../lib/decision-panel.css?v=26.10.16.1630"><script src="../lib/decision-verdict.js?v=26.10.27.2240"></script><script src="../lib/decision-bridge.js?v=26.10.08.1850"></script><script src="../lib/ai.js?v=26.10.07.2305"></script><link rel="stylesheet" href="../lib/decision-insights.css?v=26.10.08.1850"><script src="../lib/decision-insights.js?v=26.10.08.1850"></script><script src="../lib/decision-panel.js?v=26.10.19.1845" data-decision-module="journal"></script><link rel="stylesheet" href="../lib/trading212-capital.css?v=26.10.08.0923"><link rel="stylesheet" href="design.css?v=26.10.16.1300"><link rel="stylesheet" href="astazi.css?v=26.10.16.1300"><link rel="stylesheet" href="review.css?v=26.10.17.1800"></head>
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
@@ -332,7 +332,27 @@ tr.openrow{background:rgba(91,176,255,.06)}
     </div>
     <div class="desk-strip" id="deskStrip"></div>
     <div class="desk-today" id="deskToday"></div>
+    <!-- 27.10.2026 (contract E → C, I-757): starea kill switch-ului „Oprește tot” + re-armarea cu motiv, DOAR de aici -->
+    <div id="deskOprire" class="panel" style="border-color:var(--bear-s);margin:10px 0 0" hidden></div>
   </div>
+  <!-- 27.10.2026 (I-760): registrul de incidente — ce a mers prost, când, impactul, cauza, ce s-a schimbat; rândul din fișa zilei; copia pentru docs/incidente.md -->
+  <details id="jrIncidente" class="desk-cfg" style="margin-top:12px">
+    <summary>📒 Registrul de incidente · <span id="incN">0</span> deschise</summary>
+    <p class="note" id="incFisa" role="status"></p>
+    <div class="frm">
+      <label>Titlu <input id="incTitlu" maxlength="120" placeholder="ce s-a întâmplat, pe scurt"></label>
+      <label>Când <input id="incLa" type="datetime-local"></label>
+      <label>Gravitate <select id="incGrav"><option value="mic">mic</option><option value="mediu" selected>mediu</option><option value="mare">mare</option></select></label>
+      <label class="wide">Ce s-a întâmplat <textarea id="incCe" rows="2" maxlength="2000" placeholder="faptele, în ordine"></textarea></label>
+      <label class="wide">Impact <input id="incImpact" maxlength="500" placeholder="bani, R, zile, date pierdute — sau „niciunul”"></label>
+      <label class="wide">Cauza <input id="incCauza" maxlength="1000" placeholder="de ce s-a întâmplat (sau „necunoscută încă”)"></label>
+      <label class="wide">Ce s-a schimbat după <input id="incMasura" maxlength="1000" placeholder="lasă gol cât e deschis"></label>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="btnIncNoteaza" type="button">📒 Notează incidentul</button></div>
+    <p class="note" id="incMsg" role="status"></p>
+    <ol id="incLista" style="margin:6px 0 0;padding-left:18px;font-size:12px"></ol>
+    <pre id="incCopie" class="note" style="white-space:pre-wrap;margin-top:8px" hidden></pre>
+  </details>
   <details class="desk-cfg" style="margin-top:12px">
     <summary>⚙ Limite Risk Governor</summary>
     <div class="frm">
@@ -346,6 +366,9 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <label>Max risc total la stop Invest % <input id="cStopRisk" type="number" min="0.1" max="100" step="0.1"></label>
       <label title="19.10.2026 (I-719): stopurile reale + planurile Shadow deschise + planul nou; prag prudent, nu optim">Max căldură portofoliu % (stopuri reale + Shadow) <input id="cHeat" type="number" min="0.1" max="100" step="0.1"></label>
       <label>Max pierdere %/săpt <input id="cWeekLoss" type="number" min="0.5" step="0.5" value="3"></label>
+      <!-- 27.10.2026 (I-760): o limită RELAXATĂ intră abia peste 24 h, cu motiv și expirare; strângerea intră imediat -->
+      <label class="wide" title="Obligatoriu când ridici o limită (pierdere, DD, trade-uri, poziții, cooldown, concentrare, căldură) sau oprești frâna DD; relaxarea intră peste 24 de ore">Motivul relaxării (obligatoriu când ridici o limită) <input id="gvMotiv" maxlength="500" placeholder="de ce, revizuit când"></label>
+      <label title="După expirare limita revine singură la valoarea strictă">Relaxarea expiră în (zile, 1–90) <input id="gvExpira" type="number" min="1" max="90" step="1" value="7"></label>
     </div>
     <label class="chkrow"><input type="checkbox" id="cDdOn" checked> Frână pe DD rolling (Equity curve)</label>
     <label class="chkrow"><input type="checkbox" id="cTg"> Alertă Telegram la HALTED (o dată/zi)</label>
@@ -355,7 +378,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <button class="btn ghost" id="btnAcctSnap" type="button" title="Copiază ultimul snapshot Trade212 din secțiunea Capital">📈 Preia din snapshot</button>
       <button class="btn ghost" id="btnTgTest" type="button">📲 Test Telegram</button>
     </div>
-    <details id="gvLimiteJurnal" style="margin-top:8px"><summary>Jurnalul schimbărilor de limite · <span id="gvLimiteN">0</span></summary><ol id="gvLimiteLista" style="margin:6px 0 0;padding-left:18px;font-size:12px"></ol><p class="muted" style="margin:6px 0 0;font-size:12px">Limitele sunt un document (docs/politica-de-risc.md); orice schimbare rămâne scrisă: ora, aparatul, de la → la (I-728, 20.10.2026).</p></details>
+    <div id="gvOverrideBox" class="note" style="margin-top:8px" hidden><b>Relaxări de limite programate / active</b><ol id="gvOverrideLista" style="margin:6px 0 0;padding-left:18px;font-size:12px"></ol></div>
+    <details id="gvLimiteJurnal" style="margin-top:8px"><summary>Jurnalul schimbărilor de limite · <span id="gvLimiteN">0</span></summary><ol id="gvLimiteLista" style="margin:6px 0 0;padding-left:18px;font-size:12px"></ol><p class="muted" style="margin:6px 0 0;font-size:12px">Limitele sunt un document (docs/politica-de-risc.md); orice schimbare rămâne scrisă: ora, aparatul, de la → la (I-728, 20.10.2026). O relaxare intră peste 24 h, cu motiv și expirare; strângerea imediat (I-760, 27.10.2026).</p></details>
     <p class="note">Frână disciplinară — nu blochează brokerul. Cont $ = fallback manual; tab <a href="#capital" data-jtab-link="capital" style="color:var(--accent)">Capital</a> → drill-down reconciliere.</p>
     <details style="margin-top:12px;border-top:1px solid var(--b1);padding-top:10px">
       <summary style="cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--t2)">📉 Alerte DD · Notificări · Raport săptămânal</summary>
@@ -668,35 +692,35 @@ tr.openrow{background:rgba(91,176,255,.06)}
 
 </div><!-- /.cap-wrap -->
 
-<script src="../lib/capital-time.js?v=630"></script>
-<script src="../lib/account.js?v=26.10.19.1845"></script>
+<script src="../lib/capital-time.js?v=26.10.27.2240"></script>
+<script src="../lib/account.js?v=26.10.27.2240"></script>
 <script src="../lib/finnhub-key.js?v=625"></script>
 <script src="../lib/suite-context.js?v=686"></script>
-<script src="../lib/trading212-snapshot.js?v=26.10.03.2316"></script><script src="../europe-stocks/finance.js?v=26.10.06.2324"></script><script src="../lib/capital-auto.js?v=26.10.19.1845"></script><script src="../lib/storage-write.js?v=26.10.15.0547"></script>
+<script src="../lib/trading212-snapshot.js?v=26.10.03.2316"></script><script src="../europe-stocks/finance.js?v=26.10.27.2240"></script><script src="../lib/capital-auto.js?v=26.10.27.2240"></script><script src="../lib/storage-write.js?v=26.10.15.0547"></script>
 <script src="../lib/trading212-fills-store.js?v=26.10.19.1845"></script>
 <script src="../lib/trading212-context.js?v=26.10.19.1930"></script>
-<script src="../lib/execution-review.js?v=26.10.03.2316"></script><script src="../lib/trading212-journal.js?v=26.10.27.1759"></script>
-<script src="../lib/journal.js?v=26.10.27.1759"></script>
+<script src="../lib/execution-review.js?v=26.10.03.2316"></script><script src="../lib/trading212-journal.js?v=26.10.27.2240"></script>
+<script src="../lib/journal.js?v=26.10.27.2240"></script><script src="../lib/journal-incidente.js?v=26.10.27.2240"></script>
 <script src="../lib/journal-insights.js?v=625"></script>
 <script src="../lib/tracker.js?v=26.10.04.0102"></script>
 <script src="../lib/telegram.js?v=625"></script>
 
 <script src="../lib/trading212-performance.js?v=26.10.15.0547"></script>
-<script src="../lib/trading212-capital.js?v=26.10.27.1759"></script>
+<script src="../lib/t212-reader.js?v=26.10.27.2240"></script><script src="../lib/trading212-capital.js?v=26.10.27.2240"></script>
 <script src="../lib/trading212-capital-ui.js?v=26.10.19.1930"></script>
-<script src="../lib/governor.js?v=26.10.27.1759"></script>
+<script src="../lib/governor.js?v=26.10.27.2240"></script>
 <script src="../lib/macro-context.js?v=625"></script>
-<script src="../lib/desk-macro-rail.js?v=26.10.27.1759"></script>
-<script src="../lib/equity.js?v=26.10.19.1910"></script>
-<script src="../lib/capital-desk.js?v=26.10.27.1759"></script>
+<script src="../lib/desk-macro-rail.js?v=26.10.27.2240"></script>
+<script src="../lib/equity.js?v=26.10.27.2240"></script>
+<script src="../lib/capital-desk.js?v=26.10.27.2240"></script>
 <script src="../lib/data.js?v=26.10.19.1845"></script>
 <script src="../lib/quote-bus.js?v=707"></script>
 <script src="../lib/exchange-calendar.js?v=26.10.19.1845"></script><script src="../lib/daily-series.js?v=26.10.19.1740"></script>
 <script src="../lib/indicators.js?v=plans-audit"></script>
 <script src="../lib/setup-levels.js?v=26.10.04.0102"></script>
-<script src="../lib/setup-builder.js?v=26.10.19.1845"></script>
-<script src="../lib/stres-istoric.js?v=26.10.20.0934"></script><script src="../lib/portfolio-risk.js?v=26.10.20.0934"></script>
-<script src="../lib/journal-workspace.js?v=26.10.18.1100"></script>
+<script src="../lib/setup-builder.js?v=26.10.27.2240"></script>
+<script src="../lib/stres-istoric.js?v=26.10.20.0934"></script><script src="../lib/portfolio-risk.js?v=26.10.27.2240"></script>
+<script src="../lib/journal-workspace.js?v=26.10.27.2240"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -711,7 +735,8 @@ window.onerror = function(msg, src, line){
 'use strict';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const fmt$ = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: Math.abs(v) < 1 ? 4 : 2 });
+const fmt$ = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: Math.abs(v) < 1 ? 4 : 1 }); /* 27.10 (audit 🟡 10): o singură zecimală la rezultate */
+const ziNY = ts => (window.CT && CT.ziNY ? CT.ziNY(ts) : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(ts ? new Date(ts) : new Date())); /* 27.10 (I-751): ziua de bursă, nu ziua UTC */
 
 // Tag-uri predefinite de greșeli/execuție (click = toggle); rămân editabile ca listă în timp
 const TAGS = ['good-exec', 'fomo', 'chase', 'early-exit', 'late-exit', 'no-plan', 'oversize', 'revenge', 'contra-regim', 'news-trap', 'broke-rules'];
@@ -777,7 +802,7 @@ function renderDdAlert(){
     if (!(prev.lastKey === nkey && Date.now() - (prev.ts || 0) < 3600000)) {
       try {
         new Notification('📓 Journal — Alertă Max Drawdown', {
-          body: breached.map(c => c.label + ': −$' + JR.maxDrawdown(c.subset).toFixed(2)).join('\n'),
+          body: breached.map(c => c.label + ': −$' + JR.maxDrawdown(c.subset).toFixed(1)).join('\n'),
           tag: 'journal-desk-dd'
         });
         localStorage.setItem(DD_NOTIFY_KEY, JSON.stringify({ lastKey: nkey, ts: Date.now() }));
@@ -785,7 +810,7 @@ function renderDdAlert(){
     }
   }
   host.innerHTML = '<div class="dd-alert">🚨 <strong>Alertă Max Drawdown</strong> — ' +
-    breached.map(c => '<strong>' + esc(c.label) + '</strong>: −$' + JR.maxDrawdown(c.subset).toFixed(2) + ' (prag $' + s[c.key] + ')').join(' · ') + '</div>';
+    breached.map(c => '<strong>' + esc(c.label) + '</strong>: −$' + JR.maxDrawdown(c.subset).toFixed(1) + ' (prag $' + s[c.key] + ')').join(' · ') + '</div>';
 }
 function renderDdCats(){
   const host = $('ddCats');
@@ -794,14 +819,14 @@ function renderDdCats(){
   if (!closed.length) { host.innerHTML = '<div class="note">DD pe categorii după prima execuție închisă.</div>'; return; }
   const srcDd = JR.drawdownByField(closed, 'source');
   const regDd = JR.drawdownByField(closed, 'regime');
-  let html = '<div class="dd-cat"><div class="lbl">🌐 TOATE</div><div class="val neg">−$' + JR.maxDrawdown(closed).toFixed(2) + '</div><div class="sub">rolling 30z: −$' + JR.rollingDdAt(closed, Date.now(), 30).toFixed(2) + '</div></div>';
+  let html = '<div class="dd-cat"><div class="lbl">🌐 TOATE</div><div class="val neg">−$' + JR.maxDrawdown(closed).toFixed(1) + '</div><div class="sub">rolling 30z: −$' + JR.rollingDdAt(closed, Date.now(), 30).toFixed(2) + '</div></div>';
   Object.keys(srcDd).sort((a, b) => srcDd[b] - srcDd[a]).forEach(k => {
     const sub = closed.filter(e => (e.source || '?') === k);
-    html += '<div class="dd-cat"><div class="lbl">📡 ' + esc(k) + '</div><div class="val neg">−$' + srcDd[k].toFixed(2) + '</div><div class="sub">30z: −$' + JR.rollingDdAt(sub, Date.now(), 30).toFixed(2) + ' · n' + sub.length + '</div></div>';
+    html += '<div class="dd-cat"><div class="lbl">📡 ' + esc(k) + '</div><div class="val neg">−$' + srcDd[k].toFixed(1) + '</div><div class="sub">30z: −$' + JR.rollingDdAt(sub, Date.now(), 30).toFixed(2) + ' · n' + sub.length + '</div></div>';
   });
   Object.keys(regDd).sort((a, b) => regDd[b] - regDd[a]).slice(0, 4).forEach(k => {
     const sub = closed.filter(e => (e.regime || '?') === k);
-    html += '<div class="dd-cat"><div class="lbl">🌍 ' + esc(k) + '</div><div class="val neg">−$' + regDd[k].toFixed(2) + '</div><div class="sub">regim · n' + sub.length + '</div></div>';
+    html += '<div class="dd-cat"><div class="lbl">🌍 ' + esc(k) + '</div><div class="val neg">−$' + regDd[k].toFixed(1) + '</div><div class="sub">regim · n' + sub.length + '</div></div>';
   });
   host.innerHTML = html;
 }
@@ -1002,7 +1027,7 @@ function resetForm(){
   ['fSym','fEntry','fExit','fSize','fSl','fNotes','fMark','fSetupDraftId','fCurrency','fFxEntry','fFxExit'].forEach(id => { if ($(id)) $(id).value = ''; });
   $('fFees').value = '0';
   $('fDir').value = 'long'; $('fSrc').value = 'manual';
-  $('fDate').value = new Date().toISOString().slice(0, 10);
+  $('fDate').value = ziNY();
   renderTagRow([]);
   $('frmTitle').textContent = '➕ Execuție nouă (fill închis)';
   $('btnSave').textContent = '💾 Salvează execuția';
@@ -1017,7 +1042,7 @@ function fillForm(e){
   $('fFees').value = e.fees || 0; $('fSl').value = e.slAtEntry != null ? e.slAtEntry : '';
   if ($('fMark')) $('fMark').value = e.markPrice != null ? e.markPrice : '';
   $('fSrc').value = e.source || 'manual'; $('fNotes').value = e.notes || '';
-  $('fDate').value = e.closeTs ? new Date(e.closeTs).toISOString().slice(0, 10) : '';
+  $('fDate').value = e.closeTs ? ziNY(e.closeTs) : ''; /* 27.10 (audit 🔵 23): ziua NY — re-salvarea la 01:00 RO nu mai muta închiderea cu o zi în urmă */
   renderTagRow(e.tags || []);
   $('frmTitle').textContent = '✏️ Editez ' + e.sym;
   $('btnSave').textContent = '💾 Actualizează';
@@ -1126,9 +1151,9 @@ function scHtml(s){
     <div class="scard"><div class="lbl">EXECUȚII</div><div class="val">${s.n}${s.small ? ' <span class="wrn" style="font-size:11px">⚠ n&lt;10</span>' : ''}</div></div>
     <div class="scard"><div class="lbl">WIN RATE</div><div class="val">${s.winPct.toFixed(0)}%</div></div>
     <div class="scard"><div class="lbl">PnL NET</div><div class="val ${s.pnlNet >= 0 ? 'pos' : 'neg'}">${(s.pnlNet >= 0 ? '+' : '') + fmt$(s.pnlNet).replace('$-','-$')}</div></div>
-    <div class="scard"><div class="lbl">EXPECTANCY R</div><div class="val ${eCls}">${s.expectancyR != null ? (s.expectancyR >= 0 ? '+' : '') + s.expectancyR.toFixed(2) + 'R' : '—'}</div>
+    <div class="scard"><div class="lbl">EXPECTANCY R</div><div class="val ${eCls}">${s.expectancyR != null ? (s.expectancyR >= 0 ? '+' : '') + s.expectancyR.toFixed(1) + 'R' : '—'}</div>
       <div class="lbl" style="margin-top:2px">${s.nR}/${s.n} cu SL completat</div></div>
-    <div class="scard"><div class="lbl">PROFIT FACTOR</div><div class="val">${s.pf === Infinity ? '∞' : s.pf.toFixed(2)}</div></div>
+    <div class="scard"><div class="lbl">PROFIT FACTOR</div><div class="val">${s.pf === Infinity ? '∞' : s.pf.toFixed(1)}</div></div>
     <div class="scard"><div class="lbl">AVG WIN / LOSS</div><div class="val" style="font-size:14px">${fmt$(s.avgWin)} / ${fmt$(s.avgLoss)}</div></div>`;
 }
 let seg = 'source';
@@ -1179,8 +1204,8 @@ function renderSeg(){
         <td>${s.n}</td>
         <td>${s.winPct.toFixed(0)}%</td>
         <td class="${s.pnlNet >= 0 ? 'pos' : 'neg'}">${(s.pnlNet >= 0 ? '+' : '') + fmt$(s.pnlNet).replace('$-','-$')}</td>
-        <td class="${s.expectancyR == null ? '' : s.expectancyR >= 0 ? 'pos' : 'neg'}">${s.expectancyR != null ? (s.expectancyR >= 0 ? '+' : '') + s.expectancyR.toFixed(2) : '—'}</td>
-        <td>${s.pf === Infinity ? '∞' : s.pf.toFixed(2)}</td>
+        <td class="${s.expectancyR == null ? '' : s.expectancyR >= 0 ? 'pos' : 'neg'}">${s.expectancyR != null ? (s.expectancyR >= 0 ? '+' : '') + s.expectancyR.toFixed(1) : '—'}</td>
+        <td>${s.pf === Infinity ? '∞' : s.pf.toFixed(1)}</td>
         <td>${s.small ? '<span class="wrn">⚠ zgomot</span>' : ''}</td>
       </tr>
       <tr data-det="${i}" style="display:${opened ? '' : 'none'}"><td colspan="7" class="l" style="background:rgba(29,37,55,.5)">${segDetailHtml(groups[k])}</td></tr>`;
@@ -1346,7 +1371,7 @@ function renderDesk(){
   $('budgetLbl').textContent = '$' + s.budgetLeftUsd.toFixed(0) + ' rămas din −$' + s.maxLossUsd.toFixed(0) + ' (' + used.toFixed(0) + '% consumat)' + (s.budgetSource && s.budgetSource !== 'jurnal manual' ? ' · rămas = ' + s.budgetSource : '');
   const pnlCls = s.todayPnl >= 0 ? 'pos' : 'neg';
   $('deskStrip').innerHTML = [
-    ['PnL manual azi', (s.todayPnl >= 0 ? '+' : '') + '$' + s.todayPnl.toFixed(2), pnlCls],
+    ['PnL manual azi', (s.todayPnl >= 0 ? '+' : '') + fmt$(s.todayPnl).replace('$-', '-$'), pnlCls],
     ['Trade-uri rămase', s.tradesRemaining + ' / ' + s.cfg.maxTradesDay, ''],
     ['Deschise', s.openCount + '/' + s.cfg.maxOpenPositions, ''],
     ['Pierderi consec.', String(s.consecutiveLosses), s.consecutiveLosses >= s.cfg.cooldownAfterLosses ? 'neg' : '']
@@ -1356,11 +1381,80 @@ function renderDesk(){
     today.map(e => {
       const p = GV.pnlOf(e);
       const st = e.exit == null ? 'OPEN' : (p >= 0 ? 'WIN' : 'LOSS');
-      return '<tr><td class="l">' + esc(e.sym) + '</td><td>' + st + '</td><td class="' + (p==null?'':p>=0?'pos':'neg') + '">' + (p!=null?(p>=0?'+':'')+'$'+p.toFixed(2):'—') + '</td><td>' + esc(e.source||'?') + '</td></tr>';
+      return '<tr><td class="l">' + esc(e.sym) + '</td><td>' + st + '</td><td class="' + (p==null?'':p>=0?'pos':'neg') + '">' + (p!=null?(p>=0?'+':'')+fmt$(p):'—') + '</td><td>' + esc(e.source||'?') + '</td></tr>';
     }).join('') + '</table>' : '<p class="note">Nicio execuție azi în journal.</p>';
+  renderOprire(s);
   if (s.verdict === 'HALTED') GV.maybeNotifyHalted(s);
   if (window.DMR && DMR.render) DMR.render();
 }
+/* 27.10.2026 (contract E → C, I-757): kill switch-ul scris de „Oprește tot” (tt_governor_oprire_v1) se vede aici cât e activ; re-armarea DOAR de aici,
+   cu motiv obligatoriu (GV.rearmeaza scrie activ:false, rearmatLa, rearmatMotiv). Caseta nu se redesenează cât scrii motivul. */
+function renderOprire(s){
+  const ob = $('deskOprire'); if (!ob) return;
+  const o = s && s.oprire;
+  if (!o || o.activ !== true) { ob.hidden = true; ob.innerHTML = ''; ob.dataset.la = ''; return; }
+  const sem = String(o.la) + '|' + (Array.isArray(o.ordineAnulate) ? o.ordineAnulate.length : 0);
+  if (ob.dataset.la === sem && $('gvRearmMotiv')) return;
+  const ora = iso => { const t = Date.parse(iso); return Number.isFinite(t) ? new Date(t).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'; };
+  const ordine = Array.isArray(o.ordineAnulate) ? o.ordineAnulate : [];
+  ob.hidden = false; ob.dataset.la = sem;
+  ob.innerHTML = '<h2 style="color:var(--bear-s)">⛔ OPRIT — „Oprește tot” apăsat ' + esc(ora(o.la)) + ' pe ' + esc(o.aparat || 'aparat necunoscut') + '</h2>' +
+    '<p>Motivul: <b>' + esc(o.motiv || 'fără motiv scris') + '</b> · ' + ordine.length + ' ordine anulate la broker' + (ordine.length ? ': ' + ordine.slice(0, 8).map(x => esc((x && x.ticker) || '?') + (x && Number.isFinite(x.stopPrice) ? ' @ ' + esc(String(x.stopPrice)) : '')).join(', ') : '') + '</p>' +
+    '<p class="note">Fără intrări noi până la re-armare. Înainte: verifică pozițiile și ordinele la broker, pune la loc stopurile anulate (Astăzi / Portofoliu), notează incidentul (docs/incidente.md, formularul de mai jos).</p>' +
+    '<div class="frm" style="margin-top:8px"><label class="wide">Motivul re-armării (obligatoriu) <input id="gvRearmMotiv" maxlength="500" placeholder="ce ai verificat, ce ai schimbat"></label></div>' +
+    '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="btnGovRearm" type="button">🔓 Re-armează Governor</button></div>';
+  $('btnGovRearm').addEventListener('click', () => {
+    const m = ($('gvRearmMotiv').value || '').trim();
+    if (!m) { alert('Scrie motivul re-armării: ce ai verificat și ce ai schimbat. Fără motiv nu se re-armează.'); $('gvRearmMotiv').focus(); return; }
+    if (!GV.rearmeaza(m)) { alert('Re-armarea nu s-a putut scrie (sau oprirea nu mai e activă).'); return; }
+    ob.dataset.la = ''; renderDesk(); if (window.T212CapitalUI) T212CapitalUI.refresh();
+  });
+}
+window.addEventListener('tt-oprire', () => { try { renderDesk(); } catch (e) {} });
+/* 27.10.2026 (I-760): registrul de incidente (lib/journal-incidente.js) — notează, închide doar cu măsura scrisă, rândul din fișa zilei,
+   copia pentru docs/incidente.md. Lista se redesenează doar după o acțiune sau o schimbare venită din altă filă, nu cât scrii. */
+function renderIncidente(){
+  const I = window.JournalIncidente, box = $('jrIncidente'); if (!I || !box) return;
+  const lista = I.citeste(window.localStorage), desc = I.deschise(lista);
+  const zi = window.CT && typeof CT.ziNY === 'function' ? CT.ziNY(Date.now()) : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
+  $('incN').textContent = String(desc.length);
+  $('incFisa').textContent = 'Fișa zilei · ' + I.randFisa(lista, zi);
+  const ora = t => { const d = new Date(t); return Number.isFinite(d.getTime()) ? d.toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'; };
+  $('incLista').innerHTML = lista.slice().reverse().slice(0, 30).map(x => '<li><b>' + esc(x.titlu) + '</b> · ' + esc(ora(x.la)) + ' · gravitate ' + esc(x.gravitate) + ' · ' +
+    (x.stare === 'inchis' ? 'închis: ' + esc(x.masura) : '<span class="wrn">deschis</span> <input data-inc-masura="' + esc(x.id) + '" maxlength="1000" placeholder="ce s-a schimbat" aria-label="Măsura pentru ' + esc(x.titlu) + '"> <button type="button" class="btn ghost" data-inc-inchide="' + esc(x.id) + '">Închide</button>') +
+    ' <button type="button" class="btn ghost" data-inc-copiaza="' + esc(x.id) + '">Copiază pentru docs/incidente.md</button></li>').join('') || '<li class="muted">Niciun incident notat.</li>';
+  $('incLista').querySelectorAll('[data-inc-inchide]').forEach(b => b.addEventListener('click', () => {
+    const id = b.getAttribute('data-inc-inchide'), inp = $('incLista').querySelector('[data-inc-masura="' + id + '"]');
+    const r = I.inchide(window.localStorage, id, inp ? inp.value : '', { now: Date.now() });
+    $('incMsg').textContent = r.ok ? 'Incidentul e închis cu măsura scrisă.' : r.erori.join(' ');
+    if (r.ok) renderIncidente(); else if (inp) inp.focus();
+  }));
+  $('incLista').querySelectorAll('[data-inc-copiaza]').forEach(b => b.addEventListener('click', () => {
+    const x = I.citeste(window.localStorage).find(y => y.id === b.getAttribute('data-inc-copiaza')); if (!x) return;
+    const md = I.markdown(x), pre = $('incCopie');
+    pre.textContent = md; pre.hidden = false;
+    try { if (window.navigator && navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(md).then(() => { $('incMsg').textContent = 'Copiat — lipește-l în docs/incidente.md.'; }, () => {}); } catch (e) {}
+    $('incMsg').textContent = 'Textul pentru docs/incidente.md e mai jos (și în clipboard, dacă browserul a permis).';
+  }));
+}
+function bindIncidente(){
+  const I = window.JournalIncidente; if (!I || !$('btnIncNoteaza')) return;
+  if ($('incLa') && !$('incLa').value) { const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000); $('incLa').value = d.toISOString().slice(0, 16); }
+  $('btnIncNoteaza').addEventListener('click', () => {
+    const laTxt = $('incLa') ? $('incLa').value : '', la = laTxt ? new Date(laTxt) : new Date();
+    const ua = String((window.navigator && navigator.userAgent) || '');
+    const x = { titlu: $('incTitlu').value, la: Number.isFinite(la.getTime()) ? la.toISOString() : 'necunoscută', gravitate: $('incGrav').value, ce: $('incCe').value,
+      impact: $('incImpact').value, cauza: $('incCauza').value, masura: $('incMasura').value, stare: ($('incMasura').value || '').trim() ? 'inchis' : 'deschis' };
+    const r = I.adauga(window.localStorage, x, { now: Date.now(), aparat: /Android|iPhone|iPad|Mobile/i.test(ua) ? 'telefon' : 'PC' });
+    $('incMsg').textContent = r.ok ? 'Incident notat' + (r.incident.stare === 'deschis' ? ' — rămâne deschis până scrii ce s-a schimbat.' : ', închis cu măsura scrisă.') : r.erori.join(' ');
+    if (!r.ok) return;
+    ['incTitlu', 'incCe', 'incImpact', 'incCauza', 'incMasura'].forEach(id => { $(id).value = ''; });
+    renderIncidente();
+  });
+}
+/* — sfârșitul registrului de incidente — */
+try { bindIncidente(); renderIncidente(); } catch (e) {}
+window.addEventListener('storage', e => { if (e && e.key === 'tt_journal_incidente_v1') { try { renderIncidente(); } catch (x) {} } });
 function loadGovCfg(){
   if (!window.GV) return;
   const c = GV.cfg();
@@ -1377,8 +1471,16 @@ function loadGovCfg(){
   $('cTg').checked = !!c.tgOnHalt;
   if ($('cTgRisk')) $('cTgRisk').checked = c.tgOnRiskHalt !== false;
   // 20.10.2026 (I-728): ultimele 10 schimbări de limite (append-only, GV.limiteJurnal)
-  try { const j = GV.limiteJurnal ? GV.limiteJurnal() : [], L = $('gvLimiteLista'), N = $('gvLimiteN'); if (N) N.textContent = j.length; if (L) L.innerHTML = j.slice(-10).reverse().map(x => '<li>' + new Date(x.ts).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' · ' + String(x.aparat || '').replace(/[<>&]/g, '') + ' · <b>' + String(x.cheia).replace(/[<>&]/g, '') + '</b>: ' + String(x.de).replace(/[<>&]/g, '') + ' → ' + String(x.la).replace(/[<>&]/g, '') + '</li>').join('') || '<li>Nicio schimbare notată încă (de la 20.10.2026).</li>'; } catch (e) {}
+  try { const j = GV.limiteJurnal ? GV.limiteJurnal() : [], L = $('gvLimiteLista'), N = $('gvLimiteN'); if (N) N.textContent = j.length; if (L) L.innerHTML = j.slice(-10).reverse().map(x => '<li>' + new Date(x.ts).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' · ' + esc(x.aparat || '') + ' · <b>' + esc(x.cheia) + '</b>: ' + esc(x.de) + ' → ' + esc(x.la) + (x.stare === 'programata' ? ' · <i>relaxare programată, intră ' + esc(ora(x.intraLa)) + ', expiră ' + esc(ora(x.expiraLa)) + ' — ' + esc(x.motiv || '') + '</i>' : '') + '</li>').join('') || '<li>Nicio schimbare notată încă (de la 20.10.2026).</li>'; } catch (e) {}
+  // 27.10.2026 (I-760): relaxările programate / active, cu „Renunță”
+  try { const ov = GV.overrides ? GV.overrides().filter(o => o.stare === 'activ' || o.stare === 'programat') : [], B = $('gvOverrideBox'), L = $('gvOverrideLista'); if (B && L) { B.hidden = !ov.length; L.innerHTML = ov.map(o => '<li><b>' + esc(o.cheia) + '</b> ' + esc(o.de) + ' → ' + esc(o.la) + (o.stare === 'activ' ? ' · activă până la ' + esc(ora(o.expiraLa)) : ' · intră la ' + esc(ora(o.intraLa)) + ', expiră la ' + esc(ora(o.expiraLa))) + ' · ' + esc(o.motiv || '') + ' <button type="button" class="act" data-ov-cancel="' + esc(o.id) + '">Renunță</button></li>').join(''); } } catch (e) {}
 }
+const ora = ts => { const t = typeof ts === 'number' ? ts : Date.parse(ts); return Number.isFinite(t) ? new Date(t).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'; };
+$('gvOverrideLista') && $('gvOverrideLista').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-ov-cancel]'); if (!b) return;
+  if (!confirm('Renunți la relaxarea programată / activă? Limita revine la valoarea strictă.')) return;
+  if (GV.anuleazaOverride && GV.anuleazaOverride(b.dataset.ovCancel, 'renunțat din formular')) { loadGovCfg(); renderDesk(); }
+});
 $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
   const acct = +$('cAcct').value;
   const saved = GV.saveCfg({
@@ -1387,9 +1489,12 @@ $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
     maxDdPctRolling: +$('cDdRoll').value, maxLossPctWeek: +$('cWeekLoss').value,
     ddRollingOn: $('cDdOn').checked, tgOnHalt: $('cTg').checked,
     tgOnRiskHalt: $('cTgRisk') ? $('cTgRisk').checked : true
-  });
-  if (!saved) { alert('Limite invalide sau salvare nereușită. Folosește capital și praguri pozitive, iar numărul de trade-uri/poziții trebuie întreg.'); return; }
-  renderDesk(); if(window.T212CapitalUI)T212CapitalUI.refresh();
+  }, { motiv: $('gvMotiv') ? $('gvMotiv').value : '', expiraZile: $('gvExpira') ? Math.round(+$('gvExpira').value) : 7 });
+  if (!saved) { alert(GV.ultimaEroare || 'Limite invalide sau salvare nereușită. Folosește capital și praguri pozitive, iar numărul de trade-uri/poziții trebuie întreg.'); return; }
+  /* 27.10.2026 (I-760): relaxările nu intră acum — se spune când intră și când expiră */
+  if (saved.amanate && saved.amanate.length) alert('Relaxarea intră peste 24 de ore, nu acum: ' + saved.amanate.map(a => a.cheia + ' ' + a.de + ' → ' + a.la + ' (de la ' + ora(a.intraLa) + ' până la ' + ora(a.expiraLa) + ')').join(', ') + '. Până atunci rămâne limita de acum; o poți anula din „Relaxări de limite”.');
+  if ($('gvMotiv')) $('gvMotiv').value = '';
+  loadGovCfg(); renderDesk(); if(window.T212CapitalUI)T212CapitalUI.refresh();
 });
 function fmtUsd0(v){ return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
 
@@ -1426,12 +1531,15 @@ function renderCapitalDrill(){
   const acct = window.ACCT ? ACCT.get().value : (window.GV ? GV.cfg().accountSize : null);
   const closed = JR.all().filter(e => e && e.exit != null).sort((a, b) => (b.closeTs || 0) - (a.closeTs || 0));
   const openRows = JR.all().filter(isOpenE);
+  /* 27.10.2026 (I-751): curba și DD în moneda contului; USD doar la afișare, la un singur curs (baza nu mai e la cursul zilei ei) */
+  const cv = EQ.curve(), inMoneda = cv.cur && cv.cur !== 'USD';
+  const monedaNota = inMoneda ? ' · Curba și DD în ' + esc(cv.cur) + ' (moneda contului): ' + Math.round(cv.currentLocal).toLocaleString('ro-RO') + ' ' + esc(cv.cur) + '; USD doar la afișare, la ' + esc(cv.monedaSursa) + ' (' + Number(cv.displayRate).toFixed(4) + ').' : '';
 
   const rows = [
-    { id: 'base', lbl: 'Baseline (primul snapshot)', val: base.value, sign: '', det: base.source === 'snapshot' ? 'Snapshot ' + (base.day || '—') + (base.note ? ' · ' + base.note : '') : 'Cont manual / governor — adaugă snapshot ★' },
+    { id: 'base', lbl: 'Baseline (primul snapshot)', val: inMoneda ? cv.start : base.value, sign: '', det: (base.source === 'snapshot' ? 'Snapshot ' + esc(base.day || '—') + (base.note ? ' · ' + esc(base.note) : '') : 'Cont manual / governor — adaugă snapshot ★') + (inMoneda ? ' · în ' + esc(cv.cur) + ' (moneda contului), arătat în USD la cursul de afișare' : '') },
     { id: 'pnl', lbl: 'PnL realizat (închis)', val: realized, sign: realized >= 0 ? '+' : '', det: closed.length ? closed.slice(0, 20).map(capTradeLineHtml).join('') + (closed.length > 20 ? '<p class="note">+' + (closed.length - 20) + ' mai vechi…</p>' : '') : '<span class="note">Nicio execuție închisă</span>' },
     { id: 'cev', lbl: 'Evenimente capital (net)', val: capNet, sign: capNet >= 0 ? '+' : '', det: caps.length ? caps.map(c => '<div class="cap-line"><span>' + esc(c.day) + '</span><b>' + (c.kind === 'withdraw' ? 'Retragere' : 'Depunere') + '</b><span class="' + (c.kind === 'withdraw' ? 'neg' : 'pos') + '">' + fmtUsd0(c.amountUsd) + '</span></div>').join('') : '<span class="note">Niciun eveniment — adaugă depuneri/retrageri</span>' },
-    { id: 'sim', lbl: '= Simulat (curbă journal)', val: dd.current, sign: '', sum: true },
+    { id: 'sim', lbl: '= Simulat (curbă journal)', val: dd.current, sign: '', sum: true, det: inMoneda ? monedaNota.slice(3) : '' },
     { id: 'snap', lbl: 'Snapshot Trade212 (ultim)', val: drift.snapshot ? drift.snapshot.equity : null, sign: '', det: drift.snapshot ? 'Înregistrat ' + drift.snapshot.day + (drift.snapshot.note ? ' · ' + esc(drift.snapshot.note) : '') : 'Lipsește — pune totalul din app' },
     { id: 'drf', lbl: 'Drift (Sim − Snap)', val: drift.driftUsd, sign: drift.driftUsd != null && drift.driftUsd >= 0 ? '+' : '', warn: drift.warn, det: 'Sub 2% = OK. Peste = journal incomplet, snapshot vechi, sau poziții open (vezi mai jos).' },
     { id: 'unr', lbl: 'Nerealizat (open, nu în Sim)', val: unreal.tot, sign: unreal.tot >= 0 ? '+' : '', det: openRows.length ? openRows.map(e => {
@@ -1488,12 +1596,20 @@ function renderCapitalPanel(){
   $('capBaseLine').textContent = base.source === 'snapshot'
     ? 'Baseline ' + fmtUsd0(base.value) + ' · snapshot ' + base.day + ' + PnL închis + capital'
     : 'Baseline ' + fmtUsd0(base.value) + ' · cont risc — adaugă primul snapshot Trade212';
+  /* 27.10.2026 (I-751): moneda curbei la vedere — DD-ul nu mai măsoară cursul EUR/USD */
+  try {
+    const cv = EQ.curve();
+    if (cv.cur && cv.cur !== 'USD') $('capBaseLine').textContent = 'Baseline ' + fmtUsd0(cv.start) + ' · curba și DD în ' + cv.cur + ' (moneda contului); USD doar la afișare, la ' + cv.monedaSursa + ' (' + Number(cv.displayRate).toFixed(4) + ')';
+  } catch (e) {}
   const unreal = calcUnrealizedTotal();
   const dd = EQ.drawdownStats();
   /* 18.10.2026 (revizia Jurnalului): fără cont cunoscut și fără snapshot, 10.000 e doar valoarea de pornire — nu bani ai contului */
   const contNecunoscut = !drift.snapshot && window.ACCT && typeof ACCT.known === 'function' && !ACCT.known();
   if (contNecunoscut) $('capBaseLine').textContent = 'Capitalul contului e necunoscut — sincronizează Trading 212 sau adaugă primul snapshot; nu afișăm o sumă inventată.';
-  if ($('capHero') && contNecunoscut) {
+  /* 27.10.2026 (audit C 🔵 19): în modul Lite hero-ul Full e ascuns ⇒ nu se mai desenează degeaba (setCapMode re-randează la comutare) */
+  const liteVizibil = !!(window.JWS && JWS.enabled() && typeof JWS.capMode === 'function' && JWS.capMode() === 'lite');
+  if (liteVizibil) { /* hero-ul Lite e desenat de JWS.renderCapitalLite */ }
+  else if ($('capHero') && contNecunoscut) {
     $('capHero').innerHTML = ['SIMULAT', 'SNAPSHOT', 'DRIFT', 'NEREALIZAT', 'ESTIMAT'].map(l => '<div class="scard"><div class="lbl">' + l + '</div><div class="val">—</div></div>').join('');
   } else if ($('capHero')) {
     $('capHero').innerHTML = [
@@ -1857,7 +1973,7 @@ if (window.JWS) {
   JWS.init({
     $, esc, fmt$, TAGS, isOpenE, closeE, openPriceCache,
     fillForm, renderAll, calcUnrealizedTotal,
-    renderCapitalPanel,
+    renderCapitalPanel, fmtUsd0,
     refreshMarks: async () => { await refreshMarks(); }
   });
 }
@@ -1945,7 +2061,7 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = 'tt-v985';
+  var ver = 'tt-v986';
   var full = window.SUITE_VERSION || 'tt-v625-2026-07-12';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
@@ -1966,14 +2082,14 @@ document.addEventListener('click', ev => {
 })();
 </script>
 <script src="../lib/trade-evidence-schema.js?v=26.10.09.2330"></script><script src="../lib/evidence-vault.js?v=26.10.15.1930"></script><script src="../lib/trade-evidence.js?v=26.10.15.1930"></script>
-<script src="../lib/market-verdict.js?v=26.10.27.1759"></script><script src="../lib/journal-review.js?v=26.10.17.2200"></script><script src="review.js?v=26.10.17.1800"></script>
-<link rel="stylesheet" href="report.css?v=26.10.18.0300"><script src="../lib/monthly-limit.js?v=26.10.20.0934"></script><script src="../lib/stop-setter.js?v=26.10.27.1759"></script><script src="../lib/journal-report.js?v=26.10.27.1759"></script><script src="report.js?v=26.10.20.0934"></script>
+<script src="../lib/market-verdict.js?v=26.10.27.1759"></script><script src="../lib/journal-review.js?v=26.10.27.2240"></script><script src="review.js?v=26.10.27.2240"></script>
+<link rel="stylesheet" href="report.css?v=26.10.27.2240"><script src="../lib/monthly-limit.js?v=26.10.27.2240"></script><script src="../lib/stop-setter.js?v=26.10.27.2240"></script><script src="../lib/journal-report.js?v=26.10.27.2240"></script><script src="../lib/journal-comportament.js?v=26.10.27.2240"></script><script src="../lib/journal-mae.js?v=26.10.27.2240"></script><script src="../lib/journal-zile.js?v=26.10.27.2240"></script><script src="report.js?v=26.10.27.2240"></script>
 <script src="../nav.js?v=26.10.15.1830" data-nav-root="../"></script>
 <!-- tt:sw-guard:start -->
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v985';
+  var PAGE_VER = 'tt-v986';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

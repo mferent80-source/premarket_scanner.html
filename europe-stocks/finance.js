@@ -5,15 +5,20 @@
   let fx=null,calendar=null,calendarLoadedAt=0,loadingFx=null,loadingCalendar=null;
   const day=t=>new Date(t).toISOString().slice(0,10);
   function parseRates(rows,now=Date.now()){
-    if(!Array.isArray(rows)||rows.length!==5)throw Error('Cursuri BCE incomplete.');
+    // 27.10.2026 (audit E B8): o monedă în plus în răspuns (BCE / Frankfurter) se ignoră; închis la eroare rămâne pentru moneda necesară lipsă,
+    // dublură, dată amestecată sau curs invalid. Înainte, orice rând în plus (rows.length !== 5) oprea tot calculatorul de risc.
+    if(!Array.isArray(rows)||!rows.length||rows.length>100)throw Error('Cursuri BCE incomplete.');
     const seen=new Set(),date=rows[0]?.date;
     const at=Date.parse(date+'T00:00:00Z');
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date||'')||!Number.isFinite(at)||date>day(now)||now-at>5*86400000)throw Error('Data cursului BCE este veche sau invalidă.');
     const rates={EUR:1};
     for(const row of rows){
-      if(row.base!=='EUR'||row.date!==date||!codes.includes(row.quote)||row.quote==='EUR'||seen.has(row.quote)||!Number.isFinite(row.rate)||row.rate<=0)throw Error('Pereche valutară invalidă.');
+      if(!row||row.base!=='EUR'||row.date!==date)throw Error('Pereche valutară invalidă.');
+      if(!codes.includes(row.quote)||row.quote==='EUR')continue;
+      if(seen.has(row.quote)||!Number.isFinite(row.rate)||row.rate<=0)throw Error('Pereche valutară invalidă.');
       seen.add(row.quote);rates[row.quote]=row.rate;
     }
+    if(codes.some(c=>c!=='EUR'&&!seen.has(c)))throw Error('Cursuri BCE incomplete.');
     return {date,rates,checkedAt:now,source:FX_URL};
   }
   async function loadRates(){

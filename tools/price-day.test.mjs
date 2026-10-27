@@ -96,15 +96,8 @@ test('after: last rămâne bara AH (preț live), prev = close ieri', () => {
   assert.equal(q.prev, 92.80);
 });
 
-test('botul folosește PriceDay.yahooQuote pe stocks (paritate overnight cu /alerts/)', () => {
-  const { readFileSync } = require('node:fs');
-  const { fileURLToPath } = require('node:url');
-  const { dirname, join } = require('node:path');
-  const bot = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'check-alerts.mjs'), 'utf8');
-  assert.match(bot, /lib\/price-day\.js/);
-  assert.match(bot, /yahooQuote/);
-  assert.match(bot, /usSessionEt/);
-});
+// 27.10.2026 (audit E Y6, I-756): cele trei probe ale botului de praguri (tools/check-alerts.mjs — Telegram, nerulat de niciun workflow
+// de pe 27.09) au fost retrase odată cu botul; paritatea pe stocks rămâne probată pe pagină (mai jos).
 
 test('summarizeBus: numără surse și otrava', () => {
   const s = PD.summarizeBus({
@@ -200,15 +193,6 @@ test('lastBarAt: valoarea ȘI momentul ultimei bare non-null', () => {
   assert.equal(PD.lastBarAt(null, null), null);
 });
 
-test('botul pasează ora barei către yahooQuote (aceeași gardă ca pagina)', () => {
-  const { readFileSync } = require('node:fs');
-  const { fileURLToPath } = require('node:url');
-  const { dirname, join } = require('node:path');
-  const bot = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'check-alerts.mjs'), 'utf8');
-  assert.match(bot, /lastBarTs/, 'botul trebuie să afle ora barei');
-  assert.match(bot, /yahooQuote\([^)]*lastBarTs\)/, 'și s-o paseze mai departe');
-});
-
 // ── MONEDA (v796) ────────────────────────────────────────────────────────────
 // Cauza „prețul nu e cel din Trading 212": 1QZ.DE (Coinbase pe XETRA) costă 161.34 EUR,
 // iar pagina scria „$161.34" — 13.6% sub prețul real al COIN de pe Nasdaq (186.79 USD).
@@ -269,14 +253,4 @@ test('pagina /alerts/ nu mai lipește „$" de niciun preț', () => {
   assert.doesNotMatch(html, /'\$' \+ fmtPx\(/, 'preț cu $ hardcodat prin concatenare');
   assert.match(html, /const fmtMoney = \(v, sym\) => curOf\(sym\)/, 'prețul se scrie cu fmtMoney');
   assert.match(html, /if \(p\.cur\) curs\[sym\] = p\.cur;/, 'moneda trebuie luată din cotație');
-});
-
-test('botul Telegram trimite prețul cu moneda lui', () => {
-  const { readFileSync } = require('node:fs');
-  const { fileURLToPath } = require('node:url');
-  const { dirname, join } = require('node:path');
-  const bot = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'check-alerts.mjs'), 'utf8');
-  assert.doesNotMatch(bot, /\$\$\{[^}]*toFixed\(dec\(/, 'mesaj cu $ hardcodat pe un preț');
-  assert.match(bot, /const money = \(v, sym\) => cs\(sym\)/, 'botul are formatarea cu monedă');
-  assert.match(bot, /cur: out\.cur \|\| 'USD'/, 'moneda trebuie să iasă din fetchPrice');
 });

@@ -12,7 +12,9 @@ function build(overrides={},extra={}){return V.build({purpose:'entry',candidate:
 function model(x=candidate()){return {symbol:x.symbol,currency:x.currency,asOf:x.sourceDate,kind:x.kind,historyKey:x.trend.historyKey,generatedAt:now,available:7,total:7,direction:2,state:'up',title:'Înclinare ascendentă · experimentală',cards:['neural','boosting','hmm','isolation','quantile','garch','knn'].map(id=>({id,available:true,eligible:true,direction:id==='garch'||id==='isolation'?null:2}))};}
 
 test('completed, aligned evidence permits a conditional plan without claiming probability',()=>{const r=build();assert.equal(r.code,'PLAN');assert.equal(r.canPlan,true);assert.equal(r.model,null);assert.ok(r.nextSteps.some(x=>x.id==='ai'));assert.equal(r.evidence.find(x=>x.id==='ai').role,'unknown');});
-test('fresh scan cannot promote stale EOD, missing currency or future scan timestamp',()=>{for(const x of [{sourceDate:'2026-10-01'},{currency:null},{ts:now+60001},{ts:now-V.MAX_AGE-1}]){assert.equal(build(x).code,'VERIFY');assert.equal(build(x).canPlan,false);}});
+test('fresh scan cannot promote stale EOD, missing currency or future scan timestamp',()=>{for(const x of [{sourceDate:'2026-10-01'},{currency:null},{ts:now+60001}]){assert.equal(build(x).code,'VERIFY');assert.equal(build(x).canPlan,false);}});
+// 27.10.2026 (I-750, I-703 dus la capăt): datele sunt EOD ⇒ analiza e valabilă pe sesiunea așteptată (DailySeries.usable), nu 30 de minute; MAX_AGE nu mai există
+test('an analysis hours old on the same EOD session is still current; only a different session or an invalid time blocks',()=>{assert.equal(build({ts:now-5*3600000}).code,'PLAN');assert.equal(V.sourceCurrent(candidate({ts:now-5*3600000}),now),true);assert.equal(V.sourceCurrent(candidate({ts:now+60001}),now),false);assert.equal(V.sourceCurrent(candidate({sourceDate:'2026-10-01'}),now),false);assert.equal('MAX_AGE' in V,false,'pragul de 30 de minute a dispărut din contract');});
 test('risk denial wins over score and bullish models',()=>{assert.equal(build({}, {risk:{verdict:'HALTED'},ai:model()}).code,'BLOCKED');assert.equal(build({}, {risk:null}).canPlan,false);assert.equal(build({}, {risk:{verdict:'CAUTION'}}).code,'CAUTION');});
 test('early reversal remains monitoring even with otherwise valid levels',()=>{assert.equal(build({mode:'reversal',actionable:false,state:'EARLY'}).code,'WATCH');});
 test('reward is checked at upper entry boundary instead of midpoint',()=>{const r=build({target:111});assert.equal(r.code,'WATCH');assert.ok(r.cautions.some(c=>c.id==='reward'));assert.equal(r.canPlan,false);});
@@ -21,7 +23,7 @@ test('extension beyond two ATR requires a new entry structure',()=>{const r=buil
 test('trend with a different close cannot be attached to a packet',()=>{assert.equal(build({trend:{...candidate().trend,price:101}}).code,'VERIFY');});
 test('long horizon stays unknown until two hundred actual closes exist',()=>{assert.equal(V.trend(bars(90)).long,'unknown');assert.equal(V.trend(bars()).long,'up');assert.equal(V.trend(bars(240,true)).medium,'down');assert.equal(V.trend(bars(59)),null);assert.equal(V.trend([{t:1,c:100},...bars(60)]),null);});
 test('compatible seven-model report influences conflict and volatility checks',()=>{assert.ok(build({}, {ai:model()}).model);for(const ai of [{...model(),direction:0,state:'down'},{...model(),state:'weak'},{...model(),state:'up-volatile'}])assert.equal(build({}, {ai}).canPlan,false);});
-test('wrong symbol, currency, session, kind, history and age reject model reuse',()=>{for(const mismatch of [{symbol:'OTHER'},{currency:'EUR'},{asOf:'2026-10-01'},{kind:'synthetic'},{historyKey:'different'},{generatedAt:now-V.MAX_AGE-1},{generatedAt:now+1}])assert.equal(build({}, {ai:{...model(),...mismatch}}).model,null);});
+test('wrong symbol, currency, session, kind, history and a future time reject model reuse; hours-old on the same session and history is reused',()=>{for(const mismatch of [{symbol:'OTHER'},{currency:'EUR'},{asOf:'2026-10-01'},{kind:'synthetic'},{historyKey:'different'},{generatedAt:now+1}])assert.equal(build({}, {ai:{...model(),...mismatch}}).model,null);assert.ok(build({}, {ai:{...model(),generatedAt:now-5*3600000}}).model,'I-750: sesiunea + amprenta decid, nu 30 de minute');const x=candidate();assert.ok(V.modelSummary({...model(x),generatedAt:now-5*3600000},{symbol:x.symbol,currency:x.currency,asOf:x.sourceDate,kind:x.kind,bars:bars()},now));});
 test('duplicating a model ID cannot satisfy seven-model coverage',()=>{const ai=model();ai.cards[5]=ai.cards[0];assert.equal(build({}, {ai}).model,null);});
 test('one-year and five-year histories match only when their last sixty OHLCV bars match',()=>{const a=bars(300),b=structuredClone(a.slice(-240));assert.equal(V.seriesKey(a),V.seriesKey(b));b.at(-1).v+=1;assert.notEqual(V.seriesKey(a),V.seriesKey(b));});
 test('model summary drops portfolio and credentials and tolerates malformed cards',()=>{const x=candidate(),raw={...model(x),secret:'NEVER_SEND',positions:[1],balance:5000};const r=V.modelSummary(raw,{symbol:x.symbol,currency:x.currency,asOf:x.sourceDate,kind:x.kind,bars:bars()},now);assert.ok(r);assert.doesNotMatch(JSON.stringify(r),/NEVER_SEND|positions|balance/);assert.equal(V.modelSummary({...raw,cards:null},{},now),null);});
@@ -50,11 +52,11 @@ test('a monitored bullish candidate explains its structure and the actual missin
  assert.match(r.briefing.invalidation,/95 USD/);
  assert.doesNotMatch(r.briefing.confirmation,/Reper structural de confirmare/);
 });
-test('expired analysis and wrong EOD give distinct explanations without enabling a plan',()=>{
- const expired=build({ts:now-V.MAX_AGE-1}),wrongSession=build({sourceDate:'2026-10-01'});
- assert.match(expired.briefing.obstacles[0].text,/30 de minute/);
+test('invalid analysis time and wrong EOD give distinct explanations without enabling a plan',()=>{
+ const invalid=build({ts:now+60001}),wrongSession=build({sourceDate:'2026-10-01'});
+ assert.match(invalid.briefing.obstacles[0].text,/Ora analizei este invalidă/);assert.doesNotMatch(JSON.stringify(invalid),/30 de minute/);
  assert.match(wrongSession.briefing.obstacles[0].text,/2026-10-01/);
- assert.equal(expired.canPlan,false);assert.equal(wrongSession.canPlan,false);
+ assert.equal(invalid.canPlan,false);assert.equal(wrongSession.canPlan,false);
 });
 test('empty filtered pages explain their own state instead of inventing failed technical checks',()=>{
  const r=V.build({purpose:'entry',empty:{title:'Niciun candidat Europa',reason:'Acțiunile verificate nu trec filtrul.',next:'Schimbă strategia și filtrele.'}},now);

@@ -12,7 +12,7 @@ async function setup(enabled,vault=null,options={}){
  const saved=options.saved||new Map(),storage={getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},sessionItems=new Map(),sessionStorage={getItem:k=>sessionItems.get(k)||null,setItem:(k,v)=>sessionItems.set(k,v)};
  const window={crypto:webcrypto,T212Vault:vault,T212J:options.journal,addEventListener:(name,fn)=>events[name]=fn},calls=[];
  window.parent=options.parent||window;
- const context=vm.createContext({window,Intl,Date:Clock,localStorage:storage});for(const file of ['lib/daily-series.js','lib/holding-evolution.js','lib/trading212-performance.js','lib/trading212-portfolio.js','lib/trading212-daily.js','lib/holdings-pulse.js','lib/position-history.js','lib/holding-handoff.js','lib/trading212-snapshot.js',...(options.journal==='real'?['lib/trading212-journal.js']:[])])vm.runInContext(readFileSync(file,'utf8'),context);
+ const context=vm.createContext({window,Intl,Date:Clock,localStorage:storage});for(const file of ['lib/daily-series.js','lib/holding-evolution.js','lib/trading212-performance.js','lib/trading212-portfolio.js','lib/trading212-daily.js','lib/holdings-pulse.js','lib/position-history.js','lib/holding-handoff.js','lib/trading212-snapshot.js',...(options.journal==='real'?['lib/trading212-journal.js']:[]),...(options.extra||[])])vm.runInContext(readFileSync(file,'utf8'),context);
  window.ViewRefresh={patchList:(host,items,key,markup)=>{host.innerHTML=items.map(markup).join('');}};
  const fetch=async(u,request)=>{
   if(String(u).includes('trading212-config'))return {json:async()=>({enabled,endpoint:'https://owned-private.workers.dev',directCredentials:true})};
@@ -246,4 +246,36 @@ test('o pagină veche de tranzacții care pică nu mai blochează importul: urm�
 test('limita temporară Trading 212 (429) păstrează cursorul paginii vechi',async()=>{
  const seen=await cursorScenario({ok:false,status:429,json:async()=>({error:'rate_limited',retryAfter:30})});
  assert.equal(seen.length,3);assert.equal(seen[2],'bad');
+});
+
+// 27.10.2026 (I-759, partea client): după fiecare citire a brokerului, copiile (snapshot, jurnalul execuțiilor, ordinele) sunt comparate cu ce a
+// spus Trading 212 ⇒ tt_reconciliere_v1 (contractul cu C: CAUTION la ok=false; cu A: Health) și panoul din pagina contului.
+test('I-759: după sincronizare pagina scrie tt_reconciliere_v1 pentru contul citit și arată rezultatul în panoul de reconciliere',async()=>{
+ const s=await setup(true,null,{journal:'real',extra:['lib/t212-pending.js','lib/trading212-reconciliere.js'],response:(b,name)=>({...b,data:name==='summary'?{currency:'EUR',totalValue:1000,available:100,reserved:0}:name==='positions'?[{ticker:'A_US_EQ',quantity:1,currency:'EUR',instrumentCurrency:'USD',value:900,unrealized:0,averagePrice:1,currentPrice:1}]:name==='orders-pending'?[]:b.data})});
+ await s.connect();await flushBroker();
+ const r=JSON.parse(s.saved.get('tt_reconciliere_v1'));assert.equal(r.ok,true);assert.ok(/^live:[0-9a-f]{64}$/.test(r.scope));assert.ok(Number.isFinite(Date.parse(r.la)));assert.deepEqual(r.diferente,[]);assert.equal(r.verificat.ordine,true);
+ assert.match(s.el('reconciliere').innerHTML,/fără diferențe/i);
+ const rau=await setup(true,null,{journal:'real',extra:['lib/t212-pending.js','lib/trading212-reconciliere.js'],response:(b,name)=>({...b,data:name==='summary'?{currency:'EUR',totalValue:1500,available:100,reserved:0}:name==='positions'?[{ticker:'A_US_EQ',quantity:1,currency:'EUR',instrumentCurrency:'USD',value:900,unrealized:0,averagePrice:1,currentPrice:1}]:name==='orders-pending'?[]:b.data})});
+ await rau.connect();await flushBroker();const r2=JSON.parse(rau.saved.get('tt_reconciliere_v1'));assert.equal(r2.ok,false);assert.equal(r2.diferente[0].tip,'numerar');assert.match(rau.el('reconciliere').innerHTML,/1 diferență/);
+});
+// 27.10.2026 (I-757): butonul „Oprește tot” din pagina contului — confirmare în două trepte (prima deschide caseta cu motivul, a doua anulează), starea
+// scrisă de TTOprire e la vedere la încărcare și după apăsare.
+test('I-757: „Oprește tot” cere confirmarea a doua, trimite motivul la TTOprire.opreste și arată starea OPRIT',async()=>{
+ const apeluri=[];let stare=null;
+ const s=await setup(true,null,{response:(b,name)=>({...b,data:name==='summary'?{currency:'EUR',totalValue:1000,available:100}:name==='positions'?[]:b.data})});
+ s.window.TTOprire={citeste:()=>stare,text:(x)=>x?'OPRIT · '+x.motiv:'Nu e oprit.',opreste:async({motiv})=>{apeluri.push(motiv);stare={activ:true,motiv,ordineAnulate:[]};return {ok:true,stare,mesaj:'gata'};}};
+ await s.connect();s.window.TTOprire.randeaza?.();
+ assert.equal(s.el('opresteTot').handlers.click===undefined,false,'butonul are ascultător');
+ assert.equal(s.el('oprireConfirm').hidden,true);s.el('opresteTot').handlers.click({preventDefault(){}});assert.equal(s.el('oprireConfirm').hidden,false);assert.equal(apeluri.length,0,'prima apăsare nu anulează nimic');
+ s.el('opresteNu').handlers.click({preventDefault(){}});assert.equal(s.el('oprireConfirm').hidden,true);
+ s.el('opresteTot').handlers.click({preventDefault(){}});s.el('oprireMotiv').value='ordin greșit';await s.el('opresteConfirmDa').handlers.click({preventDefault(){}});await flushBroker();
+ assert.deepEqual(apeluri,['ordin greșit']);assert.match(s.el('oprireStare').textContent,/OPRIT · ordin greșit/);assert.equal(s.el('oprireConfirm').hidden,true);
+});
+// 27.10.2026 (I-764): a doua cheie Trading 212 (cu „Orders: Execute”) se pune separat, doar pe acest aparat, pentru același cont ca cea de citire.
+test('I-764: cheia cu ordine se salvează separat în seif pentru contul conectat, câmpurile se golesc, ștergerea o scoate',async()=>{
+ const ordine=[];let clears=0;const vault={read:async()=>null,save:async()=>{},clear:async()=>{},saveOrdine:async(p)=>{ordine.push(p);},clearOrdine:async()=>{clears++;},readOrdine:async()=>ordine.at(-1)||null};
+ const s=await setup(true,vault,{response:(b,name)=>({...b,data:name==='summary'?{currency:'EUR',totalValue:1000,available:100}:name==='positions'?[]:b.data})});await s.connect();
+ s.el('ordineKey').value=' cheie-ordine ';s.el('ordineSecret').value='secret-ordine';await s.el('salveazaOrdine').handlers.click({preventDefault(){}});await flushBroker();
+ assert.deepEqual(ordine,[{key:'cheie-ordine',secret:'secret-ordine',environment:'live'}]);assert.equal(s.el('ordineKey').value,'');assert.equal(s.el('ordineSecret').value,'');assert.match(s.el('ordineStare').textContent,/salvată|pusă/i);
+ await s.el('stergeOrdine').handlers.click({preventDefault(){}});await flushBroker();assert.equal(clears,1);assert.match(s.el('ordineStare').textContent,/nicio cheie|lipsește|ștears/i);
 });

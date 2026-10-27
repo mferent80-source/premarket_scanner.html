@@ -40,6 +40,21 @@ test('alertele pe poziții se dau și pe copia veche a contului (stale), cu vech
  const proaspat=setup({a:account({positions:[{ticker:'MU_US_EQ',value:1000,quantity:1}]}),extra:{TodayAttention:TA}});await flush();
  assert.match(proaspat.element('attentionStrip').innerHTML,/fără stop pus/);assert.doesNotMatch(proaspat.element('attentionStrip').innerHTML,/copia contului de acum/,'copia proaspătă nu poartă vechimea');
 });
+// 27.10.2026 (lot B, contractul cu lotul E): kill switch-ul tt_governor_oprire_v1 (scris de „Oprește tot”) ⇒ Astăzi arată primul rândul „OPRIT: …”
+// (doar citire, prin TodayAttention.oprire) și îl reface la evenimentul window `tt-oprire` și la `storage` pe cheie.
+test('rândul OPRIT din kill switch e primul în „Ce necesită atenție”, trimite la pagina contului și se reface la tt-oprire',async()=>{
+ let oprit=null;const TA={alerte:({positions})=>positions.map(p=>({grav:5,sever:true,ticker:p.ticker,text:'⛔ '+p.ticker+': fără stop pus în Portofoliu'})),stopuri:()=>new Set(),oprire:()=>oprit};
+ const s=setup({a:account({positions:[{ticker:'MU_US_EQ',value:1000,quantity:1}]}),extra:{TodayAttention:TA}});await flush();
+ assert.doesNotMatch(s.element('attentionStrip').innerHTML,/OPRIT/,'fără cheie nu se inventează oprirea');
+ oprit={activ:true,text:'⛔ OPRIT: pierdere peste limită (16:03, 27.10, laptop) · 1 ordin anulat',la:'2026-10-27T14:03:00Z'};
+ s.event('tt-oprire',{detail:{activ:true}});await flush();
+ const html=s.element('attentionStrip').innerHTML;assert.match(html,/OPRIT: pierdere peste limită/);
+ assert.ok(html.indexOf('OPRIT')<html.indexOf('fără stop pus'),'OPRIT e înaintea alertelor pe poziții');
+ assert.match(html,/<div class="attention-row oprit"><p><strong>Ce necesită atenție<\/strong> ⛔ OPRIT/);assert.match(html,/module=broker%2F">Vezi contul ↗<\/a>/);
+ assert.doesNotMatch(html,/#stopPanel">Pune stopul ↓<\/a><\/div><div class="attention-row sever"><p><strong>/,'rândul OPRIT nu trimite la fereastra stopului');
+ oprit=null;s.event('tt-oprire',{detail:{activ:false}});await flush();assert.doesNotMatch(s.element('attentionStrip').innerHTML,/OPRIT/,'re-armat (activ=false) ⇒ rândul dispare');
+ assert.match(readFileSync('today/view.js','utf8'),/e\.key==='tt_governor_oprire_v1'\)try\{renderAttention\(\);/,'și evenimentul storage pe cheie reface rândul (harness-ul ține un singur ascultător pe tip)');
+});
 test('missing and stale account states preserve known data and do not become fabricated zero balances',async()=>{
  const missing=setup({a:account({state:'missing',scope:null,total:null,positions:[],points:[]})});await flush();assert.match(missing.element('accountSummary').innerHTML,/Conectează contul/);assert.match(missing.element('chartHost').innerHTML,/Nu există încă observații/);assert.doesNotMatch(missing.element('accountSummary').innerHTML,/0,00/);
  const stale=setup({a:account({state:'stale',at:NOW-DAY,fresh:false})});await flush();assert.match(stale.element('accountSummary').innerHTML,/42\.000,00/);assert.match(stale.element('accountSummary').innerHTML,/de actualizat/);assert.equal(stale.element('accountState').textContent,'De actualizat');

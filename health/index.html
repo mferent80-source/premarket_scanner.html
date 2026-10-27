@@ -133,6 +133,18 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
     <div class="chk-head"><span class="chk-dot" id="dDClf"></span><h2>🤖 Robotul clasificatorului · noaptea</h2></div>
     <div class="chk-body" id="bDClf">—</div>
   </div>
+  <div class="chk" id="cDProba">
+    <div class="chk-head"><span class="chk-dot" id="dDProba"></span><h2>🖥️ Proba de ecran după publicare</h2></div>
+    <div class="chk-body" id="bDProba">—</div>
+  </div>
+  <div class="chk" id="cDRecon">
+    <div class="chk-head"><span class="chk-dot" id="dDRecon"></span><h2>⚖️ Reconcilierea aplicație ⇆ broker</h2></div>
+    <div class="chk-body" id="bDRecon">—</div>
+  </div>
+  <div class="chk" id="cDOprire">
+    <div class="chk-head"><span class="chk-dot" id="dDOprire"></span><h2>🛑 Oprirea de urgență (kill switch)</h2></div>
+    <div class="chk-body" id="bDOprire">—</div>
+  </div>
   <div class="chk-group">SUITĂ ȘI INFRASTRUCTURĂ</div>
   <div class="chk" id="cSuita">
     <div class="chk-head"><span class="chk-dot" id="dSuita"></span><h2>🧪 Suita de teste la ultimul push (GitHub Actions)</h2></div>
@@ -200,26 +212,28 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
 <div class="foot" id="foot">—</div>
 
 <script src="../lib/data.js?v=26.10.19.1845"></script><script src="../lib/exchange-calendar.js?v=26.10.19.1845"></script><script src="../lib/daily-series.js?v=26.10.19.1740"></script>
-<script src="../lib/capital-time.js?v=630"></script>
-<script src="../lib/account.js?v=26.10.19.1845"></script>
-<script src="../lib/journal.js?v=26.10.27.1759"></script>
-<script src="../lib/equity.js?v=26.10.19.1910"></script>
+<script src="../lib/capital-time.js?v=26.10.27.2240"></script>
+<script src="../lib/account.js?v=26.10.27.2240"></script>
+<script src="../lib/journal.js?v=26.10.27.2240"></script>
+<script src="../lib/equity.js?v=26.10.27.2240"></script>
 <script src="../lib/trading212-snapshot.js?v=26.10.08.0923"></script>
 <script src="../lib/storage-write.js?v=26.10.15.0547"></script>
 <script src="../lib/trading212-fills-store.js?v=26.10.19.1845"></script>
 <script src="../lib/storage-hygiene.js?v=26.10.15.1930"></script>
 <script src="../lib/trading212-performance.js?v=26.10.15.0547"></script>
-<script src="../lib/trading212-capital.js?v=26.10.27.1759"></script>
-<script src="../lib/governor.js?v=26.10.27.1759"></script>
-<script src="../lib/capital-desk.js?v=26.10.27.1759"></script>
+<script src="../lib/trading212-capital.js?v=26.10.27.2240"></script>
+<script src="../lib/governor.js?v=26.10.27.2240"></script>
+<script src="../lib/capital-desk.js?v=26.10.27.2240"></script>
 <script src="../lib/ai.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/suite-version.js?v=985"></script>
+<script src="../lib/suite-version.js?v=986"></script>
 <script src="../lib/quote-bus.js?v=752"></script>
-<script src="../lib/price-day.js?v=985"></script>
+<script src="../lib/price-day.js?v=986"></script>
 <script src="../lib/macro-context.js?v=619"></script>
-<script src="../lib/app-routes.js?v=26.10.18.1300"></script>
+<script src="../lib/app-routes.js?v=26.10.18.1500"></script>
 <script src="../lib/hub-state.js?v=26.10.14.1739"></script>
+<script src="../lib/t212-reader.js?v=26.10.27.2240"></script>
+<script src="decision-stare.js?v=26.10.27.2240"></script>
 <script>
 (function(){
 'use strict';
@@ -673,8 +687,21 @@ function checkDecisionSync(){
   const s=P.TTAppSearch?P.TTAppSearch.cloudStatus(st,navigator.onLine!==false):{kind:st.error?'error':'confirmed',label:st.error?'Eroare de sincronizare':'Sincronizat'};
   const cls=s.kind==='error'||s.kind==='conflict'?'err':s.kind==='confirmed'?'ok':'warn';dot('dDSync',cls);
   let detail='';try{detail=st.error&&P.TTCloudFailure?P.TTCloudFailure.describe(st.failure):'';}catch(_){}
-  $('bDSync').innerHTML='<b class="'+cls+'">'+esc(s.label)+'</b>'+(st.error?'<br><span class="chk-sub">'+esc(st.error)+(detail?' · '+esc(detail):'')+'</span>':'')+'<br><a href="../app/sync/" style="color:var(--accent)">Cont &amp; sincronizare →</a>';
+  // 27.10.2026 (I-748): securitatea serviciului (allowlist Google, sesiuni, ultimul login) și „doi cititori Trading 212” (tt_t212_cititori_v1)
+  let sec={cls:null,html:''};try{sec=window.TTHealthDecision?TTHealthDecision.securitate(st):sec;}catch(_){}
+  let doi=null;try{doi=window.TTT212Reader&&TTT212Reader.doiCititori?TTT212Reader.doiCititori(localStorage,'live',Date.now()):null;}catch(_){doi=null;}
+  if(sec.cls==='err'||doi)dot('dDSync',cls==='err'||sec.cls==='err'?'err':'warn');
+  $('bDSync').innerHTML='<b class="'+cls+'">'+esc(s.label)+'</b>'+(st.error?'<br><span class="chk-sub">'+esc(st.error)+(detail?' · '+esc(detail):'')+'</span>':'')+(sec.html?'<br>'+sec.html:'')+(doi?'<br><span class="warn">'+esc(doi.text)+'</span>':'')+'<br><a href="../app/sync/" style="color:var(--accent)">Cont &amp; sincronizare →</a>';
 }
+/* 27.10.2026 (I-747): ultima probă de ecran după publicare (health/generated/proba-ecran.json) față de versiunea publicată acum */
+async function checkProbaEcran(){
+  const get=async u=>{try{const r=await fetch(u,{cache:'no-cache'});return r.ok?await r.json():null;}catch(_){return null;}};
+  const [j,v]=await Promise.all([get('generated/proba-ecran.json?v='+Math.floor(Date.now()/300000)),get('../app/version.json?v='+Math.floor(Date.now()/300000))]);
+  const r=TTHealthDecision.probaEcran(j,v&&typeof v.version==='string'?v.version:null,Date.now());dot('dDProba',r.cls);$('bDProba').innerHTML=r.html;
+}
+/* 27.10.2026 (contractele lotului 2): reconcilierea scrisă de pagina contului și oprirea de urgență — Health doar le citește */
+function checkReconciliere(){let raw=null;try{raw=localStorage.getItem('tt_reconciliere_v1');}catch(_){raw='{stricat';}const r=TTHealthDecision.reconciliere(raw,Date.now());dot('dDRecon',r.cls);$('bDRecon').innerHTML=r.html;}
+function checkOprire(){let raw=null;try{raw=localStorage.getItem('tt_governor_oprire_v1');}catch(_){raw='{stricat';}const r=TTHealthDecision.oprire(raw);dot('dDOprire',r.cls);$('bDOprire').innerHTML=r.html;}
 /* 16.10.2026: previziunile modelelor de pe acest dispozitiv (IndexedDB tt_holdings_forecasts_v1) și dacă circulă prin cloud */
 async function checkDecisionLearning(){
   const db=await new Promise(res=>{try{const q=indexedDB.open('tt_holdings_forecasts_v1');q.onsuccess=()=>res(q.result);q.onerror=()=>res(null);q.onupgradeneeded=()=>{try{q.transaction.abort();}catch(_){}res(null);};}catch(_){res(null);}});
@@ -801,13 +828,15 @@ function checkDecisionSpace(){
 // Fiecare verificare rulează separat: una care pică nu le mai oprește pe celelalte (15.10.2026: „Hub stale” bloca localStorage).
 const runSafe=(name,fn)=>{try{const r=fn();if(r&&typeof r.catch==='function')r.catch(e=>console.warn('[health] '+name,e));}catch(e){console.warn('[health] '+name,e);}};
 window.addEventListener('message',e=>{if(e.origin===location.origin&&e.source===window.parent&&e.data&&e.data.ttStorageHygiene===true){runSafe('Decision · spațiu',checkDecisionSpace);setTimeout(()=>runSafe('Decision · sincronizare',checkDecisionSync),4000);}});
-[['Decision · sincronizare',checkDecisionSync],['Decision · spațiu',checkDecisionSpace],['Decision · învățare',checkDecisionLearning],['Decision · registru',checkDecisionLedger],['Decision · robotul clasificatorului',checkDecisionClassifier],['Decision · robotul verdictului',checkDecisionVerdict],['Suita de teste',checkSuita],['Roboții GitHub',checkRoboti],['Anthropic',checkAnthropic],['Telegram',checkTG],['Gist',checkGistPresence],['SW',checkSW],['Equity',checkEquity],['Hub stale',checkHubStale],['localStorage',checkLS],['Quote-bus',checkQB]].forEach(([n,f])=>runSafe(n,f));
+[['Decision · sincronizare',checkDecisionSync],['Decision · spațiu',checkDecisionSpace],['Decision · învățare',checkDecisionLearning],['Decision · registru',checkDecisionLedger],['Decision · robotul clasificatorului',checkDecisionClassifier],['Decision · robotul verdictului',checkDecisionVerdict],['Decision · proba de ecran',checkProbaEcran],['Decision · reconciliere',checkReconciliere],['Decision · oprire',checkOprire],['Suita de teste',checkSuita],['Roboții GitHub',checkRoboti],['Anthropic',checkAnthropic],['Telegram',checkTG],['Gist',checkGistPresence],['SW',checkSW],['Equity',checkEquity],['Hub stale',checkHubStale],['localStorage',checkLS],['Quote-bus',checkQB]].forEach(([n,f])=>runSafe(n,f));
+// 27.10.2026: pagina contului scrie reconcilierea / oprirea în alt cadru ⇒ Health le recitește la schimbare (doar citire)
+window.addEventListener('storage',e=>{if(e.key==='tt_reconciliere_v1'||e.key===null)runSafe('Decision · reconciliere',checkReconciliere);if(e.key==='tt_governor_oprire_v1'||e.key===null)runSafe('Decision · oprire',checkOprire);if(e.key==='tt_t212_cititori_v1')runSafe('Decision · sincronizare',checkDecisionSync);});
 $('foot').textContent = 'verificările gratuite au rulat la deschidere · cele cu consum așteaptă butonul';
 })();
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = 'tt-v985';
+  const swVer = 'tt-v986';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
@@ -816,7 +845,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v985';
+  var PAGE_VER = 'tt-v986';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

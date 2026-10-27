@@ -59,7 +59,7 @@ if (sv !== svBefore) {
 // ── 2. paginile care înregistrează SW-ul ───────────────────────────────────
 function htmlFiles(dir, acc = []) {
   for (const name of readdirSync(dir)) {
-    if (name === 'node_modules' || name === '.git' || name === '.claude') continue;
+    if (name === 'node_modules' || name === '.git' || name === '.claude' || name === '.tmp.driveupload') continue; // 27.10: folderul temporar al Google Drive dispare în timpul citirii (ENOENT)
     const p = join(dir, name);
     const st = statSync(p);
     if (st.isDirectory()) htmlFiles(p, acc);

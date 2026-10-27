@@ -25,6 +25,8 @@ async function boot({search='?symbol=QCOM&mode=momentum&ticket=1&handoff=1',hash
   if(page==='desk'){
     vm.runInContext(fs.readFileSync('lib/trade-plans.js','utf8')+fs.readFileSync('lib/trade-plan-store.js','utf8'),ctx);
     if(durable){const create=ctx.TTPlanStore.create;ctx.TTPlanStore.create=(storage,options)=>create(storage,{...options,durable});}
+    // 27.10.2026 (I-753): Planuri cere modulele-gardă în modul real (lipsa unuia blochează tichetul) ⇒ căldura și prețul de acum reale, verdictul pieței neutru
+    vm.runInContext(fs.readFileSync('lib/caldura-portofoliu.js','utf8')+fs.readFileSync('lib/pret-viu.js','utf8'),ctx);ctx.MarketVerdict={regula:()=>({label:'neutru',mult:1,go:true,asOf:'2026-10-02',nota:''}),robotFile:async()=>null};
     vm.runInContext(deskScript,ctx);
   }else if(page==='scanner'){
     vm.runInContext(engine.slice(0,engine.lastIndexOf('  validateDeps(); bind();'))+'  bind();window.scannerState=state;})();',ctx);

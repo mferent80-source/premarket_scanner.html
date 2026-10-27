@@ -42,7 +42,11 @@ export function bucatiDiscord(text) {
   return bucati;
 }
 
-// deps: { webhook, fetch, pauzaMs, jurnal }. Întoarce true doar dacă Discord a primit toate bucățile.
+// 27.10.2026 (I-764): rezumatele scrise de robot (știri, rezultate, digest) poartă eticheta — nimeni nu le-a citit înainte să plece.
+export const ETICHETA_NEVERIFICAT = 'generat automat · neverificat de om';
+
+// deps: { webhook, fetch, pauzaMs, jurnal, eticheta }. Întoarce true doar dacă Discord a primit toate bucățile.
+// `eticheta` (text) se pune o singură dată, ca sub-text (-# …) la capătul ultimei bucăți.
 export async function trimiteDiscord(html, d = {}) {
   const jurnal = d.jurnal || console.log;
   if (!esteWebhookDiscord(d.webhook)) {
@@ -51,7 +55,12 @@ export async function trimiteDiscord(html, d = {}) {
   }
   const f = d.fetch || fetch;
   let ok = true;
-  for (const parte of bucatiDiscord(htmlLaDiscord(html))) {
+  const bucati = bucatiDiscord(htmlLaDiscord(html));
+  if (d.eticheta) {
+    const sub = '-# ' + String(d.eticheta).slice(0, 200), ultima = bucati.pop() || '';
+    if (ultima.length + sub.length + 1 <= LIMITA) bucati.push((ultima ? ultima + '\n' : '') + sub); else bucati.push(ultima, sub);
+  }
+  for (const parte of bucati) {
     try {
       const r = await f(String(d.webhook).trim() + '?wait=true', {
         method: 'POST',

@@ -24,8 +24,10 @@ test('mismatched source identity, timestamp, version and unvalidated records can
 test('expired or missing cards never recover details from an old source record',()=>{
  const f=fixture();for(const c of f.summary.cards)c.available=false;const r=A.build(f);assert.ok(r.models.every(x=>!x.available&&!x.metrics.length&&!x.indicators.length));
 });
-test('future or more than 30-minute-old training cannot show analysis metrics',()=>{
- for(const t of [now+1,now-1800001]){const f=fixture();f.hmm.record.trainedAt=t;f.summary.cards[2].trainedAt=t;assert.equal(A.build(f).models[2].available,false);}
+test('future training cannot show analysis metrics; hours-old training on the same verified session can (I-750: session + fingerprint, not 30 minutes)',()=>{
+ const f=fixture();f.hmm.record.trainedAt=now+1;f.summary.cards[2].trainedAt=now+1;assert.equal(A.build(f).models[2].available,false);
+ for(const t of [now-1800001,now-9*3600000]){const g=fixture();g.hmm.record.trainedAt=t;g.summary.cards[2].trainedAt=t;const r=A.build(g);assert.equal(r.models[2].available,true,'la '+((now-t)/60000)+' min de la antrenare');assert.equal(r.models[2].metrics.length,4);}
+ const h=fixture();h.hmm.record.trainedAt=now-9*3600000;h.summary.cards[2].trainedAt=now-9*3600000;h.hmm.usable=false;assert.equal(A.build(h).models[2].available,false,'usable (sesiune + amprentă + închidere) decide');
 });
 test('null, nonnumeric or unavailable metrics stay unavailable rather than becoming zero',()=>{
  const f=fixture();f.neural.record.result.report.test.balanced=null;f.neural.record.result.comparison.boosting.report.test.balanced=null;f.hmm.record.result.report.test.hmm=Infinity;
