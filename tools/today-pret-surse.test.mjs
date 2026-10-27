@@ -37,3 +37,13 @@ test('ordinul STOP parțial la broker ⇒ rândul lui (grav 3), cu cantitățile
   const a = A.alerte({ positions: poz, stops: new Set(['MU_US_EQ']), ordineBroker: { citit: true, pozitii: new Map([['MU_US_EQ', { stare: 'partial', sursa: 'broker', ordin: { stopPrice: 95, quantity: 4 } }]]) }, now: SEARA });
   assert.ok(a.some((x) => x.grav === 3 && /acoperă doar 4,00 din 10,00 acțiuni/.test(x.text)));
 });
+// 27.10.2026 (lot B, contractul cu lotul E): Astăzi citește kill switch-ul tt_governor_oprire_v1 (scris DOAR de butonul „Oprește tot”) și arată rândul OPRIT
+test('oprire: cheia tt_governor_oprire_v1 cu activ=true ⇒ rândul „OPRIT: motiv (ora, aparat)”; activ=false, lipsă sau stricată ⇒ null', () => {
+  const A = TA(), mem = (v) => ({ getItem: (k) => (k === 'tt_governor_oprire_v1' ? v : null) });
+  const la = '2026-10-27T14:03:00Z', o = A.oprire(mem(JSON.stringify({ activ: true, la, motiv: 'pierdere peste limită', aparat: 'laptop', ordineAnulate: [{ id: 1, ticker: 'MU_US_EQ', stopPrice: 800 }], rearmatLa: null, rearmatMotiv: null })), Date.parse('2026-10-27T15:00:00Z'));
+  assert.equal(o.activ, true); assert.match(o.text, /^⛔ OPRIT: pierdere peste limită \(\d{2}:\d{2}, 27\.10, laptop\)/); assert.match(o.text, /1 ordin anulat/); assert.equal(o.la, la);
+  assert.equal(A.oprire(mem(JSON.stringify({ activ: false, la, motiv: 'x', aparat: 'y', rearmatLa: '2026-10-27T14:30:00Z', rearmatMotiv: 'reluat' }))), null, 're-armat ⇒ nu mai e oprit');
+  assert.equal(A.oprire(mem(null)), null); assert.equal(A.oprire(mem('{nu e json')), null); assert.equal(A.oprire(mem(JSON.stringify({ activ: 'da' }))), null, 'activ trebuie să fie boolean true');
+  assert.match(A.oprire(mem(JSON.stringify({ activ: true, la: 'cândva', motiv: '', aparat: '' }))).text, /OPRIT: fără motiv scris \(ora necunoscută\)/, 'câmpuri lipsă ⇒ spuse, nu inventate');
+  assert.equal(A.oprire({ getItem() { throw Error('blocat'); } }), null, 'stocarea blocată ⇒ null, fără excepție');
+});

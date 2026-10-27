@@ -149,13 +149,17 @@
   let limitaLuna=null;try{limitaLuna=g.MonthlyLimit?g.MonthlyLimit.text(g.MonthlyLimit.stare()):null;}catch(_){limitaLuna=null;}
   if(limitaLuna&&limitaLuna.grav>=3)pozitii.unshift({grav:limitaLuna.grav,text:limitaLuna.text,ruta:'journal/#raport',eticheta:'Vezi raportul ↗'});
   if(pozitii.length&&ui.account?.state==='stale'){const at=typeof ui.account.at==='number'?ui.account.at:Date.parse(ui.account.at),min=finite(at)?Math.max(1,Math.round((Date.now()-at)/60000)):null;if(min!=null)pozitii[0]={...pozitii[0],text:pozitii[0].text+' (copia contului de acum '+(min>=120?Math.round(min/60)+' h':min+' min')+')'};}
+  /* 27.10.2026 (lot B, contractul cu lotul E): kill switch-ul tt_governor_oprire_v1 (scris de „Oprește tot”, pagina contului) ⇒ rândul OPRIT e PRIMUL; doar citire */
+  try{const o=g.TodayAttention&&typeof g.TodayAttention.oprire==='function'?g.TodayAttention.oprire(localStorage):null;if(o&&o.activ)pozitii.unshift({grav:9,text:o.text,ruta:'broker/',eticheta:'Vezi contul ↗',clasa:'oprit'});}catch(_){/* fără cheie / stocare blocată: nu se inventează oprirea */}
   if(pozitii.length)title='Ce necesită atenție';
-  const rows=pozitii.slice(0,5).map(a=>[a.text,a.sever?'#stopPanel':(a.ruta||'holdings/'),a.sever?'Pune stopul ↓':(a.eticheta||'Vezi poziția ↗'),null,a.sever]).concat([[text,route,label,null]]);if(pozitii.length>5)rows.splice(5,0,['Încă '+(pozitii.length-5)+' semnale pe poziții, în Portofoliu.','holdings/','Portofoliu ↗',null]);if(!scannerReports().some(r=>r?.items?.length))rows.push(['Nicio scanare salvată în cele două motoare. Piață le pornește singură pe amândouă (~30 s).','scanner-verdicts/','Pornește în Piață ↗',null]);/* 18.10.2026: Piață rulează acum ambele motoare + comparația */
-  put('attentionStrip',rows.map((r,i)=>'<div class="attention-row'+(r[4]?' sever':'')+'"><p>'+(i===0?'<strong>'+esc(title)+'</strong> ':'')+esc(r[0])+'</p><a href="'+(String(r[1]).charAt(0)==='#'?esc(r[1]):appURL(r[1],r[3]||''))+'">'+esc(r[2])+'</a></div>').join(''));
+  /* 27.10 (audit B 🔵 [7]): rândul sever cu rută proprie (ordin la broker nenotat ⇒ Portofoliu) nu mai trimite la #stopPanel, care poate fi ascuns */
+  const rows=pozitii.slice(0,5).map(a=>[a.text,a.sever&&!a.ruta?'#stopPanel':(a.ruta||'holdings/'),a.sever&&!a.ruta?'Pune stopul ↓':(a.eticheta||'Vezi poziția ↗'),null,a.sever,a.clasa||null]).concat([[text,route,label,null]]);if(pozitii.length>5)rows.splice(5,0,['Încă '+(pozitii.length-5)+' semnale pe poziții, în Portofoliu.','holdings/','Portofoliu ↗',null]);if(!scannerReports().some(r=>r?.items?.length))rows.push(['Nicio scanare salvată în cele două motoare. Piață le pornește singură pe amândouă (~30 s).','scanner-verdicts/','Pornește în Piață ↗',null]);/* 18.10.2026: Piață rulează acum ambele motoare + comparația */
+  put('attentionStrip',rows.map((r,i)=>'<div class="attention-row'+(r[4]?' sever':'')+(r[5]?' '+esc(r[5]):'')+'"><p>'+(i===0?'<strong>'+esc(title)+'</strong> ':'')+esc(r[0])+'</p><a href="'+(String(r[1]).charAt(0)==='#'?esc(r[1]):appURL(r[1],r[3]||''))+'">'+esc(r[2])+'</a></div>').join(''));
  }
  /* I-692: limita / rezultatul lunii schimbate în Jurnal, Planuri sau de pagina contului (alt cadru al aplicației) ⇒ rândul de atenție se reface */
- g.addEventListener?.('storage',e=>{if(e.key==='tt_journal_settings_v1'||e.key==='tt_journal_luna_t212_v1'||e.key==='tt_holdings_theses_v1')try{renderAttention();}catch(_){}});
+ g.addEventListener?.('storage',e=>{if(e.key==='tt_journal_settings_v1'||e.key==='tt_journal_luna_t212_v1'||e.key==='tt_holdings_theses_v1'||e.key==='tt_governor_oprire_v1')try{renderAttention();}catch(_){}});
  g.addEventListener?.('tt-stop-salvat',()=>{try{renderAttention();}catch(_){}});
+ g.addEventListener?.('tt-oprire',()=>{try{renderAttention();}catch(_){}}); // 27.10 (lot E emite după „Oprește tot” / re-armare)
  function scannerReports(){const R=g.ScannerResults;let a=null,b=null;try{a=R?.primary()||null;}catch(_){}try{b=R?.independent()||null;}catch(_){}return [a,b];}
  function pill(text,kind){return '<span class="pill '+kind+'">'+esc(text)+'</span>';}
  function renderBrief(){
