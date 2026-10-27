@@ -31,8 +31,9 @@ test('dimensionarea: costul de schimb (0,3 % dus-întors) intră în riscul pe a
 test('Planuri: costul de schimb când contul nu e în moneda acțiunii; eticheta probei mereu în tichet; prețul de acum verificat', () => {
   const h = readFileSync(new URL('../desk/index.html', import.meta.url), 'utf8');
   assert.match(h, /costPct:g\.broker&&g\.broker\.currency&&g\.broker\.currency!==x\.currency\?0\.3:0/);
-  assert.match(h, /proba:x\.mode==='momentum'&&window\.TTProbaTopLong\?TTProbaTopLong\.tag\(x\):''/);
-  assert.match(h, /function ticketNote\(x,riskPct\)\{var out='',tag=x&&x\.mode==='momentum'\?/);
+  // 27.10.2026 (I-742): eticheta probei se salvează și pentru Early Reversal („în probă · nejudecat”), iar nota din tichet o arată la amândouă
+  assert.match(h, /proba:\(x\.mode==='momentum'\|\|x\.mode==='reversal'\)&&window\.TTProbaTopLong\?TTProbaTopLong\.tag\(x\):''/);
+  assert.match(h, /function ticketNote\(x,riskPct,s\)\{var out='',rev=x&&x\.mode==='reversal',tag=x&&\(x\.mode==='momentum'\|\|rev\)\?/);
   assert.match(h, /lib\/pret-viu\.js\?v=/); assert.match(h, /TTPretViu\.verifica\(/);
 });
 
