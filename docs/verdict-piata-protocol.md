@@ -83,11 +83,30 @@ independente, test aproape exact) e în banda de zgomot a simulării (± 0,3 pp)
 o cădere maximă în plus de **0,5 pp** după zilele „redus” e văzută în **13,6 %** din cazuri, de **1 pp** în **33,5 %** (Welch: 14,3 % /
 34,9 %) — robustețea costă aproape nimic. „Nu ajută” rămâne rezultatul cel mai probabil și nu înseamnă „s-a dovedit că nu”.
 
-**Amprenta judecătorului: `jv-df4d0878840f`** (înlocuiește `jv-0612f187c9e9`, înaintea oricărei zile „redus” măsurate): SHA pe `deRegula`,
-`welch`, `proba`, `tcdf`, `episoade`, `permutareEpisoade` + pragurile (`PROBA` cu `test: 'permutare-episoade'`, `permutari: 4000`,
-`samanta`).
+**Amprenta judecătorului: `jv-ef4eca49d1b8`** (înlocuiește `jv-0612f187c9e9`, înaintea oricărei zile „redus” măsurate; `jv-df4d0878840f`
+a fost pasul intermediar fără tabelul de mai jos): SHA pe `deRegula`, `welch`, `proba`, `tcdf`, `episoade`, `permutareEpisoade` + pragurile
+(`PROBA` cu `test: 'permutare-episoade'`, `permutari: 4000`, `samanta`) + lista `AMPRENTE_V21`.
 
 **Dacă se alege altă variantă (decizia LUI, tot înaintea primei zile „redus” măsurate, 30.10):** (b) Welch cu prag mai strict ⇒ în
 `proba` judecata înapoi pe `welch(A, B)` cu `p < 0,03` (`PROBA.alfa` 0,03, `test: 'welch-0,03'`), tabelul de mai sus arată că la sta 0,95
 pragul tot nu ajunge (de recalibrat pe GARCH); (c) Welch cu „cu rezerve” ⇒ judecata pe Welch la 0,05 și un câmp `rezerve` scris la
 „ajută”. Oricare: amprenta nouă aici, testele de mărime refăcute.
+
+## Amprentele regulii v2.1 (revizia independentă din 27.10.2026, 🟡8; tabel care doar crește)
+`REGULA = 'v2.1'` era scrisă de mână: o schimbare în `lib/market-verdict.js` / `lib/macro-regime.js` nota mai departe sub v2.1. Acum
+robotul calculează **amprenta regulii din conținut** (`amprentaRegulii`: SHA pe închiderea lui `compute` + `regimDin` din
+`lib/market-verdict.js` — fără `render`, `regula()` pentru Drafturi, `robotFile` — și pe tot `lib/macro-regime.js`; CRLF = LF). O linie nouă
+poartă `regula: "v2.1"` doar dacă amprenta de azi e în tabelul de mai jos (`AMPRENTE_V21` în cod); altfel poartă amprenta ca regulă
+(`regula: "rv-…"`) și rămâne în afara probei. Fiecare linie nouă poartă și `amprentaRegula`. Garda: `tools/verdict-piata-amprenta.test.mjs`
+(pică dacă amprenta de azi nu e în tabel). La o schimbare: dacă eticheta NU se schimbă ⇒ rând nou aici, cu motivul; dacă se schimbă ⇒
+regula v2.2, probă nouă, scrisă înainte.
+
+Rândurile de mai jos sunt reconstruite din istoricul git (aceeași funcție pe fișierele de atunci), cu motivul pentru care fiecare
+schimbare nu atinge eticheta:
+
+| De la | Amprenta | Ce s-a schimbat în fișiere | De ce rămâne v2.1 |
+|---|---|---|---|
+| 17.10.2026 13:06 UTC (`264e74af`, revizia) | `rv-62c4d5d5f014` | regula v2.1 (`docs/setup-filtru-piata.md`) | referința |
+| 19.10.2026 (`d0b1443a`, I-701) | `rv-2d9c18951701` | rândul „Dată rezultate necunoscută” în „pentru tine” | text de afișaj, nu intră în scor |
+| 20.10.2026 (`14c00a09`, I-727 / I-731) | `rv-3ae2d077258b` | seriile portofoliului își păstrează `meta`; `regula()` pentru Drafturi | beta / corelațiile sunt informative; `regula()` aplică eticheta, n-o calculează |
+| 27.10.2026 (`d0cee8ed`, auditul A–E) | `rv-3e18543febee` | Fear & Greed în afara 0–100 ⇒ semn invalid (macro); textul riscului la „Prudent” (×0,75) | API-ul alternative.me dă doar 0–100 (nicio zi cu efect); textul nu intră în scor |

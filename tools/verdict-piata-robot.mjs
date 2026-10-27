@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync, existsSync, appendFileSync } from 'node:fs
 import { pathToFileURL } from 'node:url';
 import { adu } from './clasificator-date.mjs';
 import { tcdf } from './clasificator-jurnal.mjs';
-import { mulberry32, gauss, amprentaFunctii, dupaSesiuni, sesiuniIntre, judecata as judecataDin } from '../lib/proba-contract.mjs';
+import { mulberry32, gauss, amprentaFunctii, amprentaText, inchidere, declaratii, dupaSesiuni, sesiuniIntre, judecata as judecataDin } from '../lib/proba-contract.mjs';
 
 export const FISIER = 'candidate-engine/generated/verdict-piata.json', ISTORIC = 'candidate-engine/generated/verdict-piata-istoric.jsonl', VERSIUNE = 'verdict-piata-v1';
 // 27.10.2026 (revizia independentă F, 🔴4): testul e permutarea pe EPISOADE de etichetă (nu Welch), cu PERMUTARI trageri peste atâtea aranjamente
@@ -21,6 +21,16 @@ export const PROBA = Object.freeze({ orizont: 5, minimPeGrup: 20, alfa: 0.05, pr
  *  contează ca v2.1 doar dacă au fost notate după revizia din 17.10.2026 (264e74af, 13:06 UTC) — 16.10 a fost notat sub regula dinainte. */
 export const REGULA = 'v2.1', REVIZIE = '2026-10-17T13:06:14Z';
 export function deRegula(l) { if (l && l.regula !== undefined) return l.regula === REGULA; const t = Date.parse(l?.generat); return Number.isFinite(t) && t >= Date.parse(REVIZIE); }
+/** 27.10.2026 (revizia F, 🟡8): amprenta regulii din CONȚINUT — SHA pe ce decide eticheta: închiderea lui `compute` + `regimDin` din
+ *  lib/market-verdict.js (fără `render`, `regula()` pentru Drafturi, `robotFile`) și tot lib/macro-regime.js; CRLF = LF. */
+export function amprentaRegulii(radacina = '.', citeste = (f) => readFileSync(f, 'utf8')) {
+  const mv = citeste(radacina + '/lib/market-verdict.js'), mr = citeste(radacina + '/lib/macro-regime.js');
+  return 'rv-' + amprentaText(mv, inchidere(mv, ['compute', 'regimDin']), 'macro\n' + amprentaText(mr, declaratii(mr)));
+}
+/** Amprentele de conținut recunoscute ca regula v2.1 — tabelul din docs/verdict-piata-protocol.md (§ „Amprentele regulii v2.1”), care doar
+ *  crește; fiecare rând nou are motivul „fără efect asupra etichetei”. O amprentă necunoscută = altă regulă: linia o poartă ca `regula`. */
+export const AMPRENTE_V21 = Object.freeze(['rv-62c4d5d5f014', 'rv-2d9c18951701', 'rv-3ae2d077258b', 'rv-3e18543febee']);
+export function regulaPentru(amprenta) { return AMPRENTE_V21.includes(amprenta) ? REGULA : amprenta; }
 export const CURS = 'candidate-engine/generated/curs-bnr.json';
 /** I-686: cursul oficial BNR (lei pentru o unitate; multiplicatorul se împarte), din fișierele anuale curs.bnr.ro. Doar EUR / USD / GBP / CHF. */
 export function cursDin(xml) {
@@ -56,8 +66,8 @@ export function mariDin(zile, n = 15) {
   return rows.sort((a, b) => b.cap - a.cap).slice(0, n).sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 /** Linia de istoric a zilei (scorurile pe indicatori, pentru „ce s-a mutat” și pentru probă). */
-export function linieZi(v, generat, regim) {
-  return { asOf: v.asOf, generat, regula: REGULA, label: v.label.id, score: v.score, citite: v.citite, indicatori: Object.fromEntries(v.indicatori.map((x) => [x.id, x.score])), regim: regim?.treapta?.cod || null };
+export function linieZi(v, generat, regim, regula = REGULA, amprenta = null) {
+  return { asOf: v.asOf, generat, regula, ...(amprenta ? { amprentaRegula: amprenta } : {}), label: v.label.id, score: v.score, citite: v.citite, indicatori: Object.fromEntries(v.indicatori.map((x) => [x.id, x.score])), regim: regim?.treapta?.cod || null };
 }
 export function adaugaLinie(linii, l) { return !l.asOf || l.label === 'necunoscut' || linii.some((x) => x.asOf === l.asOf) ? null : l; }
 /** Welch unilateral (H1: căderile din zilele „redus” sunt mai mari, adică mai negative): p sau null sub 2 zile pe grup. */
@@ -130,7 +140,7 @@ export function proba(linii, spyBars, dateOf, cal, { orizont = PROBA.orizont, mi
     ultimaZiSeparata: sep.at(-1)?.asOf || null };
 }
 /** 27.10.2026 (I-743): amprenta judecătorului verdictului — funcțiile care aleg liniile, măsoară și judecă, plus pragurile; scrisă în protocol. */
-export function amprentaJudecator() { return 'jv-' + amprentaFunctii({ deRegula, welch, proba, tcdf, episoade, permutareEpisoade }, ['deRegula', 'welch', 'proba', 'tcdf', 'episoade', 'permutareEpisoade'], JSON.stringify({ PROBA, REGULA, REVIZIE })); }
+export function amprentaJudecator() { return 'jv-' + amprentaFunctii({ deRegula, welch, proba, tcdf, episoade, permutareEpisoade }, ['deRegula', 'welch', 'proba', 'tcdf', 'episoade', 'permutareEpisoade'], JSON.stringify({ PROBA, REGULA, REVIZIE, AMPRENTE_V21 })); }
 
 /* ---------- puterea și data primului verdict (contractul cu lotul D, I-744) ---------- */
 /** O lume sintetică pentru mărime / putere: SPY cu pași N(0, 1 %/zi), etichete „redus” cu pondere `pRedus` și persistență `sta` (probabilitatea
@@ -168,6 +178,7 @@ export function citesteIstoric(text) { return String(text || '').split('\n').fil
 
 export async function ruleaza({ radacina = '.', now = Date.now(), sursa = adu, fetchImpl = fetch, log = () => {}, istoric = [] } = {}) {
   const c = motorVerdict(radacina), MV = c.MarketVerdict, dateOf = (t) => c.DailySeries.date(t, 'America/New_York');
+  const rv = amprentaRegulii(radacina), regula = regulaPentru(rv);   // 27.10.2026 (revizia F, 🟡8): regula din conținut, nu scrisă de mână
   const raw = {}; for (const s of ['SPY', 'QQQ', '^VIX', '^TNX', ...MV.EXTRA]) { try { raw[s] = await sursa(s); } catch (e) { log(`${s} ✗ ${e?.message}`); } }
   const items = ['SPY', 'QQQ', '^VIX', '^TNX'].map((s) => (raw[s] ? item(c, s, raw[s], now) : { symbol: s, state: 'error' }));
   const { breadth, raport } = breadthDin(existsSync(radacina + '/market-breadth/data/latest.json') ? JSON.parse(readFileSync(radacina + '/market-breadth/data/latest.json', 'utf8')) : null);
@@ -178,7 +189,7 @@ export async function ruleaza({ radacina = '.', now = Date.now(), sursa = adu, f
   const rezultateMari = mariDin(zile);
   let events = []; try { events = c.MCTX.hardcodedEvents(); } catch (e) { log('calendar ✗ ' + e?.message); }
   const v = MV.compute({ market, raport, regime: regim, extra, events, robot: { rezultateMari, istoric }, now }), generat = new Date(now).toISOString();
-  const linie = adaugaLinie(istoric, linieZi(v, generat, regim)), toate = linie ? istoric.concat(linie) : istoric;
+  const linie = adaugaLinie(istoric, linieZi(v, generat, regim, regula, rv)), toate = linie ? istoric.concat(linie) : istoric;
   const spy = raw.SPY ? (() => { try { return c.DailySeries.read(raw.SPY, 'SPY', now).bars; } catch { return []; } })() : [];
   const pr = proba(toate, spy, dateOf, c.ExchangeCalendar);
   // 27.10.2026 — contractul cu panourile (I-744): puterea, data primului verdict (sesiunile pierdute de robot o împing), judecata unică
@@ -187,7 +198,7 @@ export async function ruleaza({ radacina = '.', now = Date.now(), sursa = adu, f
   const ctr = contractVerdict(pr, { cal, azi, notate: aleRegulii.length, asteptate });
   const j = { version: VERSIUNE, generat, asOf: v.asOf, label: v.label.id, score: v.score, citite: v.citite, fraza: v.fraza, rezumat: v.rezumat,
     indicatori: v.indicatori.map((x) => ({ id: x.id, name: x.name, value: x.value, score: x.score })), regim, rezultateMari, futures: v.futures, istoric: toate.slice(-60), proba: pr, surseLipsa: extra.erori,
-    regula: REGULA, judecator: amprentaJudecator(), putere: ctr.putere, primulVerdict: ctr.primulVerdict, judecata: ctr.judecata };
+    regula, amprentaRegula: rv, judecator: amprentaJudecator(), putere: ctr.putere, primulVerdict: ctr.primulVerdict, judecata: ctr.judecata };
   return { j, linie };
 }
 
