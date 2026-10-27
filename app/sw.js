@@ -1,8 +1,37 @@
 // Cache only the application shell. Market data and scans always require network.
 const CACHE = 'tt-decision-phone-design-26.10.27.1759';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './install.js?v=phone-20261003', './icons/icon-192.png', './icons/icon-512.png'];
+const VERSION = CACHE.slice(CACHE.lastIndexOf('-') + 1);
+/* 27.10.2026 (I-746, auditul A [13], [14]): în cache intră și foile de stil + scripturile pe care le cere carcasa, citite din index.html la instalare,
+   cu `?v=` exact. Fiecare fișier intră separat: unul care pică (404, timeout) e scris în consolă și nu lasă carcasa fără service worker. */
+function shellAssets(html) {
+  const out = [], base = new URL('./index.html', self.registration.scope);
+  for (const m of html.matchAll(/<script\b[^>]*\ssrc="([^"]+)"[^>]*>|<link\b(?=[^>]*\srel="stylesheet")[^>]*\shref="([^"]+)"[^>]*>/g)) {
+    try { const u = new URL(m[1] || m[2], base); if (u.origin === self.location.origin) out.push(u.href); } catch (_) { /* adresă nevalidă: rămâne pe rețea */ }
+  }
+  return out;
+}
+async function precacheOne(cache, url) {
+  try {
+    const response = await fetch(url, { cache: 'no-cache' });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    await cache.put(url, response.clone());
+    return response;
+  } catch (e) {
+    console.warn('[SW carcasă] nu a intrat în cache:', url, e && e.message);
+    return null;
+  }
+}
+async function installShell() {
+  const cache = await caches.open(CACHE), at = path => new URL(path, self.registration.scope).href;
+  const page = await precacheOne(cache, at('./index.html'));
+  let assets = [];
+  if (page) try { assets = shellAssets(await page.text()); } catch (_) { assets = []; }
+  const rest = [...new Set([...SHELL.filter(path => path !== './index.html').map(at), ...assets])];
+  await Promise.allSettled(rest.map(url => precacheOne(cache, url)));
+}
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
+  event.waitUntil(installShell().then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('tt-decision-phone-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
@@ -15,9 +44,11 @@ self.addEventListener('fetch', event => {
   // Only document navigation ignores those queries; asset versions remain exact.
   const shellNavigation = request.mode === 'navigate' && ['./', './index.html'].some(path =>
     new URL(path, self.registration.scope).pathname === url.pathname);
-  const allowed = shellNavigation || SHELL.some(path => new URL(path, self.registration.scope).href === url.href);
-  if (!allowed) return;
   if (shellNavigation) { event.respondWith(shellNavigationResponse(event, request)); return; }
+  // scripturile și foile de stil ale carcasei: cu `?v=` ⇒ copia EXACTĂ din cache, altfel rețeaua (o altă versiune nu primește niciodată copia veche)
+  if (request.destination === 'script' || request.destination === 'style') { event.respondWith(shellAsset(event, request, url)); return; }
+  const allowed = SHELL.some(path => new URL(path, self.registration.scope).href === url.href);
+  if (!allowed) return;
   event.respondWith(fetch(request, { cache: 'no-cache' }).then(response => {
     if (response.ok) {
       const cachedResponse = response.clone();
@@ -39,11 +70,31 @@ function cachedShell(request) {
   const at = path => new URL(path, self.registration.scope).href;
   return caches.match(request, { ignoreSearch: true }).then(hit => hit || caches.match(at('./'))).then(hit => hit || caches.match(at('./index.html'))).catch(() => null);
 }
+function shellAsset(event, request, url) {
+  const versioned = /[?&]v=/.test(url.search);
+  const network = () => fetch(request).then(response => {
+    if (versioned && response.ok) {
+      const copy = response.clone();
+      event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {}));
+    }
+    return response;
+  });
+  // fără `?v=` (de ex. un fișier al carcasei încă neversionat): rețeaua întâi, copia exactă doar fără rețea
+  if (!versioned) return network().catch(async () => (await caches.match(request)) || Response.error());
+  return caches.match(request).then(hit => hit || network(), () => network());
+}
+// 27.10.2026 (auditul A [4]): „Actualizează” navighează cu `?v=<versiunea publicată>`. Dacă versiunea cerută e MAI NOUĂ decât a acestui service worker,
+// copia din cache e carcasa veche ⇒ fără pragul de 3,5 s: se așteaptă rețeaua (altfel butonul reîncărca tot vechiul pe rețea lentă).
+const newerThanShell = request => {
+  let wanted = null;
+  try { wanted = new URL(request.url).searchParams.get('v'); } catch (_) { wanted = null; }
+  return !!wanted && /^\d{2}\.\d{2}\.\d{2}\.\d{4}$/.test(wanted) && wanted > VERSION;
+};
 function shellNavigationResponse(event, request) {
   return new Promise(resolve => {
     let done = false;
     const finish = response => { if (!done && response) { done = true; resolve(response); } };
-    const timer = setTimeout(() => { cachedShell(request).then(finish); }, HTML_NET_TIMEOUT_MS);
+    const timer = newerThanShell(request) ? null : setTimeout(() => { cachedShell(request).then(finish); }, HTML_NET_TIMEOUT_MS);
     const network = fetch(request, { cache: 'no-cache' }).then(response => {
       clearTimeout(timer);
       const copy = response.ok ? response.clone() : null;
