@@ -6,6 +6,9 @@
   "preview_urls":false,
   "keep_vars":true,
   "observability":{"enabled":false},
+  // 27.10.2026 (audit E, I-755): monitorul contului rulează din `scheduled` (tools/cloud-sync-worker.mjs) la 5 minute, iar aplicația cere
+  // heartbeat sub 15 minute (lib/cloud-monitor.mjs schedulerFresh). Nedeclarat aici, un `wrangler deploy` ștergea cronul în tăcere.
+  "triggers":{"crons":["*/5 * * * *"]},
   "d1_databases":[{
     "binding":"CLOUD_DB",
     "database_name":"trading-tools-sync",
