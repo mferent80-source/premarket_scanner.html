@@ -21,6 +21,10 @@ test('Top Long: amprenta clasamentului (cu ajutoarele din engine.js) + a evaluat
   assert.equal(versiunePm(motor(async () => { throw Error('fără rețea'); }).hooks), scris('docs/premarket-proba-protocol.md', /Amprenta la pornirea v2: `(pm-[0-9a-f]{12})`/),
     'regulile Top Long (candidate-engine/engine.js: funcțiile de clasament sau ajutoarele lor) sau evaluatorul s-au schimbat față de protocolul v2');
 });
+test('Verdictul pieței: judecătorul = cel scris în docs/verdict-piata-protocol.md (§ Schimbări, 27.10.2026)', async () => {
+  const { amprentaJudecator } = await import('./verdict-piata-robot.mjs');
+  assert.equal(amprentaJudecator(), scris('docs/verdict-piata-protocol.md', /Amprenta judecătorului: `(jv-[0-9a-f]{12})`/), 'codul care alege liniile / judecă proba verdictului (tools/verdict-piata-robot.mjs) s-a schimbat');
+});
 test('Umbra stopului Reversal: judecătorul = cel scris în docs/reversal-stop-umbra-protocol.md', () => {
   assert.equal(judecatorUmbra(), scris('docs/reversal-stop-umbra-protocol.md', /Amprenta judecătorului: `(ju-[0-9a-f]{12})`/), 'codul care măsoară / judecă umbra (lib/reversal-umbra.mjs) s-a schimbat');
 });
