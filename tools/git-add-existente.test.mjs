@@ -56,18 +56,19 @@ const FLUXURI = readdirSync('.github/workflows').filter((n) => n.endsWith('.yml'
 test('în niciun flux: `git add` cu mai multe fișiere și eroarea ascunsă cu `|| true`', () => {
   for (const { n, y } of FLUXURI) for (const linie of y.split(/\r?\n/)) {
     if (/^\s*#/.test(linie)) continue; // comentariile pot pomeni tiparul vechi
-    const m =linie.match(/git add\s+((?:[^\s|&;]+\s+)+?)(?:2>\/dev\/null\s*)?\|\|\s*true/);
+    const m = linie.match(/git add\s+((?:[^\s|&;]+\s+)+?)(?:2>\/dev\/null\s*)?\|\|\s*true/);
     if (!m) continue;
     const cai = m[1].trim().split(/\s+/).filter((c) => !c.startsWith('-'));
     assert.ok(cai.length <= 1, n + ': ' + linie.trim());
   }
 });
 
-test('fișierele înghețate ale probelor trec prin unealtă (V1, Top Long, umbra, Trend)', () => {
+test('fișierele înghețate ale probelor trec prin unealtă (V1, Top Long, umbra, Trend, verdictul pieței)', () => {
   const y = (n) => FLUXURI.find((f) => f.n === n).y;
   assert.match(y('v1-proba.yml'), /node tools\/git-add-existente\.mjs[^\n]*v1-inghetat\.jsonl/);
   assert.match(y('v1-proba.yml'), /node tools\/git-add-existente\.mjs[^\n]*premarket-inghetat\.jsonl/);
   assert.match(y('trend-12-1-bilant.yml'), /node tools\/git-add-existente\.mjs[^\n]*trend-12-1-inghetat\.jsonl/);
+  assert.match(y('verdict-piata.yml'), /node tools\/git-add-existente\.mjs[^\n]*verdict-piata-inghetat\.jsonl/);
 });
 
 test('`| tee` doar cu `set -o pipefail` în același pas (altfel a doua încercare și alarma nu pornesc)', () => {

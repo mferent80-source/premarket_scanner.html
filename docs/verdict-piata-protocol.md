@@ -26,7 +26,7 @@ Robotul de noapte (`.github/workflows/verdict-piata.yml`) calculează verdictul 
 - **Ipoteza:** după zilele „Prudent / Defensiv”, S&P (SPY) are o cădere maximă mai mare în următoarele **5 sesiuni** decât după zilele „Neutru / Favorabil”. (Scala servește la dozarea riscului; asta trebuie să facă.)
 - **Măsura:** căderea maximă a închiderii SPY față de închiderea zilei verdictului, în următoarele 5 sesiuni; randamentul pe 5 sesiuni e raportat, nu judecat.
 - **Zile separate:** se păstrează doar zilele la cel puțin 5 sesiuni una de alta (orizonturile nu se suprapun).
-- **Testul:** Welch unilateral pe căderi (grupul „redus” mai negativ), **α = 0,05**. *(Înlocuit pe 27.10.2026 — § „Revizia independentă” de la sfârșit: permutarea pe episoade de etichetă.)*
+- **Testul:** Welch unilateral pe căderi (grupul „redus” mai negativ), **α = 0,05**. *(Înlocuit pe 27.10.2026 — § „Revizia independentă” de la sfârșit: permutarea pe episoade de etichetă; apoi pe 28.10.2026 de rotație — § „Revizia F2”.)*
 - **Verdict:** abia după **≥ 20 de zile separate în fiecare grup**; până atunci „în probă” (scris pe panou). „Ajută” = căderea medie mai mare în grupul „redus” și p < 0,05; altfel „nu ajută” — verdictul rămâne descriere, nu avertizare.
 - **Mărimea testului, verificată prin simulare înainte de livrare** (date fără niciun efect, 2000 de repetări): 4,0% „ajută” fals cu etichete aleatoare, 4,3% cu etichete care persistă (α nominal 5%).
 - Regulile de mai sus nu se schimbă după ce apar rezultate; o regulă nouă înseamnă o probă nouă, de la zero.
@@ -83,7 +83,7 @@ independente, test aproape exact) e în banda de zgomot a simulării (± 0,3 pp)
 o cădere maximă în plus de **0,5 pp** după zilele „redus” e văzută în **13,6 %** din cazuri, de **1 pp** în **33,5 %** (Welch: 14,3 % /
 34,9 %) — robustețea costă aproape nimic. „Nu ajută” rămâne rezultatul cel mai probabil și nu înseamnă „s-a dovedit că nu”.
 
-**Amprenta judecătorului: `jv-ef4eca49d1b8`** (înlocuiește `jv-0612f187c9e9`, înaintea oricărei zile „redus” măsurate; `jv-df4d0878840f`
+**Amprenta judecătorului (revizia F, înlocuită pe 28.10.2026 de revizia F2 — vezi mai jos) `jv-ef4eca49d1b8`** (înlocuiește `jv-0612f187c9e9`, înaintea oricărei zile „redus” măsurate; `jv-df4d0878840f`
 a fost pasul intermediar fără tabelul de mai jos): SHA pe `deRegula`, `welch`, `proba`, `tcdf`, `episoade`, `permutareEpisoade` + pragurile
 (`PROBA` cu `test: 'permutare-episoade'`, `permutari: 4000`, `samanta`) + lista `AMPRENTE_V21`.
 
@@ -92,10 +92,66 @@ a fost pasul intermediar fără tabelul de mai jos): SHA pe `deRegula`, `welch`,
 pragul tot nu ajunge (de recalibrat pe GARCH); (c) Welch cu „cu rezerve” ⇒ judecata pe Welch la 0,05 și un câmp `rezerve` scris la
 „ajută”. Oricare: amprenta nouă aici, testele de mărime refăcute.
 
+## Revizia F2 din 28.10.2026 (🟡2, 🟡4) — rotația în locul permutării și judecata înghețată, scrise înaintea primei zile „redus” măsurate
+**Starea la scriere:** aceeași ca la revizia F: o singură zi „redus” notată (23.10), iar căderea ei pe 5 sesiuni se închide pe 30.10 ⇒
+nicio zi „redus” măsurată, nicio judecată. Motivul: **revizia independentă F2 din 28.10**. Permutarea pe episoade avea mărimea bună, dar
+la etichete persistente rămâneau prea puține episoade. La persistența 0,98, în 70 % din lumi p-ul minim posibil trecea de 0,05, deci
+„nu ajută” ieșea prin construcție. Puterea la +1 pp cădea de la 39,4 % (persistența 0,5) la 10,8 % (0,98).
+
+**Testul (fixat acum): rotația (decalaj circular)** pe zilele separate ale eșantionului fix, în ordinea lor în timp. Etichetele rămân pe
+loc, iar șirul căderilor se rotește cu fiecare decalaj 0..n−1. Așa rămân întregi și ciorchinii volatilității SPY, și persistența
+etichetelor. Statistica e t-ul Welch pe zile (studentizat). p unilateral = partea decalajelor cu statistica ≤ cea observată, decalajul 0
+inclus, deci p minim 1/n. **„Ajută” = căderea medie mai mare în grupul „redus” și p ≤ 0,05**, pe același eșantion fix (primul 20 / 20 de
+zile separate), judecat o singură dată. Permutarea pe episoade rămâne în cod doar pentru comparație.
+
+**Mărimea și puterea**, prin funcția reală `proba` (scratchpad `sim-rotatie-f2.mjs`, 4000 de lumi pe celulă, mulberry32, generatorul
+reviziei F2; eroarea standard sub 0,8 pp în fiecare celulă):
+
+| Lume | Persistența etichetelor | % zile „redus” | „Ajută” (rotația) |
+|---|---|---|---|
+| H0, GARCH(0,10; 0,88), cozi t5 | 0,8 | 30 | 4,2 % |
+| H0, GARCH(0,10; 0,88) | 0,95 | 30 | 4,6 % |
+| H0, GARCH(0,10; 0,88) | 0,98 | 50 | 4,8 % |
+| H0, GARCH(0,05; 0,94) | 0,95 | 50 | 4,7 % |
+| H0, GJR(0,05; 0,88; γ 0,12) | 0,9 | 50 | 4,8 % |
+| H0, GARCH, eticheta „sub media de 50 de zile” | — | — | 0,3 % |
+| H0, i.i.d. | 0,9 | 50 | 4,2 % |
+| H1, +1 pp de cădere după zilele „redus” | 0,8 | 30 | 35,5 % |
+| H1, +1 pp | 0,95 | 30 | 34,8 % |
+| H1, +1 pp | 0,98 | 50 | 30,9 % |
+| H1, GARCH, „redus” = volatilitatea pe 20 de zile peste mediană (efectul real −0,47 pp) | — | 50 | 9,1 % |
+
+Pe lumea din § „Schimbări” (`rataAjuta`, 2000 de lumi): mărimea 4,0 %, puterea 14,7 % la +0,5 pp și 34,2 % la +1 pp (`PUTERE` în cod).
+Rotația are aceeași mărime ca permutarea și nu-și pierde puterea când etichetele sunt persistente. Un efect de volatilitate de ~0,5 pp
+rămâne greu de văzut pentru orice test valid, cu ~67 de zile separate.
+
+**Limita cunoscută:** pe date perfect periodice (etichete care alternează la fiecare zi separată și un SPY în blocuri egale), o rotație cu
+pas par reface aceeași potrivire, deci p iese 0,5. Etichetele pieței nu alternează așa. Cazul construit din teste a fost înlocuit cu o lume
+neperiodică.
+
+**Mesajul la „nu ajută”** spune acum puterea: înseamnă „nu s-a dovedit”, nu „s-a dovedit că nu”, iar o cădere în plus de 1 pp ar fi fost
+văzută în ~34,2 % din cazuri. Textul vechi („tratează-l ca descriere, nu ca avertizare”) putea muta, prin text, o decizie de risc (×0,75
+la „Prudent”).
+
+**Înghețul (🟡4):** zilele separate închise (ziua, grupul, căderea, randamentul, orizontul `h`) și judecata se scriu în
+`candidate-engine/generated/verdict-piata-inghetat.jsonl`, un fișier care doar crește. Robotul îl citește în fiecare noapte: zilele
+înghețate nu se mai recalculează din SPY, iar judecata, odată scrisă, nu se mai schimbă (o noapte fără SPY o ștergea înainte în 300 din
+300 de lumi). Zilele sunt legate de regulă (`v2.1`) și de orizont, nu de judecător; judecata e legată de amprenta judecătorului. Dacă
+judecata scrisă nu se mai potrivește cu zilele înghețate, fișierul probei arată `abatereJudecata`. Fluxul salvează fișierul separat
+(`tools/git-add-existente.mjs`).
+
+**Amprenta judecătorului: `jv-6871a59f149e`** (înlocuiește `jv-ef4eca49d1b8`, înaintea oricărei zile „redus” măsurate): SHA pe `deRegula`,
+`welch`, `proba`, `tcdf`, `rotatie` + pragurile (`PROBA` cu `test: 'rotatie'`), `REGULA`, `REVIZIE`. Lista `AMPRENTE_V21` a ieșit din
+amprentă: ea decide doar ce regulă poartă o linie nouă, nu cum se judecă, iar un rând nou acolo nu mai schimbă judecătorul.
+
+**Decizia LUI, până pe 30.10:** e aplicată varianta (a), rotația, recomandată de revizie. Varianta (b) ar fi permutarea pe episoade cu un
+rezultat nou, „fără putere”, când p-ul minim posibil trece de α sau episoadele sunt sub 10. Pentru (b): în `proba`, `rotatie(fix)` înapoi
+pe `permutareEpisoade(fix)`, verdictul `fara-putere`, `PROBA.test: 'permutare-episoade'`, testele de mărime refăcute și o amprentă nouă aici.
+
 ## Amprentele regulii v2.1 (revizia independentă din 27.10.2026, 🟡8; tabel care doar crește)
 `REGULA = 'v2.1'` era scrisă de mână: o schimbare în `lib/market-verdict.js` / `lib/macro-regime.js` nota mai departe sub v2.1. Acum
 robotul calculează **amprenta regulii din conținut** (`amprentaRegulii`: SHA pe închiderea lui `compute` + `regimDin` din
-`lib/market-verdict.js` — fără `render`, `regula()` pentru Drafturi, `robotFile` — și pe tot `lib/macro-regime.js`; CRLF = LF). O linie nouă
+`lib/market-verdict.js` — fără `render`, `regula()` pentru Drafturi, `robotFile` — și pe tot `lib/macro-regime.js`; CRLF = LF; din 28.10.2026, revizia F2, și pe `item` și `breadthDin` din robot). O linie nouă
 poartă `regula: "v2.1"` doar dacă amprenta de azi e în tabelul de mai jos (`AMPRENTE_V21` în cod); altfel poartă amprenta ca regulă
 (`regula: "rv-…"`) și rămâne în afara probei. Fiecare linie nouă poartă și `amprentaRegula`. Garda: `tools/verdict-piata-amprenta.test.mjs`
 (pică dacă amprenta de azi nu e în tabel). La o schimbare: dacă eticheta NU se schimbă ⇒ rând nou aici, cu motivul; dacă se schimbă ⇒
@@ -110,3 +166,4 @@ schimbare nu atinge eticheta:
 | 19.10.2026 (`d0b1443a`, I-701) | `rv-2d9c18951701` | rândul „Dată rezultate necunoscută” în „pentru tine” | text de afișaj, nu intră în scor |
 | 20.10.2026 (`14c00a09`, I-727 / I-731) | `rv-3ae2d077258b` | seriile portofoliului își păstrează `meta`; `regula()` pentru Drafturi | beta / corelațiile sunt informative; `regula()` aplică eticheta, n-o calculează |
 | 27.10.2026 (`d0cee8ed`, auditul A–E) | `rv-3e18543febee` | Fear & Greed în afara 0–100 ⇒ semn invalid (macro); textul riscului la „Prudent” (×0,75) | API-ul alternative.me dă doar 0–100 (nicio zi cu efect); textul nu intră în scor |
+| 28.10.2026 (revizia F2, 🟡3) | `rv-9e8358a5273b` | amprenta acoperă și funcțiile robotului care pregătesc piața pentru `compute`: `item` (doar sesiuni încheiate, media de 50 de zile) și `breadthDin` (lățimea pieței) | doar acoperire: codul lor nu s-a schimbat, eticheta iese la fel |

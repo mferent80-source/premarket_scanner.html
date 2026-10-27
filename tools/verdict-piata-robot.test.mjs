@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { ruleaza, proba, mariDin, breadthDin, adaugaLinie, citesteIstoric, motorVerdict, linieZi, deRegula, contractVerdict, amprentaJudecator, rataAjuta, PUTERE, FISIER, ISTORIC, VERSIUNE, REGULA } from './verdict-piata-robot.mjs';
+import { ruleaza, proba, mariDin, breadthDin, adaugaLinie, citesteIstoric, motorVerdict, linieZi, deRegula, contractVerdict, amprentaJudecator, rataAjuta, lumeVerdict, PUTERE, FISIER, ISTORIC, VERSIUNE, REGULA } from './verdict-piata-robot.mjs';
 
 const zi = (i) => Date.UTC(2026, 0, 5) + i * 86400000, dateOf = (t) => new Date(t).toISOString().slice(0, 10);
 test('I-681: marile companii — primele 15 după capitalizare, cu ziua și momentul raportării', () => {
@@ -16,8 +16,9 @@ test('I-676: prima notare a zilei rămâne; zilele neconfirmate nu se notează',
   assert.equal(adaugaLinie(l, { asOf: '2026-10-19', label: 'neutru' }).label, 'neutru');
 });
 test('I-677: proba — „în probă” sub minim; „ajută” când zilele Prudent / Defensiv au căderi mai mari pe zile separate', () => {
-  const spy = []; let p = 100; for (let i = 0; i < 700; i++) { const rau = Math.floor(i / 5) % 2 === 0; p *= rau ? 0.995 + (i % 3) * 0.0005 : 1.003 - (i % 3) * 0.0005; spy.push({ t: zi(i), c: p }); }
-  const linii = spy.slice(0, 690).filter((_, i) => i % 5 === 0).map((b, k) => ({ asOf: dateOf(b.t), generat: 'x', regula: REGULA, label: k % 2 === 0 ? 'prudent' : 'neutru' }));
+  // 28.10.2026 (revizia F2): o lume neperiodică cu efect mare (+5 pp după zilele „redus”); judecătorul e rotația, iar pe date PERFECT
+  // periodice (etichete care alternează, SPY în blocuri egale — cazul de dinainte) rotația cu pas par reface aceeași potrivire (p 0,5)
+  const { spy, linii } = lumeVerdict(3, { sta: 0.8, pRedus: 0.3, efect: 5, zile: 700 });
   assert.equal(proba(linii.slice(0, 10), spy, dateOf, null).verdict, 'in-proba');
   const r = proba(linii, spy, dateOf, null); assert.equal(r.verdict, 'ajuta'); assert.ok(r.redus.cadere < r.normal.cadere); assert.ok(r.redus.n >= 20 && r.normal.n >= 20);
   const inv = proba(linii.map((l) => ({ ...l, label: l.label === 'prudent' ? 'neutru' : 'prudent' })), spy, dateOf, null); assert.equal(inv.verdict, 'nu-ajuta');
@@ -61,7 +62,7 @@ test('contract with the panels (lot D): putere / primulVerdict / judecata in the
   assert.deepEqual(c.judecata, { la: 20, data: null, verdict: null, unic: true });
   assert.match(amprentaJudecator(), /^jv-[0-9a-f]{12}$/);
 });
-test('the written power is the one the real judge gives (2000 worlds, fixed seed): +1 pp extra drop after “redus” days; size 4,1 %', () => {
+test('the written power is the one the real judge gives (2000 worlds, fixed seed): +1 pp extra drop after “redus” days; size and power as written (rotation since the 28.10 F2 review)', () => {
   assert.equal(Math.round(1000 * rataAjuta({ lumi: 2000, efect: 1 })) / 1000, PUTERE.laPlus[1].putere);
   assert.equal(Math.round(1000 * rataAjuta({ lumi: 2000, efect: 0 })) / 1000, PUTERE.marime);
 });

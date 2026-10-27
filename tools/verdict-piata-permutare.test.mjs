@@ -28,13 +28,13 @@ test('peste PERMUTARI de aranjamente: Monte Carlo mulberry32 cu sămânță fix�
   const a = permutareEpisoade(rows), b = permutareEpisoade(rows); assert.equal(a.exact, false); assert.equal(a.p, b.p); assert.ok(a.p > 0 && a.p <= 1);
   assert.equal(Math.round(a.p * (1 + PROBA.permutari)) >= 1, true);
 });
-test('proba judecă prin permutarea pe episoade (nu Welch): p-ul din fișier e cel al permutării pe eșantionul fix', () => {
-  const spy = []; let p = 100; for (let i = 0; i < 700; i++) { const rau = Math.floor(i / 5) % 2 === 0; p *= rau ? 0.995 + (i % 3) * 0.0005 : 1.003 - (i % 3) * 0.0005; spy.push({ t: zi(i), c: p }); }
-  const linii = spy.slice(0, 690).filter((_, i) => i % 5 === 0).map((b, k) => ({ asOf: dateOf(b.t), generat: 'x', regula: REGULA, label: k % 2 === 0 ? 'prudent' : 'neutru' }));
-  const r = proba(linii, spy, dateOf, null);
-  assert.equal(r.test.metoda, 'permutare pe episoade de etichetă'); assert.equal(r.verdict, 'ajuta'); assert.ok(r.p <= PROBA.alfa);
-  assert.equal(PROBA.test, 'permutare-episoade'); assert.equal(typeof PROBA.permutari, 'number');
-  assert.ok(!/welch\(A, B\)/.test(readFileSync('tools/verdict-piata-robot.mjs', 'utf8').split('export function proba(')[1].split('export function amprentaJudecator')[0].replace(/ajutaOricand[\s\S]*?;/g, '')), 'judecata nu mai cheamă Welch');
+// 28.10.2026 (revizia F2, 🟡2): judecătorul e acum ROTAȚIA (tools/verdict-piata-f2.test.mjs); permutarea pe episoade rămâne funcție de
+// comparație (testele ei de mai sus) — la etichete persistente rămâneau prea puține episoade și testul devenea orb.
+test('proba judecă prin rotație: nici Welch, nici permutarea pe episoade nu mai decid judecata', () => {
+  const corp = readFileSync('tools/verdict-piata-robot.mjs', 'utf8').split('export function proba(')[1].split('export function amprentaJudecator')[0];
+  assert.ok(!/welch\(A, B\)/.test(corp.replace(/ajutaOricand[\s\S]*?;/g, '')), 'judecata nu cheamă Welch');
+  assert.ok(!/permutareEpisoade\(/.test(corp), 'judecata nu mai cheamă permutarea pe episoade'); assert.match(corp, /rotatie\(fix\)/);
+  assert.equal(PROBA.test, 'rotatie'); assert.equal(typeof PROBA.permutari, 'number');
 });
 /** SPY cu volatilitate în ciorchini: GARCH(1,1) α 0,10, β 0,88 (persistență 0,98), inovații t5 — lumea revizorului; etichete persistente,
  *  independente de viitor (H0). Aceeași funcție `proba` ca robotul. */
