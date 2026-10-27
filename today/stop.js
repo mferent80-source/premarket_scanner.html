@@ -42,15 +42,28 @@
     if (ales2.eroare) { stare = '⚠ ' + ales2.eroare; confirm = null; desen(); return; }
     const stop = ales2.stop, tv = art.querySelector('[data-stop-tinta]')?.value, tinta = tv ? Number(tv) : null;
     const sy = S.symYahoo(tk), px = S.preturi(poz, sy ? ultim[sy] : null);
-    if (vreaOrdin) { const r = window.T212Orders?.rezumat(poz, stop, px.acum, d.snapshot.summary?.currency); if (!r) { stare = '⚠ Alege o variantă de stop sau scrie stopul, apoi apasă din nou.'; confirm = null; } else { confirm = { ...r, scope: d.scope, tinta, intrare: px.intrare }; stare = ''; } desen(); return; }
+    if (vreaOrdin) { const r = window.T212Orders?.rezumat(poz, stop, px.acum, d.snapshot.summary?.currency); if (!r) { stare = '⚠ Alege o variantă de stop sau scrie stopul, apoi apasă din nou.'; confirm = null; }
+      else { /* I-758: controalele pre-ordin ÎNAINTE de fereastră — cantitate ≤ poziție, dublură (copia ordinelor / 2 minute) ⇒ refuz; în afara collarului 0,5–25 % ⇒ fereastra cere bifa */
+        const ver = typeof window.T212Orders.verifica === 'function' ? window.T212Orders.verifica({ ticker: r.ticker, quantity: r.qty, stopPrice: r.stop }, garda(poz, px.acum, d, false)) : { ok: true };
+        if (!ver.ok && ver.cod !== 'collar') { stare = '⚠ ' + ver.mesaj; confirm = null; }
+        else { confirm = { ...r, scope: d.scope, tinta, intrare: px.intrare, collar: ver.cod === 'collar' ? ver : null, copiaNecitita: ver.ok ? ver.copiaNecitita === true : ordinePending(d.scope) === null }; stare = ''; } }
+      desen(); return; }
     const err = S.salveaza({ scope: d.scope, poz: { ...poz, averagePrice: px.intrare ?? poz.averagePrice, currentPrice: px.acum ?? poz.currentPrice }, stop, tinta });
     // I-711: confirmarea spune valoarea SALVATĂ (rotunjită la 4 zecimale, ca în teză), în moneda acțiunii
     stare = err ? '⚠ ' + err : '✓ Stopul pentru ' + tk.replace(/_US_EQ$|_[A-Z]{2}_EQ$/, '') + ' e salvat în Portofoliu: ' + new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(+stop.toFixed(4)) + ' ' + (S.moneda(poz) || '') + '.';
     desen(); window.dispatchEvent(new Event('tt-stop-salvat')); if (!err) trimite(true);
   });
+  /* I-758: copia ordinelor citită pe acest aparat (lista T212Pending) — null = necitită (dublura o verifică doar releul, la broker) */
+  function ordinePending(scope) { try { const P = window.T212Pending, a = P && typeof P.read === 'function' ? P.read(localStorage, scope) : null; return a && Array.isArray(a.items) ? a.items : null; } catch (_) { return null; } }
+  function garda(poz, acum, d, confirmatInAfara) { return { poz: poz || null, acum: acum ?? null, pending: ordinePending(d ? d.scope : null), confirmatInAfara: !!confirmatInAfara, storage: localStorage }; }
   async function trimiteOrdin() {
-    if (trimitOrdin || !confirm || !window.T212Orders) return; const c = confirm; trimitOrdin = true; desen();
-    const r = await window.T212Orders.pune({ ticker: c.ticker, quantity: c.qty, stopPrice: c.stop }); trimitOrdin = false; confirm = null;
+    if (trimitOrdin || !confirm || !window.T212Orders) return; const c = confirm;
+    // I-758: în afara collarului 0,5–25 % ordinul pleacă doar cu bifa din fereastră
+    const bifa = c.collar ? !!host.querySelector('[data-stop-t212-collar]')?.checked : false;
+    if (c.collar && !bifa) { stare = '⚠ Bifează confirmarea pentru stopul în afara intervalului 0,5–25 % sau alege alt stop. Ordinul NU a fost trimis.'; desen(); return; }
+    trimitOrdin = true; desen();
+    const d0 = date(), poz0 = d0 && (d0.snapshot.positions || []).find((p) => p.ticker === c.ticker);
+    const r = await window.T212Orders.pune({ ticker: c.ticker, quantity: c.qty, stopPrice: c.stop }, { garda: garda(poz0, c.acum, d0, bifa) }); trimitOrdin = false; confirm = null;
     if (r.ok) {
       const d = date(), poz = d && (d.snapshot.positions || []).find((p) => p.ticker === c.ticker);
       /* 27.10 (audit): ordinul abia pus intră în copia locală a ordinelor în așteptare ⇒ Astăzi nu mai spune „doar pe hârtie” până la următoarea citire a brokerului */

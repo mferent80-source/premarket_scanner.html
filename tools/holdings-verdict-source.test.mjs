@@ -19,7 +19,9 @@ test('a simultaneous chart refresh preserves only recent full-source provenance 
  for(const change of ['none','symbol','currency','session','history','expired','future']){
   const model=structuredClone(prior);delete model.sourceFingerprint;delete model.sourceVerifiedAt;const previous=structuredClone(old);
   if(change==='symbol')previous.symbol='OTHER';if(change==='currency')previous.currency='EUR';if(change==='session')model.asOf='2026-10-02';if(change==='history')model.bars[0].o=98;if(change==='expired')previous.model.sourceVerifiedAt=now-1800001;if(change==='future')previous.model.sourceVerifiedAt=now+1;
-  assert.equal(c.retainVerifiedSource(model,previous,'TEST','USD',now),change==='none',change);assert.equal(model.sourceFingerprint,change==='none'?prior.sourceFingerprint:undefined,change);
+  // 27.10.2026 (I-750, audit B 🔵 [4]): „expired” (verificat acum 31 min) NU mai pierde amprenta — aceeași sesiune, aceleași bare ⇒ aceeași amprentă (I-703)
+  const pastrat=change==='none'||change==='expired';
+  assert.equal(c.retainVerifiedSource(model,previous,'TEST','USD',now),pastrat,change);assert.equal(model.sourceFingerprint,pastrat?prior.sourceFingerprint:undefined,change);
  }
  assert.match(code,/retainVerifiedSource\(model,old,s,currency==='GBp'\?'GBX':currency\);cache\[entry\]/);
 });
