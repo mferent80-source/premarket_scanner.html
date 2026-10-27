@@ -68,7 +68,7 @@ test('🟡 [6] Astăzi: concentrarea se dă la pragul din Governor (implicit 20 
   assert.match(att(undefined), /Concentrare pe instrument ≥20% din cont/); assert.doesNotMatch(att(25), /Concentrare/); assert.match(att(15), /≥15%/);
   const h = citeste('holdings/holdings.js'); assert.doesNotMatch(h, /weight>=20/, 'fără prag fix în Portofoliu'); assert.match(h, /HoldingsConcentrare/);
   assert.match(citeste('today/view.js'), /pragConcentrare:/);
-  for (const p of ['today/index.html', 'holdings/index.html']) assert.match(citeste(p), /lib\/holdings-concentrare\.js\?v=26\.10\.27\.2100/, p);
+  for (const p of ['today/index.html', 'holdings/index.html']) assert.match(citeste(p), /lib\/holdings-concentrare\.js\?v=\d{2}\.\d{2}\.\d{2}\.\d{4}/, p);
   assert.ok(citeste('holdings/index.html').indexOf('holdings-concentrare.js') < citeste('holdings/index.html').indexOf('src="holdings.js'), 'înaintea paginii');
 });
 

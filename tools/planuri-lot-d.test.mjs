@@ -211,6 +211,6 @@ test('audit D 🔵: Shadow Book estimează poarta la 0,5 % din cont (riscul unui
 
 // ───────────── Politica lotului D ─────────────
 test('lotul D: politica adăugirilor e scrisă (plafonul Early Reversal, expirarea în sesiuni, ×0,75 la corelație neverificată, modulele-gardă, OPRIT)', () => {
-  const p = readFileSync('docs/politica-adaugiri-D.md', 'utf8');
+  const p = readFileSync('docs/politica-de-risc.md', 'utf8') /* 27.10: adăugirile lotului D sunt unite în politica de risc v2 */;
   for (const r of [/Early Reversal/, /0,25 %/, /2 sesiuni/, /×0,75/, /modul/i, /OPRIT/, /tt_governor_oprire_v1/, /bife/, /split/]) assert.match(p, r);
 });

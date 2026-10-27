@@ -1,7 +1,7 @@
 // 27.10.2026 (I-761): detectoarele de comportament, deterministe, pe ordinele Trading 212 + planuri: răzbunare (intrare la < 30 min după o
 // ieșire pe pierdere), mărime crescută după 2 pierderi (> 1,25 × mediana ultimelor 5 cumpărări), pierdere peste stop (R < −1,25 față de stopul
 // planului), „din frig” (prima cumpărare a zilei New York). Fiecare: n, R mediu (față de restul), trendul pe 4 săptămâni, filtrul Raportului.
-// Tiltmeter: 3 note pe zi (somn, concentrare, stres, 1–5) legate de R-ul zilei. Pragurile sunt convenții (docs/politica-adaugiri-C.md).
+// Tiltmeter: 3 note pe zi (somn, concentrare, stres, 1–5) legate de R-ul zilei. Pragurile sunt convenții (docs/politica-de-risc.md).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
