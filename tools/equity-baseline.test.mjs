@@ -137,12 +137,13 @@ test('a settings save with unchanged accountSize preserves reversible capital ad
   initialize(f);
   const deposit = f.ctx.EQ.addCapitalEvent('deposit', 1000);
   f.advance();
-  assert.ok(f.ctx.GV.saveCfg({accountSize: 11000, maxTradesDay: 6}));
-  assert.equal(f.ctx.GV.cfg().maxTradesDay, 6);
+  // 27.10.2026 (I-760): o relaxare (5 → 6) intră abia peste 24 h, cu motiv; strângerea (5 → 4) intră imediat — testul rămâne pe salvarea setărilor
+  assert.ok(f.ctx.GV.saveCfg({accountSize: 11000, maxTradesDay: 4}));
+  assert.equal(f.ctx.GV.cfg().maxTradesDay, 4);
   assert.equal(f.ctx.EQ.removeCapitalEvent(deposit.ts), true);
   assertAccount(f, 10000);
   assert.equal(f.ctx.EQ.curve().current, 10000);
-  assert.equal(f.ctx.GV.cfg().maxTradesDay, 6);
+  assert.equal(f.ctx.GV.cfg().maxTradesDay, 4);
 });
 
 test('a current snapshot supersedes earlier adjustments while later capital remains reversible', () => {
