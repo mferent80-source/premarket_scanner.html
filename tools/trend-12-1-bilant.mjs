@@ -6,24 +6,33 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { bilant, mesajBilant, continutBilant } from './trend-12-1-lib.mjs';
-import { calendarSUA } from '../lib/proba-contract.mjs';
+import { bilant, mesajBilantDiscord, continutBilant, citesteInghetatTrend } from './trend-12-1-lib.mjs';
+import { calendarSUA, intervalPentru } from '../lib/proba-contract.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GEN = path.join(ROOT, 'candidate-engine', 'generated');
 const F_IST = path.join(GEN, 'trend-12-1-istoric.jsonl'), F_OUT = path.join(GEN, 'trend-12-1-bilant.json');
+// 27.10.2026 (revizia F, 🔴3): zilele cu orizontul încheiat (+ 10 sesiuni), înghețate cu cifrele lor — fișierul doar crește
+// (garda: tools/trend-12-1-inghet.test.mjs); bilanțul nu le mai recalculează din Yahoo
+const F_INGHETAT = path.join(GEN, 'trend-12-1-inghetat.jsonl');
 const w = (ms) => new Promise((r) => setTimeout(r, ms));
 const istoric = (fs.existsSync(F_IST) ? fs.readFileSync(F_IST, 'utf8') : '').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
 if (!istoric.length) { console.log('istoric gol ⇒ nimic de măsurat'); process.exit(0); }
 const simboluri = new Set(['SPY']);
 istoric.forEach((l) => { (l.top || []).forEach(([s]) => simboluri.add(s)); (l.univers || []).forEach((s) => simboluri.add(s)); });
-console.log('istoric: ' + istoric.length + ' zile (' + istoric[0].d + ' … ' + istoric[istoric.length - 1].d + ') · simboluri de adus: ' + simboluri.size);
+const inghetate = fs.existsSync(F_INGHETAT) ? citesteInghetatTrend(fs.readFileSync(F_INGHETAT, 'utf8')) : [];
+// 27.10.2026 (revizia F, 🔴3): SPY pe un interval care acoperă prima zi a istoricului (le așază pe toate în calendar); acțiunile doar de la prima
+// zi încă neînghețată (2y ⇒ 5y ⇒ 10y) — înainte totul era fix pe 2 ani și ferestrele vechi ieșeau din calcul (fereastră alunecătoare)
+const gataZi = new Set(inghetate.filter((x) => x && x.tip === 'zi' && x.h === 20).map((x) => x.d)), gata60 = new Set(inghetate.filter((x) => x && x.tip === 'zi' && x.h === 60).map((x) => x.d));
+const primaVie = (istoric.find((l) => !(gataZi.has(l.d) && gata60.has(l.d))) || istoric[istoric.length - 1]).d, azi = new Date().toISOString().slice(0, 10);
+const RANGE_SPY = intervalPentru(istoric[0].d, azi), RANGE = intervalPentru(primaVie, azi);
+console.log('istoric: ' + istoric.length + ' zile (' + istoric[0].d + ' … ' + istoric[istoric.length - 1].d + ') · simboluri de adus: ' + simboluri.size + ' · înghețate: ' + inghetate.length + ' · interval ' + RANGE + ' (SPY ' + RANGE_SPY + ')');
 
 const preturi = {}, picate = [];
-async function adu(s) {
+async function adu(s, range = s === 'SPY' ? RANGE_SPY : RANGE) {
   for (let inc = 0; inc < 4; inc++) {
     try {
-      const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(s) + '?interval=1d&range=2y', { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(20000) });
+      const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(s) + '?interval=1d&range=' + range, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(20000) });
       if (r.status === 429) { await w(3000 * (inc + 1)); continue; }
       if (!r.ok) { picate.push(s); return; }
       const j = await r.json(), x = j.chart && j.chart.result && j.chart.result[0]; if (!x) { picate.push(s); return; }
@@ -39,12 +48,13 @@ if (!preturi.SPY) { console.error('SPY lipsește ⇒ nu pot măsura'); process.e
 console.log('prețuri: ' + Object.keys(preturi).length + ' serii · picate ' + picate.length);
 
 let prev = null; try { prev = JSON.parse(fs.readFileSync(F_OUT, 'utf8')); } catch { prev = null; }   // I-631: verdictul dinainte
-const b = bilant(istoric, preturi, { h: [20, 60] });
+const b = bilant(istoric, preturi, { h: [20, 60], inghetate });
 // 27.10.2026 (docs/trend-12-1-protocol.md): conținutul fișierului e construit de o funcție pură (testată), cu delistatele, judecătorul și contractul
 const out = continutBilant(b, istoric, { cal: calendarSUA(ROOT), azi: new Date().toISOString().slice(0, 10), la: new Date().toISOString() });
 fs.writeFileSync(F_OUT, JSON.stringify(out));
+if (b.deIngheta.length) { fs.appendFileSync(F_INGHETAT, b.deIngheta.map((x) => JSON.stringify(x)).join('\n') + '\n'); console.log('înghețate acum: ' + b.deIngheta.length + ' zile'); }
 // I-631: Discord DOAR când verdictul s-a schimbat (în probă → probat / picat); fără webhook, doar în jurnal
-const mesaj = mesajBilant(prev, out);
+const mesaj = mesajBilantDiscord(prev, out);   // 27.10.2026 (I-764): cu eticheta „neverificat de om” la final
 if (mesaj && process.env.DISCORD_WEBHOOK) {
   try { const r = await fetch(process.env.DISCORD_WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: mesaj }), signal: AbortSignal.timeout(20000) }); console.log('Discord (verdict schimbat): ' + (r.ok ? 'trimis' : 'HTTP ' + r.status)); } catch (e) { console.error('Discord: ' + (e.message || e)); }
 } else console.log('Discord: ' + (mesaj ? 'verdict schimbat, dar fără webhook' : 'verdictul neschimbat, nu trimit'));

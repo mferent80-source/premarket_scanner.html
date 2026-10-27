@@ -39,7 +39,7 @@ istoric, 0 zile cu rezultat la 20 de zile, 0 ferestre).
   Spus cinstit: mărimea testului depinde de forma ferestrelor — 1,5 % dacă ar fi gaussiene, 5,7 % în 5 ani cu asimetria ferestrelor
   reale (aproximată aici; calibrarea din 14.10 pe ferestrele reale a dat 4,3 %). Pragul rămâne 3,2 (ales pe seria reală, înaintea datelor).
   Puterea e mică: în primul an „în probă” e rezultatul aproape sigur, oricare ar fi adevărul; ce poate veni mai devreme e doar alarma.
-- **Amprenta judecătorului: `jt-f0cc2da31fb4`** = SHA pe `bilant`, `ferestreNesuprapuse`, `pragAbatere`, `interval`, `rnd` și pe
+- **Amprenta judecătorului (auditul F, înlocuită pe 27.10.2026 de revizie — vezi mai jos) `jt-f0cc2da31fb4`** = SHA pe `bilant`, `ferestreNesuprapuse`, `pragAbatere`, `interval`, `rnd` și pe
   pragurile (`T_PRAG`, `PRAG_ABATERE`, `ASTEPTARE`); bilanțul o scrie în fișier (`judecator`), garda `tools/probe-amprente.test.mjs` pică
   dacă codul de azi dă alta. O schimbare a judecătorului = protocol nou, scris înainte.
 - **Câmpurile pentru panouri (lotul D):** `putere` (tabelul de mai sus, unitatea „% pe fereastră”), `primulVerdict` (12 ferestre de 20 de
@@ -50,3 +50,37 @@ istoric, 0 zile cu rezultat la 20 de zile, 0 ferestre).
 - Nu ține cont de raportări, de stop sau de ținta planului (Desk nu construiește plan pe Trend); judecă doar lista față de alte acțiuni.
 - Lista de azi e a supraviețuitorilor (universul de acum, nu cel din trecut); instantaneul datat al universului există din 19.10.2026
   (`candidate-engine/generated/univers-sua-istoric/`), pentru o probă viitoare fără părtinirea supraviețuitorilor.
+
+## Revizia independentă din 27.10.2026 (🔴3) — scris înaintea primei ferestre închise
+Bilanțul din 24.10.2026: 9 zile în istoric, 0 zile cu rezultat la 20 de zile, 0 ferestre ⇒ schimbarea nu costă nimic și nu e repornire.
+
+**Ce era greșit:** bilanțul aducea prețurile doar pe 2 ani (`range=2y`, și pentru SPY). După ~10.2028 ferestrele vechi ar fi ieșit din
+calcul: verdictul ar fi stat pe o fereastră alunecătoare de ~24 de ferestre, privită săptămânal ani la rând, iar „36 / 60 de ferestre”
+din tabelul de mai sus nu s-ar fi putut strânge niciodată.
+
+**Ce se schimbă (fixat acum):**
+- **Prețurile acoperă tot istoricul:** SPY pe un interval care acoperă prima zi a istoricului (`intervalPentru`: 2y ⇒ 5y ⇒ 10y, aceeași
+  regulă ca la Top Long și Reguli V1), acțiunile de la prima zi încă neînghețată.
+- **Zilele închise se îngheață:** o zi din istoric, la un orizont (20 / 60), se îngheață când s-au scurs orizontul + cele 10 sesiuni de
+  așteptare (`ASTEPTARE`) — atunci fiecare acțiune e definitivă (randament, ieșire la ultima închidere sau „nejudecată”). Cifrele zilei
+  (media primelor 20, a universului, câte, nejudecatele, ieșirile) se scriu o singură dată în
+  `candidate-engine/generated/trend-12-1-inghetat.jsonl`, fișier care doar crește (garda: `tools/trend-12-1-inghet.test.mjs`, în suită
+  și în fluxul bilanțului). Bilanțul le citește, nu le mai recalculează din Yahoo: o acțiune dispărută sau o serie scurtă după înghețare
+  nu mai schimbă nimic. Dacă SPY nu mai acoperă o zi înghețată, bilanțul se oprește (închis la eroare; rămâne cel vechi).
+- **Judecata rămâne cea din 14.10** (t > 3,2 de la 12 ferestre, secvențială, pe toate ferestrele de la început).
+
+**Mărimea, cu privirile cumulative (după reparație) față de fereastra alunecătoare de 2 ani (codul de dinainte)** — simularea mea
+(4000 de lumi, mulberry32, modelul `marimePutereTrend`; scratchpad `trend-marime.mjs`), „probat” fals:
+
+| Forma ferestrelor | 3 ani (36) cumulativ / alunecător | 5 ani (60) | 10 ani (120) |
+|---|---|---|---|
+| gaussiană | 1,2 % / 1,7 % | 1,4 % / 2,7 % | 1,8 % / 5,3 % |
+| asimetrică (modelul F) | 4,8 % / 6,3 % | **5,5 %** / 11,4 % | **6,3 %** / 21,9 % |
+
+Revizia a dat aceleași ordine de mărime (cumulativ 4,6 / 5,2 / 5,4 %, alunecător 6,2 / 10,3 / 19,5 %). Spus cinstit: chiar și cumulativ,
+cu forma asimetrică aproximată, mărimea trece puțin de 5 % după 5 ani (5,5 %) și de 6 % după 10; calibrarea din 14.10 pe ferestrele
+reale dădea 4,3 % în 5 ani. Pragul 3,2 nu se schimbă aici (e regula probei din 14.10); dacă proba ajunge la 60 de ferestre fără verdict,
+pragul pentru privirile de după se rescrie ÎNAINTE, ca probă nouă.
+
+**Amprenta judecătorului: `jt-7098991f68d3`** (înlocuiește `jt-f0cc2da31fb4`, înaintea primei ferestre): același SHA, acum și pe
+zilele înghețate din `bilant`.

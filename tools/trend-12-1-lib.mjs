@@ -11,6 +11,7 @@
 //   regim = SPY închis peste media simplă pe 200 de zile (2022, an negativ, cade când regimul e oprit)
 
 import { mulberry32, gauss, amprentaFunctii, dupaSesiuni, sesiuniIntre, primulVerdict, judecata as judecataDin } from '../lib/proba-contract.mjs';
+import { ETICHETA_NEVERIFICAT } from './discord-mesaj.mjs';
 
 const zi = (t) => new Date(t).toISOString().slice(0, 10);
 
@@ -185,32 +186,45 @@ function interval(v, extr = 1000, bloc = 20) { if (!v.length) return [null, null
  */
 export function bilant(istoric, preturi, o = {}) {
   const H = o.h || [20, 60], COST = 0.003, spy = preturi.SPY || [];
+  // 27.10.2026 (revizia F, 🔴3): cu `o.inghetate` (fișierul trend-12-1-inghetat.jsonl), zilele deja înghețate își iau cifrele din fișier
+  // (nu se mai recalculează din Yahoo), iar zilele cu orizontul + ASTEPTARE sesiuni scurse se întorc în `deIngheta` (de adăugat în fișier)
+  const ing = Array.isArray(o.inghetate) ? new Map(o.inghetate.filter((x) => x && x.tip === 'zi').map((x) => [x.h + '|' + x.d, x])) : null, deIngheta = [];
   const idx = {}; for (const [s, b] of Object.entries(preturi)) { const m = new Map(); (b || []).forEach((x, i) => m.set(zi(x.t), i)); idx[s] = m; }
   const rez = {}, nej = {}, opr = {}, vazut = new Set(); for (const h of H) { rez[h] = { top: [], nul: [], dif: [], si: [] }; nej[h] = { n: 0, motive: {} }; opr[h] = 0; }
   // 27.10.2026 (docs/trend-12-1-protocol.md, scris înaintea primei ferestre): o acțiune fără date la ASTEPTARE sesiuni după orizont iese la
   // ultima închidere cunoscută (față de SPY pe aceleași date); fără serie / fără ziua intrării ⇒ „nejudecată”, cu motiv (înainte: tăcut afară)
-  const nejudecat = (h, l, s, motiv) => { const k = h + '|' + l.d + '|' + s; if (vazut.has(k)) return; vazut.add(k); nej[h].n++; nej[h].motive[motiv] = (nej[h].motive[motiv] || 0) + 1; };
+  const nejudecat = (h, l, s, motiv, loc) => { const k = h + '|' + l.d + '|' + s; if (vazut.has(k)) return; vazut.add(k); nej[h].n++; nej[h].motive[motiv] = (nej[h].motive[motiv] || 0) + 1; if (loc) loc.nej[motiv] = (loc.nej[motiv] || 0) + 1; };
   let zile = 0;
   for (const l of istoric || []) {
     if (!l || !Array.isArray(l.top) || !l.d) continue; zile++;
-    const si = idx.SPY ? idx.SPY.get(l.d) : null; if (si == null) continue;
+    const si = idx.SPY ? idx.SPY.get(l.d) : null;
     for (const h of H) {
-      if (si + h >= spy.length) continue;
-      const zIn = zi(spy[si + 1].t), zOut = zi(spy[si + h].t), spyR = spy[si + h].c / spy[si + 1].o - 1, gata = si + h + ASTEPTARE < spy.length;
+      const f = ing && ing.get(h + '|' + l.d);
+      if (f) {   // ziua înghețată: cifrele din fișier; SPY trebuie doar s-o așeze în calendar (ferestrele care nu se suprapun)
+        if (si == null) throw Error('SPY nu acoperă ziua înghețată ' + l.d + ' — prețurile trebuie să acopere tot istoricul; bilanțul vechi rămâne');
+        for (const [m, n] of Object.entries(f.nej || {})) { nej[h].n += n; nej[h].motive[m] = (nej[h].motive[m] || 0) + n; } opr[h] += f.oprite || 0;
+        if (f.top === null) continue;
+        rez[h].top.push(f.top); if (f.nul !== null) { rez[h].nul.push(f.nul); rez[h].dif.push(f.top - f.nul); rez[h].si.push(si); }
+        continue;
+      }
+      if (si == null || si + h >= spy.length) continue;
+      const zIn = zi(spy[si + 1].t), zOut = zi(spy[si + h].t), spyR = spy[si + h].c / spy[si + 1].o - 1, gata = si + h + ASTEPTARE < spy.length, loc = { nej: {}, opr: 0 };
       // revizie 14.10: intrarea și ieșirea pe DATELE calendarului SPY, nu pe indicii acțiunii (o zi lipsă nu mai decalează fereastra)
       const rand = (s) => {
-        const b = preturi[s], m = idx[s]; if (!b || !m || !b.length) { if (gata) nejudecat(h, l, s, 'fără serie (delistată sau sursă indisponibilă)'); return null; }
-        const i0 = m.get(zIn), i1 = m.get(zOut); if (i0 == null) { if (gata) nejudecat(h, l, s, 'ziua intrării lipsește din serie'); return null; }
+        const b = preturi[s], m = idx[s]; if (!b || !m || !b.length) { if (gata) nejudecat(h, l, s, 'fără serie (delistată sau sursă indisponibilă)', loc); return null; }
+        const i0 = m.get(zIn), i1 = m.get(zOut); if (i0 == null) { if (gata) nejudecat(h, l, s, 'ziua intrării lipsește din serie', loc); return null; }
         if (i1 != null) return b[i1].c / b[i0].o - 1 - COST - spyR;
         const ult = b.length - 1, dUlt = zi(b[ult].t), sj = idx.SPY.get(dUlt);
         if (!gata || dUlt >= zOut) return null;   // încă nu s-a încheiat sau datele întârzie
-        if (ult <= i0 || sj == null) { nejudecat(h, l, s, 'seria s-a oprit în ziua intrării'); return null; }
-        const k = 'o|' + h + '|' + l.d + '|' + s; if (!vazut.has(k)) { vazut.add(k); opr[h]++; }
+        if (ult <= i0 || sj == null) { nejudecat(h, l, s, 'seria s-a oprit în ziua intrării', loc); return null; }
+        const k = 'o|' + h + '|' + l.d + '|' + s; if (!vazut.has(k)) { vazut.add(k); opr[h]++; loc.opr++; }
         return b[ult].c / b[i0].o - 1 - COST - (spy[sj].c / spy[si + 1].o - 1);
       };
-      const top = l.top.map(([s]) => rand(s)).filter((v) => v !== null); if (!top.length) continue;
-      const univ = (l.univers || []).map(rand).filter((v) => v !== null);
-      const mTop = top.reduce((a, b) => a + b, 0) / top.length, mUniv = univ.length ? univ.reduce((a, b) => a + b, 0) / univ.length : null;
+      const top = l.top.map(([s]) => rand(s)).filter((v) => v !== null);
+      const univ = top.length ? (l.univers || []).map(rand).filter((v) => v !== null) : [];
+      const mTop = top.length ? top.reduce((a, b) => a + b, 0) / top.length : null, mUniv = univ.length ? univ.reduce((a, b) => a + b, 0) / univ.length : null;
+      if (ing && gata) deIngheta.push({ tip: 'zi', d: l.d, h, top: mTop, nul: mTop === null ? null : mUniv, nTop: top.length, nUniv: univ.length, nej: loc.nej, oprite: loc.opr });
+      if (!top.length) continue;
       rez[h].top.push(mTop); if (mUniv !== null) { rez[h].nul.push(mUniv); rez[h].dif.push(mTop - mUniv); rez[h].si.push(si); }
     }
   }
@@ -228,13 +242,17 @@ export function bilant(istoric, preturi, o = {}) {
   const prag = pragAbatere(ferestre20), abatere = prag == null ? null : { k: ferestre20, medie: mW, prag, atinsa: mW < prag };
   const starturi20 = ferestreNesuprapuse(r20.si.map((s) => [s, s]), H[0]).map((s) => zi(spy[s].t));   // ziua de start a fiecărei ferestre
   return {
-    zile, n20: r20.top.length, n60: r60.top.length, ferestre20, starturi20, nejudecate: nej, oprite: opr,
+    zile, n20: r20.top.length, n60: r60.top.length, ferestre20, starturi20, nejudecate: nej, oprite: opr, deIngheta,
     exces20: medie(r20.top), exces60: medie(r60.top), nulB20: medie(r20.nul), nulB60: medie(r60.nul),
     interval20: interval(r20.top, 1000, H[0]), diferenta20: { medie: mDif, interval: difInterval, ferestre: mW }, t20, abatere, diferenta60: { medie: medie(r60.dif), interval: interval(r60.dif, 1000, H[1] || 60) },
     verdict, criterii: 'cel puțin 12 ferestre de 20 de zile care nu se suprapun și t > 3,2 pe diferența față de universul zilei ⇒ probat; t < −3,2 ⇒ picat; altfel în probă. Pragul e ales (14.10.2026) ca „probat” fals să rămână sub 5 % în 5 ani de priviri săptămânale; cu avantajul din istorie trece în ~25 % din cazuri în 3 ani — după un an, cel mai probabil tot „în probă”. Abatere: media ferestrelor sub pragul scris înainte (−3,0 % după 3, −1,8 % după 6, −1,2 % după 9, −0,9 % după 12)',
   };
 }
 
+/** 27.10.2026 (revizia F, 🔴3): fișierul zilelor înghețate (JSONL, doar crește); o linie stricată oprește bilanțul. */
+export function citesteInghetatTrend(text) { return String(text || '').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l)); }
+/** 27.10.2026 (I-764, revizia A–E): ce pleacă pe Discord — mesajul bilanțului + pe rând separat eticheta „generat automat · neverificat de om”. */
+export function mesajBilantDiscord(prev, out) { const m = mesajBilant(prev, out); return m ? m + '\n-# ' + ETICHETA_NEVERIFICAT : ''; }
 /** I-631: mesajul Discord al bilanțului — DOAR când verdictul s-a schimbat față de bilanțul dinainte (altfel ''). */
 export function mesajBilant(prev, out) {
   // 14.10 seara: și ABATEREA (media live sub pragul scris înainte) se anunță o singură dată, când apare

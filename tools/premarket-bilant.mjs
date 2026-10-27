@@ -3,6 +3,7 @@
 // alt calcul de verdict — și trimite un mesaj DOAR când s-a închis o perioadă nouă. Alarma de abatere e cea scrisă ÎNAINTE de date în
 // docs/premarket-proba-protocol.md, Anexa A: o alarmă de revăzut, NU un verdict; regulile probei rămân cele din 18.10.2026.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { ETICHETA_NEVERIFICAT } from './discord-mesaj.mjs';
 
 const DIR = 'scanner-verdicts/generated', PROBA = DIR + '/premarket-proba.json', STARE = DIR + '/premarket-bilant.json';
 /** Abaterea diferenței SUS − JOS pe o perioadă de 20 de sesiuni: 3,4 % (cercetarea din 19.10.2026, H1·B: 47 de ferestre de 20 de
@@ -40,7 +41,8 @@ export function decide(p, prev, acum = Date.now()) {
   if (!o.some((x) => x && x.perioade > 0)) return { trimite: false, mesaj: '', stare: prev || null };
   const cheie = JSON.stringify(o.map((x) => [x.k, x.perioade, x.ultimaPerioada?.zi || null, x.verdict]));
   if (prev && prev.cheie === cheie) return { trimite: false, mesaj: '', stare: prev };
-  return { trimite: true, mesaj: mesaj(p, acum), stare: { cheie, la: new Date(acum).toISOString(), versiune: p.versiune || null } };
+  // 27.10.2026 (I-764, revizia A–E): ce pleacă pe Discord poartă la final, pe rând separat, eticheta „generat automat · neverificat de om”
+  return { trimite: true, mesaj: mesaj(p, acum) + '\n-# ' + ETICHETA_NEVERIFICAT, stare: { cheie, la: new Date(acum).toISOString(), versiune: p.versiune || null } };
 }
 
 async function main() {
