@@ -28,6 +28,10 @@ test('I-709 / I-742: eticheta și plafonul vin din fișierul probei; fără fiș
   assert.ok(P.state().text.includes(DIN + ' perioade'));
   P.set(ajuta(PROBA)); assert.equal(P.cap(0.5, long), 0.5); assert.equal(P.tag(long), ''); assert.equal(P.cap(0.5, rev), 0.25, 'verdictul Top Long nu ridică plafonul Early Reversal');
   P.set({ orizonturi: [{ k: 20, principal: true, perioade: 8, necesare: 8, verdict: 'fara-avantaj' }] }); assert.equal(P.cap(0.5, long), 0.25); assert.match(P.tag(long), /fără avantaj/);
+  // 27.10.2026 (revizia F, 🟡11; politica F § 2): un „ajută” CU REZERVE (persistența ≥ 0,2) nu ridică plafonul fără o decizie scrisă
+  P.set({ orizonturi: [{ k: 5, principal: true, perioade: 40, necesare: 40, verdict: 'ajuta', rezerve: 'perioadele au persistență (ρ = 0,31)' }] });
+  assert.equal(P.cap(0.5, long), 0.25, '„ajută cu rezerve” ține plafonul'); assert.match(P.tag(long), /ajută cu rezerve/); assert.match(P.state().text, /cu rezerve/); assert.match(P.state().text, /0,25 %/);
+  assert.equal(P.state().dovedit, false);
   P.set(null); assert.equal(P.cap(0.5, long), 0.25); assert.match(P.tag(long), /în probă/);
 });
 
