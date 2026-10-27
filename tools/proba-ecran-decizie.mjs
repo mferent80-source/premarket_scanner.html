@@ -19,6 +19,17 @@ import { pathToFileURL } from 'node:url';
 
 export const BAZA_IMPLICITA = 'https://mferent80-source.github.io/premarket_scanner.html/';
 export const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
+/* 27.10.2026 (I-747): proba rulează și pe runnerul GitHub (Ubuntu, Google Chrome), după fiecare publicare. Pe PC rămâne Edge; altfel primul
+   Chrome / Chromium găsit; o cale dată cu --browser (sau BROWSER / CHROME_PATH din mediu) are întâietate și trebuie să existe. */
+export const CANDIDATI_BROWSER = Object.freeze([EDGE, 'C:/Program Files/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/snap/bin/chromium',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge']);
+export function alegeBrowser(dat, exista = existsSync) {
+  if (dat) { if (exista(dat)) return dat; throw Error('browserul dat nu există: ' + dat); }
+  const gasit = CANDIDATI_BROWSER.find((p) => exista(p));
+  if (!gasit) throw Error('niciun Edge / Chrome / Chromium în locurile obișnuite — dă calea cu --browser <cale>');
+  return gasit;
+}
 // „rețeaua s-a liniștit” = nicio cerere pornită sau încheiată de 3 s (ca în masoara.mjs, 19.10)
 const LINISTE_MS = 3000;
 // după liniște, elementele-cheie mai primesc 5 s (desene întârziate) înainte să fie declarate lipsă
@@ -161,6 +172,9 @@ export function evalueaza(raport) {
     return ' (' + f + (e.rand ? ':' + e.rand + (e.coloana ? ':' + e.coloana : '') : '') + ')' + (e.cadru ? ' [' + e.cadru + ']' : '') + (e.n > 1 ? ' ×' + e.n : '');
   };
   if (r.eroareProba) motive.push('proba nu a putut rula: ' + r.eroareProba);
+  // I-747: după publicare proba așteaptă ca site-ul să servească versiunea din depozit; dacă n-o servește, verdictul ar fi pe versiunea veche
+  const w = r.asteptare;
+  if (w && w.ceruta && w.gasita !== w.ceruta) motive.push('site-ul nu servește versiunea ' + w.ceruta + ' după ' + (Number.isFinite(w.ms) ? (w.ms / 60000).toFixed(1).replace('.', ',') + ' min' : '—') + ' (servește ' + (w.gasita || 'nimic citibil') + ')');
   const deschideri = Array.isArray(r.deschideri) ? r.deschideri : [];
   if (!deschideri.some((d) => d && Array.isArray(d.pagini) && d.pagini.length)) motive.push('nicio pagină măsurată');
   for (const d of deschideri) {
@@ -256,6 +270,20 @@ export function rezumat(raport, ev) {
   return linii.join('\n');
 }
 
+/** 27.10.2026 (I-747): rezumatul scurt publicat în health/generated/proba-ecran.json (Health îl arată): verdictul, versiunea probată, durata,
+ *  paginile cu timpii celor două deschideri, motivele (cel mult 20) și rularea. Raportul întreg (diagnostic, cereri) rămâne în jurnalul rulării. Pur. */
+export function rezumatHealth(raport, ev, { rulare = null, commit = null } = {}) {
+  const r = raport || {}, e = ev || evalueaza(r), [d1] = r.deschideri || [];
+  return {
+    versiune: 'proba-ecran-v1', unealta: 'tools/proba-ecran-decizie.mjs (I-725 / I-747)', la: r.pornit || null, durataMs: Number.isFinite(r.durataMs) ? r.durataMs : null,
+    baza: r.baza || null, browser: r.browser || null, versiunePublicata: (d1 && d1.versiunePublicata) || null, suitaPublicata: (d1 && d1.suitaPublicata) || null,
+    verdict: e.verdict, nMotive: e.motive.length, motive: e.motive.slice(0, 20).map((m) => String(m).slice(0, 300)), nAvertismente: e.avertismente.length,
+    avertismente: e.avertismente.slice(0, 10).map((m) => String(m).slice(0, 300)), eroareProba: r.eroareProba ? String(r.eroareProba).slice(0, 300) : null,
+    pagini: compara(r.deschideri).map((p) => ({ id: p.id, nume: p.nume, ok: !(e.pagini[p.id] && e.pagini[p.id].ok === false), continut1: p.continut1 ?? null, continut2: p.continut2 ?? null })),
+    rulare: typeof rulare === 'string' && /^https:\/\//.test(rulare) ? rulare : null, commit: typeof commit === 'string' && commit ? commit.slice(0, 8) : null,
+  };
+}
+
 /* ---------- argumentele ---------- */
 
 export const AJUTOR = [
@@ -268,6 +296,10 @@ export const AJUTOR = [
   '  --port <n>            portul CDP al lui Edge (implicit unul liber)',
   '  --profil <folder>     profilul Edge (implicit unul temporar, gol; un profil dat NU se șterge)',
   '  --pastreaza-profil    nu șterge profilul temporar la final',
+  '  --browser <cale>      Edge / Chrome / Chromium (implicit Edge pe PC, altfel primul Chrome găsit; acceptă și BROWSER / CHROME_PATH)',
+  '  --fara-sandbox        pentru runnerul CI (Linux): --no-sandbox și --disable-dev-shm-usage',
+  '  --rezumat <fișier>    rezumatul scurt pentru Health (health/generated/proba-ecran.json)',
+  '  --asteapta-versiune <v>  așteaptă (cel mult 10 min) ca site-ul să servească app/version.json = v înainte de probă',
   'Ieșirea: 0 = verde, 1 = roșu.',
 ].join('\n');
 
@@ -283,7 +315,8 @@ export function alegePagini(text) {
   return ids.map((id) => PAGINI.find((p) => p.id === id));
 }
 export function citesteArgumente(argv = [], env = {}) {
-  const o = { base: env.BASE || BAZA_IMPLICITA, port: null, profil: null, pagini: PAGINI, out: null, pastreazaProfil: false, timp: 60000, ajutor: false };
+  const o = { base: env.BASE || BAZA_IMPLICITA, port: null, profil: null, pagini: PAGINI, out: null, pastreazaProfil: false, timp: 60000, ajutor: false,
+    browser: env.BROWSER || env.CHROME_PATH || null, faraSandbox: false, rezumat: null, asteaptaVersiune: null };
   const lista = [];
   for (const a of argv) {
     const i = String(a).indexOf('=');
@@ -304,6 +337,10 @@ export function citesteArgumente(argv = [], env = {}) {
     else if (a === '--out') o.out = val();
     else if (a === '--timp') o.timp = Number(val());
     else if (a === '--pastreaza-profil') o.pastreazaProfil = true;
+    else if (a === '--browser') o.browser = val();
+    else if (a === '--fara-sandbox') o.faraSandbox = true;
+    else if (a === '--rezumat') o.rezumat = val();
+    else if (a === '--asteapta-versiune') o.asteaptaVersiune = val();
     else if (a === '--ajutor' || a === '--help' || a === '-h') o.ajutor = true;
     else throw Error('argument necunoscut: ' + a);
   }
@@ -313,6 +350,7 @@ export function citesteArgumente(argv = [], env = {}) {
   if (!/^https?:$/.test(u.protocol)) throw Error('--base trebuie să fie http(s): ' + o.base);
   if (o.port !== null && !(Number.isInteger(o.port) && o.port > 0 && o.port < 65536)) throw Error('--port nevalid');
   if (!(Number.isFinite(o.timp) && o.timp >= 5000)) throw Error('--timp trebuie să fie cel puțin 5000 (ms)');
+  if (o.asteaptaVersiune !== null && !/^\d{2}\.\d{2}\.\d{2}\.\d{4}$/.test(o.asteaptaVersiune)) throw Error('--asteapta-versiune cere o versiune YY.MM.DD.HHMM');
   return o;
 }
 
@@ -369,17 +407,18 @@ async function raspundeCdp(port) {
 }
 async function pornesteEdge(opt, profil) {
   const port = opt.port || await portLiber();
-  if (!existsSync(EDGE)) throw Error('Edge nu există la ' + EDGE);
+  const exe = alegeBrowser(opt.browser);
   // garda: dacă portul răspunde deja, ne-am atașa la browserul ALTCUIVA
   if (await raspundeCdp(port)) throw Error('portul ' + port + ' răspunde deja la CDP (alt browser pornit cu --remote-debugging-port) — alege alt --port');
-  const proc = spawn(EDGE, ['--headless=new', '--remote-debugging-port=' + port, '--user-data-dir=' + profil, '--no-first-run', '--no-default-browser-check', '--window-size=412,915', 'about:blank'], { stdio: 'ignore' });
+  const ci = opt.faraSandbox ? ['--no-sandbox', '--disable-dev-shm-usage'] : [];
+  const proc = spawn(exe, ['--headless=new', '--remote-debugging-port=' + port, '--user-data-dir=' + profil, '--no-first-run', '--no-default-browser-check', '--window-size=412,915', ...ci, 'about:blank'], { stdio: 'ignore' });
   const b = { proc, port, iesit: false, eroare: null, cdp: null, produs: '' };
   proc.on('exit', () => { b.iesit = true; });
   proc.on('error', (e) => { b.iesit = true; b.eroare = e.message; });
   let v = null;
   for (let i = 0; i < 100 && !v && !b.iesit; i++) { v = await raspundeCdp(port); if (!v) await asteapta(200); }
   if (!v) {
-    const motiv = b.eroare ? 'Edge nu a pornit: ' + b.eroare : b.iesit ? 'Edge s-a închis imediat (profilul e folosit de alt Edge?)' : 'Edge nu a deschis portul CDP în 20 s';
+    const motiv = b.eroare ? 'browserul (' + exe + ') nu a pornit: ' + b.eroare : b.iesit ? 'browserul (' + exe + ') s-a închis imediat (profilul e folosit de alt browser? pe Linux fără --fara-sandbox?)' : 'browserul (' + exe + ') nu a deschis portul CDP în 20 s';
     await opresteEdge(b);
     throw Error(motiv);
   }
@@ -702,7 +741,7 @@ async function masoaraPagina(ctx, pagina, opt, publicat) {
   } catch (e) { rez.eroare = 'navigarea a eșuat: ' + e.message; }
   let stare = null, continutLa = null, declansat = false;
   while (!rez.eroare) {
-    if (cdp.inchis) { rez.eroare = 'conexiunea cu Edge s-a pierdut (browserul a căzut?)'; break; }
+    if (cdp.inchis) { rez.eroare = 'conexiunea cu browserul s-a pierdut (a căzut?)'; break; }
     if (Date.now() - t0 >= opt.timp) { rez.plafon = true; break; }
     await asteapta(PAS_MS);
     const inainte = Date.now();
@@ -785,6 +824,17 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   const raport = { unealta: 'proba-ecran-decizie (I-725)', baza: opt.base, pornit: new Date().toISOString(), profil: temporar ? '(temporar, ' + (opt.pastreazaProfil ? 'păstrat: ' + profil : 'șters la final') + ')' : profil, plafonMs: opt.timp, pagini: opt.pagini.map((p) => p.id), deschideri: [] };
   const t0 = Date.now();
   try {
+    // I-747: după publicare, întâi versiunea din depozit trebuie să fie cea servită de site (Pages + CDN pot întârzia câteva minute)
+    if (opt.asteaptaVersiune) {
+      const w = { ceruta: opt.asteaptaVersiune, gasita: null, ms: 0 }, start = Date.now();
+      for (;;) {
+        w.gasita = (await citestePublicat(opt.base)).versiune; w.ms = Date.now() - start;
+        if (w.gasita === w.ceruta || w.ms >= 600000) break;
+        process.stderr.write('[așteptare] site-ul servește ' + (w.gasita || '—') + ', aștept ' + w.ceruta + '\n');
+        await asteapta(20000);
+      }
+      raport.asteptare = w;
+    }
     // a doua deschidere: ACELAȘI profil, browserul repornit ⇒ service worker-ul și cache-urile din prima trecere sunt active
     for (const [eticheta, swAsteptat] of [['prima', false], ['a doua', true]]) {
       const publicat = await citestePublicat(opt.base);
@@ -808,6 +858,10 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   raport.motive = ev.motive;
   raport.avertismente = ev.avertismente;
   try { mkdirSync(dirname(out), { recursive: true }); writeFileSync(out, JSON.stringify(raport, null, 1)); } catch (e) { console.error('Raportul JSON nu a putut fi scris: ' + e.message); }
+  if (opt.rezumat) {
+    const scurtat = resolve(opt.rezumat);
+    try { mkdirSync(dirname(scurtat), { recursive: true }); writeFileSync(scurtat, JSON.stringify(rezumatHealth(raport, ev, { rulare: env.RUN_URL || null, commit: env.GITHUB_SHA || null }), null, 1) + '\n'); } catch (e) { console.error('Rezumatul pentru Health nu a putut fi scris: ' + e.message); }
+  }
   console.log(rezumat(raport, ev));
   console.log('Raport JSON: ' + out + ' · durata ' + secunde(raport.durataMs));
   return ev.verdict === 'verde' ? 0 : 1;
