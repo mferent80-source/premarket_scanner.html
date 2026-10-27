@@ -43,7 +43,8 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           command -v google-chrome && google-chrome --version || true
-          node tools/proba-ecran-decizie.mjs --browser "$(command -v google-chrome || true)" --fara-sandbox --rezumat health/generated/proba-ecran.json --asteapta-versiune "${{ steps.nou.outputs.versiune }}" --out "$RUNNER_TEMP/proba-ecran-raport.json"
+          # 28.10.2026: roșu doar la DOUĂ probe picate la rând — prima poate prinde un fișier încă nepropagat de Pages (CDN) chiar după schimbarea versiunii
+          node tools/proba-ecran-decizie.mjs --browser "$(command -v google-chrome || true)" --fara-sandbox --rezumat health/generated/proba-ecran.json --asteapta-versiune "${{ steps.nou.outputs.versiune }}" --out "$RUNNER_TEMP/proba-ecran-raport.json" || { echo "prima probă roșie — a doua încercare peste 2 minute"; sleep 120; node tools/proba-ecran-decizie.mjs --browser "$(command -v google-chrome || true)" --fara-sandbox --rezumat health/generated/proba-ecran.json --asteapta-versiune "${{ steps.nou.outputs.versiune }}" --out "$RUNNER_TEMP/proba-ecran-raport.json"; }
       - name: Publică rezultatul (health/generated/proba-ecran.json)
         if: steps.nou.outputs.nou == 'true'
         run: |

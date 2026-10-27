@@ -62,4 +62,7 @@ test('workflow-ul proba-ecran.yml: după publicarea Pages (și la cerere), Chrom
   for (const m of y.matchAll(/uses: ([^\s]+)/g)) assert.match(m[1], /@[0-9a-f]{40}$/, 'acțiunile fixate pe SHA, ca în celelalte workflow-uri: ' + m[1]);
   assert.match(y, /concurrency:/);
   assert.ok(!/echo[^\n]*secrets\./.test(y), 'secretele nu se tipăresc');
+  // 28.10.2026: prima rulare după publicare (21:28Z) a prins un fișier încă nepropagat de Pages (net::ERR_FAILED, 200 un minut mai târziu) ⇒
+  // roșu doar dacă proba pică de DOUĂ ori la rând, a doua oară după 2 minute
+  assert.match(y, /node tools\/proba-ecran-decizie\.mjs[^\n]*\|\|[\s\S]{0,160}sleep 120[\s\S]{0,60}node tools\/proba-ecran-decizie\.mjs/, 'a doua încercare după 2 minute');
 });
