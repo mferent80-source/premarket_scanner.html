@@ -25,6 +25,10 @@ test('Verdictul pieței: judecătorul = cel scris în docs/verdict-piata-protoco
   const { amprentaJudecator } = await import('./verdict-piata-robot.mjs');
   assert.equal(amprentaJudecator(), scris('docs/verdict-piata-protocol.md', /Amprenta judecătorului: `(jv-[0-9a-f]{12})`/), 'codul care alege liniile / judecă proba verdictului (tools/verdict-piata-robot.mjs) s-a schimbat');
 });
+test('Trend 12 luni: judecătorul bilanțului = cel scris în docs/trend-12-1-protocol.md', async () => {
+  const { amprentaJudecatorTrend } = await import('./trend-12-1-lib.mjs');
+  assert.equal(amprentaJudecatorTrend(), scris('docs/trend-12-1-protocol.md', /Amprenta judecătorului: `(jt-[0-9a-f]{12})`/), 'codul care judecă bilanțul Trend (tools/trend-12-1-lib.mjs) s-a schimbat');
+});
 test('Umbra stopului Reversal: judecătorul = cel scris în docs/reversal-stop-umbra-protocol.md', () => {
   assert.equal(judecatorUmbra(), scris('docs/reversal-stop-umbra-protocol.md', /Amprenta judecătorului: `(ju-[0-9a-f]{12})`/), 'codul care măsoară / judecă umbra (lib/reversal-umbra.mjs) s-a schimbat');
 });

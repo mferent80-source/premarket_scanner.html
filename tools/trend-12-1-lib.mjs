@@ -10,6 +10,8 @@
 //   mom12 = C[t−21] / C[t−252] − 1 · mom6 = C[t−21] / C[t−126] − 1 · rang = poziția / numărul de acțiuni clasate
 //   regim = SPY închis peste media simplă pe 200 de zile (2022, an negativ, cade când regimul e oprit)
 
+import { mulberry32, gauss, amprentaFunctii, dupaSesiuni, sesiuniIntre, primulVerdict, judecata as judecataDin } from '../lib/proba-contract.mjs';
+
 const zi = (t) => new Date(t).toISOString().slice(0, 10);
 
 /** Rândurile screenerului Nasdaq ⇒ universul: SUA, fără preferențiale / note / warrants / units / rights, cap ≥ minCap, primele n după cap. */
@@ -156,6 +158,8 @@ function rnd(seed) { return () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; l
 // suprapun, prag 3,2 — ales în lumea fără avantaj, ca „probat” fals să rămână sub 5 % în 5 ani de priviri săptămânale (4,3 %). Prețul,
 // spus cinstit: cu avantajul din istorie trece în ~25 % din cazuri în 3 ani și ~34 % în 5 ani.
 export const T_PRAG = 3.2;
+/** 27.10.2026: sesiuni de așteptat după orizont înainte ca o acțiune fără date să fie tratată ca delistată (ca la Clasificator și V1). */
+export const ASTEPTARE = 10;
 // pragurile de ABATERE live, scrise ÎNAINTE de date (14.10.2026): percentila 5 a mediei pe k ferestre dacă avantajul ar fi cel din istorie
 // (+0,78 % pe fereastră, abatere 3,51 %, bootstrap pe ferestrele reale); peste 12 ferestre: 0,78 % − 1,645 × 3,51 % / √k
 export const PRAG_ABATERE = [[12, -0.0090], [9, -0.0124], [6, -0.0180], [3, -0.0295]];
@@ -182,16 +186,28 @@ function interval(v, extr = 1000, bloc = 20) { if (!v.length) return [null, null
 export function bilant(istoric, preturi, o = {}) {
   const H = o.h || [20, 60], COST = 0.003, spy = preturi.SPY || [];
   const idx = {}; for (const [s, b] of Object.entries(preturi)) { const m = new Map(); (b || []).forEach((x, i) => m.set(zi(x.t), i)); idx[s] = m; }
-  const rez = {}; for (const h of H) rez[h] = { top: [], nul: [], dif: [], si: [] };
+  const rez = {}, nej = {}, opr = {}, vazut = new Set(); for (const h of H) { rez[h] = { top: [], nul: [], dif: [], si: [] }; nej[h] = { n: 0, motive: {} }; opr[h] = 0; }
+  // 27.10.2026 (docs/trend-12-1-protocol.md, scris înaintea primei ferestre): o acțiune fără date la ASTEPTARE sesiuni după orizont iese la
+  // ultima închidere cunoscută (față de SPY pe aceleași date); fără serie / fără ziua intrării ⇒ „nejudecată”, cu motiv (înainte: tăcut afară)
+  const nejudecat = (h, l, s, motiv) => { const k = h + '|' + l.d + '|' + s; if (vazut.has(k)) return; vazut.add(k); nej[h].n++; nej[h].motive[motiv] = (nej[h].motive[motiv] || 0) + 1; };
   let zile = 0;
   for (const l of istoric || []) {
     if (!l || !Array.isArray(l.top) || !l.d) continue; zile++;
     const si = idx.SPY ? idx.SPY.get(l.d) : null; if (si == null) continue;
     for (const h of H) {
       if (si + h >= spy.length) continue;
-      const zIn = zi(spy[si + 1].t), zOut = zi(spy[si + h].t), spyR = spy[si + h].c / spy[si + 1].o - 1;
+      const zIn = zi(spy[si + 1].t), zOut = zi(spy[si + h].t), spyR = spy[si + h].c / spy[si + 1].o - 1, gata = si + h + ASTEPTARE < spy.length;
       // revizie 14.10: intrarea și ieșirea pe DATELE calendarului SPY, nu pe indicii acțiunii (o zi lipsă nu mai decalează fereastra)
-      const rand = (s) => { const b = preturi[s], m = idx[s]; if (!b || !m) return null; const i0 = m.get(zIn), i1 = m.get(zOut); if (i0 == null || i1 == null) return null; return b[i1].c / b[i0].o - 1 - COST - spyR; };
+      const rand = (s) => {
+        const b = preturi[s], m = idx[s]; if (!b || !m || !b.length) { if (gata) nejudecat(h, l, s, 'fără serie (delistată sau sursă indisponibilă)'); return null; }
+        const i0 = m.get(zIn), i1 = m.get(zOut); if (i0 == null) { if (gata) nejudecat(h, l, s, 'ziua intrării lipsește din serie'); return null; }
+        if (i1 != null) return b[i1].c / b[i0].o - 1 - COST - spyR;
+        const ult = b.length - 1, dUlt = zi(b[ult].t), sj = idx.SPY.get(dUlt);
+        if (!gata || dUlt >= zOut) return null;   // încă nu s-a încheiat sau datele întârzie
+        if (ult <= i0 || sj == null) { nejudecat(h, l, s, 'seria s-a oprit în ziua intrării'); return null; }
+        const k = 'o|' + h + '|' + l.d + '|' + s; if (!vazut.has(k)) { vazut.add(k); opr[h]++; }
+        return b[ult].c / b[i0].o - 1 - COST - (spy[sj].c / spy[si + 1].o - 1);
+      };
       const top = l.top.map(([s]) => rand(s)).filter((v) => v !== null); if (!top.length) continue;
       const univ = (l.univers || []).map(rand).filter((v) => v !== null);
       const mTop = top.reduce((a, b) => a + b, 0) / top.length, mUniv = univ.length ? univ.reduce((a, b) => a + b, 0) / univ.length : null;
@@ -210,8 +226,9 @@ export function bilant(istoric, preturi, o = {}) {
   if (ferestre20 >= 12 && t20 > T_PRAG) verdict = 'probat față de alte acțiuni';
   else if (ferestre20 >= 12 && t20 < -T_PRAG) verdict = 'picat față de alte acțiuni';
   const prag = pragAbatere(ferestre20), abatere = prag == null ? null : { k: ferestre20, medie: mW, prag, atinsa: mW < prag };
+  const starturi20 = ferestreNesuprapuse(r20.si.map((s) => [s, s]), H[0]).map((s) => zi(spy[s].t));   // ziua de start a fiecărei ferestre
   return {
-    zile, n20: r20.top.length, n60: r60.top.length, ferestre20,
+    zile, n20: r20.top.length, n60: r60.top.length, ferestre20, starturi20, nejudecate: nej, oprite: opr,
     exces20: medie(r20.top), exces60: medie(r60.top), nulB20: medie(r20.nul), nulB60: medie(r60.nul),
     interval20: interval(r20.top, 1000, H[0]), diferenta20: { medie: mDif, interval: difInterval, ferestre: mW }, t20, abatere, diferenta60: { medie: medie(r60.dif), interval: interval(r60.dif, 1000, H[1] || 60) },
     verdict, criterii: 'cel puțin 12 ferestre de 20 de zile care nu se suprapun și t > 3,2 pe diferența față de universul zilei ⇒ probat; t < −3,2 ⇒ picat; altfel în probă. Pragul e ales (14.10.2026) ca „probat” fals să rămână sub 5 % în 5 ani de priviri săptămânale; cu avantajul din istorie trece în ~25 % din cazuri în 3 ani — după un an, cel mai probabil tot „în probă”. Abatere: media ferestrelor sub pragul scris înainte (−3,0 % după 3, −1,8 % după 6, −1,2 % după 9, −0,9 % după 12)',
@@ -261,3 +278,53 @@ export function adaugaIstoric(text, linie) {
   const t = String(text || '');
   return (t && !t.endsWith('\n') ? t + '\n' : t) + JSON.stringify(linie) + '\n';
 }
+
+/* ---------- 27.10.2026 (auditul F): mărimea și puterea în depozit, contractul cu panourile, amprenta judecătorului ---------- */
+/** Diferențele pe ferestre (top − univers) i.i.d. cu abaterea din istorie (3,51 %) + `efect`; „probat” = t > T_PRAG la oricare privire
+ *  (după fiecare fereastră nouă, de la 12 la `ferestre`). `coada`: forma ferestrelor reale din auditul 14.10 (asimetrie −1,3, curtoză ≈ 6,4):
+ *  0,5·Z + 0,866·(1 − E), Z normală, E exponențială(1) — medie 0, abatere 1. Întoarce rata cumulată a „probat” la 12, 36 și 60 de ferestre
+ *  (≈ 1, 3, 5 ani). mulberry32, sămânță fixă. */
+export function marimePutereTrend({ efect = 0, ferestre = 60, lumi = 4000, coada = false, samanta = 14102026, sigma = 0.0351 } = {}) {
+  const r = mulberry32(samanta + Math.round(efect * 1e4) + (coada ? 7 : 0)), g = gauss(r), z = () => (coada ? 0.5 * g() + 0.8660254 * (1 + Math.log(1 - r())) : g());
+  const la = { 12: 0, 36: 0, 60: 0 };
+  for (let w = 0; w < lumi; w++) {
+    let s = 0, q = 0, probat = false;
+    for (let k = 1; k <= ferestre; k++) { const x = efect + sigma * z(); s += x; q += x * x; if (k >= 12 && !probat) { const m = s / k, sd = Math.sqrt((q - k * m * m) / (k - 1)); if (sd > 0 && m / (sd / Math.sqrt(k)) > T_PRAG) probat = true; } if (probat && la[k] !== undefined) la[k]++; }
+  }
+  for (const k of Object.keys(la)) la[k] /= lumi;
+  return { efect, ferestre, lumi, la };
+}
+/** Puterea scrisă în docs/trend-12-1-protocol.md (marimePutereTrend, 4000 de lumi): „probat” până la 12 / 36 / 60 de ferestre. */
+export const PUTERE_TREND = Object.freeze({ unitate: '% pe fereastră de 20 de zile, față de universul zilei', ferestre: 12, lumi: 4000,
+  laPlus: Object.freeze([Object.freeze({ pct: 0.5, putere: 0.015, la36: 0.051, la60: 0.079 }), Object.freeze({ pct: 1, putere: 0.041, la36: 0.172, la60: 0.3 })]),
+  marime: Object.freeze({ la12: 0.004, la36: 0.012, la60: 0.015 }),
+  // forma ferestrelor reale (asimetrie −1,3): mărimea urcă la 5,0 % în 3 ani și 5,7 % în 5; +1 % ⇒ 9,5 / 30,9 / 43,9 %
+  asimetric: Object.freeze({ marime: Object.freeze({ la12: 0.016, la36: 0.05, la60: 0.057 }), plus1: Object.freeze({ la12: 0.095, la36: 0.309, la60: 0.439 }) }) });
+/** Câmpurile de contract (lotul D) pentru trend-12-1-bilant.json. Verdictul e SECVENȚIAL prin construcție (pragul 3,2 ales pentru privirile
+ *  repetate), deci `unic: false`; `la` = 12 ferestre (primul verdict posibil). */
+export function contractTrend(b, { cal, azi, primaZi = null, notate = 0, asteptate = 0 }) {
+  const laPlus = PUTERE_TREND.laPlus.map((x) => ({ ...x })), unu = (x) => (x * 100).toFixed(1).replace('.', ',');
+  const gata = b.verdict && b.verdict !== 'în probă', ult = (b.starturi20 || []).at(-1), data = gata && ult && cal ? dupaSesiuni(cal, ult, 20).zi : null;
+  return { putere: { ...PUTERE_TREND, laPlus, text: `La 12 ferestre de 20 de zile (≈ 1 an), pragul t > 3,2 trece cu un avantaj de +1 %/fereastră în ${unu(laPlus[1].putere)} % din cazuri (${unu(laPlus[1].la36)} % în 3 ani, ${unu(laPlus[1].la60)} % în 5) și cu +0,5 % în ${unu(laPlus[0].putere)} %: „în probă” e rezultatul aproape sigur în primul an.` },
+    primulVerdict: cal ? primulVerdict({ cal, azi, inceput: primaZi, starturi: b.starturi20 || [], k: 20, perioade: 12, notate, asteptate, ce: 'ferestre' }) : null,
+    judecata: judecataDin({ la: 12, data, verdict: gata ? b.verdict : null, unic: false }) };
+}
+/** Conținutul fișierului trend-12-1-bilant.json (pur): cifrele în %, verdictul, delistatele, judecătorul și câmpurile de contract.
+ *  `notate` = zilele din istoric; `asteptate` = sesiunile NYSE de la prima la ultima zi (zilele pierdute împing data realistă). */
+export function continutBilant(b, istoric, { cal = null, azi, la }) {
+  const pc = (v) => (v == null ? null : +(v * 100).toFixed(2)), zile = [...new Set(istoric.map((l) => l && l.d).filter(Boolean))].sort();
+  let asteptate = 0; try { asteptate = cal && zile.length ? sesiuniIntre(cal, zile[0], zile.at(-1)) + 1 : 0; } catch { asteptate = 0; }
+  const c = contractTrend(b, { cal, azi, primaZi: zile[0] || null, notate: zile.length, asteptate });
+  return {
+    versiune: 1, la, de: istoric[0].d, pana: istoric[istoric.length - 1].d, zile: b.zile, n20: b.n20, n60: b.n60,
+    exces20: pc(b.exces20), exces60: pc(b.exces60), nulB20: pc(b.nulB20), nulB60: pc(b.nulB60),
+    interval20: b.interval20.map(pc), diferenta20: { medie: pc(b.diferenta20.medie), interval: b.diferenta20.interval.map(pc) }, diferenta60: { medie: pc(b.diferenta60.medie), interval: b.diferenta60.interval.map(pc) },
+    ferestre20: b.ferestre20, t20: b.t20 == null ? null : +b.t20.toFixed(2), pragT: T_PRAG,   /* 14.10 seara: criteriul pe ferestre nesuprapuse */
+    abatere: b.abatere ? { k: b.abatere.k, medie: pc(b.abatere.medie), prag: pc(b.abatere.prag), atinsa: b.abatere.atinsa } : null,
+    verdict: b.verdict, criterii: b.criterii, cost: 0.3, nota: 'randamente în %, față de SPY, intrare la deschiderea zilei următoare; „alte acțiuni” = universul clasat în aceeași zi',
+    nejudecate: b.nejudecate, oprite: b.oprite, starturi20: b.starturi20, judecator: amprentaJudecatorTrend(),
+    putere: c.putere, primulVerdict: c.primulVerdict, judecata: c.judecata, sesiuni: { notate: zile.length, asteptate }
+  };
+}
+/** Amprenta judecătorului probei Trend: funcțiile care măsoară și judecă bilanțul + pragurile; scrisă în docs/trend-12-1-protocol.md. */
+export function amprentaJudecatorTrend() { return 'jt-' + amprentaFunctii({ bilant, ferestreNesuprapuse, pragAbatere, interval, rnd }, ['bilant', 'ferestreNesuprapuse', 'pragAbatere', 'interval', 'rnd'], JSON.stringify({ T_PRAG, PRAG_ABATERE, ASTEPTARE })); }
