@@ -9,9 +9,9 @@ schimbă unul, se schimbă și celălalt.
 
 ```
 GitHub Actions cron `0 */2 * * *` (la 2 ore, non-stop) + Run workflow manual
-  → .github/workflows/price-alerts.yml  (job „check”, Node 20, timeout 15 min, concurrency serializată)
+  → .github/workflows/price-alerts.yml  (job „check”, Node 24 ca suita de teste, timeout 15 min, concurrency serializată)
     → node tools/check-news-watch.mjs   (Finnhub: company-news + calendar/earnings; lista = tools/alerts.json, starea = tools/news-watch.json)
-      → Discord (DISCORD_WEBHOOK, prin tools/discord-mesaj.mjs — fiecare mesaj poartă eticheta „text generat automat, neverificat de om”)
+      → Discord (DISCORD_WEBHOOK, prin tools/discord-mesaj.mjs — fiecare mesaj se încheie cu eticheta „generat automat · neverificat de om”)
         → commit-back `chore(alerts): stare actualizata dupa verificare [skip ci]` (news-watch.json + news-audit.jsonl); push ratat de 3 ori ⇒ roșu + Discord
 ```
 
@@ -21,12 +21,16 @@ GitHub Actions cron `0 */2 * * *` (la 2 ore, non-stop) + Run workflow manual
   (`tools/equity-drift.json`, `tools/capital-risk.json`, `tools/hub-stale-digest.json`) rămân doar pentru cititorii vechi din Health / hub.
 - **Regulile de știri** (`BIG_KW`, `NOISE_RE`, `MODE_MIN`, sursele, severitatea, sentimentul) stau într-un singur loc: `lib/news-rules.js`,
   încărcat și de pagina `/alerts/` și de robot. Aceeași știre e „big” sau „noise” la fel în ambele.
-- **Fără dubluri browser ↔ server:** pagina `/alerts/` trimite ea pe Discord doar când robotul nu a rulat în ultimele 3 ore
-  (`NewsRules.botActiv` pe `_meta.lastRun` din `tools/news-watch.json`); altfel doar toast + notificare în browser. `seen` / `eventSeen` se
-  unesc (local ∪ server) la fiecare citire și urcare a stării.
+- **Fără dubluri browser ↔ server:** pagina `/alerts/` trimite ea pe Discord fazele de rezultate și știrile mari doar când robotul nu a
+  rulat în ultimele 6 ore (`nwBotActiv()` pe `_meta.lastRun` din `tools/news-watch.json`, recitit înaintea verificărilor, cel mult o dată
+  la 30 de minute); altfel doar toast + notificare în browser. `seen` / `eventSeen` se unesc (local ∪ server) la fiecare citire și urcare
+  a stării, deci o știre văzută de robot sau pe celălalt aparat nu reapare.
 - **Scrierea stării din pagină** (`tools/alerts.json`, `tools/news-watch.json`) nu mai trece printr-un PAT GitHub ținut în browser: pagina
-  cheamă ruta `POST /github/save` a workerului `deck-relay` (doar din originea suitei, doar cele două fișiere, conținut validat), iar secretul
-  `GH_CONTENTS_TOKEN` (fine-grained, doar acest depozit, Contents: Read and write) stă pe Cloudflare. Citirea proaspătă: `GET /github/file?path=…`.
+  cheamă ruta `POST /alerte/stare` a workerului `deck-relay` (doar din originea suitei, cu antetul `X-Alerte-Cheie` = secretul
+  `ALERTE_CHEIE`, comparat în timp constant; doar cele două fișiere; schemă verificată; unirea `triggered` / `seen` / `_meta` pe server),
+  iar tokenul GitHub `GH_ALERTE_TOKEN` (fine-grained, doar acest depozit, Contents: Read and write) stă pe Cloudflare. Citirea proaspătă:
+  `GET /alerte/stare?fisier=alerts|news-watch`. Tokenul vechi `gh_repo_token` e scos din localStorage la prima deschidere a paginii
+  (rămâne de revocat pe GitHub).
 
 ## 2. Ceilalți roboți din GitHub Actions
 
@@ -53,15 +57,20 @@ Toți comit cu `[skip ci]` (ca să nu pornească suita), toți fac `pull --rebas
 | `premarket-scanner-html` | `tools/cloud-sync-wrangler.jsonc` (bundle `tools/cloud-sync-worker.bundle.mjs`) | sincronizarea cheilor, releul Trading 212 (citiri + `stop-order` + anularea ordinelor, I-757), monitorul contului, fișa zilei | `*/5 * * * *` — declarat în wrangler (monitorul cere heartbeat sub 15 min) |
 | `tt-proxy` | `tools/cf-proxy-wrangler.toml` (`tools/cf-worker-proxy.js`) | proxy CORS cu listă strictă de gazde + ingest jurnal | **fără cron** — dispatch-ul spre GitHub a fost scos pe 27.09.2026; `[triggers]` a dispărut din toml pe 27.10.2026 |
 | `tt-breadth-daily` | `tools/breadth-daily-wrangler.jsonc` | Durable Object, dispatch o dată pe zi (origin strict, `GH_DISPATCH_TOKEN`) | propriul alarm |
-| `deck-relay` | `tools/cf-worker-deck-relay.js` (lipit în dashboard) | webhook-urile TradingView → KV + înaintare; de pe 27.10.2026 și scrierea `tools/alerts.json` / `tools/news-watch.json` pe GitHub (`/github/save`, `/github/file`) | — |
+| `deck-relay` | `tools/cf-worker-deck-relay.js` (lipit în dashboard) | webhook-urile TradingView → KV + înaintare (tokenele `?t=` comparate în timp constant, CORS doar pentru suită); de pe 27.10.2026 și starea Alertelor pe GitHub (`/alerte/stare`) | — |
 
 Publicarea: `npx wrangler deploy --config tools/cloud-sync-wrangler.jsonc --keep-vars` (după `node tools/cloud-sync-bundle.mjs`),
 `npx wrangler deploy --config tools/cf-proxy-wrangler.toml --keep-vars`; `deck-relay` se lipește în editorul din dashboard
-(secretele: `WRITE_TOKEN`, `READ_TOKEN`, `FORWARD_URL`, `GH_CONTENTS_TOKEN`, `GH_REPO`).
+(secretele: `WRITE_TOKEN`, `READ_TOKEN`, `FORWARD_URL`, `GH_ALERTE_TOKEN`, `ALERTE_CHEIE` — pașii în antetul fișierului).
+Toți roboții din GitHub Actions instalează Node 24, aceeași versiune ca suita de teste (`tools/roboti-node.test.mjs`).
 
 ## 4. Secrete
 
 - GitHub Actions: `DISCORD_WEBHOOK`, `FINNHUB_API_KEY`. Cloudflare: `GOOGLE_CLIENT_ID`, `GOOGLE_ALLOWED_SUB`, `CLOUD_ENCRYPTION_KEY`,
-  `DISCORD_WEBHOOK` (sync), `JOURNAL_*` (proxy), `GH_DISPATCH_TOKEN` (breadth), `GH_CONTENTS_TOKEN` + `GH_REPO` (deck-relay).
+  `DISCORD_WEBHOOK` (sync), `JOURNAL_*` (proxy), `GH_DISPATCH_TOKEN` (breadth), `GH_ALERTE_TOKEN` + `ALERTE_CHEIE` (deck-relay).
 - Niciodată în cod, loguri, commituri sau mesaje de eroare; cheia Trading 212 doar în antetul `Authorization` al releului, niciodată în URL.
-- În browser nu mai stă niciun secret cu drept de scriere pe depozit (I-756).
+- În browser nu mai stă niciun secret cu drept de scriere pe depozit (I-756): pagina Alerte ține doar `ALERTE_CHEIE`, care poate scrie numai
+  `tools/alerts.json` și `tools/news-watch.json` prin releu.
+- Trading 212 (I-764): două chei. Cea doar-citire stă în conexiunea salvată (sincronizarea, telefonul, monitorul de pe server prin
+  `cloud_credentials`); cea cu „Orders: Execute” stă doar pe aparatul activ (seiful, înregistrarea `ordine`), nu intră în codul de transfer
+  și nu urcă în cont. Restricția pe IP din Trading 212 nu se poate folosi: workerii Cloudflare n-au IP fix.
