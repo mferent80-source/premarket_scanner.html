@@ -13,10 +13,10 @@ const snapshot = new Map([['MU_US_EQ', { ticker: 'MU_US_EQ', quantity: 10, curre
 const bare = (c, meta = null) => { const b = [{ t: ZI - 86400000, c: 99 }, { t: ZI, c }]; if (meta) Object.defineProperty(b, 'meta', { value: meta }); return b; };
 
 test('în afara orelor, cu contul citit după închidere: abatere > 1 % între T212 și Yahoo ⇒ alertă (grav 2); sub 1 % ⇒ nimic', () => {
-  const A = TA();
-  const a = A.alerte({ positions: poz, stops: new Set(['MU_US_EQ']), serii: { MU: bare(100) }, preturi: snapshot, contLa: SEARA - 60000, now: SEARA });
+  const A = TA(), inchisa = { quoteAt: ZI + 6.5 * 3600000 }; // 27.10.2026 (lot B): bara se compară doar închisă (cotația Yahoo de la 16:00 ET)
+  const a = A.alerte({ positions: poz, stops: new Set(['MU_US_EQ']), serii: { MU: bare(100, inchisa) }, preturi: snapshot, contLa: SEARA - 60000, now: SEARA });
   assert.ok(a.some((x) => x.grav === 2 && /prețul din Trading 212 \(103,00\) diferă de închiderea Yahoo \(100,00\) cu 3,0%/.test(x.text)));
-  const b = A.alerte({ positions: poz, stops: new Set(['MU_US_EQ']), serii: { MU: bare(102.5) }, preturi: snapshot, contLa: SEARA - 60000, now: SEARA });
+  const b = A.alerte({ positions: poz, stops: new Set(['MU_US_EQ']), serii: { MU: bare(102.5, inchisa) }, preturi: snapshot, contLa: SEARA - 60000, now: SEARA });
   assert.equal(b.some((x) => /nu se potrivesc între surse/.test(x.text)), false, '0,5 % e sub prag');
 });
 test('nu se compară în timpul ședinței, fără ora citirii contului, cu contul citit înaintea închiderii sau fără instantaneu', () => {

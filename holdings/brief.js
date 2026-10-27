@@ -9,7 +9,9 @@ const num=(n,d=1)=>finite(n)?n.toLocaleString('ro-RO',{minimumFractionDigits:0,m
 const round=(n,d=1)=>finite(n)?Math.round(n*10**d)/10**d:n;
 const signed=(n,d=1)=>{const r=round(n,d);return finite(r)?(r>0?'+':r<0?'−':'')+num(Math.abs(r),d):'—';};
 const tone=n=>{const r=round(n);return finite(r)?r>0?'positive':r<0?'negative':'':'';};
-const sameDay=(iso,now)=>{const t=Date.parse(iso);return finite(t)&&new Date(t).toDateString()===new Date(now).toDateString();};
+/* 27.10.2026 (audit B 🔵 [6]): „Citit” = copie sub 5 minute, ca pe Astăzi (today-dashboard) și în calculele de risc — nu ziua calendaristică a aparatului
+   (la 23:30 o copie de la 09:00 era „Citit” aici și „De actualizat” pe Astăzi). Un minut în viitor e tolerat (ceasuri). */
+const proaspat=(iso,now)=>{const t=Date.parse(iso);return finite(t)&&now-t>=-60000&&now-t<=300000;};
 let expanded=false;
 const pill=(text,kind)=>'<span class="pill '+kind+'">'+esc(text)+'</span>';
 const short=t=>String(t||'').replace(/_[A-Z]{2}_EQ$|_EQ$/,'');
@@ -26,7 +28,7 @@ function summary({positions=[],models=[],snapshot=null}={}){
  return {cur:valid?cur:null,total:finite(total)&&total>0?total:null,invested,investedCovered:valued.length,pnl,pnlCovered:pnlRows.length,rows,count:positions.length,ready:ready.length,up,down,attention,missing:positions.length-ready.length,asOf,fetchedAt:snapshot?.fetchedAt||null,biggest:rows.filter(r=>finite(r.weight)).sort((a,b)=>b.weight-a.weight)[0]||null};
 }
 function markup(ctx={}){
- const s=summary(ctx),c=s.cur?' '+s.cur:'',demo=!!ctx.demo,stamp=when(s.fetchedAt),fresh=sameDay(s.fetchedAt,ctx.now??Date.now()),part=(k)=>k<s.count?' <small>(acoperit '+k+'/'+s.count+')</small>':'';
+ const s=summary(ctx),c=s.cur?' '+s.cur:'',demo=!!ctx.demo,stamp=when(s.fetchedAt),fresh=proaspat(s.fetchedAt,ctx.now??Date.now()),part=(k)=>k<s.count?' <small>(acoperit '+k+'/'+s.count+')</small>':'';
  if(!s.count)return '<div class="brief pf-brief"><article><div class="brief-top"><span class="brief-label">Contul</span>'+pill('Fără poziții','idle')+'</div><h2>Nicio deținere sincronizată</h2><div class="brief-facts"><span>Poziții în snapshot <b>0</b></span><span>Trend mediu ascendent <b>0</b></span><span>Necesită atenție <b>0</b></span><span>Date indisponibile <b>0</b></span></div></article></div>';
  const account='<article><div class="brief-top"><span class="brief-label">Contul</span>'+pill(demo?'Exemplu · date fictive':stamp?(fresh?'Citit ':'De actualizat · ')+stamp:'Neverificat',demo?'idle':stamp&&fresh?'ok':'warn')+'</div>'
   +'<h2 class="num">'+esc(s.total!==null&&s.cur?num(s.total)+c:'Valoare neverificată')+'</h2>'
