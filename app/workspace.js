@@ -35,10 +35,12 @@
  }
  // 19.10.2026 (I-713): „Acest aparat citește Trading 212” — setarea stă doar pe aparat; vechimea ultimei citiri la vedere
  function reader(){const box=$('t212Reader'),R=g.TTT212Reader;if(!box||!R)return;let on=true;try{on=R.setting(g.localStorage);}catch(_){}box.checked=on;
-  try{$('t212ReaderState').textContent=R.describe({reader:on,latestAt:R.latest(g.localStorage,'live'),ownAt:R.own(g.localStorage,'live'),now:Date.now(),wokeAt:0,visible:false});}catch(_){$('t212ReaderState').textContent='Ultima citire Trading 212 nu poate fi verificată pe acest aparat.';}}
+  try{$('t212ReaderState').textContent=R.describe({reader:on,latestAt:R.latest(g.localStorage,'live'),ownAt:R.own(g.localStorage,'live'),now:Date.now(),wokeAt:0,visible:false});}catch(_){$('t212ReaderState').textContent='Ultima citire Trading 212 nu poate fi verificată pe acest aparat.';}
+  // 27.10.2026 (I-748): două aparate au citit Trading 212 în ultimele 5 minute (cheia sincronizată tt_t212_cititori_v1) ⇒ avertismentul, cu aparatele
+  const two=$('t212Readers');if(two){let d=null;try{d=R.doiCititori?R.doiCititori(g.localStorage,'live',Date.now()):null;}catch(_){d=null;}two.hidden=!d;two.textContent=d?d.text:'';}}
  if($('t212Reader')&&g.TTT212Reader){
   $('t212Reader').addEventListener('change',()=>{try{g.TTT212Reader.setSetting(g.localStorage,$('t212Reader').checked);}catch(_){$('t212ReaderState').textContent='Setarea nu a putut fi salvată pe acest aparat.';return;}reader();});
-  reader();g.addEventListener('storage',e=>{if(!e.key||e.key==='tt_trading212_portfolio_v1'||e.key===g.TTT212Reader.KEY)reader();});
+  reader();g.addEventListener('storage',e=>{if(!e.key||e.key==='tt_trading212_portfolio_v1'||e.key===g.TTT212Reader.KEY||e.key===g.TTT212Reader.READERS)reader();});
   if(g.TTShell)g.TTShell.every(reader,30000);else g.setInterval(()=>{if(!g.document.hidden)reader();},30000);
  }
 })(window);
