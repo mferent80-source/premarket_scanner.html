@@ -117,7 +117,7 @@ async function main() {
   writeFileSync(PROBA, JSON.stringify(j, null, 1));
   if (deScris.length) { appendFileSync(INGHETAT, liniiInghetat(deScris)); console.log('  înghețat: ' + deScris.map((x) => x.tip + ' k=' + x.k + ' ' + (x.zi || x.data)).join(', ')); }
   console.log(`Premarket ${V} · ziua ${rec.zi} · ${s.verified}/${s.scanned} verificate · Top Long ${j.azi.topLong} · ${j.zile} zile în probă · primul verdict ~${j.primulVerdict?.realist || '—'}`);
-  for (const o of j.orizonturi) console.log(`  k=${o.k}: ${o.perioade}/${o.necesare} perioade · ${o.verdict}`);
+  for (const o of j.orizonturi) console.log(`  k=${o.k}: ` + (o.necesare ? `${o.perioade}/${o.necesare} perioade · ${o.verdict}` : `${o.perioade} perioade · doar monitorizare`));
   umbra(h, s, rec.zi, sesiuni, calNY, azi);   /* 19.10.2026 — I-716; 27.10: + calendarul pentru câmpurile de contract */
 }
 if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('tools/premarket-jurnal.mjs')) main().catch((e) => { console.error(e.message); process.exit(1); });

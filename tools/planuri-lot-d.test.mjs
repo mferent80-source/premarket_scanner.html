@@ -191,11 +191,16 @@ test('audit D 🔵: între 16:15 și 18:00 la New York (zi lucrătoare) scanneru
   assert.match(readFileSync('candidate-engine/engine.js', 'utf8'), /se stabilizează după 18:00 ET/);
 });
 test('I-744 scanner: nota probei Top Long spune și când poate veni primul verdict (lib/proba-termen.js încărcat înaintea probei, ca în pagină)', () => {
-  const s = scanner(), PROBA = JSON.parse(readFileSync('scanner-verdicts/generated/premarket-proba.json', 'utf8'));
+  // 27.10.2026 (lipirea F × D): instantaneul din 23.10, nu fișierul viu (din 28.10 robotul îl scrie sub protocolul v2 — vezi testul de mai jos)
+  const s = scanner(), PROBA = JSON.parse(readFileSync('tools/fixtures/probe-23-10/premarket-proba.json', 'utf8'));
   vm.runInContext(readFileSync('lib/proba-termen.js', 'utf8'), s.ctx); s.ctx.TTProbaTopLong.set(PROBA);
   s.ctx.hooks.state.momentum = []; s.ctx.hooks.render();
   assert.match(s.node('probaNota').textContent, /Top Long e în proba în timp: 0 din 8/); assert.match(s.node('probaNota').textContent, /Primul verdict posibil: ~\S+ 2027 \(8 perioade de 20 de sesiuni/); assert.match(s.node('probaNota').textContent, /putere nescrisă/);
   const h = readFileSync('candidate-engine/index.html', 'utf8'); assert.ok(h.indexOf('proba-termen.js?v=') > 0 && h.indexOf('proba-termen.js?v=') < h.indexOf('desk-proba.js?v='));
+  // fișierul v2 real (revizia F, decizia (a)): 0 din 30 de perioade de 5 sesiuni, primul verdict din fișier, puterea la N cerut
+  const s2 = scanner(); vm.runInContext(readFileSync('lib/proba-termen.js', 'utf8'), s2.ctx); s2.ctx.TTProbaTopLong.set(JSON.parse(readFileSync('tools/fixtures/probe-v2-27-10/premarket-proba.json', 'utf8')));
+  s2.ctx.hooks.state.momentum = []; s2.ctx.hooks.render();
+  assert.match(s2.node('probaNota').textContent, /Top Long e în proba în timp: 0 din 30 perioade de 5 sesiuni/); assert.match(s2.node('probaNota').textContent, /Primul verdict posibil: ~iunie 2027/); assert.doesNotMatch(s2.node('probaNota').textContent, /nescrisă/);
 });
 test('audit D 🟡: lângă verdictul pieței (care aplică regula) macro-rail-ul nu mai spune „Informativ — nu blochează execuțiile”', () => {
   const m = readFileSync('lib/desk-macro-rail.js', 'utf8');

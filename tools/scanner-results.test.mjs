@@ -189,7 +189,8 @@ test('I-744 Piață: panourile Top Long și Reguli V1 spun primul verdict posibi
  const html=readFileSync('scanner-verdicts/index.html','utf8');assert.ok(html.indexOf('proba-termen.js?v=')>0&&html.indexOf('proba-termen.js?v=')<html.indexOf('view.js?v='));
 });
 test('I-754 Piață: proba stopului Early Reversal „în umbră” e la vedere — ipoteza, protocolul, perioadele, pragul t, stopurile A/B de azi, termenul și puterea din protocol',async()=>{
- const ui=scannerUI(),umbra=JSON.parse(readFileSync('scanner-verdicts/generated/reversal-umbra-proba.json','utf8'));
+ /* 27.10.2026 (lipirea F × D): instantaneul din 23.10, nu fișierul viu (robotul îl rescrie în fiecare noapte) */
+ const ui=scannerUI(),umbra=JSON.parse(readFileSync('tools/fixtures/probe-23-10/reversal-umbra-proba.json','utf8'));
  vm.runInContext(readFileSync('lib/proba-termen.js','utf8'),ui.c);
  ui.c.setInterval=()=>0;ui.c.fetch=async u=>u.startsWith('generated/reversal-umbra-proba.json')?{ok:true,json:async()=>umbra}:{ok:false,json:async()=>null};ui.load();for(let i=0;i<6;i++)await tick();
  const h=ui.dom.node('ruProbaBody').innerHTML;

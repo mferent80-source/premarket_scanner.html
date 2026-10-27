@@ -13,8 +13,12 @@ function load({ calendar = true } = {}) {
   vm.runInContext(readFileSync('lib/proba-termen.js', 'utf8'), c, { filename: 'lib/proba-termen.js' });
   return c;
 }
-const PM = JSON.parse(readFileSync('scanner-verdicts/generated/premarket-proba.json', 'utf8'));
-const UMBRA = JSON.parse(readFileSync('scanner-verdicts/generated/reversal-umbra-proba.json', 'utf8'));
+// 27.10.2026 (lipirea F × D, revizia F): fișierele din generated/ se rescriu în fiecare noapte (din 28.10 sub protocolul v2) ⇒ testele citesc
+// instantanee fixe: cel din 23.10 (probele v1, fără câmpurile lotului F) și ieșirea reală a roboților v2 (proba cap-coadă din 27.10, 23:50 UTC)
+const PM = JSON.parse(readFileSync('tools/fixtures/probe-23-10/premarket-proba.json', 'utf8'));
+const UMBRA = JSON.parse(readFileSync('tools/fixtures/probe-23-10/reversal-umbra-proba.json', 'utf8'));
+const PM2 = JSON.parse(readFileSync('tools/fixtures/probe-v2-27-10/premarket-proba.json', 'utf8')), V12 = JSON.parse(readFileSync('tools/fixtures/probe-v2-27-10/v1-proba.json', 'utf8'));
+const UMBRA2 = JSON.parse(readFileSync('tools/fixtures/probe-v2-27-10/reversal-umbra-proba.json', 'utf8'));
 function sesiuniUS(EC, zi, n) { let d = zi; for (let i = 0; i < n; i++) d = EC.next(d, 'US').day; return d; }
 
 test('I-744: data primului verdict = perioade rămase × k sesiuni pe calendarul SUA, de la începutul probei (0 perioade) sau de la ultima perioadă închisă', () => {
@@ -73,4 +77,12 @@ test('I-744: bilanțul Trend 12-1 (fără orizonturi) — din constantele protoc
   const doarCampuri = T.estimeaza({ primulVerdict: { realist: '2027-06-30' } });
   assert.equal(doarCampuri.luna, 'iunie 2027'); assert.match(doarCampuri.text, /primul verdict posibil: ~iunie 2027/); assert.match(doarCampuri.text, /putere nescrisă/);
   assert.doesNotMatch(doarCampuri.text, /8 perioade/, 'fără protocolul probei nu se inventează numărul de perioade');
+});
+test('fișierele v2 (revizia F): principal 5 sesiuni la 30 de perioade, data din fișier, judecata unică, puterea la N cerut; umbra în R, la perioadele ei', () => {
+  const T = load().TTProbaTermen;
+  for (const j of [PM2, V12]) {
+    const e = T.estimeaza(j); assert.equal(e.k, 5); assert.equal(e.necesare, 30); assert.equal(e.sursa, 'fișier'); assert.equal(e.data, j.primulVerdict.realist);
+    assert.match(e.text, /~iunie 2027/); assert.match(e.text, /o singură judecată, la 30 perioade/); assert.match(e.text, /\+1,0 %\/perioadă l-ar vedea doar în 5\d % din cazuri/); assert.doesNotMatch(e.text, /nescrisă/);
+  }
+  const u = T.estimeaza(UMBRA2); assert.match(u.text, /\+0,3 R\/tranzacție l-ar vedea doar în 11 % din cazuri/, 'unitatea din fișier (R) și puterea la cele 8 perioade cerute, nu la 36'); assert.doesNotMatch(u.text, /%\/perioadă/);
 });
