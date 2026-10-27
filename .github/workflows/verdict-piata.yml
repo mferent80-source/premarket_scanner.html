@@ -26,7 +26,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24'
-      - run: node --test tools/market-verdict.test.mjs tools/macro-regime.test.mjs tools/verdict-piata-robot.test.mjs
+      # 27.10.2026 (revizia F, 🔴4): și testul permutării pe episoade (mărimea sub GARCH)
+      - run: node --test tools/market-verdict.test.mjs tools/macro-regime.test.mjs tools/verdict-piata-robot.test.mjs tools/verdict-piata-permutare.test.mjs tools/verdict-piata-amprenta.test.mjs
       - name: Verdictul zilei
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}   # doar la schimbarea etichetei (Prudent → Defensiv etc.)

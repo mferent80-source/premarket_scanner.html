@@ -22,6 +22,12 @@ test('I-638: robotul clasifică, rezumă ca pagina și pune pe listă ce pică',
   const stricat = JSON.parse(JSON.stringify(j)); stricat.entries.A.algos.vote.support = [1, 1, 1]; assert.notDeepEqual(valideaza(stricat), []);
   // I-664 / I-670: durata și ultimele nopți ajung în fișier.
   assert.ok(Number.isFinite(j.durata.minute)); assert.equal(j.durata.timpDepasit, 0); assert.equal(j.nopti.length, 10); assert.equal(j.nopti.at(-1).zi, '2026-10-07');
+  // 27.10.2026 (auditul F): judecătorul amprentat + contractul cu panourile (ținta de 5 sus; fiecare țintă în bilanțul ei)
+  const { amprentaJudecator, cuNotat } = await import('./clasificator-jurnal.mjs');
+  assert.equal(j.judecator, amprentaJudecator()); assert.deepEqual(j.judecata, j.jurnal.judecata); assert.equal(j.jurnal.judecata.la, 180); assert.equal(j.jurnal20.judecata.la, 252);
+  for (const x of [j, j.jurnal, j.jurnal20]) { assert.ok(x.putere && Array.isArray(x.putere.laPlus)); assert.match(x.primulVerdict.optimist, /^\d{4}-\d{2}-\d{2}$/); assert.equal(x.judecata.unic, true); }
+  assert.deepEqual(cuNotat([{ m: 'x', asOf: '2026-10-01', h: 5, s: 'A', y: 1 }], Date.parse('2026-10-08T23:30:00Z')), [{ m: 'x', asOf: '2026-10-01', h: 5, s: 'A', y: 1, notat: '2026-10-08T23:30:00.000Z' }]);
+  assert.match(readFileSync('tools/clasificator-robot.mjs', 'utf8'), /cuNotat\(incheie\(/, 'rezultatele noi poartă ora notării');
 });
 
 // Înainte de generare (și în suita locală) doar forma; motorul paginii se cere doar DUPĂ generare (GARDA_FISIER=1 în workflow),

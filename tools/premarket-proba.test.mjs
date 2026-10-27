@@ -3,7 +3,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { PROTOCOL, versiune, inregistrare, evalueaza } from '../lib/premarket-proba.mjs';
+import { PROTOCOL, versiune, inregistrare, evalueaza, contract, FUNCTII_MOTOR } from '../lib/premarket-proba.mjs';
+import { PROTOCOL as V1 } from '../lib/v1-proba.mjs';
+import { calendarSUA } from '../lib/proba-contract.mjs';
 import { motor } from './premarket-jurnal.mjs';
 
 function mulberry32(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -31,6 +33,30 @@ test('the day record marks Top Long, keeps the score, EOD date, benchmark used a
   assert.deepEqual(r.r[0], ['AAPL', 'm', 82, '2026-10-16', 'SPY', '']); assert.deepEqual(r.r[1], ['SAP.DE', 'n', 40, '2026-10-16', '^STOXX', 'r']);
   assert.equal(inregistrare({ analyses: [] }, 'pm-abc').zi, null);
 });
+test('v2 (I-741 / I-743, written before): new id, the v1 probe stays under its old version, calendar still OFF, one judgment at the required periods, Top Long power from the simulation', () => {
+  assert.equal(PROTOCOL.id, 'premarket-proba-2'); assert.equal(PROTOCOL.scrisLa, '2026-10-27');
+  assert.equal(PROTOCOL.precedent.id, 'premarket-proba-1'); assert.equal(PROTOCOL.precedent.versiune, 'pm-cb956aef5680');
+  // 27.10.2026 (revizia F, decizia (a)): principal 5 sesiuni ca V1, cu N-ul din puterea Top Long; 20 de sesiuni doar monitorizare
+  assert.equal(PROTOCOL.calendar, false); assert.equal(PROTOCOL.principal, V1.principal); assert.equal(PROTOCOL.principal, 5); assert.ok(PROTOCOL.perioadeCerute[5] > 8); assert.equal(PROTOCOL.perioadeCerute[20], undefined);
+  const doc = JSON.parse(readFileSync('docs/proba-putere-2026-10-27.json', 'utf8'));
+  for (const k of [5, 20]) assert.ok(doc.toplong[k].rezultate[8]['1'] < 0.5);   // cifrele lotului F, păstrate
+  { const r5 = doc.revizie.probe.toplong.k5, N = PROTOCOL.perioadeCerute[5]; assert.equal(r5.cerute.laPlus1, N); assert.deepEqual({ ...PROTOCOL.putere.rezultate[5] }, { '0.5': r5.rezultate[N]['0.5'], '1': r5.rezultate[N]['1'] }); assert.ok(r5.rezultate[N]['1'] >= 0.5);
+    assert.ok(Math.abs(r5.sigmaPerioada - PROTOCOL.putere.sigmaPerioada[5]) < 0.002, 'lumile reproduc abaterea măsurată'); }
+  const w = lume(3), o = evalueaza(w.jurnal, w.serii, { k: 5, versiune: V, sesiuni: w.sesiuni });
+  assert.equal(o.necesare, PROTOCOL.perioadeCerute[5]); assert.equal(evalueaza(w.jurnal, w.serii, { k: 20, versiune: V, sesiuni: w.sesiuni }).verdict, 'monitorizare'); assert.equal(o.judecata.unic, true); assert.equal(o.descriptiv.indeplineste, undefined);
+  const c = contract(o, { cal: calendarSUA('.'), azi: '2026-10-27' });
+  assert.deepEqual(c.putere.laPlus, [{ pct: 0.5, putere: PROTOCOL.putere.rezultate[5]['0.5'] }, { pct: 1, putere: PROTOCOL.putere.rezultate[5]['1'] }]);
+  assert.ok(c.putere.text.includes((100 * PROTOCOL.putere.rezultate[5]['1']).toFixed(1).replace('.', ',') + ' %'), c.putere.text);
+});
+test('the version covers the ranking rules AND the helpers analyze calls (transitive closure of engine.js), plus the judge; display text is not a rule', () => {
+  const src = readFileSync('candidate-engine/engine.js', 'utf8'), h = motor(async () => { throw Error('x'); }).hooks, v = versiune(h, src);
+  assert.match(v, /^pm-[0-9a-f]{12}$/); assert.equal(versiune(h, src.replace(/\r\n/g, '\n')), v, 'CRLF = LF');
+  assert.notEqual(versiune(h, src.replace('function retAt(c, n) { return c.length > n ?', 'function retAt(c, n) { return c.length > n + 0 ?')), v, 'un ajutor apelat din analyze ⇒ altă versiune');
+  assert.notEqual(versiune(h, src.replace("if (earn.unverified) return 'earnings neverificat", "if (earn.unverified && 1) return 'earnings neverificat")), v, 'garda de raportări ⇒ altă versiune');
+  assert.equal(versiune(h, src.replace("out.push({ k: 'RVOL', v: fmt(f.rvol, 2) + '×'", "out.push({ k: 'RVOL ', v: fmt(f.rvol, 2) + '×'")), v, 'faptele afișate nu sunt reguli');
+  for (const n of ['earningsInfo', 'gardaEarnings', 'avgDollarVol', 'daysSinceLow', 'retAt', 'BENCHMARKS']) assert.ok(FUNCTII_MOTOR(src).includes(n), n);
+  for (const n of ['fmt', 'fapteCandidat', 'state', '$', 'reversalScore', 'render']) assert.ok(!FUNCTII_MOTOR(src).includes(n), 'nu intră: ' + n);
+});
 test('the version is a fingerprint of the ranking rules: same code ⇒ same version, any rule change ⇒ new version (the test restarts)', () => {
   const f = { momentumScore() { return 'a'; }, analyze() { return 'b'; }, capSectors() { return 'c'; }, benchmarkReturns() { return 'd'; }, rankResults() { return 'e'; } };
   assert.equal(versiune(f), versiune({ ...f })); assert.match(versiune(f), /^pm-[0-9a-f]{12}$/);
@@ -40,17 +66,28 @@ test('the version is a fingerprint of the ranking rules: same code ⇒ same vers
   const cu = (eol) => { const fn = function () {}; fn.toString = () => ['function analyze() {', '  return 1;', '}'].join(eol); return { ...f, analyze: fn }; };
   assert.equal(versiune(cu('\r\n')), versiune(cu('\n')));
 });
-test('SIZE: with no edge, “Top Long helps” appears in at most 5% of random worlds', () => {
+test('SIZE: with no edge, “Top Long helps” appears in at most 5% of random worlds (one judgment, fixed sample of 8)', () => {
   let fals = 0, cu8 = 0; const N = 600;
-  for (let s = 1; s <= N; s++) { const w = lume(3000 + s), o = evalueaza(w.jurnal, w.serii, { k: 5, versiune: V, sesiuni: w.sesiuni }); if (o.perioade >= 8) cu8++; if (o.verdict === 'ajuta') fals++; }
+  for (let s = 1; s <= N; s++) { const w = lume(3000 + s), o = evalueaza(w.jurnal, w.serii, { k: 5, versiune: V, sesiuni: w.sesiuni, judecaLa: 8 }); if (o.perioade >= 8) cu8++; if (o.verdict === 'ajuta') fals++; }
   assert.ok(cu8 > N * 0.9, 'lumea sintetică produce 8 perioade: ' + cu8); assert.ok(fals / N <= 0.05, 'dovezi false: ' + (100 * fals / N).toFixed(1) + '%');
 });
-test('POWER: a real edge for Top Long is found most of the time; a negative edge never becomes “helps”', () => {
+// 27.10.2026 (auditul F): avantajul de aici (0,004/sesiune ≈ +2 %/perioadă de 5 sesiuni ≈ +100 %/an) e doar o probă de funcționare;
+// puterea REALĂ (la +0,5 % și +1 %/perioadă) e cea simulată în docs/proba-putere-2026-10-27.json și scrisă în protocol.
+test('POWER (sanity only): a huge planted edge for Top Long is found most of the time; a negative edge never becomes “helps”', () => {
   let gasit = 0; const N = 200;
-  for (let s = 1; s <= N; s++) { const w = lume(7000 + s, { avantaj: 0.004 }), o = evalueaza(w.jurnal, w.serii, { k: 5, versiune: V, sesiuni: w.sesiuni }); if (o.verdict === 'ajuta') gasit++; }
+  for (let s = 1; s <= N; s++) { const w = lume(7000 + s, { avantaj: 0.004 }), o = evalueaza(w.jurnal, w.serii, { k: 5, versiune: V, sesiuni: w.sesiuni, judecaLa: 8 }); if (o.verdict === 'ajuta') gasit++; }
   assert.ok(gasit / N >= 0.7, 'găsit în ' + (100 * gasit / N).toFixed(0) + '% din lumi');
-  const w = lume(99, { avantaj: -0.004 }), o = evalueaza(w.jurnal, w.serii, { k: 5, versiune: V, sesiuni: w.sesiuni });
+  const w = lume(99, { avantaj: -0.004 }), o = evalueaza(w.jurnal, w.serii, { k: 5, versiune: V, sesiuni: w.sesiuni, judecaLa: 8 });
   assert.equal(o.verdict, 'fara-avantaj'); assert.ok(o.medieDif < 0); assert.equal(o.descriptiv.indeplineste, undefined);
+});
+test('the Top Long robot file: v2 protocol, precedent kept, dependency history, contract fields with the Top Long power (pure builder)', async () => {
+  const { continutProba } = await import('./premarket-jurnal.mjs');
+  const w = lume(4, { sesiuni: 12 }), zi = w.sesiuni.at(-1), rec = { zi, la: '2026-01-21T22:00:00Z', r: [['A', 'm', 80, zi, 'SPY', ''], ['B', 'n', 50, zi, 'SPY', 'r']] };
+  const j = continutProba({ jurnal: w.jurnal, V, rec, s: { verified: 2, scanned: 85, benchmarks: [] }, serii: w.serii, sesiuni: w.sesiuni, cal: calendarSUA('.'), azi: '2026-10-27' });
+  assert.equal(j.protocol, 'premarket-proba-2'); assert.equal(j.precedent.versiune, 'pm-cb956aef5680'); assert.equal(j.calendar, false);
+  assert.deepEqual(j.azi, { verificate: 2, total: 85, topLong: 1, reversal: 1, repere: [] });
+  assert.deepEqual(j.putere.laPlus.map((x) => x.putere), [PROTOCOL.putere.rezultate[5]['0.5'], PROTOCOL.putere.rezultate[5]['1']], 'puterea Top Long, nu cea V1 (orizontul principal: 5 sesiuni, decizia (a))');
+  assert.ok(j.primulVerdict.optimist && j.judecata.unic === true && j.orizonturi.every((o) => o.judecata && (o.necesare ? o.putere && o.primulVerdict : o.putere === null && o.primulVerdict === null)));
 });
 test('the robot runs the page’s own engine on the frozen 85-symbol Core universe, with Governor fixed and no schedule', async () => {
   const cereri = [], c = motor(async (s) => { cereri.push(s); throw Error('fără rețea în test'); }), h = c.hooks;

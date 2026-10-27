@@ -29,7 +29,8 @@ test('amprenta dependențelor: notată pe zi, separată de versiune; istoricul a
   const d1 = amprentaDependinte(citeste, h);
   assert.match(d1, /^dep-[0-9a-f]{12}$/);
   assert.notEqual(amprentaDependinte((f) => citeste(f) + (f === 'lib/indicators.js' ? '\n// schimbat' : ''), h), d1, 'o schimbare în indicatori se vede');
-  assert.equal(versiune(h), 'pm-cb956aef5680', 'versiunea probei rămâne aceeași (proba nu repornește)');
+  // 27.10.2026 (premarket-proba-2): versiunea nu depinde de fișierele notate în `d` (o reparație în indicatori nu repornește proba)
+  assert.match(versiune(h), /^pm-[0-9a-f]{12}$/); assert.equal(versiune(h), versiune(motor().hooks), 'același motor ⇒ aceeași versiune');
   const ist = istoricDependinte({zile: [{zi: '2026-10-16', v: 'pm-x'}, {zi: '2026-10-19', v: 'pm-x', d: 'dep-a'}, {zi: '2026-10-20', v: 'pm-x', d: 'dep-a'}, {zi: '2026-10-21', v: 'pm-x', d: 'dep-b'}]}, 'pm-x');
   assert.deepEqual(ist.map((x) => [x.de, x.pana, x.d]), [['2026-10-16', '2026-10-16', null], ['2026-10-19', '2026-10-20', 'dep-a'], ['2026-10-21', '2026-10-21', 'dep-b']]);
 });

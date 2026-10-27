@@ -18,3 +18,16 @@ Amprentele se scot cu `node tools/clasificator-amprenta.mjs`. Versiunea în prob
 | holdings-clf-v5 | 2026-10-17 | `1d6e809ef648ffc3` | `9aca94a357a3c1ef` | Amprenta extinsă la toate cele 5 fișiere care pot schimba voturile (revizia de cod); `holdings-bars.js` a primit doar citirea „Istoric scurt” (I-665). Rezultate identice ⇒ aceeași versiune, aceeași probă. |
 | holdings-clf-v5 | 2026-10-19 | `5042c17d8d07bdfb` | `9aca94a357a3c1ef` | `lib/daily-series.js`: formatorul de dată ținut minte pe fus orar (I-696, viteză: 7 s la deschiderea Portofoliului pe telefon); zilele calculate sunt aceleași (test pe 3.000 de momente × 8 fusuri). Rezultate identice ⇒ aceeași versiune, aceeași probă. |
 | holdings-clf-v5 | 2026-10-19 | `131e8435df71c86b` | `9aca94a357a3c1ef` | `lib/holdings-neural.js`: `assess` nu mai expiră raportul Neural la 30 de minute — e valabil pe sesiunea EOD (I-703 a: Portofoliul reantrena la fiecare deschidere); clasificatorul nu e atins. Rezultate identice ⇒ aceeași versiune, aceeași probă. |
+
+## Amprenta judecătorului (I-743, din 27.10.2026)
+
+Codul care JUDECĂ proba — `tools/clasificator-jurnal.mjs`: rezultatele înghețate (stopul la 1 ATR, ieșirea la deschidere sub stop, costul),
+reperul momentum, testul pe 8 perioade, verdictele cu Holm, clasamentul, integritatea — e înghețat la fel ca motorul (auditul F: o
+schimbare acolo muta verdictul fără probă nouă). Amprenta = SHA pe închiderea tranzitivă din fișier pornind de la `bilantDoua` și
+`incheie`, fără textele de afișaj (`notaIntegritate`, bilanțul lunar descriptiv); se scoate cu `amprentaJudecator()`. Garda
+`tools/clasificator-inghet.test.mjs` cere ca ultimul rând de mai jos să fie amprenta de azi; rândurile doar cresc. O schimbare care poate
+muta un verdict e o regulă nouă ⇒ probă nouă (protocolul, „Istoria”); una care nu-l atinge (comentarii, ordine) cere doar un rând nou, cu motivul.
+
+| Data | Amprenta judecătorului | Motivul |
+|---|---|---|
+| 2026-10-27 | `jc-3ed212502e15` | Prima înregistrare (auditul F). Regulile de judecată sunt cele din 17.10.2026 (protocolul, blocul de reguli neschimbat); fișierul a primit doar, în afara judecătorului, contractul cu panourile și ora notării rezultatelor. |

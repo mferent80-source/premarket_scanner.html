@@ -10,6 +10,10 @@
 //   altfel „nu ține”. Pe regim (SPY peste / sub media de 200 de zile) același calcul, cu corecția Holm pentru cele 2 felii.
 // Jurnalul (I-660 / I-662 / I-672 / I-674): un dosar pe versiunea motorului, câte un fișier pe lună pentru voturi și pentru
 // rezultate; fișierele doar cresc. Se judecă doar versiunea în probă (PROBA); celelalte rămân istoric sau umbră.
+// 27.10.2026 (auditul F, I-743): codul care JUDECĂ e amprentat (`amprentaJudecator`, rândul în docs/clasificator-versiuni.md); contractul cu
+// panourile (`contractClasificator`: putere / primulVerdict / judecata). Funcțiile noi stau la coada fișierului, în afara judecătorului.
+import { readFileSync } from 'node:fs';
+import { inchidere, amprentaText, dupaSesiuni, judecata as judecataDin } from '../lib/proba-contract.mjs';
 export const DIR = 'candidate-engine/generated/clasificator-jurnal';
 export const ISTORIC = 'candidate-engine/generated/clasificator-istoric.jsonl'; // fișierul vechi (până la 17.10), mutat în DIR
 export const PROBA = 'holdings-clf-v5';
@@ -273,3 +277,29 @@ export function bilantDoua(linii, rezultate, { motor = PROBA, cal = null, now = 
   const integ = integritate(linii, rezultate, { motor, cal, now, faraUltima }), nota = notaIntegritate(integ);
   return { b5: { ...b5, integritate: integ, nota }, b20: { ...b20, integritate: integ, nota } };
 }
+
+/* ---------- 27.10.2026 (auditul F): amprenta judecătorului și contractul cu panourile — în afara judecătorului ---------- */
+/** Judecătorul = închiderea tranzitivă din acest fișier pornind de la `bilantDoua` (verdictele) și `incheie` (rezultatele înghețate),
+ *  fără textele de afișaj (`notaIntegritate`, bilanțul lunar descriptiv). Amprenta lui stă în docs/clasificator-versiuni.md. */
+const RADACINI_JUDECATOR = Object.freeze(['bilantDoua', 'incheie']), AFISAJ_JUDECATOR = Object.freeze(['notaIntegritate', 'lunar']);
+const sursaJurnal = () => readFileSync(new URL(import.meta.url), 'utf8');
+export function FUNCTII_JUDECATOR(src = sursaJurnal()) { return inchidere(src, RADACINI_JUDECATOR, { exclude: AFISAJ_JUDECATOR }); }
+export function amprentaJudecator(src = sursaJurnal()) { return 'jc-' + amprentaText(src, FUNCTII_JUDECATOR(src)); }
+/** Puterea din protocol (I-671, docs/clasificator-putere-2026-10.md): efectul minim detectabil cu 80 % putere. */
+export const PUTERE_CLF = Object.freeze({ 5: Object.freeze({ mde80: 0.007, clasament: 0.6 }), 20: Object.freeze({ mde80: 0.016, clasament: 1.2 }) });
+/** Câmpurile de contract pentru o țintă: data primului verdict = al `minim`-lea vot notat la timp + h sesiuni (dacă de azi încolo se notează
+ *  fiecare noapte); realist = cu nopțile pierdute până acum; judecata e unică (eșantion fix), datată la încheierea ultimului vot judecat. */
+export function contractClasificator(b, { linii, motor = PROBA, cal, azi, h, minim }) {
+  const bune = [...new Set((linii || []).filter((L) => L.motor === motor && !L.completare && laTimp(L, cal)).map((L) => L.asOf))].sort(), n = bune.length;
+  const lipsa = b?.integritate?.lipsaTotal || 0, r = n + lipsa > 0 ? Math.min(0.8, lipsa / (n + lipsa)) : 0, rest = Math.max(0, minim - n);
+  const deLa = n >= minim ? bune[minim - 1] : bune.at(-1) || azi, opt = dupaSesiuni(cal, deLa, n >= minim ? h : rest + h), rl = dupaSesiuni(cal, deLa, n >= minim ? h : Math.round(rest / (1 - r)) + h);
+  const p = PUTERE_CLF[h] || PUTERE_CLF[5], v = b?.verdict && b.verdict !== 'in-proba' ? b.verdict : null;
+  return {
+    putere: { unitate: 'câștig de log loss pe zi față de ambele repere (frecvențe, momentum)', laPlus: [{ pct: p.mde80, putere: 0.8 }],
+      text: `Proba vede un câștig de log loss de ${String(p.mde80).replace('.', ',')} cu 80 % putere după ${minim} de zile verificate; pragul „ține” cere însă un câștig mediu ≥ 0,02 față de ambele repere. Clasamentul vede doar un avantaj de ~${String(p.clasament).replace('.', ',')} % pe tranzacție.` },
+    primulVerdict: { optimist: opt.zi, realist: rl.zi > opt.zi ? rl.zi : opt.zi, motiv: `${minim} de zile verificate (votul notat la timp + ${h} sesiuni); ${n} notate la timp până acum` + (lipsa ? `; realist: ${lipsa} nopți pierdute din ${n + lipsa}` : '; realist = optimist (nicio noapte pierdută)') + (opt.aproximativ || rl.aproximativ ? '; dincolo de calendarul oficial NYSE datele sunt aproximative' : '') },
+    judecata: judecataDin({ la: minim, data: v && b.verdictPe ? dupaSesiuni(cal, b.verdictPe[1], h).zi : null, verdict: v, unic: true })
+  };
+}
+/** 🔵 auditul F: rezultatele noi poartă ora notării (`notat`) — „înghețat” se poate proba și altfel decât prin garda „doar crește”. */
+export function cuNotat(rezultate, now = Date.now()) { const t = new Date(now).toISOString(); return rezultate.map((r) => ({ ...r, notat: t })); }

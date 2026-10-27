@@ -145,3 +145,35 @@ test('bilant: ABATEREA se aprinde când media ferestrelor coboară sub prag; mes
   const doua = mesajBilant({ verdict: 'în probă', abatere: { atinsa: false } }, { ...out, verdict: 'picat față de alte acțiuni' });
   assert.equal(doua.split('\n').filter((l) => l.startsWith('**')).length, 2, 'verdict schimbat + abatere nouă ⇒ amândouă');
 });
+
+// 27.10.2026 — auditul F (docs/trend-12-1-protocol.md, scris înaintea primei ferestre închise: 0 zile cu rezultat la 20 z)
+test('delisted stocks (no data 10 sessions after the horizon) exit at the last close, vs SPY on the same dates; no series ⇒ unjudged with a reason, counted', async () => {
+  const spy = serie(400, 0.0005), bun = serie(400, 0.003), oprit = serie(400, 0.003).slice(0, 262), istoric = [{ d: zi(spy[250].t), regim: true, n: 3, top: [['BUN', 1], ['OPRIT', 1], ['LIPSA', 1]], univers: ['BUN', 'OPRIT', 'LIPSA'] }];
+  const devreme = bilant(istoric, { SPY: spy.slice(0, 275), BUN: bun, OPRIT: oprit }, { h: [20, 60] });
+  assert.equal(devreme.nejudecate[20].n, 0, 'înainte de orizont + 10 sesiuni se mai așteaptă'); assert.equal(devreme.oprite[20], 0);
+  const r = bilant(istoric, { SPY: spy, BUN: bun, OPRIT: oprit }, { h: [20, 60] });
+  assert.equal(r.oprite[20], 1, 'OPRIT iese la ultima închidere'); assert.equal(r.nejudecate[20].n, 1); assert.deepEqual(r.nejudecate[20].motive, { 'fără serie (delistată sau sursă indisponibilă)': 1 });
+  assert.ok(r.exces20 > 0, 'media primelor 20 include acțiunea oprită (la ultima închidere), nu doar BUN');
+});
+test('SIZE and POWER of the Trend judgment (t > 3.2 looked at after every new window from 12 on), simulated in the repo with mulberry32', async () => {
+  const { marimePutereTrend, PUTERE_TREND } = await import('./trend-12-1-lib.mjs');
+  const h0 = marimePutereTrend({ efect: 0, ferestre: 60, lumi: 4000 }), h1 = marimePutereTrend({ efect: 0.01, ferestre: 60, lumi: 4000 });
+  assert.ok(h0.la[60] <= 0.05, 'fals „probat” în 5 ani: ' + h0.la[60]); assert.ok(h0.la[12] <= h0.la[36] && h0.la[36] <= h0.la[60], 'privirile adună');
+  assert.ok(h1.la[60] > h1.la[12]); assert.deepEqual(PUTERE_TREND.laPlus.map((x) => x.pct), [0.5, 1]);
+  assert.deepEqual([12, 36, 60].map((k) => Math.round(1000 * h1.la[k]) / 1000), [PUTERE_TREND.laPlus[1].putere, PUTERE_TREND.laPlus[1].la36, PUTERE_TREND.laPlus[1].la60], 'cifrele scrise sunt cele simulate');
+  // forma reală a ferestrelor (asimetrie −1,3, auditul 14.10) urcă mărimea: spus în protocol, cu cifrele de aici
+  const t = marimePutereTrend({ efect: 0, ferestre: 60, lumi: 4000, coada: true }); assert.ok(t.la[60] > h0.la[60], 'asimetria urcă mărimea: ' + t.la[60]);
+  assert.equal(Math.round(1000 * t.la[60]) / 1000, PUTERE_TREND.asimetric.marime.la60); assert.equal(Math.round(1000 * h0.la[60]) / 1000, PUTERE_TREND.marime.la60);
+});
+test('the Trend bilant file carries putere / primulVerdict / judecata (sequential: unic false) and the judge fingerprint written in the protocol', async () => {
+  const { contractTrend, amprentaJudecatorTrend } = await import('./trend-12-1-lib.mjs'), { calendarSUA, dupaSesiuni } = await import('../lib/proba-contract.mjs'), cal = calendarSUA('.');
+  const c = contractTrend({ ferestre20: 0, verdict: 'în probă' }, { cal, azi: '2026-10-27', primaZi: '2026-10-13', notate: 10, asteptate: 11 });
+  assert.equal(c.primulVerdict.optimist, dupaSesiuni(cal, '2026-10-13', 12 * 20).zi); assert.ok(c.primulVerdict.realist >= c.primulVerdict.optimist);
+  assert.deepEqual(c.judecata, { la: 12, data: null, verdict: null, unic: false }); assert.ok(c.putere.laPlus.every((x) => x.putere > 0 && x.putere < 1)); assert.match(c.putere.text, /12 ferestre/);
+  assert.match(amprentaJudecatorTrend(), /^jt-[0-9a-f]{12}$/);
+  const doc = readFileSync('docs/trend-12-1-protocol.md', 'utf8'); assert.ok(doc.includes('`' + amprentaJudecatorTrend() + '`'), 'amprenta judecătorului e scrisă în protocol');
+  const { continutBilant } = await import('./trend-12-1-lib.mjs'), spy = serie(300, 0.0005), ist = [{ d: zi(spy[250].t), regim: true, n: 3, top: [['A', 1]], univers: ['A'] }];
+  const f = continutBilant(bilant(ist, { SPY: spy, A: serie(300, 0.001) }, { h: [20, 60] }), ist, { cal, azi: '2026-10-27', la: 'acum' });
+  for (const k of ['putere', 'primulVerdict', 'judecata', 'nejudecate', 'oprite', 'starturi20', 'judecator', 'verdict', 'ferestre20', 'pragT']) assert.ok(k in f, 'fișierul are ' + k);
+  assert.equal(f.judecator, amprentaJudecatorTrend()); assert.equal(f.pragT, 3.2); assert.deepEqual(f.sesiuni.notate, 1);
+});

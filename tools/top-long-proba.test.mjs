@@ -7,10 +7,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { boot, flush } from './desk-boot.mjs';
-import { versiune } from '../lib/premarket-proba.mjs';
+import { versiune, PROTOCOL } from '../lib/premarket-proba.mjs';
 import { motor } from './premarket-jurnal.mjs';
+import { amprentaScrisa } from '../lib/proba-contract.mjs';
 
 const PROBA = JSON.parse(readFileSync('scanner-verdicts/generated/premarket-proba.json', 'utf8'));
+// 27.10.2026 (premarket-proba-2): perioadele cerute vin din fișierul probei (16 / 60 în v2, 8 în v1), nu se mai fixează aici — testul
+// rulează în fluxul robotului ÎNAINTE de robot; un „0/8” fix l-ar fi oprit a doua zi după prima rulare v2.
+const P0 = PROBA.orizonturi.find((o) => o.principal), NN = P0.perioade + '/' + P0.necesare, DIN = P0.perioade + ' din ' + P0.necesare;
 function modul() { const c = { console }; c.window = c; vm.createContext(c); vm.runInContext(readFileSync('lib/desk-proba.js', 'utf8'), c); return c.TTProbaTopLong; }
 const ajuta = (j) => ({ ...j, orizonturi: j.orizonturi.map((o) => (o.principal ? { ...o, perioade: 9, verdict: 'ajuta' } : o)) });
 
@@ -18,12 +22,16 @@ test('I-709 / I-742: eticheta și plafonul vin din fișierul probei; fără fiș
   const P = modul(), long = { mode: 'momentum' }, rev = { mode: 'reversal' };
   assert.equal(P.cap(0.5, long), 0.25, 'fără fișier citit: plafonat');
   P.set(PROBA);
-  assert.equal(P.tag(long), 'în probă · 0/8'); assert.equal(P.cap(0.5, long), 0.25); assert.equal(P.cap(0.25, long), 0.25);
+  assert.equal(P.tag(long), 'în probă · ' + NN); assert.equal(P.cap(0.5, long), 0.25); assert.equal(P.cap(0.25, long), 0.25);
   assert.equal(P.cap(0.5, rev), 0.25, 'I-742: Early Reversal, nedovedit, nu primește dublul riscului lui Top Long'); assert.equal(P.tag(rev), 'în probă · nejudecat'); assert.match(P.text(rev), /Early Reversal nu e judecat/); assert.match(P.text(rev), /0,25 %/);
   assert.equal(P.cap(0.5, { mode: 'manual' }), 0.5, 'ideea proprie nu e plafonată de probă');
-  assert.match(P.state().text, /0 din 8 perioade/);
+  assert.ok(P.state().text.includes(DIN + ' perioade'));
   P.set(ajuta(PROBA)); assert.equal(P.cap(0.5, long), 0.5); assert.equal(P.tag(long), ''); assert.equal(P.cap(0.5, rev), 0.25, 'verdictul Top Long nu ridică plafonul Early Reversal');
   P.set({ orizonturi: [{ k: 20, principal: true, perioade: 8, necesare: 8, verdict: 'fara-avantaj' }] }); assert.equal(P.cap(0.5, long), 0.25); assert.match(P.tag(long), /fără avantaj/);
+  // 27.10.2026 (revizia F, 🟡11; politica F § 2): un „ajută” CU REZERVE (persistența ≥ 0,2) nu ridică plafonul fără o decizie scrisă
+  P.set({ orizonturi: [{ k: 5, principal: true, perioade: 40, necesare: 40, verdict: 'ajuta', rezerve: 'perioadele au persistență (ρ = 0,31)' }] });
+  assert.equal(P.cap(0.5, long), 0.25, '„ajută cu rezerve” ține plafonul'); assert.match(P.tag(long), /ajută cu rezerve/); assert.match(P.state().text, /cu rezerve/); assert.match(P.state().text, /0,25 %/);
+  assert.equal(P.state().dovedit, false);
   P.set(null); assert.equal(P.cap(0.5, long), 0.25); assert.match(P.tag(long), /în probă/);
 });
 
@@ -34,9 +42,12 @@ test('I-709 / I-742 Planuri: un plan Top Long are riscul plafonat la 0,25 % și 
   const b = deskCuProba(); await flush();
   b.rows().find((r) => r.dataset.symbol === 'FICTIV-A').onclick(); b.nodes.focusAction.onclick();
   assert.equal(b.nodes.ticketRiskPct.value, '0,25%');
-  assert.match(b.nodes.ticketVerdict.textContent, /PLAN VALIDABIL/); assert.match(b.nodes.ticketVerdict.textContent, /în probă · 0\/8/); assert.match(b.nodes.ticketVerdict.textContent, /0,25 %/);
-  assert.match(b.nodes.ticketVerdict.textContent, /primul verdict posibil: ~\S+ 2027 \(8 perioade de 20 de sesiuni/); assert.match(b.nodes.ticketVerdict.textContent, /putere nescrisă/);
-  assert.match(b.nodes.signalRows.innerHTML, /class="proba-tag">în probă · 0\/8</);
+  assert.match(b.nodes.ticketVerdict.textContent, /PLAN VALIDABIL/); assert.ok(b.nodes.ticketVerdict.textContent.includes('în probă · ' + NN)); assert.match(b.nodes.ticketVerdict.textContent, /0,25 %/);
+  // 27.10.2026 (lipirea F peste integrare): termenul vine din fișierul probei — v1 (8 perioade de 20) până la prima rulare v2, apoi v2
+  const deNr = (n, cuv) => n + (n >= 20 ? ' de ' : ' ') + cuv;
+  assert.ok(b.nodes.ticketVerdict.textContent.includes('(' + deNr(P0.necesare, 'perioade') + ' de ' + deNr(P0.k, 'sesiuni')), 'termenul din fișierul probei');
+  assert.match(b.nodes.ticketVerdict.textContent, /primul verdict posibil: ~\S+ \d{4}/); assert.match(b.nodes.ticketVerdict.textContent, PROBA.putere ? /din cazuri/ : /putere nescrisă/);
+  assert.ok(b.nodes.signalRows.innerHTML.includes('class="proba-tag">în probă · ' + NN + '<'));
   assert.equal(b.nodes.guardRisk.textContent, '0,25%'); assert.match(b.nodes.guardRule.textContent, /Top Long în probă: 0,25 %/);
   b.modes[1].onclick(); b.nodes.focusAction.onclick();
   assert.equal(b.nodes.ticketRiskPct.value, '0,25%'); assert.match(b.nodes.ticketVerdict.textContent, /Early Reversal în probă · nejudecat: risc plafonat la 0,25 %/);
@@ -74,14 +85,19 @@ function scanner() {
 const fire = { symbol: 'NVDA', region: 'US', sector: 'Technology', mode: 'momentum', state: 'FIRE', score: 88, dayChg: 2, rvol: 1.6, rs: 3, metricA: 9, metricB: 2, reason: 'test', fapte: [], entryLow: 100, entryHigh: 101, stop: 95, target: 112, ts: Date.now(), eligible: true, actionable: true };
 test('I-709 / I-742 scanner: lângă FIRE scrie „în probă · 0/8”, iar pagina spune că Top Long e în probă; Early Reversal are eticheta și nota lui', () => {
   const s = scanner(); s.ctx.TTProbaTopLong.set(PROBA); s.ctx.hooks.state.momentum = [fire]; s.ctx.hooks.state.reversal = [{ ...fire, symbol: 'AMD', mode: 'reversal' }]; s.ctx.hooks.render();
-  assert.match(s.node('rows').innerHTML, /FIRE<small class="ce-proba-tag">în probă · 0\/8<\/small>/);
-  assert.equal(s.node('probaNota').hidden, false); assert.match(s.node('probaNota').textContent, /Top Long e în proba în timp: 0 din 8/);
+  assert.ok(s.node('rows').innerHTML.includes('FIRE<small class="ce-proba-tag">în probă · ' + NN + '</small>'));
+  assert.equal(s.node('probaNota').hidden, false); assert.ok(s.node('probaNota').textContent.includes('Top Long e în proba în timp: ' + DIN));
   s.ctx.hooks.state.mode = 'reversal'; s.ctx.hooks.render();
   assert.match(s.node('rows').innerHTML, /FIRE<small class="ce-proba-tag">în probă · nejudecat<\/small>/); assert.equal(s.node('probaNota').hidden, false); assert.match(s.node('probaNota').textContent, /Early Reversal nu e judecat/);
   s.ctx.hooks.state.mode = 'trend'; s.ctx.hooks.render(); assert.equal(s.node('probaNota').hidden, true);
   const h = readFileSync('candidate-engine/index.html', 'utf8'); assert.match(h, /id="probaNota"/); assert.ok(h.indexOf('desk-proba.js?v=') > 0 && h.indexOf('desk-proba.js?v=') < h.indexOf('engine.js?v='));
 });
 test('I-709: amprenta regulilor Top Long rămâne cea din jurnalul probei (clasamentul nu s-a schimbat)', () => {
+  // 27.10.2026: până la prima rulare v2 fișierul e încă al probei premarket-proba-1 (amprenta veche, păstrată în protocol ca precedent);
+  // după ea, amprenta motorului de azi trebuie să fie cea din fișier — altfel regulile s-au schimbat fără protocol nou
+  // 27.10.2026 (revizia F, 🟡5): până la prima rulare v2, amprenta de azi trebuie să fie cea scrisă în protocol (altfel robotul ar porni v2
+  // cu o amprentă nescrisă — ex. o lipire care schimbă motorul după protocol)
+  if (PROBA.protocol === PROTOCOL.precedent.id) { assert.equal(PROBA.versiune, PROTOCOL.precedent.versiune); assert.equal(versiune(motor(async () => { throw Error('fără rețea'); }).hooks), amprentaScrisa(readFileSync('docs/premarket-proba-protocol.md', 'utf8'), 'pm'), 'amprenta Top Long de azi nu e cea scrisă în protocolul v2 (tabelul „Amprentele v2”)'); return; }
+  assert.equal(PROBA.protocol, PROTOCOL.id);
   assert.equal(versiune(motor(async () => { throw Error('fără rețea'); }).hooks), PROBA.versiune);
-  assert.equal(PROBA.versiune, 'pm-cb956aef5680');
 });

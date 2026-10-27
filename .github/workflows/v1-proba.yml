@@ -28,7 +28,8 @@ jobs:
         with:
           node-version: '24'
       # 19.10.2026: și garda amprentei Top Long + reluarea seriilor (auditul Long & Reversal)
-      - run: node --test tools/v1-proba.test.mjs tools/independent-scanner.test.mjs tools/premarket-proba.test.mjs tools/candidate-autostart.test.mjs tools/top-long-proba.test.mjs tools/premarket-jurnal-serii.test.mjs tools/reversal-umbra.test.mjs tools/premarket-calendar.test.mjs
+      # 27.10.2026 (revizia F): și garda fișierelor înghețate (doar cresc) + reluarea seriilor V1
+      - run: node --test tools/v1-proba.test.mjs tools/independent-scanner.test.mjs tools/premarket-proba.test.mjs tools/candidate-autostart.test.mjs tools/top-long-proba.test.mjs tools/premarket-jurnal-serii.test.mjs tools/reversal-umbra.test.mjs tools/premarket-calendar.test.mjs tools/probe-inghetat.test.mjs tools/v1-jurnal-serii.test.mjs tools/probe-amprente-acoperire.test.mjs
       # 27.10.2026 (audit): pasul pica tăcut (5 din 7 sesiuni pierdute, nimeni n-a aflat) ⇒ o a doua încercare după 3 minute, mesajul erorii păstrat și Discord la eșec
       - name: Ziua în jurnal + evaluarea
         id: v1
@@ -53,6 +54,8 @@ jobs:
         # 19.10.2026 — I-720: cheia ajunge la robot, dar e citită DOAR dacă protocolul probei cere calendarul (premarket-proba-1: oprit)
         env:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          # 27.10.2026 (revizia F, 🟡9): și aici rezerva de dimineață notează doar ziua care lipsește (ziua de seară nu se rescrie)
+          DOAR_LIPSA: ${{ github.event.schedule == '15 10 * * 2-6' && '1' || '' }}
         run: node tools/premarket-jurnal.mjs || (sleep 180 && node tools/premarket-jurnal.mjs)
       - name: Anunță pe Discord că ziua Premarket lipsește
         if: steps.premarket.outcome == 'failure'
@@ -67,6 +70,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add scanner-verdicts/generated/v1-jurnal.json scanner-verdicts/generated/v1-proba.json
+          # 27.10.2026 (revizia F, 🔴2): perioadele și judecata înghețate (fișierele doar cresc)
+          git add scanner-verdicts/generated/v1-inghetat.jsonl scanner-verdicts/generated/premarket-inghetat.jsonl 2>/dev/null || true
           git add scanner-verdicts/generated/premarket-jurnal.json scanner-verdicts/generated/premarket-proba.json 2>/dev/null || true
           # 19.10.2026 — I-716: jurnalul separat al stopului Early Reversal în umbră (docs/reversal-stop-umbra-protocol.md)
           git add scanner-verdicts/generated/reversal-umbra-jurnal.json scanner-verdicts/generated/reversal-umbra-proba.json 2>/dev/null || true

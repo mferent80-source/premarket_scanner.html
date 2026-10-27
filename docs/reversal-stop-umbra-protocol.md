@@ -70,3 +70,15 @@ folosește doar zilele cu amprenta de acum. Codul: `lib/reversal-umbra.mjs` (`PR
   ușor stopul B; nu intră în măsură), spread, gap-ul de a doua zi la intrare sau dimensiunea poziției.
 - Nu judecă lista Early Reversal (dacă are avantaj) și nici ținta de 2R — doar care stop e mai bun pe aceleași intrări.
 - Nu caută alt multiplu de ATR sau altă fereastră a bazei; o variantă nouă = protocol nou, scris înainte, cu umbra pornită de la zero.
+
+## Amprenta judecătorului și câmpurile pentru panouri (27.10.2026, I-743 / I-744 — umbra NU repornește)
+Scris pe **27.10.2026**, cu umbra la 1 zi în jurnal (23.10, amprenta listei `ru-1965691ef15a`) și 0 perioade. **Regulile de mai sus nu se
+schimbă** (ipoteza, stopurile, măsura, perioadele, t > 3,0, minimum 8): se îngheață doar, în plus, codul care le aplică.
+- **Amprenta judecătorului: `ju-0916cb874187`** = SHA pe funcțiile din `lib/reversal-umbra.mjs` care măsoară și judecă (`rezultat`,
+  `tranzactii`, `medie`, `tStat`, `evalueaza`, `starturi` din `lib/v1-proba.mjs`) și pe pragurile din `PROTOCOL`. Robotul o scrie în
+  `reversal-umbra-proba.json` (`judecator`); garda `tools/probe-amprente.test.mjs` pică dacă codul de azi dă alta. O schimbare a
+  judecătorului = protocol nou, cu umbra pornită de la zero (cum scrie sus).
+- **Câmpurile pentru panouri:** `putere` (cea scrisă pe 19.10: +0,3 R pe tranzacție ⇒ ~11 % la 8 perioade, ~27 % la 36; unitatea e R,
+  nu %), `primulVerdict` (8 perioade de 20 de sesiuni pe calendarul NYSE: optimist ~**15.06.2027**, realist după zilele pierdute) și
+  `judecata` cu `unic: false` — verdictul umbrei e **secvențial** prin construcție (recalculat după fiecare perioadă, cu pragul t > 3,0
+  ales tocmai pentru privirile repetate), nu o judecată unică.

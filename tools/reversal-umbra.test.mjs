@@ -75,7 +75,8 @@ test('the shadow fingerprint follows the rules that pick the Early Reversal list
   const h = motor().hooks;
   assert.equal(typeof h.reversalScore, 'function', 'robotul expune reversalScore');
   assert.match(versiune(h), /^ru-[0-9a-f]{12}$/);
-  assert.equal(versiunePm(h), 'pm-cb956aef5680', 'proba Top Long NU repornește');
+  // 27.10.2026: proba Top Long a repornit (premarket-proba-2, regula de judecată); umbra are amprenta ei, separată
+  assert.match(versiunePm(h), /^pm-[0-9a-f]{12}$/); assert.notEqual(versiune(h).slice(3), versiunePm(h).slice(3));
 });
 
 test('the evaluation: fewer than 8 periods ⇒ wait; overlapping days are one period; only the current version counts', () => {
@@ -153,6 +154,16 @@ test('the robot step: Yahoo bars become dated OHLC in the exchange time zone; th
   assert.match(src, /reversal-umbra-jurnal\.json/); assert.match(src, /pasUmbra/);
 });
 
+test('I-743 / contract (27.10.2026): the shadow file carries the judge fingerprint and putere / primulVerdict / judecata (sequential, so not unique); the rules do NOT change', async () => {
+  const { calendarSUA } = await import('../lib/proba-contract.mjs'), { amprentaJudecator } = await import('../lib/reversal-umbra.mjs'), cal = calendarSUA('.');
+  const st = { reversal: [{ symbol: 'RTX', sourceDate: '2026-10-23', price: 110, atr: 4, metricB: 10, stop: 105, score: 61, state: 'WATCH' }] };
+  const { proba } = pasUmbra({ zile: [] }, st, 'ru-x', '2026-10-23', {}, ['2026-10-23'], Date.parse('2026-10-23T22:00:00Z'), { cal, azi: '2026-10-27' });
+  assert.match(amprentaJudecator(), /^ju-[0-9a-f]{12}$/); assert.equal(proba.judecator, amprentaJudecator());
+  assert.deepEqual(proba.putere.laPlus.map((x) => [x.pct, x.putere, x.perioade]), [[0.3, 0.11, 8], [0.3, 0.27, 36]]); assert.equal(proba.putere.unitate, 'R pe tranzacție'); assert.match(proba.putere.text, /0,3 R/);
+  assert.equal(proba.primulVerdict.optimist, (await import('../lib/proba-contract.mjs')).dupaSesiuni(cal, '2026-10-23', 8 * 20).zi);
+  assert.deepEqual(proba.judecata, { la: 8, data: null, verdict: null, unic: false });
+  assert.equal(PROTOCOL.id, 'reversal-umbra-1', 'umbra nu repornește: regulile ei nu s-au schimbat');
+});
 test('the protocol was written before the data and says what the code does', () => {
   const doc = readFileSync('docs/reversal-stop-umbra-protocol.md', 'utf8');
   assert.match(doc, /19\.10\.2026/); assert.match(doc, /t > 3,0/); assert.match(doc, /Minimum 8 perioade/i);

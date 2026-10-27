@@ -74,6 +74,32 @@ test('I-671 (revizia 17.10): testul pe 8 perioade cu pauze — perioade egale, p
   assert.equal(r.grupe, 8); assert.equal(r.zilePeGrupa, Math.floor((180 - 4 * 7) / 8)); assert.ok(r.p > 0 && r.p < 1);
   assert.equal(testNW(xs.slice(0, 20), { pauza: 4 }).p, 1, 'prea puține zile pentru 8 perioade ⇒ nicio concluzie');
 });
+// 27.10.2026 — auditul F: mărimea testului „simulată înainte” (4,8–5,4 % în protocol) nu era reproductibilă în depozit; acum e, cu sămânță fixă.
+test('SIZE (in the repo, 4000 worlds, mulberry32): the 8-period test with h−1 gaps holds ~5 % on overlapping days (with and without persistence)', async () => {
+  const { mulberry32, gauss } = await import('../lib/proba-contract.mjs');
+  const rata = (h, n, rho, seed) => { const g = gauss(mulberry32(seed)); let fals = 0; const L = 4000;
+    for (let w = 0; w < L; w++) { const soc = []; let a = 0; for (let i = 0; i < n + h; i++) { a = rho * a + Math.sqrt(1 - rho * rho) * g(); soc.push(a); }
+      const xs = []; for (let i = 0; i < n; i++) { let s = 0; for (let k = 0; k < h; k++) s += soc[i + k]; xs.push(s / h); } // ziua i vede orizontul i…i+h−1 (zile suprapuse)
+      if (testNW(xs, { pauza: h - 1 }).p < 0.05) fals++; }
+    return fals / L; };
+  for (const [h, n] of [[5, 180], [20, 252]]) for (const rho of [0, 0.3]) { const r = rata(h, n, rho, 1700 + h + Math.round(rho * 10)); assert.ok(r > 0.03 && r < 0.07, `h=${h}, ρ=${rho}: ${(100 * r).toFixed(1)} %`); }
+});
+test('I-743: the judge fingerprint covers the code that judges (transitive closure of bilantDoua / incheie), not the display text', async () => {
+  const { amprentaJudecator, FUNCTII_JUDECATOR } = await import('./clasificator-jurnal.mjs');
+  assert.match(amprentaJudecator(), /^jc-[0-9a-f]{12}$/);
+  for (const n of ['rezultat', 'incheie', 'zileDin', 'momentum', 'costFor', 'test', 'tcdf', 'judeca', 'clasament', 'bilant', 'bilantDoua', 'laTimp', 'integritate', 'PRAG', 'TINTE']) assert.ok(FUNCTII_JUDECATOR().includes(n), n);
+  for (const n of ['notaIntegritate', 'lunar', 'mesajZilnic', 'raportVerdict', 'nopti']) assert.ok(!FUNCTII_JUDECATOR().includes(n), 'afișaj: ' + n);
+});
+test('contract with the panels (lot D): first verdict = the 180th vote noted on time + h sessions; missed nights push the realistic date; judecata is unique', async () => {
+  const { contractClasificator } = await import('./clasificator-jurnal.mjs');
+  const zile = []; let d = '2026-10-16'; for (let i = 0; i < 7; i++) { zile.push(d); d = cal.next(d, 'US').day; }
+  const linii = zile.map((asOf) => ({ asOf, motor: PROBA, generat: asOf + 'T23:30:00Z', voturi: { A: V() } }));
+  const b = { verdict: 'in-proba', zileMinime: 180, integritate: { din: zile[0], lipsaTotal: 0 } }, c = contractClasificator(b, { linii, cal, azi: '2026-10-27', h: 5, minim: 180 });
+  let x = zile.at(-1); for (let i = 0; i < 173 + 5; i++) x = cal.next(x, 'US')?.day || x; // 173 de voturi de notat + 5 sesiuni de orizont (dincolo de calendar ⇒ aproximativ)
+  assert.ok(Math.abs(Date.parse(c.primulVerdict.optimist) - Date.parse(x)) <= 4 * 86400000, c.primulVerdict.optimist + ' ≈ ' + x); assert.equal(c.primulVerdict.realist, c.primulVerdict.optimist);
+  const rau = contractClasificator({ ...b, integritate: { din: zile[0], lipsaTotal: 3 } }, { linii, cal, azi: '2026-10-27', h: 5, minim: 180 }); assert.ok(rau.primulVerdict.realist > rau.primulVerdict.optimist); assert.match(rau.primulVerdict.motiv, /3 nopți/);
+  assert.deepEqual(c.judecata, { la: 180, data: null, verdict: null, unic: true }); assert.equal(c.putere.laPlus[0].putere, 0.8); assert.match(c.putere.text, /0,007/);
+});
 test('verdictul se dă o singură dată, pe primele zile (eșantion fix); zilele de după sunt doar descriptive', () => {
   const rea = zile(180, false), buna = zile(200, true).map((z, i) => ({ ...z, asOf: dateOf(zi(400 + i)) }));
   const r = bilant([], rea.concat(buna)); assert.equal(r.verdict, 'nu-tine'); assert.equal(r.zileTest, 380); assert.deepEqual(r.verdictPe, [rea[0].asOf, rea.at(-1).asOf]);
