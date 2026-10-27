@@ -3446,30 +3446,30 @@ pe un singur chart.
 | I-738 | Tracker GO pe tiere (zona SMI la GO: în chop / peste·sub chop × continuare / întoarcere), net și n pe fiecare, agregatul păstrat — decizia „gate pe zonă” din panou, nu din Python | IronRod Pine | M | P3 | făcut 2026-10-25 | ideation | 2026-10-25 |
 | I-739 | Filtru pe evenimentele JSON: „Tot / Esențial (GO + Direction + pivot + închideri) / Doar GO” — SIGNAL_CODE (≈48 % din bare) doar pe „Tot”; alertcondition-urile din dialog neatinse | IronRod Pine | S | P2 | făcut 2026-10-25 | ideation | 2026-10-25 |
 | I-740 | Presetul guvernează și ORIZONTUL, nu doar pragurile: Intraday închide trade-urile trackerului la sfârșitul zilei ET și nu deschide GO în ultimele N bare; Nasdaq = GO / tracker doar în RTH 09:30–16:00 ET, pivoții din premarket etichetați; Crypto / Custom neschimbate; fusul declarat | IronRod Pine | M | P2 | făcut 2026-10-25 | ideation | 2026-10-25 |
-| I-741 | Probele Top Long / Reguli V1 judecate pe eșantion FIX (o singură judecată la 8 perioade) + puterea scrisă înainte | scanner-verdicts (probe) | S | P1 | propus | audit | 2026-10-27 |
-| I-742 | Early Reversal plafonat la 0,25 % din capital până la o probă în timp, ca Top Long | desk/ | S | P1 | propus | audit | 2026-10-27 |
-| I-743 | „Amprenta judecătorului”: codul care evaluează probele e înghețat la fel ca motorul; versiunea regulii în istoricul verdictului; SHA pe Reguli V1 | scanner-verdicts (probe) | M | P2 | propus | audit | 2026-10-27 |
-| I-744 | „Cât mai durează și ce poate vedea”: pe fiecare panou de probă, data estimată a primului verdict și puterea | scanner-verdicts/, desk/ | S | P2 | propus | audit | 2026-10-27 |
-| I-745 | Registrul cercetării complet (≥ 60 de încercări pe toată aplicația) + mulberry32 în lib/markov.js + eticheta „procente necalibrate” la Clasificator | docs/cercetare, lib/ | M | P2 | propus | audit | 2026-10-27 |
-| I-746 | Pornirea aplicației: cache-ul contului în IndexedDB cu citiri paralele + carcasa întreagă din cache + „Actualizează” care ocolește cache-ul | app/ | M | P1 | propus | audit | 2026-10-27 |
-| I-747 | Proba de ecran (I-725) rulată AUTOMAT după fiecare publicare, cu rezultatul în Health | health/, .github/workflows | S | P1 | propus | audit | 2026-10-27 |
-| I-748 | Starea de securitate la vedere (allowlist Google, sesiuni, ultimul login) + semaforul rețelei + detectarea a doi cititori Trading 212 | app/, health/ | S | P2 | propus | audit | 2026-10-27 |
-| I-749 | Ordinele în așteptare SINCRONIZATE (telefonul nu mai e mereu „necitit”) + fișa zilei de pe server cu ordinele brokerului + o singură definiție a stopului pe server | app/, lib/cloud-monitor.mjs | M | P1 | propus | audit | 2026-10-27 |
-| I-750 | I-703 dus la capăt (fără „30 de minute” rămase) + „versiune validată” a modelelor doar după test de mărime | holdings/ | M | P2 | propus | audit | 2026-10-27 |
-| I-751 | Curba de capital în MONEDA contului (DD fără cursul EUR/USD) + limitele Governor și jurnalul lor sincronizate ca document + un singur ceas New York | lib/, journal/ | M | P2 | propus | audit | 2026-10-27 |
-| I-752 | Lanțul planului închis la capete: gărzile re-rulate la SIMULEAZĂ, „preț sub stop” blochează salvarea candidatului, ADV necunoscut blochează ideea proprie, planurile PLANNED expiră | desk/, candidate-engine/ | S | P1 | propus | audit | 2026-10-27 |
-| I-753 | Corelația „închisă la eroare” (serii lipsă ⇒ neverificat la vedere) + modulele-gardă declarate (lipsesc ⇒ tichet blocat) | desk/, lib/caldura-portofoliu.js | S | P2 | propus | audit | 2026-10-27 |
-| I-754 | Shadow: neverificabil la split, stopul pe restul zilei semnalului, proba umbrei Reversal vizibilă în Piață | shadow-book/, scanner-verdicts/ | M | P3 | propus | audit | 2026-10-27 |
-| I-755 | Releul Trading 212 cu buget de timp și idempotență pe ordinul de stop + testul rutei orders-pending + cron-urile declarate corect | tools/cf-worker-deck-relay.js | S | P2 | propus | audit | 2026-10-27 |
-| I-756 | Alerte: secretul GitHub mutat din browser într-un worker, regulile de știri comune (pagină + server), „seen” în cloud, codul mort retras | alerts/, tools/ | M | P3 | propus | audit | 2026-10-27 |
-| I-757 | Kill switch real: anularea tuturor ordinelor deschise prin API T212 + procedura „când apăs” + test cronometrat (RTS 6 art. 12, 15c3-5) | broker/, today/ | M | P1 | propus | ideation | 2026-10-27 |
-| I-758 | Price collar + mărime maximă pe ordin + detector de duplicat la ordinul de stop (controale pre-ordin 15c3-5 / RTS 6 art. 15) | lib/t212-orders.js | S | P1 | propus | ideation | 2026-10-27 |
-| I-759 | Reconciliere zilnică aplicație ↔ Trading 212 (poziții, numerar, ordine): orice diferență ⇒ CAUTION cu lista | broker/, lib/cloud-monitor.mjs | M | P1 | propus | ideation | 2026-10-27 |
-| I-760 | Override guvernat (limita relaxată intră peste 24 h, cu motiv și expirare) + inventarul modelelor și gărzilor cu test de declanșare trimestrial + registru de incidente | journal/, docs/ | S | P2 | propus | ideation | 2026-10-27 |
-| I-761 | Detectoare comportamentale deterministe în Raport: revenge, mărire după pierderi, pierderi peste stop, cold-start + Tiltmeter (somn / concentrare vs R) | journal/, lib/journal-report.js | M | P1 | propus | ideation | 2026-10-27 |
-| I-762 | MAE / MFE și „cea mai bună ieșire” din barele de 1 minut pentru fiecare execuție închisă | journal/, lib/journal-report.js | M | P2 | propus | ideation | 2026-10-27 |
-| I-763 | Checklist bifat per plan („n/m reguli respectate”) + etichete de zi (regim, stare, emoție) + „tranzacții ratate” + calendar P&L cu heatmap oră × zi | desk/, journal/ | S | P2 | propus | ideation | 2026-10-27 |
-| I-764 | Buget izolat pentru orice automatizare + cheie Trading 212 doar-citire cu IP fix pentru cititori + eticheta „neverificat de om” pe orice text generat | broker/, app/settings | S | P2 | propus | ideation | 2026-10-27 |
+| I-741 | Probele Top Long / Reguli V1 judecate pe eșantion FIX (o singură judecată la 8 perioade) + puterea scrisă înainte | scanner-verdicts (probe) | S | P1 | în lucru (lotul F, nepublicat — revizia statistică a cerut reparații) | audit | 2026-10-27 |
+| I-742 | Early Reversal plafonat la 0,25 % din capital până la o probă în timp, ca Top Long | desk/ | S | P1 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-743 | „Amprenta judecătorului”: codul care evaluează probele e înghețat la fel ca motorul; versiunea regulii în istoricul verdictului; SHA pe Reguli V1 | scanner-verdicts (probe) | M | P2 | în lucru (lotul F, nepublicat — revizia statistică a cerut reparații) | audit | 2026-10-27 |
+| I-744 | „Cât mai durează și ce poate vedea”: pe fiecare panou de probă, data estimată a primului verdict și puterea | scanner-verdicts/, desk/ | S | P2 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-745 | Registrul cercetării complet (≥ 60 de încercări pe toată aplicația) + mulberry32 în lib/markov.js + eticheta „procente necalibrate” la Clasificator | docs/cercetare, lib/ | M | P2 | în lucru (lotul F, nepublicat — revizia statistică a cerut reparații) | audit | 2026-10-27 |
+| I-746 | Pornirea aplicației: cache-ul contului în IndexedDB cu citiri paralele + carcasa întreagă din cache + „Actualizează” care ocolește cache-ul | app/ | M | P1 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-747 | Proba de ecran (I-725) rulată AUTOMAT după fiecare publicare, cu rezultatul în Health | health/, .github/workflows | S | P1 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-748 | Starea de securitate la vedere (allowlist Google, sesiuni, ultimul login) + semaforul rețelei + detectarea a doi cititori Trading 212 | app/, health/ | S | P2 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-749 | Ordinele în așteptare SINCRONIZATE (telefonul nu mai e mereu „necitit”) + fișa zilei de pe server cu ordinele brokerului + o singură definiție a stopului pe server | app/, lib/cloud-monitor.mjs | M | P1 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-750 | I-703 dus la capăt (fără „30 de minute” rămase) + „versiune validată” a modelelor doar după test de mărime | holdings/ | M | P2 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-751 | Curba de capital în MONEDA contului (DD fără cursul EUR/USD) + limitele Governor și jurnalul lor sincronizate ca document + un singur ceas New York | lib/, journal/ | M | P2 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-752 | Lanțul planului închis la capete: gărzile re-rulate la SIMULEAZĂ, „preț sub stop” blochează salvarea candidatului, ADV necunoscut blochează ideea proprie, planurile PLANNED expiră | desk/, candidate-engine/ | S | P1 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-753 | Corelația „închisă la eroare” (serii lipsă ⇒ neverificat la vedere) + modulele-gardă declarate (lipsesc ⇒ tichet blocat) | desk/, lib/caldura-portofoliu.js | S | P2 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-754 | Shadow: neverificabil la split, stopul pe restul zilei semnalului, proba umbrei Reversal vizibilă în Piață | shadow-book/, scanner-verdicts/ | M | P3 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-755 | Releul Trading 212 cu buget de timp și idempotență pe ordinul de stop + testul rutei orders-pending + cron-urile declarate corect | tools/cf-worker-deck-relay.js | S | P2 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-756 | Alerte: secretul GitHub mutat din browser într-un worker, regulile de știri comune (pagină + server), „seen” în cloud, codul mort retras | alerts/, tools/ | M | P3 | făcut 2026-10-28 (740dcf92) | audit | 2026-10-27 |
+| I-757 | Kill switch real: anularea tuturor ordinelor deschise prin API T212 + procedura „când apăs” + test cronometrat (RTS 6 art. 12, 15c3-5) | broker/, today/ | M | P1 | făcut 2026-10-28 (740dcf92) | ideation | 2026-10-27 |
+| I-758 | Price collar + mărime maximă pe ordin + detector de duplicat la ordinul de stop (controale pre-ordin 15c3-5 / RTS 6 art. 15) | lib/t212-orders.js | S | P1 | făcut 2026-10-28 (740dcf92) | ideation | 2026-10-27 |
+| I-759 | Reconciliere zilnică aplicație ↔ Trading 212 (poziții, numerar, ordine): orice diferență ⇒ CAUTION cu lista | broker/, lib/cloud-monitor.mjs | M | P1 | făcut 2026-10-28 (740dcf92) | ideation | 2026-10-27 |
+| I-760 | Override guvernat (limita relaxată intră peste 24 h, cu motiv și expirare) + inventarul modelelor și gărzilor cu test de declanșare trimestrial + registru de incidente | journal/, docs/ | S | P2 | făcut 2026-10-28 (740dcf92) | ideation | 2026-10-27 |
+| I-761 | Detectoare comportamentale deterministe în Raport: revenge, mărire după pierderi, pierderi peste stop, cold-start + Tiltmeter (somn / concentrare vs R) | journal/, lib/journal-report.js | M | P1 | făcut 2026-10-28 (740dcf92) | ideation | 2026-10-27 |
+| I-762 | MAE / MFE și „cea mai bună ieșire” din barele de 1 minut pentru fiecare execuție închisă | journal/, lib/journal-report.js | M | P2 | făcut 2026-10-28 (740dcf92) | ideation | 2026-10-27 |
+| I-763 | Checklist bifat per plan („n/m reguli respectate”) + etichete de zi (regim, stare, emoție) + „tranzacții ratate” + calendar P&L cu heatmap oră × zi | desk/, journal/ | S | P2 | făcut 2026-10-28 (740dcf92) | ideation | 2026-10-27 |
+| I-764 | Buget izolat pentru orice automatizare + cheie Trading 212 doar-citire cu IP fix pentru cititori + eticheta „neverificat de om” pe orice text generat | broker/, app/settings | S | P2 | făcut 2026-10-28 (740dcf92) | ideation | 2026-10-27 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -7299,168 +7299,168 @@ Lentile: Trader — aplicația spune cum e piața, dar nu încă ce înseamnă p
 - **Riscuri/dependențe:** ipoteze nevalidate — pe E: sunt doar date crypto; proba cere date Nasdaq 15m / 1h (export TV sau Yahoo 60 de zile) înainte de „mai bine”; DST la conversii; pe crypto ziua ET e arbitrară, dar declarată.
 - **Fișiere atinse:** `pine-scripts\META-CONFLUENCE-SUITE\IronRod Trigger System v6.3.pine` (305–310, 496–569, 600–612), `IronRod Trigger System v6.3_README.md`; `_proba-ironrod-2026-10-25\proba_ironrod_v63.py` (ramură Nasdaq când există date).
 
-#### I-741 · Probele Top Long / Reguli V1 judecate pe eșantion FIX (o singură judecată la 8 perioade) + puterea scrisă înainte · [S] · P1 · propus 2026-10-27
+#### I-741 · Probele Top Long / Reguli V1 judecate pe eșantion FIX (o singură judecată la 8 perioade) + puterea scrisă înainte · [S] · P1 · în lucru (lotul F, nepublicat — revizia statistică a cerut reparații)
 - **Problema/golul:** Evaluarea (`lib/premarket-proba.mjs`, `lib/v1-proba.mjs`) recalculează verdictul la FIECARE perioadă nouă după ce s-au strâns 8 — test secvențial fără corecție ⇒ „ajută” fals ≈ 14,8 %/an (simulat în auditul F, 27.10). Puterea nu e scrisă: testul POWER plantează +2 %/perioadă (≈ +100 %/an); la un avantaj real de +0,5 %/perioadă puterea e ≈ 6,8 % — proba nu poate vedea ce caută.
 - **Soluția:** Protocol v2 scris ÎNAINTE (o regulă nouă cere o probă nouă — proba e la 1/8, costul repornirii e mic): verdictul se dă o singură dată, la exact 8 perioade (apoi doar monitorizare cu bilanț), iar puterea se calculează prin simulare la +0,5 % și +1 %/perioadă și se scrie în `premarket-proba.json` / `v1-proba.json` („proba poate vedea un avantaj de cel puțin X %”). Dacă puterea la 8 perioade e sub 50 %, numărul de perioade cerut se mărește în protocol.
 - **Impact:** Verdictul „ajută / nu ajută” devine credibil (5 % fals, nu 15 %) și spune cinstit ce NU poate vedea.
 - **Riscuri/dependențe:** Decizia LUI: repornirea probei (1/8 ⇒ 0/8). Fără ea, verdictul de peste 8 perioade rămâne cu avertisment „secvențial”.
 - **Fișiere atinse:** docs/premarket-proba-protocol.md, docs/v1-proba-protocol.md, lib/premarket-proba.mjs, lib/v1-proba.mjs, tools/premarket-proba.test.mjs, tools/v1-proba.test.mjs, docs/cercetare/registru.md
 
-#### I-742 · Early Reversal plafonat la 0,25 % din capital până la o probă în timp, ca Top Long · [S] · P1 · propus 2026-10-27
+#### I-742 · Early Reversal plafonat la 0,25 % din capital până la o probă în timp, ca Top Long · [S] · P1 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Early Reversal a picat pe istoric (14.10, 19.10: fără avantaj) și nu e în nicio probă în timp, dar `desk/index.html:168` îi dă riscul întreg 0,5 %; Top Long, tot fără avantaj, e plafonat la 0,25 % (I-709). Decizia LUI din 19.10 („Early Reversal neplafonat?”) a rămas fără răspuns.
 - **Soluția:** Același plafon (0,25 %) și aceeași etichetă „în probă” pentru Early Reversal; umbra stopului (I-716) rămâne jurnalul lui. Dacă EL alege altfel, decizia se scrie în politica de risc § 2 cu motivul.
 - **Impact:** Riscul pe un semnal nedovedit nu mai e dublul celui pe alt semnal nedovedit.
 - **Riscuri/dependențe:** Decizia e a LUI; până atunci rămâne cum e.
 - **Fișiere atinse:** desk/index.html, lib/desk-proba.js, docs/politica-de-risc.md
 
-#### I-743 · „Amprenta judecătorului”: codul care evaluează probele e înghețat la fel ca motorul; versiunea regulii în istoricul verdictului; SHA pe Reguli V1 · [M] · P2 · propus 2026-10-27
+#### I-743 · „Amprenta judecătorului”: codul care evaluează probele e înghețat la fel ca motorul; versiunea regulii în istoricul verdictului; SHA pe Reguli V1 · [M] · P2 · în lucru (lotul F, nepublicat — revizia statistică a cerut reparații)
 - **Problema/golul:** Amprentele (`pm-…`, `ru-…`, clasificator) acoperă motorul care produce semnalul, nu și codul care îl judecă (`rezultat / test / judeca`, `evalueaza`); amprenta Top Long nu acoperă 17 funcții apelate din `analyze`; versiunea V1 e un șir constant; `verdict-piata-istoric.jsonl` nu poartă versiunea regulii (16.10 e notat sub regula veche).
 - **Soluția:** Amprenta include și evaluatorul; V1 primește amprenta din conținut (SHA) ca Top Long; fiecare rând din istoricul verdictului poartă `regula: v2.1`; testele existente de îngheț se extind.
 - **Impact:** O schimbare „inofensivă” în evaluare nu mai poate muta verdictul fără să repornească proba — și se vede.
 - **Riscuri/dependențe:** Schimbarea amprentei V1 repornește proba V1 (decizia LUI, de făcut odată cu I-741).
 - **Fișiere atinse:** tools/clasificator-amprenta.mjs, lib/premarket-proba.mjs, lib/v1-proba.mjs, tools/verdict-piata-robot.mjs, docs/clasificator-versiuni.md
 
-#### I-744 · „Cât mai durează și ce poate vedea”: pe fiecare panou de probă, data estimată a primului verdict și puterea · [S] · P2 · propus 2026-10-27
+#### I-744 · „Cât mai durează și ce poate vedea”: pe fiecare panou de probă, data estimată a primului verdict și puterea · [S] · P2 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Toate probele arată „în probă · k/8”, dar nu spun CÂND poate veni verdictul: Clasificator ținta 5 ≈ vara 2027, ținta 20 ≈ iarna 2027–28, Top Long k=20 ≈ vara 2027, Trend ≈ ani, verdictul pieței 2028 (estimările auditului F). EL vede „în probă” un an întreg fără să știe de ce.
 - **Soluția:** Un rând pe fiecare panou: „primul verdict posibil: ~<lună> <an> (<perioade> perioade care nu se suprapun); poate vedea un avantaj de cel puțin X %/perioadă”. Cifrele vin din protocol (perioade necesare, k) și din calendarul SUA, nu din prezumții.
 - **Impact:** Așteptarea devine o decizie informată (merită ținută proba? merită mărit universul?).
 - **Riscuri/dependențe:** Depinde de I-741 pentru puterea scrisă; până atunci doar data.
 - **Fișiere atinse:** scanner-verdicts/index.html, desk/index.html, lib/desk-proba.js, candidate-engine/index.html
 
-#### I-745 · Registrul cercetării complet (≥ 60 de încercări pe toată aplicația) + mulberry32 în lib/markov.js + eticheta „procente necalibrate” la Clasificator · [M] · P2 · propus 2026-10-27
+#### I-745 · Registrul cercetării complet (≥ 60 de încercări pe toată aplicația) + mulberry32 în lib/markov.js + eticheta „procente necalibrate” la Clasificator · [M] · P2 · în lucru (lotul F, nepublicat — revizia statistică a cerut reparații)
 - **Problema/golul:** Registrul numără ≈ 31 de încercări doar pe scanner; auditul F estimează ≥ 60–70 pe toată aplicația (Clasificator 8 teste în 3 subfamilii, Verdict, Trend, Portofoliu) ⇒ corecția pentru încercări multiple pornește de la un număr prea mic. `lib/markov.js:380` folosește un LCG (`*1103515245`) — regula LUI: NICIODATĂ LCG. Procentele Clasificatorului sunt necalibrate (ECE 7,1 / 10,5 pp față de 4,3 pe martor).
 - **Soluția:** Registrul primește toate familiile (cu data, datele, rezultatul, starea); LCG-ul devine mulberry32 cu test de echivalență a distribuției; panoul Clasificatorului scrie „procente necalibrate (n < 180)”; calibrarea prin temperatură intră DUPĂ ce jurnalul de voturi are ≥ 180 de zile judecate.
 - **Impact:** Orice „avantaj” viitor se corectează pe numărul real de încercări; cifrele afișate nu promit ce nu pot ține.
 - **Riscuri/dependențe:** Calibrarea cere date care vin abia în 2027.
 - **Fișiere atinse:** docs/cercetare/registru.md, lib/markov.js, holdings/classifier.js, lib/holdings-classifier.js
 
-#### I-746 · Pornirea aplicației: cache-ul contului în IndexedDB cu citiri paralele + carcasa întreagă din cache + „Actualizează” care ocolește cache-ul · [M] · P1 · propus 2026-10-27
+#### I-746 · Pornirea aplicației: cache-ul contului în IndexedDB cu citiri paralele + carcasa întreagă din cache + „Actualizează” care ocolește cache-ul · [M] · P1 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** `recordCache` din `app/cloud-sync.js` trăiește doar în memorie ⇒ fiecare pornire re-descarcă până la 164 de chei UNA CÂTE UNA; SW-ul carcasei (`app/sw.js`) ține în cache doar HTML-ul (CSS/JS-ul carcasei nu), iar pe rețea slabă „Actualizează” servește carcasa veche (SW-ul ignoră `?v=` la navigare). Măsurat 27.10 pe site: Portofoliu „gata” la 12 s, Jurnal cu conținut abia la 4,5 s.
 - **Soluția:** Cache-ul înregistrărilor în IndexedDB (cheie, revizie, valoare), citit o dată la pornire; descărcarea doar a cheilor cu revizie schimbată, în paralel (6 odată); asset-urile carcasei în `SHELL` cu `addAll` tolerant; butonul „Actualizează” face `fetch(cache:'reload')` pe carcasă + `skipWaiting`.
 - **Impact:** Deschideri de 2–4 ori mai rapide pe telefon; „Actualizează” chiar actualizează.
 - **Riscuri/dependențe:** IndexedDB poate lipsi (privat) ⇒ cade pe comportamentul de azi; de măsurat cu `masoara.mjs` înainte/după.
 - **Fișiere atinse:** app/cloud-sync.js, app/sw.js, app/index.html, lib/cloud-sync-model.mjs
 
-#### I-747 · Proba de ecran (I-725) rulată AUTOMAT după fiecare publicare, cu rezultatul în Health · [S] · P1 · propus 2026-10-27
+#### I-747 · Proba de ecran (I-725) rulată AUTOMAT după fiecare publicare, cu rezultatul în Health · [S] · P1 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** `tools/proba-ecran-decizie.mjs` există și e verde (27.10: 7 pagini × 2, 0 erori JS), dar NU rulează după publicare: niciun workflow, niciun raport — regula din 13.09 („orice reparație de interfață se închide cu proba de ecran”) e ținută doar când mi-aduc aminte.
 - **Soluția:** Un workflow după `pages.yml` (sau pasul final al lui): Edge/Chromium headless pe site, JSON în `health/generated/proba-ecran.json` comis cu `[skip ci]`, roșu ⇒ Discord; Health arată „ultima probă de ecran: verde / roșie, versiunea, durata”.
 - **Impact:** Bugurile de ecran (drumul, a doua oară, alt mediu) se prind la publicare, nu la EL.
 - **Riscuri/dependențe:** Runnerul GitHub are Chromium, nu Edge — proba trebuie să accepte ambele; timp ≈ 2–3 min pe rulare.
 - **Fișiere atinse:** .github/workflows/pages.yml (sau nou proba-ecran.yml), tools/proba-ecran-decizie.mjs, health/index.html
 
-#### I-748 · Starea de securitate la vedere (allowlist Google, sesiuni, ultimul login) + semaforul rețelei + detectarea a doi cititori Trading 212 · [S] · P2 · propus 2026-10-27
+#### I-748 · Starea de securitate la vedere (allowlist Google, sesiuni, ultimul login) + semaforul rețelei + detectarea a doi cititori Trading 212 · [S] · P2 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Workerul expune `readiness.allowlist` (27.10: încă `false` — orice cont Google poate folosi workerul ca stocare), dar nicio pagină nu-l citește; offline la pornire aplicația spune „Eroare de sincronizare” (`Failed to fetch`) în loc de „fără rețea”; două aparate cu ceasul decalat pot citi amândouă brokerul (I-713 se bazează pe oră).
 - **Soluția:** Cont & sincronizare + Health: „allowlist Google: DA/NU”, sesiunile active, ultimul login; `navigator.onLine` / `saveData` / `effectiveType` ⇒ „Rețea slabă: amân sincronizarea”, nu „Eroare”; semnalul „doi cititori” când două aparate scriu `markOwn` în aceeași fereastră.
 - **Impact:** EL vede imediat că `GOOGLE_ALLOWED_SUB` lipsește; erorile false dispar pe telefon.
 - **Riscuri/dependențe:** allowlist-ul se vede doar cu Origin-ul suitei (cum e azi).
 - **Fișiere atinse:** app/sync/index.html, app/cloud-sync.js, health/index.html, lib/t212-reader.js
 
-#### I-749 · Ordinele în așteptare SINCRONIZATE (telefonul nu mai e mereu „necitit”) + fișa zilei de pe server cu ordinele brokerului + o singură definiție a stopului pe server · [M] · P1 · propus 2026-10-27
+#### I-749 · Ordinele în așteptare SINCRONIZATE (telefonul nu mai e mereu „necitit”) + fișa zilei de pe server cu ordinele brokerului + o singură definiție a stopului pe server · [M] · P1 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** `tt_trading212_orders_pending_v1` e LOCAL ⇒ pe aparatul pasiv „stop la broker” e mereu „necitit”; fișa zilei de pe server (`lib/cloud-monitor.mjs`) numără „fără stop” din teze, cu a treia definiție a stopului (fără `openedAt`), nu din ordinele brokerului; releul citește ordinele doar din pagina contului.
 - **Soluția:** Cheia ordinelor intră în `KEYS` sincronizate (cu `fetchedAt` și aparatul), cu „ultima citire câștigă”; monitorul de pe server citește ordinele prin releu o dată pe zi după închidere și folosește `StopSetter.stopValabil` (copiat în bundle) ⇒ fișa spune „N poziții fără ORDIN la broker”.
 - **Impact:** Alerta care contează (stop doar pe hârtie) ajunge pe telefon și pe Discord, nu doar pe PC.
 - **Riscuri/dependențe:** Republicarea workerului (manifest + bundle); cheia T212 trebuie să fie în cont (cloud_credentials).
 - **Fișiere atinse:** lib/cloud-sync-model.mjs, tools/cloud-sync-bundle.mjs, lib/cloud-monitor.mjs, tools/cloud-sync-worker.mjs, lib/t212-pending.js
 
-#### I-750 · I-703 dus la capăt (fără „30 de minute” rămase) + „versiune validată” a modelelor doar după test de mărime · [M] · P2 · propus 2026-10-27
+#### I-750 · I-703 dus la capăt (fără „30 de minute” rămase) + „versiune validată” a modelelor doar după test de mărime · [M] · P2 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Rămășițe ale regulii de 30 min: `lib/decision-verdict.js` (MAX_AGE ⇒ VERIFY la 30 min după scanarea zilnică), `lib/holdings-model-analysis.js:14` („indisponibil” după 30 min), textele „maximum 30 de minute”; „versiunea validată” Neural + Boosting se declară pe 20 de rezultate cu marje 0,02 / 0,01, pe 12 combinații fără corecție (`holdings-learning.js`).
 - **Soluția:** Toate pragurile de vechime pe „sesiune + închidere + amprentă” (ca I-703); „validată” doar dacă testul de permutare pe cele 20 (sau n ≥ 50 cu Holm pe 12) trece; altfel „candidată”.
 - **Impact:** Panoul de decizie nu mai cade pe VERIFY la prânz; „validată” înseamnă ceva.
 - **Riscuri/dependențe:** Modelele rămân laboratoare (fără dimensionare) — nimic din bani nu depinde de ele.
 - **Fișiere atinse:** lib/decision-verdict.js, lib/holdings-model-analysis.js, holdings/verdict.js, lib/holdings-model-storage.js, lib/holdings-learning.js
 
-#### I-751 · Curba de capital în MONEDA contului (DD fără cursul EUR/USD) + limitele Governor și jurnalul lor sincronizate ca document + un singur ceas New York · [M] · P2 · propus 2026-10-27
+#### I-751 · Curba de capital în MONEDA contului (DD fără cursul EUR/USD) + limitele Governor și jurnalul lor sincronizate ca document + un singur ceas New York · [M] · P2 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Snapshot-ul zilnic (`capital-auto.js`) intră în curbă în USD la cursul BCE ⇒ pe un cont EUR, DD rolling măsoară și cursul (EUR −3 % = DD 3 % fals; EUR +3 % maschează o scădere reală); `tt_governor_cfg_v1` și `tt_governor_limite_jurnal_v1` nu sunt sincronizate (o limită ridicată pe PC nu ajunge pe telefon; jurnalul limitelor arată doar aparatul curent); „azi / săptămâna” au trei ceasuri (NY în T212Capital, RO în Jurnal, local în Governor).
 - **Soluția:** Curba și DD în moneda contului (USD doar la afișare); `tt_governor_cfg_v1` fără `accountSize` + jurnalul limitelor în cheile sincronizate (unire pe `ts+aparat`); `CT.ziNY()` unic, iar politica § 2 scrie fusul fiecărei limite.
 - **Impact:** DD rolling poate fi repornit fără HALT fals; limitele sunt un singur document pe ambele aparate.
 - **Riscuri/dependențe:** Migrarea curbei vechi (USD) — o dată, cu copie.
 - **Fișiere atinse:** lib/equity.js, lib/capital-auto.js, lib/governor.js, lib/cloud-sync-model.mjs, lib/journal.js, docs/politica-de-risc.md
 
-#### I-752 · Lanțul planului închis la capete: gărzile re-rulate la SIMULEAZĂ, „preț sub stop” blochează salvarea candidatului, ADV necunoscut blochează ideea proprie, planurile PLANNED expiră · [S] · P1 · propus 2026-10-27
+#### I-752 · Lanțul planului închis la capete: gărzile re-rulate la SIMULEAZĂ, „preț sub stop” blochează salvarea candidatului, ADV necunoscut blochează ideea proprie, planurile PLANNED expiră · [S] · P1 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Auditul D (lanțul pas cu pas): la SIMULEAZĂ nu se re-verifică nici căldura, nici corelația (`desk/index.html:235`); prețul viu sub stop e doar text la candidatul scannerului (`:175`); ADV `null` trece la ideea proprie (`lib/idee-proprie.js:97`); planurile PLANNED nu expiră.
 - **Soluția:** O singură funcție `garziComune()` chemată și la SIMULEAZĂ și la trigger; preț sub stop ⇒ salvarea refuzată cu motiv; ADV necunoscut ⇒ „închis la eroare”; planurile neexecutate expiră după N sesiuni (scris în politică).
 - **Impact:** Niciun plan nu mai trece printr-o gardă care nu s-a rulat.
 - **Riscuri/dependențe:** Nimic.
 - **Fișiere atinse:** desk/index.html, lib/idee-proprie.js, lib/trade-plans.js, docs/politica-de-risc.md
 
-#### I-753 · Corelația „închisă la eroare” (serii lipsă ⇒ neverificat la vedere) + modulele-gardă declarate (lipsesc ⇒ tichet blocat) · [S] · P2 · propus 2026-10-27
+#### I-753 · Corelația „închisă la eroare” (serii lipsă ⇒ neverificat la vedere) + modulele-gardă declarate (lipsesc ⇒ tichet blocat) · [S] · P2 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** `caldura-portofoliu.js:66-73`: o serie lipsă ⇒ perechea e „necunoscută” și planul trece (deschis la eroare) sub 3 poziții; dacă `TTCaldura` / `MarketVerdict` nu se încarcă, gărzile dispar tăcut (`desk/index.html:183,172`).
 - **Soluția:** Perechi neverificate ⇒ eticheta „corelație neverificată cu X” în tichet și ×0,75 (regulă de prudență, scrisă în politică); lista modulelor-gardă declarată în carcasă, lipsa unuia ⇒ tichetul blocat cu motivul.
 - **Impact:** Principiul 2 din politică (ce nu se poate verifica blochează) ține și aici.
 - **Riscuri/dependențe:** Yahoo căzut poate bloca planurile într-o zi — e exact scopul.
 - **Fișiere atinse:** lib/caldura-portofoliu.js, desk/index.html, docs/politica-de-risc.md
 
-#### I-754 · Shadow: neverificabil la split, stopul pe restul zilei semnalului, proba umbrei Reversal vizibilă în Piață · [M] · P3 · propus 2026-10-27
+#### I-754 · Shadow: neverificabil la split, stopul pe restul zilei semnalului, proba umbrei Reversal vizibilă în Piață · [M] · P3 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Shadow evaluează fără gardă pe split (`lib/shadow.js:255-288`) și nu verifică stopul în ziua semnalului; jurnalul umbrei Reversal (I-716) nu apare nicăieri în interfață.
 - **Soluția:** `corporateEvents` din bare ⇒ evaluarea marcată „neverificabilă”; stopul se verifică și pe restul zilei semnalului (varianta mai proastă); panou în Piață cu stopAzi / stopBaza și perioadele strânse.
 - **Impact:** Cifrele Shadow nu mai sunt otrăvite de split-uri; umbra se poate urmări.
 - **Riscuri/dependențe:** Nimic.
 - **Fișiere atinse:** lib/shadow.js, shadow-book/index.html, scanner-verdicts/index.html
 
-#### I-755 · Releul Trading 212 cu buget de timp și idempotență pe ordinul de stop + testul rutei orders-pending + cron-urile declarate corect · [S] · P2 · propus 2026-10-27
+#### I-755 · Releul Trading 212 cu buget de timp și idempotență pe ordinul de stop + testul rutei orders-pending + cron-urile declarate corect · [S] · P2 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Clientul așteaptă 25 s, releul până la 60 s (ordinul poate fi pus după ce aplicația a zis „timeout” ⇒ dublu la reîncercare); ruta `orders-pending` n-are test; `cf-proxy-wrangler.toml` mai are cronul `*/5`, iar `cloud-sync-wrangler.jsonc` n-are cron deși monitorul îl așteaptă.
 - **Soluția:** Releul: `AbortSignal.timeout(20000)` + cheie de idempotență (ticker + stop + cantitate + minut) ⇒ același ordin nu se pune de două ori; test cu releul în memorie pentru `orders-pending`; cron-urile mutate unde trebuie.
 - **Impact:** Un stop nu se pune de două ori; configurația Cloudflare spune adevărul.
 - **Riscuri/dependențe:** Republicarea workerelor.
 - **Fișiere atinse:** tools/cf-worker-deck-relay.js, tools/t212-pending.test.mjs, tools/cf-proxy-wrangler.toml, tools/cloud-sync-wrangler.jsonc
 
-#### I-756 · Alerte: secretul GitHub mutat din browser într-un worker, regulile de știri comune (pagină + server), „seen” în cloud, codul mort retras · [M] · P3 · propus 2026-10-27
+#### I-756 · Alerte: secretul GitHub mutat din browser într-un worker, regulile de știri comune (pagină + server), „seen” în cloud, codul mort retras · [M] · P3 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Pagina Alerte ține în localStorage un PAT GitHub cu scriere pe `main` (CSP cu `unsafe-inline` + conținut extern); `BIG_KW` are 8 cuvinte în plus pe server; `seen` separat ⇒ dubluri Discord; `check-alerts.mjs`, `ensureGapAlert`, antetele din `automation.md` descriu un pipeline care nu mai rulează.
 - **Soluția:** Scrierea pe GitHub prin workerul deck-relay (secretul rămâne pe server); `lib/news-rules.js` folosit de pagină și de robot; `seen` în cheia sincronizată; codul mort retras cu testele lui.
 - **Impact:** Un secret cu scriere pe depozit nu mai stă într-un browser.
 - **Riscuri/dependențe:** Fluxul de salvare a stării alertelor se reface.
 - **Fișiere atinse:** alerts/index.html, tools/check-news-watch.mjs, tools/cf-worker-deck-relay.js, docs/automation.md
 
-#### I-757 · Kill switch real: anularea tuturor ordinelor deschise prin API T212 + procedura „când apăs” + test cronometrat (RTS 6 art. 12, 15c3-5) · [M] · P1 · propus 2026-10-27
+#### I-757 · Kill switch real: anularea tuturor ordinelor deschise prin API T212 + procedura „când apăs” + test cronometrat (RTS 6 art. 12, 15c3-5) · [M] · P1 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** HALTED oprește doar planurile NOI; nimic nu poate anula ordinele deschise sau opri execuția în curs — standardul instituțional (MiFID II RTS 6 art. 12, ESMA Q&A, Nasdaq FAQ) cere un buton de oprire testat, cu procedură scrisă.
 - **Soluția:** Buton „Oprește tot” (confirmare în două trepte): anulează ordinele în așteptare prin releu (`DELETE /equity/orders/{id}`), pune Governor pe HALTED până la re-armare manuală cu motiv, scrie în jurnalul incidentelor; procedura (cine, când, ce verifică după) în politica de risc; proba lunară pe contul demo, cronometrată.
 - **Impact:** Un incident (ordin greșit, bug, conexiune pierdută) se oprește în secunde, nu când ajunge EL la broker.
 - **Riscuri/dependențe:** Ruta de ștergere în releu = putere nouă (doar cu Origin-ul suitei + confirmare); contul demo pentru probe.
 - **Fișiere atinse:** tools/cf-worker-deck-relay.js, lib/t212-orders.js, broker/broker.js, today/index.html, lib/governor.js, docs/politica-de-risc.md
 
-#### I-758 · Price collar + mărime maximă pe ordin + detector de duplicat la ordinul de stop (controale pre-ordin 15c3-5 / RTS 6 art. 15) · [S] · P1 · propus 2026-10-27
+#### I-758 · Price collar + mărime maximă pe ordin + detector de duplicat la ordinul de stop (controale pre-ordin 15c3-5 / RTS 6 art. 15) · [S] · P1 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Ordinul de stop pleacă fără verificări de „ordin eronat”: stop la 10 % de preț din greșeală de tastare, cantitate mai mare decât poziția, același ordin trimis de două ori (timeout + reîncercare). Standardul cere collar de preț, valoare maximă pe ordin și detector de duplicat.
 - **Soluția:** Înainte de `pune()`: stop între 0,5 % și 25 % sub prețul curent (altfel confirmare explicită), cantitate ≤ poziția, refuz dacă un ordin identic a plecat în ultimele 2 minute sau există deja în copia ordinelor; limitele scrise în politica § 2.
 - **Impact:** Degetul gros nu mai poate costa un ordin greșit.
 - **Riscuri/dependențe:** Nimic.
 - **Fișiere atinse:** lib/t212-orders.js, today/stop.js, docs/politica-de-risc.md
 
-#### I-759 · Reconciliere zilnică aplicație ↔ Trading 212 (poziții, numerar, ordine): orice diferență ⇒ CAUTION cu lista · [M] · P1 · propus 2026-10-27
+#### I-759 · Reconciliere zilnică aplicație ↔ Trading 212 (poziții, numerar, ordine): orice diferență ⇒ CAUTION cu lista · [M] · P1 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Aplicația are copii (poziții, execuții, ordine, istoricul contului) și un „capital folosit” calculat; nimic nu compară zilnic copiile cu brokerul ca un „position/cash break” (RTS 6 art. 17(3), FINRA 15-09). O execuție nesincronizată sau un ordin uitat rămân invizibile.
 - **Soluția:** După închidere: pozițiile din copie vs `positions` T212, numerarul vs `cash`, ordinele vs `orders`; diferențe ⇒ rând în fișa zilei + CAUTION în Governor până se rezolvă; istoricul reconcilierilor în Health.
 - **Impact:** Realitatea contului e verificată zilnic, nu presupusă.
 - **Riscuri/dependențe:** Cere citirea brokerului pe server (I-749) sau pe aparatul activ.
 - **Fișiere atinse:** lib/cloud-monitor.mjs, broker/broker.js, lib/governor.js, health/index.html
 
-#### I-760 · Override guvernat (limita relaxată intră peste 24 h, cu motiv și expirare) + inventarul modelelor și gărzilor cu test de declanșare trimestrial + registru de incidente · [S] · P2 · propus 2026-10-27
+#### I-760 · Override guvernat (limita relaxată intră peste 24 h, cu motiv și expirare) + inventarul modelelor și gărzilor cu test de declanșare trimestrial + registru de incidente · [S] · P2 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** O limită ridicată din formular intră imediat (jurnalul o notează, dar nu o întârzie) — exact în seara proastă; nu există inventar formal al modelelor/gărzilor (stare, ultima validare, limite de folosire — SR 11-7) nici registru de incidente (ce a mers prost, când, ce s-a schimbat).
 - **Soluția:** Relaxarea unei limite intră după 24 h (strângerea imediat), cu motiv obligatoriu și expirare; `docs/inventar-modele.md` generat din cod (fiecare gardă cu testul care o declanșează, rulat trimestrial de robot); `docs/incidente.md` + rând în fișa zilei.
 - **Impact:** Disciplina devine mecanism, nu intenție; fiecare gardă e dovedit vie.
 - **Riscuri/dependențe:** Nimic.
 - **Fișiere atinse:** journal/index.html, lib/governor.js, docs/politica-de-risc.md, tools/ (robot trimestrial), health/
 
-#### I-761 · Detectoare comportamentale deterministe în Raport: revenge, mărire după pierderi, pierderi peste stop, cold-start + Tiltmeter (somn / concentrare vs R) · [M] · P1 · propus 2026-10-27
+#### I-761 · Detectoare comportamentale deterministe în Raport: revenge, mărire după pierderi, pierderi peste stop, cold-start + Tiltmeter (somn / concentrare vs R) · [M] · P1 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Disciplina din Raport (I-726) numără încălcările regulilor Governor; nu vede tiparele de comportament pe care jurnalele comerciale le detectează mecanic (TradesViz AI Coach 06.2026: 16 detectoare; Edgewonk Tiltmeter): intrare la < 30 min după o pierdere, mărimea crescută după 2 pierderi, pierdere > 25 % peste stopul planului, prima tranzacție a zilei pierzătoare „din frig”.
 - **Soluția:** Reguli deterministe pe execuțiile T212 + planuri: fiecare cu n, R mediu, trend pe 4 săptămâni și link la filtrul Raportului; Tiltmeter = 3 note zilnice (somn, concentrare, stres) legate de R-ul zilei.
 - **Impact:** Vede ce îl costă de fapt, cu cifre, nu cu etichete puse de mână.
 - **Riscuri/dependențe:** Pragurile sunt convenții (se scriu în politică), nu avantaj dovedit.
 - **Fișiere atinse:** lib/journal-report.js, journal/report.js, journal/index.html, docs/politica-de-risc.md
 
-#### I-762 · MAE / MFE și „cea mai bună ieșire” din barele de 1 minut pentru fiecare execuție închisă · [M] · P2 · propus 2026-10-27
+#### I-762 · MAE / MFE și „cea mai bună ieșire” din barele de 1 minut pentru fiecare execuție închisă · [M] · P2 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Raportul are planul vs execuția și alunecarea la intrare, dar nu excursiile adverse/favorabile (MAE/MFE) și nici „unde ar fi fost cea mai bună ieșire” — standard în TradesViz, Edgewonk, TradeZella.
 - **Soluția:** Pentru fiecare poziție închisă: barele 1m/5m din Yahoo între intrare și ieșire ⇒ MAE, MFE, R la cea mai bună ieșire; agregate pe etichete; cache local, calcul doar la cerere.
 - **Impact:** Vede dacă stopurile sunt prea strânse (MAE) sau țintele prea mici (MFE) — din propriile tranzacții.
 - **Riscuri/dependențe:** Yahoo 1m doar 7 zile; 5m 60 de zile ⇒ se calculează la închidere, nu retroactiv.
 - **Fișiere atinse:** lib/journal-report.js, lib/data.js, journal/report.js
 
-#### I-763 · Checklist bifat per plan („n/m reguli respectate”) + etichete de zi (regim, stare, emoție) + „tranzacții ratate” + calendar P&L cu heatmap oră × zi · [S] · P2 · propus 2026-10-27
+#### I-763 · Checklist bifat per plan („n/m reguli respectate”) + etichete de zi (regim, stare, emoție) + „tranzacții ratate” + calendar P&L cu heatmap oră × zi · [S] · P2 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Planul are gărzi automate, dar nu o listă bifată de EL (TradeZella Strategies: % reguli respectate per setup); Raportul n-are etichete pe ZI (regim, somn, știri) nici „ce n-am luat și de ce” (Edgewonk Missed Trades), nici calendarul P&L / heatmap-ul oră × zi.
 - **Soluția:** În tichet: 3–5 bife ale lui (plan scris, stop pus, nu după pierdere, …) salvate cu planul; în Jurnal: etichete de zi + „ratate” (simbol, motiv, ce a făcut prețul după); Raport: calendar lunar P&L + heatmap oră × zi (dataviz, validatorul rulat).
 - **Impact:** Disciplina proprie devine măsurabilă; vede când (ora, ziua) pierde.
 - **Riscuri/dependențe:** Nimic.
 - **Fișiere atinse:** desk/index.html, lib/trade-plans.js, journal/index.html, lib/journal-report.js
 
-#### I-764 · Buget izolat pentru orice automatizare + cheie Trading 212 doar-citire cu IP fix pentru cititori + eticheta „neverificat de om” pe orice text generat · [S] · P2 · propus 2026-10-27
+#### I-764 · Buget izolat pentru orice automatizare + cheie Trading 212 doar-citire cu IP fix pentru cititori + eticheta „neverificat de om” pe orice text generat · [S] · P2 · făcut 2026-10-28 (740dcf92)
 - **Problema/golul:** Cheia T212 din aplicație are și drept de ordine (stopul); cititorii (sincronizare, monitor) ar putea folosi o cheie doar-citire restricționată pe IP (practica getquin / TradesViz; T212 permite restricția pe IP); brokerii care lansează agenți (eToro, Robinhood 2026) îi țin în sub-cont cu buget; textele generate (rezumate, verdicte) nu poartă eticheta „neverificat de om”.
 - **Soluția:** Două chei: una doar-citire (IP-ul workerului) pentru monitor/sincronizare, una cu ordine doar pe aparatul activ; orice automatizare viitoare are plafon de capital scris în politică; rezumatele automate poartă eticheta.
 - **Impact:** O cheie scursă dintr-un cititor nu poate pune ordine.
