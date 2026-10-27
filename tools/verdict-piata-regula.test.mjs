@@ -52,3 +52,11 @@ test('Planuri (desk) aplică regula: allowedRisk × mult, defensiv ⇒ 0 și blo
   assert.match(html, /incarcaVerdictPiata\(\)\.then\(/, 'fișierul robotului se citește la pornire');
   assert.doesNotMatch(html, /Guardrail nu blochează|Informativ: mărimea de mai sus/);
 });
+
+test('🔵 21: cu MarketVerdict încărcat, Drafturile citesc tabelul de la el (o singură sursă la rulare); copia rămâne doar rezervă', () => {
+  const c = { Date, console, localStorage: { getItem: () => null }, MarketVerdict: { REGULA: { prudent: { mult: 0.6, go: false } } } };
+  vm.createContext(c); vm.runInContext(readFileSync('lib/setup-builder.js', 'utf8'), c);
+  c.SB.setVerdict({ label: 'prudent', score: -1, asOf: new Date().toISOString().slice(0, 10) });
+  const d = c.SB.readDanger();
+  assert.deepEqual([d.mult, d.go], [0.6, false], 'tabelul vine din MarketVerdict.REGULA, nu din copia locală');
+});

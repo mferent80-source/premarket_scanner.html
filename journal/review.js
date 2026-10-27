@@ -20,7 +20,9 @@
     let data = null; try { data = (await window.T212FillsStore?.read?.())?.data || null; } catch (_) { data = null; }
     tx = J.tranzactii(data || { accounts: {} }, scope);
     if (!tx.length) { host.innerHTML = J.render({ stare: 'nicio execuție importată încă — conectează Trading 212 în Cont & sincronizare' }); return; }
-    const stops = J.stopuri(scope); an = J.ani(tx)[0] || new Date().getFullYear();
+    /* 27.10.2026 (audit C 🔵 15): cu pozițiile din copia contului, „stop pus acum” = StopSetter.stopuriValide (definiția unică) */
+    const pozitii = Array.isArray(snap?.[1]?.positions) ? snap[1].positions : null;
+    const stops = J.stopuri(scope, undefined, { pozitii }); an = J.ani(tx)[0] || new Date().getFullYear();
     stare = tx.length + ' execuții · se citesc seriile pieței…'; sapt = J.saptamana(tx, { stops }); desen();
     const fetchStock = window.D?.fetchStock, serii = {};
     if (typeof fetchStock === 'function') await Promise.allSettled(['SPY', 'QQQ', '^VIX'].map(async (s) => { try { const b = await fetchStock(s, { range: '5y', interval: '1d', ttl: 21600 }); if (Array.isArray(b)) serii[s] = b.map((x) => ({ t: x.t, c: x.c })); } catch (_) { /* fără serie: verdictul parțial nu se poate reface */ } }));

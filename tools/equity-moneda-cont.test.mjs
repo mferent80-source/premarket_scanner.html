@@ -125,3 +125,14 @@ test('snapshot-ul automat din Trading 212 scrie moneda, suma în moneda contului
   const s = JSON.parse(w.store.get('tt_equity_snapshots_v1'))[0];
   assert.deepEqual([s.equity, s.cur, s.local, s.rate, s.rateDate], [1674, 'EUR', 1550, 1.08, '2026-10-26']);
 });
+
+test('🔵 24: curba se calculează o dată pe aceleași date (CD.unified o cere de 4–6 ori pe randare), iar o schimbare se vede imediat', () => {
+  const w = lume({ tt_equity_snapshots_v1: [auto(10000, 'EUR', 1.1, t1)] });
+  let n = 0; w.c.JR = { all: () => { n++; return JSON.parse(w.store.get('tt_journal_v1') || '[]'); } };
+  for (let i = 0; i < 5; i++) { w.c.EQ.drift(); w.c.EQ.drawdownStats(); w.c.EQ.curve(); }
+  assert.equal(n, 1, 'o singură reconstruire pentru 15 citiri: ' + n);
+  w.store.set('tt_equity_snapshots_v1', JSON.stringify([auto(10000, 'EUR', 1.1, t1), auto(9000, 'EUR', 1.1, t2)]));
+  assert.ok(aproape(w.c.EQ.drawdownStats().currentDdPct, 10), 'datele noi se văd la prima citire');
+  w.c.ACCT.saveBrokerFx('EUR', 1.2, '2026-10-26');
+  assert.ok(aproape(w.c.EQ.curve().current, 9000 * 1.2), 'și cursul de azi schimbă afișajul');
+});

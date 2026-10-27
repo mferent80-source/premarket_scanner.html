@@ -687,6 +687,22 @@ test('I-751: pe un cont în EUR, detaliile de capital spun moneda curbei și ara
   assert.doesNotMatch(text,/11[.,]000/);
 });
 
+test('🔵 19: hero-ul Lite folosește formatorul paginii (o singură definiție fmtUsd0) și se desenează doar când modul Lite e cel vizibil', () => {
+  const {context,$} = workspace();
+  vm.runInContext(readFileSync('lib/equity.js','utf8'),context);
+  context.EQ.addSnapshot(1234,'Capital de test',{ts:Date.now()-86400000});
+  context.JWS.init({$,esc,fmt$:money,TAGS:[],isOpenE:context.JR.isOpen,fillForm:() => {},renderAll:() => {},openPriceCache:{},
+    fmtUsd0:v => 'F(' + Math.round(v) + ')',calcUnrealizedTotal:() => ({tot:0,n:0})});
+  $('capLiteHero').innerHTML = '';
+  context.JR.saveSettings({capViewMode:'full'});
+  context.JWS.renderCapitalLite();
+  assert.equal($('capLiteHero').innerHTML, '', 'modul Full e cel vizibil: Lite nu se mai desenează degeaba');
+  assert.equal(typeof context.JWS.capMode, 'function');
+  context.JR.saveSettings({capViewMode:'lite'});
+  context.JWS.renderCapitalLite();
+  assert.match($('capLiteHero').textContent, /F\(1234\)/, 'formatorul vine de la pagină');
+});
+
 test('scorecard segmentation does not capture execution filters or capital mode controls', () => {
   const {context,document} = tabs();
   let renders = 0;

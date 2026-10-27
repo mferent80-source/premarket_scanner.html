@@ -62,3 +62,12 @@ test('I-687: pozițiile care se mișcă împreună formează un grup, cu pondere
   const g = MV.corelatii({ A: r(0), B: r(0.05), C: bare(130, (i) => 100 * (1 + 0.03 * Math.cos(i * 1.7))) }, [{ s: 'A', value: 300 }, { s: 'B', value: 200 }, { s: 'C', value: 500 }], 1000);
   assert.equal(g.length, 1); assert.equal(JSON.stringify(g[0].simboluri), JSON.stringify(['A', 'B'])); assert.equal(g[0].pondere, 50);
 });
+test('🔵 15: „Intrări cu stop pus (acum)” folosește definiția unică StopSetter.stopValabil când pozițiile sunt citite (stopul vechi, de dinaintea poziției, nu se numără)', () => {
+  const s = load(['lib/journal-review.js', 'lib/stop-setter.js']);
+  const teze = { 'cont|NVDA_US_EQ': { stop: 90, history: [{ at: '2026-09-01T10:00:00Z', stop: 90 }] }, 'cont|TSLA_US_EQ': { stop: 200, history: [{ at: '2026-10-14T16:00:00Z', stop: 200 }] } };
+  const storage = { getItem: (k) => (k === 'tt_holdings_theses_v1' ? JSON.stringify(teze) : null) };
+  const pozitii = [{ ticker: 'NVDA_US_EQ', openedAt: '2026-10-13T15:00:00Z' }, { ticker: 'TSLA_US_EQ', openedAt: '2026-10-14T15:00:00Z' }];
+  const acum = s.JournalReview.stopuri('cont', storage, { pozitii });
+  assert.deepEqual([...acum].sort(), ['TSLA_US_EQ'], 'stopul NVDA e din septembrie, pus înaintea poziției de acum');
+  assert.deepEqual([...s.JournalReview.stopuri('cont', storage)].sort(), ['NVDA_US_EQ', 'TSLA_US_EQ'], 'fără poziții citite: orice stop din teze, ca înainte');
+});
