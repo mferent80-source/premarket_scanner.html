@@ -11,7 +11,11 @@ import { readdirSync } from 'node:fs';
 
 export const WORKFLOW = 'clasificator.yml', BOT = 'github-actions[bot]';
 /** Roboții păziți: fișierul care trebuie să aibă ultima sesiune încheiată și workflow-ul care îl scrie. 17.10: și verdictul pieței. */
-export const ROBOTI = [{ nume: 'Clasificator', fisier: 'candidate-engine/generated/clasificator.json', workflow: 'clasificator.yml' }, { nume: 'Verdictul pieței', fisier: 'candidate-engine/generated/verdict-piata.json', workflow: 'verdict-piata.yml' }];
+export const ROBOTI = [{ nume: 'Clasificator', fisier: 'candidate-engine/generated/clasificator.json', workflow: 'clasificator.yml' }, { nume: 'Verdictul pieței', fisier: 'candidate-engine/generated/verdict-piata.json', workflow: 'verdict-piata.yml' },
+  // 27.10.2026 (auditul F, 🔴): robotul probelor Reguli V1 / Top Long / umbra pierduse 5 din 7 sesiuni fără să afle nimeni; ziua stă în `ultimaZi`
+  { nume: 'Proba Reguli V1 / Top Long', fisier: 'scanner-verdicts/generated/v1-proba.json', workflow: 'v1-proba.yml', camp: 'ultimaZi' }];
+/** Ziua notată în fișierul unui robot (câmpul lui; implicit `asOf`). */
+export function ziuaDin(rob, j) { const d = j && j[rob.camp || 'asOf']; return typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null; }
 /** Decizia: 'ok' (sesiunea e notată) · 'ruleaza' (o rulare e în curs) · 'deja' (am pornit-o o dată pentru sesiunea asta) · 'porneste'.
  *  `dupa` = momentul de la care contează rulările pentru sesiune (închiderea ei). */
 export function decide({ asOf, asteptata, rulari = [], dupa }) {
@@ -28,6 +32,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 async function pazeste(rob, c, s) {
   const WORKFLOW = rob.workflow;
   const j = existsSync(rob.fisier) ? (() => { try { return JSON.parse(readFileSync(rob.fisier, 'utf8')); } catch { return {}; } })() : {};
+  if (rob.camp) j.asOf = ziuaDin(rob, j);   // 27.10.2026: fișierul probei V1 ține ziua în `ultimaZi`
   // Revizia din 17.10: când pagina are alt motor decât cel în probă, proba vine din jobul „umbra” — verific și linia ei din jurnal.
   if (rob.workflow === 'clasificator.yml' && c.HoldingsClassifier.VERSION !== PROBA) { const z = incarca({ existsSync, readdirSync, readFileSync }, '.').voturi.filter((l) => l.motor === PROBA).map((l) => l.asOf).sort().at(-1) || null; if (!z || !j.asOf || z < j.asOf) j.asOf = z; }
   const repo = process.env.GITHUB_REPOSITORY, h = { authorization: 'Bearer ' + process.env.GH_TOKEN, accept: 'application/vnd.github+json', 'x-github-api-version': '2022-11-28' };
