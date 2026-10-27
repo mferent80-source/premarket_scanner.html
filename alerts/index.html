@@ -2559,7 +2559,7 @@ $('ghTokenBtn').addEventListener('click', () => { try { closeHdrMenu(); } catch 
 $('ghTokClose').addEventListener('click', () => { $('ghTokBox').hidden = true; });
 $('ghTokSave').addEventListener('click', () => {
   const url = String($('ghRelUrl').value || '').trim().replace(/\/+$/, ''), cheie = String($('ghTokInput').value || '').trim();
-  if (!RELEU_URL_RE.test(url)) { toast('🔑 Adresa releului e de forma https://deck-relay.<cont>.workers.dev, fără cale', 'info'); $('ghRelUrl').focus(); return; }
+  if (!RELEU_URL_RE.test(url)) { toast('🔑 Adresa releului e adresa HTTPS a workerului deck-relay (…workers.dev), fără cale', 'info'); $('ghRelUrl').focus(); return; }
   if (cheie.length < 32 || cheie.length > 200) { toast('🔑 Cheia releului are cel puțin 32 de caractere (secretul ALERTE_CHEIE din Cloudflare)', 'info'); $('ghTokInput').focus(); return; }
   try { localStorage.setItem(RELEU_KEY, JSON.stringify({ url, cheie })); } catch (e) {}
   _syncAvertizat = false; $('ghTokInput').value = ''; $('ghTokBox').hidden = true;
