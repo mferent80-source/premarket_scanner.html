@@ -567,7 +567,8 @@
       var b = await r.json();
       if (!b || typeof b !== 'object') return null;
       return { zile: safeNum(b.zile) || 0, n20: safeNum(b.n20) || 0, n60: safeNum(b.n60) || 0, ferestre20: safeNum(b.ferestre20), exces20: safeNum(b.exces20), exces60: safeNum(b.exces60), nulB20: safeNum(b.nulB20), diferenta20: b.diferenta20 || null, verdict: String(b.verdict || 'în probă'), t20: safeNum(b.t20),
-        abatere: b.abatere && typeof b.abatere === 'object' ? { k: safeNum(b.abatere.k), medie: safeNum(b.abatere.medie), prag: safeNum(b.abatere.prag), atinsa: b.abatere.atinsa === true } : null };   /* 14.10 seara */
+        abatere: b.abatere && typeof b.abatere === 'object' ? { k: safeNum(b.abatere.k), medie: safeNum(b.abatere.medie), prag: safeNum(b.abatere.prag), atinsa: b.abatere.atinsa === true } : null,   /* 14.10 seara */
+        termen: window.TTProbaTermen && typeof TTProbaTermen.linie === 'function' ? TTProbaTermen.linie(b) : '' };   /* 27.10 (I-744): din JSON-ul brut — primulVerdict / putere ale robotului au întâietate */
     } catch (_) { return null; }
   }
   function notaTrend() {
@@ -580,8 +581,9 @@
     if (m.raportari && m.raportari.sursa !== 'finnhub') parti.push('raportările: ' + escapeHtml(m.raportari.sursa === 'lipsă' ? 'robotul fără cheie' : 'eroare la robot'));
     var b = m.bilant;
     if (b) parti.push('proba: ' + b.n20 + ' zile cu rezultat' + (b.ferestre20 != null ? ' (' + b.ferestre20 + ' ferestre de 20 z)' : '') + (b.exces20 != null ? ', ' + procente(b.exces20) + ' vs SPY' : '') + (b.diferenta20 && safeNum(b.diferenta20.medie) != null ? ', ' + procente(b.diferenta20.medie) + ' vs alte acțiuni' : '') + (b.t20 != null ? ', t ' + fmt(b.t20, 1) + ' („probat” cere t > 3,2 pe ≥ 12 ferestre)' : '') + ' · ' + escapeHtml(b.verdict));
+    if (b && b.termen) parti.push(escapeHtml(b.termen));   /* 27.10.2026 (I-744): când poate veni primul verdict și ce poate vedea */
     if (b && b.abatere && b.abatere.atinsa && b.abatere.medie != null && b.abatere.prag != null) parti.push('<b>ABATERE</b>: media pe ' + b.abatere.k + ' ferestre ' + procente(b.abatere.medie) + ', sub pragul scris înainte ' + procente(b.abatere.prag));
-    else parti.push('proba: fără bilanț încă');
+    else if (!b) parti.push('proba: fără bilanț încă');   /* 27.10.2026: ramura era legată de „abatere” ⇒ cu bilanț scria și „fără bilanț încă” */
     if (state.trendIesiri.length) parti.push('au ieșit ' + state.trendIesiri.length + (m.ziuaDinainte ? ' față de ' + escapeHtml(m.ziuaDinainte) : ''));
     el.innerHTML = parti.join(' · ');
   }

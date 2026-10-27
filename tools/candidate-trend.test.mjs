@@ -137,6 +137,18 @@ test('I-616 + I-614: nota modului spune concentrarea pe sector si bilantul probe
   g.hooks.state.mode = 'momentum'; g.hooks.render(); assert.equal(g.node('trendNota').hidden, true, 'nota se ascunde in celelalte moduri');
 });
 
+// 27.10.2026 (lotul D, I-744): nota Trend spune când poate veni primul verdict (protocolul: ≥ 12 ferestre de 20 de zile) și puterea scrisă în
+// protocol; cu bilanț NU mai scrie și „fără bilanț încă” (ramura else era legată de condiția „abatere”).
+test('I-744: nota Trend are termenul probei și puterea din protocol; cu bilanț nu mai spune și „fără bilanț încă”', async () => {
+  const b = JSON.parse(readFileSync('candidate-engine/generated/trend-12-1-bilant.json', 'utf8'));
+  const f = setup({ bilant: b }); vm.runInContext(readFileSync('lib/proba-termen.js', 'utf8'), f.ctx);
+  await f.hooks.loadTrend(); f.hooks.state.mode = 'trend'; f.hooks.render();
+  const nota = f.node('trendNota').innerHTML;
+  assert.match(nota, /în probă/); assert.doesNotMatch(nota, /fără bilanț încă/);
+  assert.match(nota, /primul verdict posibil: ~\S+ 2027 \(12 perioade de 20 de sesiuni care nu se suprapun/);
+  assert.match(nota, /~25 % din cazuri în 3 ani \(din protocol\)/);
+});
+
 test('I-618: randul arata faptele ca cipuri (EOD, 12-1, rang, regim), nu sirul lipit', async () => {
   const f = setup(); await f.hooks.loadTrend(); const s = f.hooks.state; s.mode = 'trend'; f.hooks.render();
   const t0 = s.trend[0];

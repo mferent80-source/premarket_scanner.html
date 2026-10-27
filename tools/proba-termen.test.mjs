@@ -62,3 +62,15 @@ test('I-744: fără calendarul SUA sau după 2027 numără zilele lucrătoare ș
   const d = load().TTProbaTermen.estimeaza({ ...PM, inceput: '2027-11-01', orizonturi: PM.orizonturi.map((o) => ({ ...o, perioade: 0, ultimaPerioada: null })) });
   assert.equal(d.calendar, 'US+zile lucrătoare'); assert.match(d.luna, /2028$/);
 });
+
+test('I-744: bilanțul Trend 12-1 (fără orizonturi) — din constantele protocolului: ≥ 12 ferestre de 20 de sesiuni de la începutul probei; puterea din fraza protocolului', () => {
+  const c = load(), T = c.TTProbaTermen, EC = c.ExchangeCalendar, B = JSON.parse(readFileSync('candidate-engine/generated/trend-12-1-bilant.json', 'utf8'));
+  const e = T.estimeaza(B);
+  assert.equal(e.k, 20); assert.equal(e.necesare, 12); assert.equal(e.data, sesiuniUS(EC, B.de, 12 * 20));
+  assert.match(e.text, /primul verdict posibil: ~\S+ 2027 \(12 perioade de 20 de sesiuni care nu se suprapun\)/);
+  assert.match(e.text, /poate ieși „probat” în ~25 % din cazuri în 3 ani \(din protocol\)/); assert.doesNotMatch(e.text, /nescrisă/);
+  const cuFerestre = T.estimeaza({ ...B, ferestre20: 3 }); assert.equal(cuFerestre.ramase, 9); assert.equal(cuFerestre.data, e.data, 'fără ultima fereastră datată, data rămâne de la începutul probei');
+  const doarCampuri = T.estimeaza({ primulVerdict: { realist: '2027-06-30' } });
+  assert.equal(doarCampuri.luna, 'iunie 2027'); assert.match(doarCampuri.text, /primul verdict posibil: ~iunie 2027/); assert.match(doarCampuri.text, /putere nescrisă/);
+  assert.doesNotMatch(doarCampuri.text, /8 perioade/, 'fără protocolul probei nu se inventează numărul de perioade');
+});
