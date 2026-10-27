@@ -74,3 +74,53 @@ capăt. Ce s-a pregătit pentru o repornire planificată (una care oricum ar ave
 - **Închis la eroare:** cu comutatorul pornit, fără cheie sau cu un răspuns care nu e calendar, robotul se oprește (fluxul reîncearcă
   și anunță pe Discord) — o zi judecată fără calendar ar amesteca regulile probei.
 - Pornirea comutatorului fără o probă nouă e interzisă: ar schimba ce se judecă la mijlocul probei.
+
+## Protocolul v2 — o singură judecată, puterea scrisă înainte (27.10.2026, I-741 / I-743)
+Scris pe **27.10.2026**, înaintea oricărei zile notate sub v2. Proba `premarket-proba-1` (amprenta `pm-cb956aef5680`) avea 2 zile în
+jurnal (16.10 și 23.10) și **niciun verdict** (0 / 8 perioade la 20 de sesiuni, 1 / 8 la 5). **Proba repornește ca `premarket-proba-2`**:
+zilele ei rămân în `scanner-verdicts/generated/premarket-jurnal.json` sub amprenta veche — nu se șterg, nu se rescriu, nu intră în v2.
+Evaluatorul e comun cu Reguli V1, deci motivele și regulile noi sunt aceleași ca în `docs/v1-proba-protocol.md` § „Protocolul v2”:
+verdictul recalculat la fiecare perioadă nouă (≈ 15 % „ajută” fals în primul an la 5 sesiuni), puterea mică la 8 perioade (12,2 % la
++1 %/perioadă pe 20 de sesiuni, 30,3 % pe 5), acțiunile delistate ieșite tăcut din medii — plus amprenta care nu acoperea tot motorul.
+
+**Ce rămâne exact ca în v1:** ipoteza (Top Long față de restul verificate, aceeași zi), universul Core înghețat, motorul paginii rulat în
+robot cu Governor = TRADE, fără raportări, cu harta de sectoare de bază, fără watchlist; măsura, perioadele care nu se suprapun, minimum 3
+pe grup, testul semnelor unilateral, α = 0,05; Early Reversal doar descriptiv.
+
+**Ce se schimbă (fixat acum):**
+- **O singură judecată, la exact N perioade: N = 16 la 5 sesiuni, N = 60 la 20 de sesiuni** (eșantion fix, apoi doar monitorizare).
+- **Puterea Top Long, simulată înainte** (aceeași metodă ca la V1; grupurile din jurnalul real: 66 verificate, 10 în top; abaterea pe
+  perioadă sub H0 3,4 % la 20 de sesiuni — cea din Anexa A): la N = 16 (5 sesiuni) „ajută” fals 3,4 %, +0,5 %/perioadă 18,8 %, **+1 % 52,6 %**;
+  la N = 60 (20 de sesiuni) fals 3,5 %, +0,5 % 20,2 %, **+1 % 54,6 %**. La 8 perioade: 30,3 % și 12,2 %. Grila întreagă: `docs/proba-putere-2026-10-27.json`.
+- **Mărimea cu persistență și regula de citire:** ca la V1 (3,7 % / 4,6 % cu perioade independente; ρ = 0,2 ⇒ 6,3 % / 7,0 %); de la
+  persistența 0,2 un „ajută” se scrie „cu rezerve”.
+- **Delistate:** ieșire la ultima închidere după orizont + 10 sesiuni; fără serie ⇒ „nejudecat”, cu motiv, numărat.
+- **Versiunea acoperă tot ce decide Top Long:** `pm-` + SHA pe (a) cele 5 funcții de mai sus (textul motorului care rulează), (b) toate
+  ajutoarele de sus din `candidate-engine/engine.js` folosite de ele, tranzitiv (azi: `BENCHMARKS`, `EU_CORE`, `avgDollarVol`, `clamp`,
+  `closes`, `daysSinceLow`, `earningsInfo`, `gardaEarnings`, `highs`, `lastValue`, `lows`, `mean`, `pct`, `regionOf`, `retAt`, `safeNum`,
+  `volumes`, `zileNY` — auditul F găsise 17 neamprentate), fără afișaj: `fmt`, `signed`, `procente`, `fapteCandidat`, `sparkValues`, `$`,
+  `state` (containerul paginii) și `reversalScore` (decide doar lista Early Reversal, are amprenta umbrei); (c) evaluatorul comun (amprenta
+  lui din `lib/v1-proba.mjs` + `evalueaza` de aici). **Amprenta la pornirea v2: `pm-f9f254159993`.** Garda din suită
+  (`tools/probe-amprente.test.mjs`) pică dacă diferă de cea scrisă aici; garda din fluxul robotului (`tools/top-long-proba.test.mjs`) oprește
+  notarea dacă diferă de cea din fișierul probei.
+- **Dependențele notate pe zi (`d`)** acoperă acum și `lib/me-early-bird.js`, `lib/decision-verdict.js` și **tot** `candidate-engine/engine.js`:
+  nu repornesc proba, dar orice schimbare din motor rămâne la vedere, cu ziua ei (`dependinte` în fișier).
+- **Comutatorul calendarului rămâne OPRIT în `premarket-proba-2`** (`PROTOCOL.calendar === false`). Secțiunea de mai sus („La următoarea
+  repornire”) pregătise pornirea lui la o repornire care oricum ar avea alt motiv; repornirea de azi e una, dar comutatorul NU se pornește,
+  cu motivul scris acum: (1) repornirea e cerută de regula de judecată, nu de clasament — proba trebuie să judece același clasament ca v1,
+  ca diferența dintre v1 și v2 să fie doar judecata; (2) robotul tocmai pierduse 5 din 7 sesiuni, iar cheia `FINNHUB_API_KEY` din Actions
+  nu e verificată — calendarul e „închis la eroare”, deci o cheie lipsă ar opri zilnic pasul Premarket și, odată cu el, umbra stopului
+  (același pas). Pornirea rămâne pregătită pentru o probă `premarket-proba-3`, cu protocolul scris înainte — **decizia LUI**, după ce robotul
+  merge curat ≥ 20 de sesiuni și cheia e verificată.
+- **Când poate veni primul verdict:** 5 sesiuni — optimist ~**23.02.2027**, realist ~**mai 2027**; 20 de sesiuni — optimist ~**iunie 2031**,
+  realist ~2032 (aproximativ dincolo de calendarul oficial). Fișierul robotului le recalculează zilnic (`primulVerdict`).
+- **Plafonul de risc (I-709) rămâne 0,25 %** până la un „Top Long ajută” la judecata unică — adică, cel devreme, cel puțin până în 2027
+  pe orizontul secundar și 2031 pe cel principal (desk citește verdictul orizontului principal).
+
+**Verdictele v2:** „Încă nu se poate spune” (sub N perioade) · „Top Long ajută” (la exact N: media > 0 și p ≤ 0,05; „cu rezerve” dacă
+persistența ≥ 0,2) · „Nu s-a văzut un avantaj” (altfel — NU „s-a dovedit că nu ajută”).
+
+**Anexa A sub v2 (monitorizare, nu verdict):** bilanțul și alarma rămân cum sunt scrise (pragul −1,645 × 3,4 % / √k, de la 3 perioade,
+doar orizontul principal); „după 8 perioade” devine „după N perioade” (bilanțul citește `necesare` din fișier). Privirile continuă însă
+peste 8: alarma sună fără motiv în 11,6 % din lumile fără avantaj până la 8 perioade, **16,2 % până la 16 și 24,8 % până la 60**
+(simulare, 20.000 de lumi, mulberry32); cu −0,5 %/perioadă sună în 56,5 % până la 60. E o alarmă de revăzut, nu un semnal.

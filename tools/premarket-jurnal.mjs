@@ -5,8 +5,9 @@
 import vm from 'node:vm';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { fetchStock, serii } from './v1-jurnal.mjs';
-import { adauga } from '../lib/v1-proba.mjs';
+import { adauga, contractProba } from '../lib/v1-proba.mjs';
 import { PROTOCOL, versiune, inregistrare, evalueaza, amprentaDependinte, istoricDependinte } from '../lib/premarket-proba.mjs';
+import { calendarSUA } from '../lib/proba-contract.mjs';
 import { pasUmbra, versiune as versiuneUmbra, bareZilnice, PROTOCOL as UMBRA } from '../lib/reversal-umbra.mjs';
 
 const DIR = 'scanner-verdicts/generated', JURNAL = DIR + '/premarket-jurnal.json', PROBA = DIR + '/premarket-proba.json';
@@ -68,18 +69,30 @@ const bare = {};
 async function fetchCuBare(sym, o) { const out = await fetchStock(sym, o); if (!o || o.interval === '1d') { const b = bareZilnice(out); if (b) bare[sym] = b; } return out; }
 /** Pasul umbrei după ce ziua Top Long e scrisă; o eroare a umbrei nu atinge proba Top Long. Barele de după ziua scanării (o sesiune
     neînchisă, la o rulare de mână) se taie. */
-function umbra(h, s, zi, sesiuni) {
+function umbra(h, s, zi, sesiuni, cal = null, azi = null) {
   try {
     const taiate = Object.fromEntries(Object.entries(bare).map(([k, v]) => [k, v.filter((b) => b.d <= zi)]));
     const vechi = existsSync(UMBRA_JURNAL) ? JSON.parse(readFileSync(UMBRA_JURNAL, 'utf8')) : { zile: [] };
-    const { jurnal, proba, rec } = pasUmbra(vechi, s, versiuneUmbra(h), zi, taiate, sesiuni);
+    const { jurnal, proba, rec } = pasUmbra(vechi, s, versiuneUmbra(h), zi, taiate, sesiuni, Date.now(), { cal, azi });
     writeFileSync(UMBRA_JURNAL, JSON.stringify(jurnal)); writeFileSync(UMBRA_PROBA, JSON.stringify(proba, null, 1));
     const e = proba.evaluare;
     console.log(`Umbra Reversal ${proba.versiune} · ${rec.r.length} candidați azi · ${proba.zile} zile · ${e.perioade}/${e.necesare} perioade · ${e.verdict}`);
   } catch (e) { console.log('umbra Reversal (' + UMBRA.id + '): ' + (e.message || e) + ' — ziua Top Long e salvată oricum'); }
 }
+/** 27.10.2026 (premarket-proba-2): conținutul fișierului premarket-proba.json (pur) — evaluarea, istoricul dependențelor, proba precedentă
+ *  (jurnalul ei rămâne sub `pm-cb956aef5680`) și câmpurile de contract cu puterea Top Long. */
+export function continutProba({ jurnal, V, rec, s, serii: sr, sesiuni, cal, azi }) {
+  const zileVersiune = jurnal.zile.filter((zi) => zi.v === V);
+  const c = contractProba(PROTOCOL.orizonturi.map((k) => evalueaza(jurnal, sr, { k, versiune: V, sesiuni })), { jurnal, versiune: V, cal, azi, putere: PROTOCOL.putere });
+  return { protocol: PROTOCOL.id, scrisLa: PROTOCOL.scrisLa, versiune: V, calendar: PROTOCOL.calendar,
+    precedent: { ...PROTOCOL.precedent, nota: 'zilele probei ' + PROTOCOL.precedent.id + ' (' + PROTOCOL.precedent.versiune + ') rămân în jurnal sub versiunea veche; nu intră în proba de acum' },
+    inceput: zileVersiune[0]?.zi || null, zile: zileVersiune.length, ultimaZi: rec.zi, ultimaRulare: rec.la,
+    dependinte: istoricDependinte(jurnal, V),
+    azi: { verificate: s.verified, total: s.scanned, topLong: rec.r.filter((x) => x[1] === 'm').length, reversal: rec.r.filter((x) => x[5] === 'r').length, repere: s.benchmarks },
+    orizonturi: c.orizonturi, putere: c.putere, primulVerdict: c.primulVerdict, judecata: c.judecata, sesiuni: c.sesiuni };
+}
 async function main() {
-  const cal = await calendarPentruProba(PROTOCOL);   /* 19.10.2026 — I-720: oprit pentru premarket-proba-1 */
+  const cal = await calendarPentruProba(PROTOCOL);   /* 19.10.2026 — I-720: oprit pentru premarket-proba-1; 27.10: și pentru premarket-proba-2 */
   console.log('calendar: ' + (cal.folosit ? cal.n + ' raportări din Finnhub' : cal.motiv));
   const c = motor(fetchCuBare, { calendar: cal }), h = c.hooks, V = versiune(h);
   await h.scan();
@@ -93,16 +106,12 @@ async function main() {
   // motorul cere acțiunile pe 1 an și reperele pe 6 luni; evaluarea are nevoie de tot intervalul jurnalului ⇒ toate se reiau (19.10.2026)
   const range = intervalPentru(jurnal.zile[0]?.zi || rec.zi);
   for (const sym of simboluriDeReluat(jurnal)) { try { await fetchCuBare(sym, { range, interval: '1d' }); } catch (e) { console.log('serie ' + sym + ': ' + e.message); } }
-  const sesiuni = (serii.SPY || []).map((x) => x.d);
-  const orizonturi = PROTOCOL.orizonturi.map((k) => evalueaza(jurnal, serii, { k, versiune: V, sesiuni }));
-  const zileVersiune = jurnal.zile.filter((zi) => zi.v === V);
+  const sesiuni = (serii.SPY || []).map((x) => x.d), calNY = calendarSUA('.'), azi = new Date().toISOString().slice(0, 10);
+  const j = continutProba({ jurnal, V, rec, s, serii, sesiuni, cal: calNY, azi });
   writeFileSync(JURNAL, JSON.stringify(jurnal));
-  writeFileSync(PROBA, JSON.stringify({ protocol: PROTOCOL.id, scrisLa: PROTOCOL.scrisLa, versiune: V, inceput: zileVersiune[0]?.zi || null, zile: zileVersiune.length, ultimaZi: rec.zi, ultimaRulare: rec.la,
-    dependinte: istoricDependinte(jurnal, V),
-    azi: { verificate: s.verified, total: s.scanned, topLong: rec.r.filter((x) => x[1] === 'm').length, reversal: rec.r.filter((x) => x[5] === 'r').length, repere: s.benchmarks },
-    orizonturi }, null, 1));
-  console.log(`Premarket ${V} · ziua ${rec.zi} · ${s.verified}/${s.scanned} verificate · Top Long ${rec.r.filter((x) => x[1] === 'm').length} · ${zileVersiune.length} zile în probă`);
-  for (const o of orizonturi) console.log(`  k=${o.k}: ${o.perioade}/${o.necesare} perioade · ${o.verdict}`);
-  umbra(h, s, rec.zi, sesiuni);   /* 19.10.2026 — I-716 */
+  writeFileSync(PROBA, JSON.stringify(j, null, 1));
+  console.log(`Premarket ${V} · ziua ${rec.zi} · ${s.verified}/${s.scanned} verificate · Top Long ${j.azi.topLong} · ${j.zile} zile în probă · primul verdict ~${j.primulVerdict?.realist || '—'}`);
+  for (const o of j.orizonturi) console.log(`  k=${o.k}: ${o.perioade}/${o.necesare} perioade · ${o.verdict}`);
+  umbra(h, s, rec.zi, sesiuni, calNY, azi);   /* 19.10.2026 — I-716; 27.10: + calendarul pentru câmpurile de contract */
 }
 if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('tools/premarket-jurnal.mjs')) main().catch((e) => { console.error(e.message); process.exit(1); });

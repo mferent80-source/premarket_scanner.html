@@ -30,9 +30,11 @@ se corectează pentru ≥ 31 încercări.
 
 | Proba | Protocol | Început | Pragurile scrise înainte | Mărimea testului | Stare |
 |---|---|---|---|---|---|
-| Top Long (Premarket) | `docs/premarket-proba-protocol.md` · amprenta `pm-cb956aef5680` (orice schimbare a funcțiilor înghețate repornește proba) | 2026-10-16 | testul semnelor pe perioade care nu se suprapun; 8 perioade | simulată | în probă (0 / 8 perioade la 20.10) |
+| Top Long (Premarket) | `docs/premarket-proba-protocol.md` · amprenta `pm-cb956aef5680` (orice schimbare a funcțiilor înghețate repornește proba) | 2026-10-16 | testul semnelor pe perioade care nu se suprapun; 8 perioade | simulată | **închisă 27.10.2026 fără verdict** (2 zile, 0 / 8 și 1 / 8) ⇒ repornită ca v2 (rândul de mai jos); zilele rămân în jurnal sub amprenta veche |
+| Top Long v2 (`premarket-proba-2`) | idem, § „Protocolul v2” · amprenta `pm-f9f254159993` (motor + ajutoarele din `analyze` + evaluator) | 2026-10-28 (prima zi v2) | judecată UNICĂ la 16 perioade (5 sesiuni) / 60 (20); testul semnelor; „cu rezerve” la persistență ≥ 0,2 | simulată înainte: 3,4–3,5 % fals; persistența ρ = 0,2 ⇒ 6,3–7,0 %; putere la +1 %/perioadă 52,6 % / 54,6 % | în probă; primul verdict ~02–05.2027 (5) / ~2031 (20) |
 | Trend 12 luni | idem (Trend) | 2026-10 | idem | simulată | în probă |
-| Reguli V1 (Piață) | `docs/v1-proba-protocol.md` · univers înghețat de 85 | 2026-10-16 | SUS (6–8 verificări) față de JOS (≤ 5), testul semnelor; verdict la 5 sesiuni după ~8 săptămâni | 1,45 % (2000 lumi), putere 85 % la +0,4 %/sesiune | în probă |
+| Reguli V1 (Piață) | `docs/v1-proba-protocol.md` · univers înghețat de 85 | 2026-10-16 | SUS (6–8 verificări) față de JOS (≤ 5), testul semnelor; verdict la 5 sesiuni după ~8 săptămâni | 1,45 % (2000 lumi), putere 85 % la +0,4 %/sesiune | **închisă 27.10.2026 fără verdict** (2 zile, versiunea `experimental-1.0.0`) ⇒ repornită ca v2; zilele rămân sub versiunea veche |
+| Reguli V1 v2 (`v1-proba-2`) | idem, § „Protocolul v2” · amprenta `v1-2a71899d9bf5` (regulile V1 + evaluatorul, nu un șir) | 2026-10-28 (prima zi v2) | judecată UNICĂ la 16 / 60 perioade; restul ca v1 | 3,7–4,8 % fals; ρ = 0,2 ⇒ 6,3–7,0 %; putere la +1 %/perioadă 66,8 % / 66,4 % (cea veche, „85 % la +0,4 %/sesiune”, plantase ≈ +2 %/perioadă) | în probă; primul verdict ~02–05.2027 (5) / ~2031 (20) |
 | Verdictul pieței | `docs/verdict-piata-protocol.md` | 2026-10-17 | treapta verdictului față de SPY la 5 / 20 sesiuni | — | în probă |
 | Clasificatorul long / hold / short | `docs/clasificator-protocol.md` | 2026-10-16 | primul vot 23.10 | — | în probă |
 | Stopul Reversal în umbră | `docs/reversal-stop-umbra-protocol.md` | 2026-10-19 | t unilateral prag 3,0 | 10–12 % fals la testul semnelor ⇒ înlocuit | în probă |

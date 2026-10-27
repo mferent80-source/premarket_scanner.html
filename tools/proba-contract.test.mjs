@@ -3,7 +3,28 @@
 // din text (funcțiile care JUDECĂ intră și ele în versiunea probei — I-743).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mulberry32, gauss, calendarSUA, dupaSesiuni, sesiuniIntre, primulVerdict, judecata, functieDinText, amprentaText } from '../lib/proba-contract.mjs';
+import { readFileSync } from 'node:fs';
+import { mulberry32, gauss, calendarSUA, dupaSesiuni, sesiuniIntre, primulVerdict, judecata, functieDinText, amprentaText, declaratii, inchidere } from '../lib/proba-contract.mjs';
+
+test('inchidere: din rădăcini, toate declarațiile de nivel superior folosite (tranzitiv), fără cele de afișaj; comentariile și șirurile nu trag nume', () => {
+  const src = ['(function () {', "  var TOATE = ['A', 'B'];", '  var state = { x: 1 };', '  function pct(a, b) { return (b - a) / a * 100; }', '  function fmt(v) { return String(v); }',
+    '  function ajutor(c) { return pct(c[0], c[1]); }', '  // ajutorMort apare doar în comentariu', '  function ajutorMort() { return 0; }',
+    "  function scor(f) { var s = ajutor(f.c); return { s: s, text: fmt(s) + ' state' }; }", '  function analiza(sym) { return { scor: scor(sym), u: TOATE.length, r: render() }; }', '  function render() { return state.x; }', '})();', ''].join('\r\n');
+  assert.deepEqual(declaratii(src), ['TOATE', 'state', 'pct', 'fmt', 'ajutor', 'ajutorMort', 'scor', 'analiza', 'render']);
+  assert.deepEqual(inchidere(src, ['analiza'], { exclude: ['fmt', 'render'] }), ['TOATE', 'ajutor', 'analiza', 'pct', 'scor']);
+  assert.ok(inchidere(src, ['analiza']).includes('state'), 'fără excluderi, render ⇒ state intră');
+  assert.ok(!inchidere(src, ['scor'], { exclude: ['fmt'] }).includes('state'), '„state” din șir nu trage declarația');
+  assert.throws(() => inchidere(src, ['lipsa']), /lipsa/);
+});
+test('inchidere pe motoarele reale: Top Long (engine.js) prinde funcțiile apelate din analyze; Reguli V1 prinde verificările; textele extrase sunt întregi', () => {
+  const eng = readFileSync('candidate-engine/engine.js', 'utf8'), cut = eng.lastIndexOf('  validateDeps(); bind();'), s = eng.slice(0, cut);
+  const tl = inchidere(s, ['momentumScore', 'analyze', 'capSectors', 'benchmarkReturns', 'rankResults'], { exclude: ['fmt', 'signed', 'procente', 'fapteCandidat', 'sparkValues'] });
+  for (const n of ['earningsInfo', 'gardaEarnings', 'avgDollarVol', 'daysSinceLow', 'retAt', 'regionOf', 'closes', 'lastValue', 'mean', 'pct', 'clamp', 'BENCHMARKS', 'EU_CORE', 'zileNY', 'safeNum']) assert.ok(tl.includes(n), 'Top Long: ' + n);
+  for (const n of ['fmt', 'fapteCandidat', 'render', 'renderDetail', 'scan', 'loadTrend']) assert.ok(!tl.includes(n), 'nu intră: ' + n);
+  const v1 = readFileSync('lib/independent-scanner.js', 'utf8'), r = inchidere(v1, ['evaluate', 'benchmarkSource'], { exclude: ['LABELS', 'rule', 'VERSION', 'DEFAULT_UNIVERSE'] });
+  for (const n of ['RULES', 'IDS', 'empty', 'check', 'finish', 'verifiedSource', 'verifiedIndex', 'regionOf', 'ema', 'rsi', 'atr']) assert.ok(r.includes(n), 'V1: ' + n);
+  for (const [src, nume] of [[s, tl], [v1, r]]) for (const n of nume) { const t = functieDinText(src, n); assert.ok(src.replace(/\r\n?/g, '\n').includes(t), n); assert.ok(/[;})\]]$/.test(t), n + ' se termină ciudat: …' + t.slice(-40)); }
+});
 
 test('mulberry32: același seed ⇒ aceeași serie; uniformă pe [0, 1) (decilele ±2 pp); gauss are media 0 și abaterea 1', () => {
   const a = mulberry32(7), b = mulberry32(7);
@@ -38,6 +59,10 @@ test('primulVerdict: optimist = N perioade de k sesiuni de la primul start (sau 
   // 5 din 7 sesiuni pierdute ⇒ fiecare perioadă alunecă în medie cu r/(1−r) = 2,5 sesiuni ⇒ realist mai târziu decât optimist
   const rau = primulVerdict({ cal, azi: '2026-10-27', starturi: ['2026-10-16'], k: 5, perioade: 8, notate: 2, asteptate: 7 });
   assert.ok(rau.realist > rau.optimist, rau.realist + ' > ' + rau.optimist); assert.match(rau.motiv, /5 din 7 sesiuni/);
+  // fără nicio perioadă închisă, dar cu prima zi notată: se numără de la ea (nu de azi); o zi din viitor sau invalidă ⇒ de azi
+  const inc = primulVerdict({ cal, azi: '2026-10-27', inceput: '2026-10-20', starturi: [], k: 5, perioade: 8 });
+  assert.equal(inc.optimist, dupaSesiuni(cal, '2026-10-20', 8 * 5).zi); assert.match(inc.motiv, /20\.10\.2026/);
+  assert.equal(primulVerdict({ cal, azi: '2026-10-27', inceput: 'nu', starturi: [], k: 5, perioade: 8 }).optimist, gol.optimist);
   // toate starturile există: optimist = ultimul start cerut + k
   const gata = primulVerdict({ cal, azi: '2027-03-01', starturi: Array.from({ length: 9 }, (_, i) => dupaSesiuni(cal, '2026-10-16', i * 5).zi), k: 5, perioade: 8, notate: 40, asteptate: 40 });
   assert.equal(gata.optimist, dupaSesiuni(cal, dupaSesiuni(cal, '2026-10-16', 7 * 5).zi, 5).zi);
