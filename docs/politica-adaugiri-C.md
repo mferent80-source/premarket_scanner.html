@@ -33,3 +33,9 @@
 - Pentru fiecare: n, R mediu față de restul, numărul pe ultimele **4 săptămâni** și un buton care filtrează tot raportul la tranzacțiile lui. **Sub 10 cazuri** cifrele se arată cu „prea puține cazuri” — nu se trage nicio concluzie.
 - **Tiltmeter**: trei note pe zi (somn, concentrare, stres; 1–5), salvate în setările Jurnalului (sincronizate), puse lângă R-ul zilei (suma R a ieșirilor din ziua New York); comparația „jos (1–2)” față de „sus (4–5)” apare pe zilele cu tranzacții. Sub 10 zile: „prea puține zile”.
 - Pragurile sunt **convenții de prudență scrise înainte**, nu avantaj dovedit; un tipar care nu „costă” încă nu e dovada că nu costă.
+
+## § 4 · MAE / MFE din barele intraday (I-762)
+
+- Pentru tranzacțiile închise din SUA, Raportul calculează **la cerere** (butonul din panou) cât a mers prețul împotriva ta (**MAE**) și în favoarea ta (**MFE**) între intrare și ieșire, din barele Yahoo de **1 minut** (intrarea în ultimele 7 zile) sau **5 minute** (până la 60 de zile); rezultatul rămâne pe aparat (`tt_journal_mae_v1`), deci se calculează **la închidere**, nu retroactiv.
+- Intră doar barele aflate **integral** în fereastra deținerii, plus prețurile tale de intrare și ieșire (fără prețurile de dinainte de cumpărare sau de după vânzare). Prețurile Yahoo care nu se potrivesc cu ale tale (split, altă bursă) ⇒ „nepotrivit”, fără cifre.
+- „Cea mai bună ieșire” (maximul din fereastră) se vede **doar după**: arată spațiul pe care l-a avut prețul, nu o regulă care putea fi urmată. Sub 10 tranzacții calculate: prea puține ca să spună ceva.

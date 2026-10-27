@@ -44,14 +44,32 @@
     const toate = { ...noteTilt(), [zi]: { somn: nota.somn, concentrare: nota.concentrare, stres: nota.stres } }, chei = Object.keys(toate).sort().slice(-400); // un an și ceva, ca setările să rămână mici
     ML.scrie({ tilt: Object.fromEntries(chei.map((k) => [k, toate[k]])) }); tiltMsg = 'Notele zilei ' + zi + ' sunt salvate.'; desen();
   }
+  /* 27.10.2026 (I-762): MAE / MFE din barele de 1 / 5 minute, LA CERERE (butonul din panou): o cerere pe simbol și interval, rezultatul în cache-ul local */
+  const JM = window.JournalMae;
+  let maeStare = '', maeRuleaza = false;
+  async function maeCalculeaza() {
+    const fetchStock = window.D?.fetchStock; if (!JM || typeof fetchStock !== 'function' || maeRuleaza || !baza) return;
+    const cache = JM.citesteCache(), now = Date.now(), lipsa = deAfisat(filtrate()).filter((x) => !cache[x.id]).map((x) => ({ x, e: JM.eligibil(x, now) })).filter((o) => o.e.ok);
+    if (!lipsa.length) return;
+    maeRuleaza = true; const grupe = new Map(); let i = 0, rau = 0;
+    for (const o of lipsa) { const k = o.e.simbol + '|' + o.e.interval; if (!grupe.has(k)) grupe.set(k, { e: o.e, xs: [] }); grupe.get(k).xs.push(o.x); }
+    for (const gr of grupe.values()) {
+      i++; maeStare = 'Se citesc barele de ' + gr.e.interval + ' pentru ' + gr.e.simbol + ' (' + i + ' din ' + grupe.size + ')…'; desen();
+      try { const b = await fetchStock(gr.e.simbol, { range: gr.e.range, interval: gr.e.interval, ttl: 3600 }); for (const x of gr.xs) { const r = JM.calcul(x, b, gr.e.interval); if (r) cache[x.id] = { ...r, la: Date.now() }; else rau++; } }
+      catch (_) { rau += gr.xs.length; }
+    }
+    JM.scrieCache(undefined, cache); maeRuleaza = false;
+    maeStare = rau ? rau + ' tranzacții fără bare în fereastră acum (Yahoo / rețea) — încearcă mai târziu.' : 'Calculat.'; desen();
+  }
   function desen() {
     const baseTr = filtrate();
     det = JC && baza ? JC.detectoare(baseTr, baza.fills || [], { now: Date.now() }) : null;
     if (st.detector && det && det[st.detector] && !det[st.detector].ids.length) st.detector = null;
     const tr = deAfisat(baseTr), azi = aziNY(), note = noteTilt();
     const comportamentHtml = det ? JC.html(det, JC.tilt(baza?.rows || [], note, { now: Date.now() }), { activ: st.detector, azi, notaAzi: note[azi] }) + (tiltMsg ? '<p class="jrr-nota" role="status">' + tiltMsg.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) + '</p>' : '') : '';
+    const maeCache = JM ? JM.citesteCache() : {}, maeHtml = JM ? JM.html(tr, maeCache, { eligibile: maeRuleaza ? 0 : tr.filter((x) => !maeCache[x.id] && JM.eligibil(x, Date.now()).ok).length, stare: maeStare }) : '';
     const filtruDet = st.detector && det ? ' Filtru activ: ' + det[st.detector].titlu + ' (' + tr.length + ' tranzacții) — „Arată toate” în „Tiparele tale de comportament”.' : '';
-    host.innerHTML = J.render({ tr, toate: baza?.rows || [], moneda: baza?.moneda, perioada: st.perioada, ticker: st.ticker, tickere: baza ? [...new Set(baza.rows.map((x) => x.ticker))].sort() : [], comportamentHtml,
+    host.innerHTML = J.render({ tr, toate: baza?.rows || [], moneda: baza?.moneda, perioada: st.perioada, ticker: st.ticker, tickere: baza ? [...new Set(baza.rows.map((x) => x.ticker))].sort() : [], comportamentHtml, maeHtml,
       ex, exStare, spy, spyEsuat, limita: limita(), stare: stare + filtruDet, faraCumparare: baza?.faraCumparare || 0, alteMonede: baza?.alteMonede || 0, partiale: baza?.partiale || 0, corporative: baza?.corporative || 0,
       rows: baza?.fills || [], jurnal: (window.GV && typeof GV.jurnal === 'function') ? GV.jurnal() : [], analize: baza?.analizeToate || [], plans: planuriShadow(), gov: (window.GV && typeof GV.cfg === 'function') ? GV.cfg() : null, cont: contValoare(baza?.moneda),
       toateRandurile: st.toateRandurile, editez: st.editez, now: Date.now() });
@@ -68,6 +86,7 @@
     const dt = ev.target.closest('[data-jrr-det]'), ts = ev.target.closest('[data-jrr-tilt-salveaza]'); // I-761
     if (dt) { st.detector = st.detector === dt.dataset.jrrDet ? null : dt.dataset.jrrDet; desen(); return; }
     if (ts) { salveazaTilt(ts.dataset.jrrTiltSalveaza); return; }
+    if (ev.target.closest('[data-jrr-mae]')) { maeCalculeaza(); return; } // I-762
     if (p) { st.perioada = Number(p.dataset.jrrPer); try { localStorage.setItem(K_ST, JSON.stringify({ perioada: st.perioada })); } catch (_) { /* doar preferință */ } desen(); barele(); return; }
     if (t) { st.ticker = t.dataset.jrrTk; desen(); host.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (et) { puneEticheta(et.dataset.jrrId, et.dataset.jrrEt); desen(); host.querySelector(`[data-jrr-et="${et.dataset.jrrEt}"][data-jrr-id="${CSS.escape(et.dataset.jrrId)}"]`)?.focus(); return; }
