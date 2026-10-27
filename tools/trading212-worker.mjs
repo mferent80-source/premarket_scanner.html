@@ -46,9 +46,9 @@ async function credentials(request,env){
   if(env.T212_ENV!=='live'&&env.T212_ENV!=='demo')return no('environment_not_configured',503);
   return {brokerAuthorization:'Basic '+btoa(env.T212_API_KEY+':'+env.T212_API_SECRET),environment:env.T212_ENV};
 }
-// 18.10.2026 (Marius, „fă tot” — butonul care pune stopul ca ordin REAL în Trading 212). SINGURA scriere a releului: un ordin STOP de VÂNZARE,
+// 18.10.2026 (Marius, „fă tot” — butonul care pune stopul ca ordin REAL în Trading 212). Prima scriere a releului: un ordin STOP de VÂNZARE,
 // GTC, pe o poziție care există, cel mult cât deții, cu stopul sub prețul de acum și nu sub jumătatea lui, și numai dacă nu ai deja o vânzare
-// în așteptare pe aceeași acțiune. Nicio cumpărare, nicio anulare, nicio altă rută de scriere. Fără permisiunea „Orders: execute” pe cheie,
+// în așteptare pe aceeași acțiune. Nicio cumpărare. Singura altă scriere e anularea (I-757, mai jos). Fără permisiunea „Orders: execute” pe cheie,
 // Trading 212 refuză (403) și aplicația spune exact ce lipsește.
 export const STOP_ROUTE='/api/trading212/stop-order';
 export const STOP_CONFIRM='PUN-STOPUL';
@@ -110,11 +110,14 @@ async function cancelOrders(request,env,upstream,headers,reply,{now=Date.now()}=
     if(one){const id=one[1],rd=await call('/api/v0/equity/orders/'+id,{method:'DELETE'});if(rd.status===404)return reply({error:'order_not_found'},409);if(!rd.ok)return refused(rd);return reply({source:'Trading 212',environment:auth.environment,cancelledAt:at,data:{id}});}
     const ro=await call(ROUTES['orders-pending']);if(!ro.ok)return refused(ro);
     const raw=await ro.json();if(!Array.isArray(raw))return reply({error:'broker_schema_mismatch'},502);
-    let orders;try{orders=raw.map(pendingOrder).filter(o=>typeof o.id==='string'&&/^\d{1,20}$/.test(o.id));}catch(_){return reply({error:'broker_schema_mismatch'},502);}
-    const anulate=[],esuate=[];
-    for(const o of orders){const row={id:o.id,ticker:o.ticker,stopPrice:o.stopPrice,side:o.side,quantity:o.quantity,type:o.type};
-      try{const rd=await call('/api/v0/equity/orders/'+o.id,{method:'DELETE'});if(rd.ok||rd.status===404)anulate.push(row);else esuate.push({...row,error:rd.status===401?'broker_credentials_invalid':rd.status===403?'broker_permission_missing':rd.status===429?'rate_limited':'broker_unavailable'});}
-      catch(error){esuate.push({...row,error:failureCode(error)});if(error?.name==='TimeoutError'||error?.name==='AbortError')break;}}
+    let orders;try{orders=raw.map(pendingOrder);}catch(_){return reply({error:'broker_schema_mismatch'},502);}
+    // 27.10.2026 (lotul E): niciun ordin nu dispare tăcut din răspuns — cel fără id valid și cele rămase neîncercate după termen intră la „esuate”
+    const anulate=[],esuate=[],row=o=>({id:o.id,ticker:o.ticker,stopPrice:o.stopPrice,side:o.side,quantity:o.quantity,type:o.type});let expirat=false;
+    for(const o of orders){
+      if(expirat){esuate.push({...row(o),error:'broker_timeout'});continue;}
+      if(typeof o.id!=='string'||!/^\d{1,20}$/.test(o.id)){esuate.push({...row(o),error:'invalid_id'});continue;}
+      try{const rd=await call('/api/v0/equity/orders/'+o.id,{method:'DELETE'});if(rd.ok||rd.status===404)anulate.push(row(o));else esuate.push({...row(o),error:rd.status===401?'broker_credentials_invalid':rd.status===403?'broker_permission_missing':rd.status===429?'rate_limited':'broker_unavailable'});}
+      catch(error){esuate.push({...row(o),error:failureCode(error)});if(error?.name==='TimeoutError'||error?.name==='AbortError')expirat=true;}}
     return reply({source:'Trading 212',environment:auth.environment,cancelledAt:at,data:{anulate,esuate,total:orders.length,complet:esuate.length===0&&anulate.length===orders.length}});
   }catch(error){return reply({error:failureCode(error)},502);}
 }
