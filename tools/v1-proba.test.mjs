@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { PROTOCOL, inregistrare, adauga, excese, pSemne, starturi, evalueaza, judeca, simuleaza, perioadeDin, versiuneV1, amprentaEvaluator, FUNCTII_V1, FUNCTII_EVALUATOR, contract, contractProba, putere, marimeSemneAR } from '../lib/v1-proba.mjs';
-import { calendarSUA } from '../lib/proba-contract.mjs';
+import { calendarSUA, amprentaScrisa } from '../lib/proba-contract.mjs';
 
 function mulberry32(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 function zile(n) { const out = []; let d = Date.parse('2026-01-05T12:00:00Z'); while (out.length < n) { const x = new Date(d); if (x.getUTCDay() % 6) out.push(x.toISOString().slice(0, 10)); d += 86400000; } return out; }
@@ -158,7 +158,8 @@ test('the V1 robot writes the SHA version, the precedent probe and the contract 
 test('I-743 in the robot flow: the V1 rules of today are the ones of the running probe (until the first v2 run, the file is still the precedent)', async () => {
   const { versiuneaDeAzi } = await import('./v1-jurnal.mjs'), f = 'scanner-verdicts/generated/v1-proba.json'; if (!existsSync(f)) return;
   const j = JSON.parse(readFileSync(f, 'utf8'));
-  if (j.protocol === PROTOCOL.precedent.id) { assert.equal(j.versiune, PROTOCOL.precedent.versiune); return; }
+  // 27.10.2026 (revizia F, 🟡5): până la prima rulare v2, amprenta de azi trebuie să fie cea scrisă în protocol (tabelul „Amprentele v2”)
+  if (j.protocol === PROTOCOL.precedent.id) { assert.equal(j.versiune, PROTOCOL.precedent.versiune); assert.equal(versiuneaDeAzi('.'), amprentaScrisa(readFileSync('docs/v1-proba-protocol.md', 'utf8'), 'v1'), 'amprenta V1 de azi nu e cea scrisă în protocolul v2'); return; }
   assert.equal(j.protocol, PROTOCOL.id); assert.equal(versiuneaDeAzi('.'), j.versiune, 'regulile V1 sau evaluatorul s-au schimbat fără protocol nou: o regulă nouă cere o probă nouă (scrie-o întâi în docs/v1-proba-protocol.md)');
 });
 test('the frozen universe is the 85-symbol Core list of the original scanner', async () => {

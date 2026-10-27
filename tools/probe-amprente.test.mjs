@@ -12,13 +12,16 @@ import { amprentaJudecator as judecatorUmbra } from '../lib/reversal-umbra.mjs';
 import { motor } from './premarket-jurnal.mjs';
 
 const scris = (f, re) => { const m = re.exec(readFileSync(f, 'utf8')); assert.ok(m, f + ' nu scrie amprenta (' + re + ')'); return m[1]; };
+// 27.10.2026 (revizia F, 🔵17): amprentele v2 stau într-un tabel care doar crește; cea în vigoare e rândul de jos
+const randuri = (text, prefix) => [...String(text).replace(/\r\n/g, '\n').matchAll(new RegExp('^\\| [^|\\n]+ \\| `(' + prefix + '-[0-9a-f]{12})` \\|.*$', 'gm'))].map((m) => m[0]);
+const tabel = (f, prefix) => { const r = randuri(readFileSync(f, 'utf8'), prefix); assert.ok(r.length, f + ' nu are tabelul „Amprentele v2”'); return /`([a-z0-9]+-[0-9a-f]{12})`/.exec(r.at(-1))[1]; };
 
 test('Reguli V1: amprenta regulilor + a evaluatorului = cea de la pornirea v2 din docs/v1-proba-protocol.md', () => {
-  assert.equal(versiuneV1(readFileSync('lib/independent-scanner.js', 'utf8')), scris('docs/v1-proba-protocol.md', /Amprenta la pornirea v2: `(v1-[0-9a-f]{12})`/),
+  assert.equal(versiuneV1(readFileSync('lib/independent-scanner.js', 'utf8')), tabel('docs/v1-proba-protocol.md', 'v1'),
     'regulile V1 (lib/independent-scanner.js) sau evaluatorul (lib/v1-proba.mjs) s-au schimbat față de protocolul v2');
 });
 test('Top Long: amprenta clasamentului (cu ajutoarele din engine.js) + a evaluatorului = cea de la pornirea v2 din docs/premarket-proba-protocol.md', () => {
-  assert.equal(versiunePm(motor(async () => { throw Error('fără rețea'); }).hooks), scris('docs/premarket-proba-protocol.md', /Amprenta la pornirea v2: `(pm-[0-9a-f]{12})`/),
+  assert.equal(versiunePm(motor(async () => { throw Error('fără rețea'); }).hooks), tabel('docs/premarket-proba-protocol.md', 'pm'),
     'regulile Top Long (candidate-engine/engine.js: funcțiile de clasament sau ajutoarele lor) sau evaluatorul s-au schimbat față de protocolul v2');
 });
 test('Verdictul pieței: judecătorul = cel scris în docs/verdict-piata-protocol.md (§ Schimbări, 27.10.2026)', async () => {
@@ -37,4 +40,12 @@ test('I-745: registrul cercetării are toate familiile și totalul pe aplicație
 });
 test('Umbra stopului Reversal: judecătorul = cel scris în docs/reversal-stop-umbra-protocol.md', () => {
   assert.equal(judecatorUmbra(), scris('docs/reversal-stop-umbra-protocol.md', /Amprenta judecătorului: `(ju-[0-9a-f]{12})`/), 'codul care măsoară / judecă umbra (lib/reversal-umbra.mjs) s-a schimbat');
+});
+test('revizia F (🔵17): tabelele „Amprentele v2” doar cresc față de ultimul commit (niciun rând vechi șters sau rescris)', async () => {
+  const { execFileSync } = await import('node:child_process');
+  for (const [f, prefix] of [['docs/v1-proba-protocol.md', 'v1'], ['docs/premarket-proba-protocol.md', 'pm']]) {
+    let vechi; try { vechi = execFileSync('git', ['show', 'HEAD:' + f], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }); } catch { continue; }
+    const azi = randuri(readFileSync(f, 'utf8'), prefix), ieri = randuri(vechi, prefix);
+    assert.deepEqual(azi.slice(0, ieri.length), ieri, f + ': un rând din tabelul amprentelor a fost șters sau rescris');
+  }
 });

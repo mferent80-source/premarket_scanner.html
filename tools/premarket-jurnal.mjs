@@ -3,14 +3,16 @@
 // cu Governor = TRADE, fără raportări, cu harta de sectoare de bază; notează ziua în scanner-verdicts/generated/premarket-jurnal.json
 // și scrie evaluarea în scanner-verdicts/generated/premarket-proba.json. Fără chei.
 import vm from 'node:vm';
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
 import { fetchStock, serii } from './v1-jurnal.mjs';
-import { adauga, contractProba } from '../lib/v1-proba.mjs';
+import { adauga, contractProba, citesteInghetat, liniiInghetat } from '../lib/v1-proba.mjs';
 import { PROTOCOL, versiune, inregistrare, evalueaza, amprentaDependinte, istoricDependinte } from '../lib/premarket-proba.mjs';
 import { calendarSUA, intervalPentru, simboluriDeReluat, taieLaZi } from '../lib/proba-contract.mjs';
 import { pasUmbra, versiune as versiuneUmbra, bareZilnice, PROTOCOL as UMBRA } from '../lib/reversal-umbra.mjs';
 
 const DIR = 'scanner-verdicts/generated', JURNAL = DIR + '/premarket-jurnal.json', PROBA = DIR + '/premarket-proba.json';
+// 27.10.2026 (revizia F, 🔴2): perioadele închise și judecata Top Long, înghețate — fișierul doar crește (garda: tools/probe-inghetat.test.mjs)
+const INGHETAT = DIR + '/premarket-inghetat.jsonl';
 // 19.10.2026 — I-716: jurnalul SEPARAT al stopului Early Reversal „în umbră” (docs/reversal-stop-umbra-protocol.md)
 const UMBRA_JURNAL = DIR + '/reversal-umbra-jurnal.json', UMBRA_PROBA = DIR + '/reversal-umbra-proba.json';
 const MARCAJ = '  validateDeps(); bind();';
@@ -76,15 +78,17 @@ function umbra(h, s, zi, sesiuni, cal = null, azi = null) {
 }
 /** 27.10.2026 (premarket-proba-2): conținutul fișierului premarket-proba.json (pur) — evaluarea, istoricul dependențelor, proba precedentă
  *  (jurnalul ei rămâne sub `pm-cb956aef5680`) și câmpurile de contract cu puterea Top Long. */
-export function continutProba({ jurnal, V, rec, s, serii: sr, sesiuni, cal, azi }) {
+export function continutProba({ jurnal, V, rec, s, serii: sr, sesiuni, cal, azi, inghetate = null }) {
   const zileVersiune = jurnal.zile.filter((zi) => zi.v === V);
-  const c = contractProba(PROTOCOL.orizonturi.map((k) => evalueaza(jurnal, sr, { k, versiune: V, sesiuni })), { jurnal, versiune: V, cal, azi, putere: PROTOCOL.putere });
+  // 27.10.2026 (revizia F, 🔴2): cu `inghetate`, pe perioadele înghețate; `deScris` = liniile noi (nu intră în fișierul probei)
+  const ev = PROTOCOL.orizonturi.map((k) => evalueaza(jurnal, sr, { k, versiune: V, sesiuni, inghetate, la: inghetate ? rec.la : null })), deScris = ev.flatMap((o) => o.deScris || []);
+  const c = contractProba(ev.map(({ deScris: _, ...o }) => o), { jurnal, versiune: V, cal, azi, putere: PROTOCOL.putere });
   return { protocol: PROTOCOL.id, scrisLa: PROTOCOL.scrisLa, versiune: V, calendar: PROTOCOL.calendar,
     precedent: { ...PROTOCOL.precedent, nota: 'zilele probei ' + PROTOCOL.precedent.id + ' (' + PROTOCOL.precedent.versiune + ') rămân în jurnal sub versiunea veche; nu intră în proba de acum' },
     inceput: zileVersiune[0]?.zi || null, zile: zileVersiune.length, ultimaZi: rec.zi, ultimaRulare: rec.la,
     dependinte: istoricDependinte(jurnal, V),
     azi: { verificate: s.verified, total: s.scanned, topLong: rec.r.filter((x) => x[1] === 'm').length, reversal: rec.r.filter((x) => x[5] === 'r').length, repere: s.benchmarks },
-    orizonturi: c.orizonturi, putere: c.putere, primulVerdict: c.primulVerdict, judecata: c.judecata, sesiuni: c.sesiuni };
+    orizonturi: c.orizonturi, putere: c.putere, primulVerdict: c.primulVerdict, judecata: c.judecata, sesiuni: c.sesiuni, deScris };
 }
 async function main() {
   const cal = await calendarPentruProba(PROTOCOL);   /* 19.10.2026 — I-720: oprit pentru premarket-proba-1; 27.10: și pentru premarket-proba-2 */
@@ -104,9 +108,11 @@ async function main() {
   for (const sym of simboluriDeReluat(jurnal, V)) { try { await fetchCuBare(sym, { range, interval: '1d' }); } catch (e) { console.log('serie ' + sym + ': ' + e.message); } }
   // 27.10.2026 (revizia F, 🟡10): seriile de evaluare se taie la ziua notată (o rulare de dimineață vede bursele UE deschise)
   const ev = taieLaZi(serii, rec.zi), sesiuni = (ev.SPY || []).map((x) => x.d), calNY = calendarSUA('.'), azi = new Date().toISOString().slice(0, 10);
-  const j = continutProba({ jurnal, V, rec, s, serii: ev, sesiuni, cal: calNY, azi });
+  const inghetate = existsSync(INGHETAT) ? citesteInghetat(readFileSync(INGHETAT, 'utf8')) : [];
+  const { deScris, ...j } = continutProba({ jurnal, V, rec, s, serii: ev, sesiuni, cal: calNY, azi, inghetate });
   writeFileSync(JURNAL, JSON.stringify(jurnal));
   writeFileSync(PROBA, JSON.stringify(j, null, 1));
+  if (deScris.length) { appendFileSync(INGHETAT, liniiInghetat(deScris)); console.log('  înghețat: ' + deScris.map((x) => x.tip + ' k=' + x.k + ' ' + (x.zi || x.data)).join(', ')); }
   console.log(`Premarket ${V} · ziua ${rec.zi} · ${s.verified}/${s.scanned} verificate · Top Long ${j.azi.topLong} · ${j.zile} zile în probă · primul verdict ~${j.primulVerdict?.realist || '—'}`);
   for (const o of j.orizonturi) console.log(`  k=${o.k}: ${o.perioade}/${o.necesare} perioade · ${o.verdict}`);
   umbra(h, s, rec.zi, sesiuni, calNY, azi);   /* 19.10.2026 — I-716; 27.10: + calendarul pentru câmpurile de contract */

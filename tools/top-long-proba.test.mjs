@@ -9,6 +9,7 @@ import vm from 'node:vm';
 import { boot, flush } from './desk-boot.mjs';
 import { versiune, PROTOCOL } from '../lib/premarket-proba.mjs';
 import { motor } from './premarket-jurnal.mjs';
+import { amprentaScrisa } from '../lib/proba-contract.mjs';
 
 const PROBA = JSON.parse(readFileSync('scanner-verdicts/generated/premarket-proba.json', 'utf8'));
 // 27.10.2026 (premarket-proba-2): perioadele cerute vin din fișierul probei (16 / 60 în v2, 8 în v1), nu se mai fixează aici — testul
@@ -90,7 +91,9 @@ test('I-709 / I-742 scanner: lângă FIRE scrie „în probă · 0/8”, iar pag
 test('I-709: amprenta regulilor Top Long rămâne cea din jurnalul probei (clasamentul nu s-a schimbat)', () => {
   // 27.10.2026: până la prima rulare v2 fișierul e încă al probei premarket-proba-1 (amprenta veche, păstrată în protocol ca precedent);
   // după ea, amprenta motorului de azi trebuie să fie cea din fișier — altfel regulile s-au schimbat fără protocol nou
-  if (PROBA.protocol === PROTOCOL.precedent.id) { assert.equal(PROBA.versiune, PROTOCOL.precedent.versiune); return; }
+  // 27.10.2026 (revizia F, 🟡5): până la prima rulare v2, amprenta de azi trebuie să fie cea scrisă în protocol (altfel robotul ar porni v2
+  // cu o amprentă nescrisă — ex. o lipire care schimbă motorul după protocol)
+  if (PROBA.protocol === PROTOCOL.precedent.id) { assert.equal(PROBA.versiune, PROTOCOL.precedent.versiune); assert.equal(versiune(motor(async () => { throw Error('fără rețea'); }).hooks), amprentaScrisa(readFileSync('docs/premarket-proba-protocol.md', 'utf8'), 'pm'), 'amprenta Top Long de azi nu e cea scrisă în protocolul v2 (tabelul „Amprentele v2”)'); return; }
   assert.equal(PROBA.protocol, PROTOCOL.id);
   assert.equal(versiune(motor(async () => { throw Error('fără rețea'); }).hooks), PROBA.versiune);
 });

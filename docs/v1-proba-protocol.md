@@ -83,8 +83,8 @@ v1 rămân în `scanner-verdicts/generated/v1-jurnal.json` sub versiunea veche �
   serie sau fără ziua notată în serie, rândul e „nejudecat”, cu motivul, și se numără (`descriptiv.nejudecate`). Clasificatorul face la fel.
 - **Versiunea = amprenta regulilor, nu un șir:** `v1-` + SHA-256 pe (a) regulile V1 — închiderea tranzitivă din `lib/independent-scanner.js`
   pornind de la `evaluate` și `benchmarkSource` (fără `LABELS`, `rule`, `VERSION`, `DEFAULT_UNIVERSE`: texte de afișaj) și (b) evaluatorul
-  din `lib/v1-proba.mjs` (`FUNCTII_EVALUATOR` + pragurile de mai sus). CRLF = LF. **Amprenta la pornirea v2: `v1-2a71899d9bf5`**
-  (evaluatorul `238115b9d45e`). Garda din suită (`tools/probe-amprente.test.mjs`) pică dacă amprenta de azi diferă de cea scrisă aici;
+  din `lib/v1-proba.mjs` (`FUNCTII_EVALUATOR` + pragurile de mai sus). CRLF = LF. **Amprenta la pornirea v2:** rândul de jos din tabelul
+  „Amprentele v2” de la sfârșitul documentului (tabel care doar crește). Garda din suită (`tools/probe-amprente.test.mjs`) pică dacă amprenta de azi diferă de cea scrisă aici;
   garda din fluxul robotului (`tools/v1-proba.test.mjs`) oprește notarea dacă diferă de cea din fișierul probei — o regulă schimbată fără
   protocol nou nu poate reporni proba pe tăcute.
 - **Când poate veni primul verdict** (calendarul NYSE din `lib/exchange-calendar.js`; robotul o recalculează zilnic în `primulVerdict`):
@@ -99,3 +99,13 @@ v1 rămân în `scanner-verdicts/generated/v1-jurnal.json` sub versiunea veche �
 **Ce ar scurta proba (decizia LUI; fiecare variantă = o probă nouă, scrisă înainte):** un univers mai mare (mai multe acțiuni pe grup ⇒
 abaterea perioadei scade), orizontul de 5 sesiuni ca principal, sau un efect minim mai mare declarat dinainte. Încercarea intră în
 `docs/cercetare/registru.md` (§ 2).
+
+## Amprentele v2 (tabel care doar crește; rândul de jos e cel în vigoare)
+Scris pe 27.10.2026 (revizia independentă a lotului F, 🔵17: o singură linie se putea rescrie fără urmă). Fiecare rând nou se adaugă
+dedesubt, cu motivul; un rând vechi nu se șterge și nu se rescrie (garda: `tools/probe-amprente.test.mjs`). Un rând nou după prima zi
+v2 notată înseamnă o regulă nouă ⇒ o probă nouă, scrisă înainte (nu un rând aici).
+
+| Data | Amprenta | Ce s-a schimbat | Zile v2 notate atunci |
+|---|---|---|---|
+| 27.10.2026 | `v1-2a71899d9bf5` | protocolul v2 (lotul F; evaluatorul `238115b9d45e`) | 0 |
+| 27.10.2026 | `v1-e7e7526efd5a` | revizia F 🔴2: perioadele și judecata înghețate în `v1-inghetat.jsonl` (evaluatorul citește fișierul) | 0 |

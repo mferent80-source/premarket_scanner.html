@@ -100,9 +100,8 @@ pe grup, testul semnelor unilateral, α = 0,05; Early Reversal doar descriptiv.
   `closes`, `daysSinceLow`, `earningsInfo`, `gardaEarnings`, `highs`, `lastValue`, `lows`, `mean`, `pct`, `regionOf`, `retAt`, `safeNum`,
   `volumes`, `zileNY` — auditul F găsise 17 neamprentate), fără afișaj: `fmt`, `signed`, `procente`, `fapteCandidat`, `sparkValues`, `$`,
   `state` (containerul paginii) și `reversalScore` (decide doar lista Early Reversal, are amprenta umbrei); (c) evaluatorul comun (amprenta
-  lui din `lib/v1-proba.mjs` + `evalueaza` de aici). **Amprenta la pornirea v2: `pm-0dc4d07a4a73`** (rescrisă pe 27.10.2026, înaintea
-  oricărei zile v2, după lipirea lotului D: `pm-f9f254159993` ⇒ `pm-0dc4d07a4a73`, doar textul din `earningsInfo` / `gardaEarnings`;
-  penalizarea, `blocked` și ramurile în care garda e nevidă au rămas identice). Garda din suită
+  lui din `lib/v1-proba.mjs` + `evalueaza` de aici). **Amprenta la pornirea v2:** rândul de jos din tabelul „Amprentele v2” de la
+  sfârșitul documentului (tabel care doar crește). Garda din suită
   (`tools/probe-amprente.test.mjs`) pică dacă diferă de cea scrisă aici; garda din fluxul robotului (`tools/top-long-proba.test.mjs`) oprește
   notarea dacă diferă de cea din fișierul probei.
 - **Dependențele notate pe zi (`d`)** acoperă acum și `lib/me-early-bird.js`, `lib/decision-verdict.js` și **tot** `candidate-engine/engine.js`:
@@ -126,3 +125,14 @@ persistența ≥ 0,2) · „Nu s-a văzut un avantaj” (altfel — NU „s-a do
 doar orizontul principal); „după 8 perioade” devine „după N perioade” (bilanțul citește `necesare` din fișier). Privirile continuă însă
 peste 8: alarma sună fără motiv în 11,6 % din lumile fără avantaj până la 8 perioade, **16,2 % până la 16 și 24,8 % până la 60**
 (simulare, 20.000 de lumi, mulberry32); cu −0,5 %/perioadă sună în 56,5 % până la 60. E o alarmă de revăzut, nu un semnal.
+
+## Amprentele v2 (tabel care doar crește; rândul de jos e cel în vigoare)
+Scris pe 27.10.2026 (revizia independentă a lotului F, 🔵17: o singură linie se putea rescrie fără urmă). Fiecare rând nou se adaugă
+dedesubt, cu motivul; un rând vechi nu se șterge și nu se rescrie (garda: `tools/probe-amprente.test.mjs`). Un rând nou după prima zi
+v2 notată înseamnă o regulă nouă ⇒ o probă nouă, scrisă înainte (nu un rând aici).
+
+| Data | Amprenta | Ce s-a schimbat | Zile v2 notate atunci |
+|---|---|---|---|
+| 27.10.2026 | `pm-f9f254159993` | protocolul v2 (lotul F) | 0 |
+| 27.10.2026 | `pm-0dc4d07a4a73` | lipirea lotului D: doar textul din `earningsInfo` / `gardaEarnings` (penalizarea, `blocked` și ramurile în care garda e nevidă, identice) | 0 |
+| 27.10.2026 | `pm-55900c0f3060` | revizia F 🔴2: perioadele și judecata înghețate în `premarket-inghetat.jsonl` (evaluatorul comun citește fișierul) | 0 |

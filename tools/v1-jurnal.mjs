@@ -2,11 +2,13 @@
 // Rulează exact motorul din aplicație (lib/independent-scanner.js) pe universul înghețat, notează ziua în
 // scanner-verdicts/generated/v1-jurnal.json și scrie evaluarea în scanner-verdicts/generated/v1-proba.json. Fără chei.
 import vm from 'node:vm';
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { PROTOCOL, inregistrare, adauga, evalueaza, versiuneV1, contractProba } from '../lib/v1-proba.mjs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
+import { PROTOCOL, inregistrare, adauga, evalueaza, versiuneV1, contractProba, citesteInghetat, liniiInghetat } from '../lib/v1-proba.mjs';
 import { calendarSUA, intervalPentru, simboluriDeReluat, taieLaZi } from '../lib/proba-contract.mjs';
 
 const DIR = 'scanner-verdicts/generated', JURNAL = DIR + '/v1-jurnal.json', PROBA = DIR + '/v1-proba.json';
+// 27.10.2026 (revizia F, 🔴2): perioadele închise (cu randamentele lor) și judecata, înghețate — fișierul doar crește (garda: tools/probe-inghetat.test.mjs)
+const INGHETAT = DIR + '/v1-inghetat.jsonl';
 const z = (ms) => new Promise((r) => setTimeout(r, ms));
 export const serii = {}; // simbol → [{ d, c }] din aceleași bare pe care le-a văzut motorul
 
@@ -43,14 +45,16 @@ function motor() {
 export function versiuneaDeAzi(radacina = '.') { return versiuneV1(readFileSync(radacina + '/lib/independent-scanner.js', 'utf8')); }
 /** Conținutul fișierului v1-proba.json (pur): evaluarea pe orizonturi + câmpurile de contract (putere / primulVerdict / judecata) +
  *  proba precedentă (jurnalul ei rămâne în v1-jurnal.json sub versiunea veche, neatins). */
-export function continutProba({ jurnal, V, rec, report, serii: s, sesiuni, cal, azi }) {
+export function continutProba({ jurnal, V, rec, report, serii: s, sesiuni, cal, azi, inghetate = null }) {
   const zileVersiune = jurnal.zile.filter((zi) => zi.v === V);
-  const c = contractProba(PROTOCOL.orizonturi.map((k) => evalueaza(jurnal, s, { k, versiune: V, sesiuni })), { jurnal, versiune: V, cal, azi });
+  // 27.10.2026 (revizia F, 🔴2): cu `inghetate`, evaluarea stă pe perioadele înghețate; `deScris` = liniile noi (nu intră în fișierul probei)
+  const ev = PROTOCOL.orizonturi.map((k) => evalueaza(jurnal, s, { k, versiune: V, sesiuni, inghetate, la: inghetate ? rec.la : null })), deScris = ev.flatMap((o) => o.deScris || []);
+  const c = contractProba(ev.map(({ deScris: _, ...o }) => o), { jurnal, versiune: V, cal, azi });
   return { protocol: PROTOCOL.id, scrisLa: PROTOCOL.scrisLa, versiune: V,
     precedent: { ...PROTOCOL.precedent, nota: 'zilele probei ' + PROTOCOL.precedent.id + ' (' + PROTOCOL.precedent.versiune + ') rămân în jurnal sub versiunea veche; nu intră în proba de acum' },
     inceput: zileVersiune[0]?.zi || null, zile: zileVersiune.length, ultimaZi: rec.zi, ultimaRulare: rec.la,
     azi: { verificate: report.verifiedCount, total: report.items.length, indeplinesc: rec.r.filter((x) => x[1] === 'm').length, sus: rec.r.filter((x) => x[1] !== 'u' && x[2] >= PROTOCOL.pragSus).length },
-    orizonturi: c.orizonturi, putere: c.putere, primulVerdict: c.primulVerdict, judecata: c.judecata, sesiuni: c.sesiuni };
+    orizonturi: c.orizonturi, putere: c.putere, primulVerdict: c.primulVerdict, judecata: c.judecata, sesiuni: c.sesiuni, deScris };
 }
 /** 27.10.2026 (revizia F, 🔴1): ce se reia înainte de evaluare. Cât 2 ani acoperă prima zi a versiunii + orizontul, doar simbolurile fără
  *  serie (scannerul a adus deja 2 ani de bare pentru acțiuni și repere); după aceea TOATE simbolurile zilelor versiunii + SPY, pe intervalul
@@ -74,9 +78,11 @@ async function main() {
   const plan = planReluare({ jurnal, V });
   for (const s of plan.simboluri) { try { await fetchStock(s, { range: plan.range, interval: '1d' }); } catch (e) { console.log('serie ' + s + ' (' + plan.range + '): ' + e.message); } }
   const ev = taieLaZi(serii, rec.zi), sesiuni = (ev.SPY || []).map((x) => x.d);
-  const j = continutProba({ jurnal, V, rec, report, serii: ev, sesiuni, cal: calendarSUA('.'), azi: new Date().toISOString().slice(0, 10) });
+  const inghetate = existsSync(INGHETAT) ? citesteInghetat(readFileSync(INGHETAT, 'utf8')) : [];
+  const { deScris, ...j } = continutProba({ jurnal, V, rec, report, serii: ev, sesiuni, cal: calendarSUA('.'), azi: new Date().toISOString().slice(0, 10), inghetate });
   writeFileSync(JURNAL, JSON.stringify(jurnal));
   writeFileSync(PROBA, JSON.stringify(j, null, 1));
+  if (deScris.length) { appendFileSync(INGHETAT, liniiInghetat(deScris)); console.log('  înghețat: ' + deScris.map((x) => x.tip + ' k=' + x.k + ' ' + (x.zi || x.data)).join(', ')); }
   console.log(`V1 ${V} · ziua ${rec.zi} · ${report.verifiedCount}/${report.items.length} verificate · ${j.zile} zile în probă · primul verdict ~${j.primulVerdict?.realist || '—'}`);
   for (const o of j.orizonturi) console.log(`  k=${o.k}: ${o.perioade}/${o.necesare} perioade · ${o.verdict}`);
 }
