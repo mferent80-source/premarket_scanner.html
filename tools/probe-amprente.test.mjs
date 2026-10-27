@@ -29,6 +29,12 @@ test('Trend 12 luni: judecătorul bilanțului = cel scris în docs/trend-12-1-pr
   const { amprentaJudecatorTrend } = await import('./trend-12-1-lib.mjs');
   assert.equal(amprentaJudecatorTrend(), scris('docs/trend-12-1-protocol.md', /Amprenta judecătorului: `(jt-[0-9a-f]{12})`/), 'codul care judecă bilanțul Trend (tools/trend-12-1-lib.mjs) s-a schimbat');
 });
+test('I-745: registrul cercetării are toate familiile și totalul pe aplicație (≥ 60 de încercări), iar fiecare probă trimite la protocolul ei', () => {
+  const r = readFileSync('docs/cercetare/registru.md', 'utf8');
+  for (const s of ['## 1. Scannerul', '## 1b. Clasificatorul', '## 1c. Trend 12 luni', '## 1d. Verdictul pieței', '## 1e. Laboratoarele din Portofoliu', '## 1f. Reguli V1', '## 1g. Totalul pe familii']) assert.ok(r.includes(s), 'lipsește ' + s);
+  const tot = /\| \*\*Total\*\* \| \*\*≈ (\d+)\*\* \|/.exec(r); assert.ok(tot && Number(tot[1]) >= 60, 'totalul pe aplicație: ' + (tot && tot[1]));
+  for (const f of ['docs/v1-proba-protocol.md', 'docs/premarket-proba-protocol.md', 'docs/trend-12-1-protocol.md', 'docs/verdict-piata-protocol.md', 'docs/clasificator-protocol.md', 'docs/reversal-stop-umbra-protocol.md']) assert.ok(r.includes(f), 'registrul nu trimite la ' + f);
+});
 test('Umbra stopului Reversal: judecătorul = cel scris în docs/reversal-stop-umbra-protocol.md', () => {
   assert.equal(judecatorUmbra(), scris('docs/reversal-stop-umbra-protocol.md', /Amprenta judecătorului: `(ju-[0-9a-f]{12})`/), 'codul care măsoară / judecă umbra (lib/reversal-umbra.mjs) s-a schimbat');
 });
