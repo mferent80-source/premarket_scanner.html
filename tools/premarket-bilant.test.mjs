@@ -68,3 +68,15 @@ test('the protocol annex: written now, monitoring only — the hypothesis, the t
   for (const r of ['**„Top Long ajută”** — cel puțin 8 perioade, media diferenței > 0 și p ≤ 0,05.', '**Minimum 8 perioade** pentru orice verdict.', '**Testul semnelor**, unilateral, pe diferența medie SUS − JOS a fiecărei perioade.'])
     assert.ok(doc.includes(r), 'regula din 18.10 rămâne: ' + r);
 });
+// 27.10.2026 (revizia F, decizia (a)): în v2 orizontul principal e de 5 sesiuni (judecata unică), cel de 20 e doar monitorizare; alarma
+// Anexei A e scrisă pentru perioadele de 20 de sesiuni, deci rămâne pe orizontul de 20.
+test('v2: principal 5 sesiuni cu N din protocol, 20 de sesiuni doar monitorizare, alarma tot pe 20; „cu rezerve” se spune', () => {
+  const p = { versiune: 'pm-x', ultimaRulare: '2026-12-11T21:50:00Z', orizonturi: [
+    { k: 5, principal: true, perioade: 7, necesare: 40, medieDif: 0.002, verdict: 'astept', ultimaPerioada: { zi: '2026-12-04' } },
+    { k: 20, principal: false, perioade: 3, necesare: null, medieDif: -0.04, verdict: 'monitorizare', ultimaPerioada: { zi: '2026-11-20' } }] };
+  const t = mesaj(p, ACUM);
+  assert.match(t, /Top Long în probă · 7\/40 perioade de 5 sesiuni/); assert.match(t, /20 de sesiuni \(monitorizare, fără verdict\): 3 perioade · −4,0 %/);
+  assert.match(t, /nimic de hotărât încă/); assert.match(t, /ABATERE.*3 perioade de 20 de sesiuni/);
+  const j = mesaj({ ...p, orizonturi: [{ ...p.orizonturi[0], perioade: 40, verdict: 'ajuta', p: 0.03, rezerve: 'perioadele au persistență (ρ = 0,25)' }, p.orizonturi[1]] }, ACUM);
+  assert.match(j, /verdict: Top Long ajută \(p = 0,030\) — cu rezerve: perioadele au persistență/);
+});

@@ -17,20 +17,23 @@ const pc = (x) => (x >= 0 ? '+' : '−') + Math.abs(x * 100).toFixed(1).replace(
 const VERDICT = { ajuta: 'Top Long ajută', 'fara-avantaj': 'nu s-a văzut un avantaj' };
 const orizont = (p, k) => (p?.orizonturi || []).find((o) => o && o.k === k) || null;
 
-/** Textul mesajului (fără să decidă dacă se trimite). */
+/** Textul mesajului (fără să decidă dacă se trimite). 27.10.2026 (revizia F, decizia (a)): orizontul principal e cel din fișier (în v2: 5 sesiuni,
+ *  cu judecata unică); celelalte orizonturi apar pe rândul lor — cel fără `necesare` ca monitorizare, fără verdict. Alarma Anexei A e scrisă
+ *  pentru perioadele de 20 de sesiuni, deci rămâne pe orizontul de 20 (principal sau nu). */
 export function mesaj(p, acum = Date.now()) {
-  const o20 = (p?.orizonturi || []).find((o) => o && o.principal) || orizont(p, 20), o5 = orizont(p, 5);
-  if (!o20) return '';
-  const n = o20.perioade || 0, med = Number.isFinite(o20.medieDif) ? pc(o20.medieDif) : '—';
-  const parti = ['Top Long în probă · ' + n + '/' + o20.necesare + ' perioade de ' + o20.k + (o20.k >= 20 ? ' de' : '') + ' sesiuni · media SUS − JOS până acum ' + med];
-  if (o5) parti.push('5 sesiuni: ' + (o5.perioade || 0) + '/' + o5.necesare + ' · ' + (Number.isFinite(o5.medieDif) ? pc(o5.medieDif) : '—') + (o5.perioade >= o5.necesare && VERDICT[o5.verdict] ? ' · ' + VERDICT[o5.verdict] : ''));
-  if (n >= o20.necesare && VERDICT[o20.verdict]) {
-    parti.push('verdict: ' + VERDICT[o20.verdict] + ' (p = ' + (Number.isFinite(o20.p) ? o20.p.toFixed(3).replace('.', ',') : '—') + ')' + (o20.verdict === 'fara-avantaj' ? ' — asta NU înseamnă că s-a dovedit că nu ajută' : ' — o dovadă, nu un buton de cumpărat'));
+  const op = (p?.orizonturi || []).find((o) => o && o.principal) || orizont(p, 20), o20 = orizont(p, 20);
+  if (!op) return '';
+  const n = op.perioade || 0, med = Number.isFinite(op.medieDif) ? pc(op.medieDif) : '—', ses = (k) => k + (k >= 20 ? ' de' : '') + ' sesiuni';
+  const parti = ['Top Long în probă · ' + n + '/' + op.necesare + ' perioade de ' + ses(op.k) + ' · media SUS − JOS până acum ' + med];
+  for (const o of (p?.orizonturi || []).filter((x) => x && x !== op)) parti.push(o.necesare ? o.k + ' sesiuni: ' + (o.perioade || 0) + '/' + o.necesare + ' · ' + (Number.isFinite(o.medieDif) ? pc(o.medieDif) : '—') + (o.perioade >= o.necesare && VERDICT[o.verdict] ? ' · ' + VERDICT[o.verdict] : '')
+    : ses(o.k) + ' (monitorizare, fără verdict): ' + (o.perioade || 0) + ' perioade · ' + (Number.isFinite(o.medieDif) ? pc(o.medieDif) : '—'));
+  if (n >= op.necesare && VERDICT[op.verdict]) {
+    parti.push('verdict: ' + VERDICT[op.verdict] + ' (p = ' + (Number.isFinite(op.p) ? op.p.toFixed(3).replace('.', ',') : '—') + ')' + (op.rezerve ? ' — cu rezerve: ' + op.rezerve : '') + (op.verdict === 'fara-avantaj' ? ' — asta NU înseamnă că s-a dovedit că nu ajută' : ' — o dovadă, nu un buton de cumpărat'));
   } else parti.push('nimic de hotărât încă');
   const linii = [parti.join(' · ')];
-  const prag = pragAbatere(n);
-  if (prag !== null && Number.isFinite(o20.medieDif) && o20.medieDif < prag)
-    linii.push('⚠️ **ABATERE** (alarmă, nu verdict): media pe ' + n + ' perioade, ' + pc(o20.medieDif) + ', e sub pragul scris înainte (' + pc(prag) + ') — de revăzut, nu de cumpărat; regulile probei nu se schimbă');
+  const n20 = o20 ? o20.perioade || 0 : 0, prag = pragAbatere(n20);
+  if (o20 && prag !== null && Number.isFinite(o20.medieDif) && o20.medieDif < prag)
+    linii.push('⚠️ **ABATERE** (alarmă, nu verdict): media pe ' + n20 + ' perioade de 20 de sesiuni, ' + pc(o20.medieDif) + ', e sub pragul scris înainte (' + pc(prag) + ') — de revăzut, nu de cumpărat; regulile probei nu se schimbă');
   const ultima = Date.parse(p?.ultimaRulare || '');
   if (Number.isFinite(ultima) && acum - ultima > 4 * 864e5) linii.push('⚠️ robotul zilnic n-a mai notat din ' + p.ultimaRulare.slice(0, 10) + ' — bilanțul e vechi');
   return linii.join('\n');
