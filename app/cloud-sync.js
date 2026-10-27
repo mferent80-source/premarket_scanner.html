@@ -31,7 +31,7 @@ const Store=window.TTCloudStore,LOCAL_KEYS=KEYS.filter(k=>k!=='cloud_credentials
 const PERFORMANCE_KEYS=['tt_trading212_account_history_v1','tt_trading212_cash_v1'];
 const EUROPE_KEYS=['tt_europe_signals_v1','tt_europe_risk_settings_v1'];let activeKeys=[];
 // 27.10.2026 (lotul A, I-749 / I-748 / contracte): cheile noi circulă doar cu un worker care le anunță (unul vechi s-ar opri la cheia necunoscută)
-const GATED_KEYS=['tt_trading212_orders_pending_v1','tt_governor_oprire_v1','tt_governor_cfg_v1','tt_governor_limite_jurnal_v1','tt_t212_cititori_v1'];
+const GATED_KEYS=['tt_trading212_orders_pending_v1','tt_governor_oprire_v1','tt_governor_cfg_v1','tt_governor_limite_jurnal_v1','tt_t212_cititori_v1','tt_journal_incidente_v1','tt_governor_override_v1','tt_reconciliere_v1']; /* 27.10: și cheile lotului 2, doar cu un worker care le anunță */
 // limitele Governor circulă FĂRĂ capital (accountSize / _accountBasis au cheile lor: tt_pf_account, tt_ticket_capital); câmpurile calculate nu intră nici ele
 const GOVERNOR_CFG='tt_governor_cfg_v1',CFG_LOCALE=['accountSize','_accountBasis','configIssues','capitalNecunoscut'];
 function cfgFaraCapital(v){if(!v||typeof v!=='object'||Array.isArray(v))return v;const out={};for(const [k,x] of Object.entries(v))if(!CFG_LOCALE.includes(k))out[k]=x;return out;}

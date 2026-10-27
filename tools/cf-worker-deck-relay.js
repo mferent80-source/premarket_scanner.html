@@ -89,7 +89,7 @@ async function egal(a, b) {
 //   GET  /alerte/stare?fisier=alerts|news-watch   → conținutul proaspăt (fără întârzierea GitHub Pages)
 //   POST /alerte/stare  {fisier, continut}         → commit pe main, cu o reîncercare la 409 (robotul tocmai a comis)
 const REPO = 'mferent80-source/premarket_scanner.html', FISIERE = { alerts: 'tools/alerts.json', 'news-watch': 'tools/news-watch.json' };
-const MAX_CORP = 262144, SEEN_CAP = 300, EVENT_SEEN_CAP = 80;
+const MAX_CORP = 786432, /* 27.10 (revizia lotului 2): News ~175 KB azi, crește ⇒ 768 KB, sub 1 MB (limita API-ului GitHub pentru conținut) */ SEEN_CAP = 300, EVENT_SEEN_CAP = 80;
 const DOC = { alerts: 'Lista de simboluri urmărite din pagina /alerts/ (fără praguri din v116), scrisă prin releul deck-relay.', 'news-watch': 'News Watch pro desk — big filter, digest, quiet hours, earnings pre-pack, EU map. Gestionat din /alerts/.' };
 function b64(s) { const b = new TextEncoder().encode(s); let bin = ''; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(bin); }
 function deb64(s) { return new TextDecoder().decode(Uint8Array.from(atob(String(s || '').replace(/\s/g, '')), (c) => c.charCodeAt(0))); }

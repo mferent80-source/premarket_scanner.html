@@ -51,7 +51,7 @@ test('schema: alt fișier, listă greșită, simbol cu caractere străine, obiec
     const g = github({}); const r = await alerteStare(req('POST', { fisier, continut }), env, g.upstream);
     assert.equal(r.status, 400, fisier + JSON.stringify(continut)); assert.equal(g.calls.filter((c) => c.method === 'PUT').length, 0);
   }
-  const g = github({}); const r = await alerteStare(req('POST', { body: JSON.stringify({ fisier: 'alerts', continut: { alerts: [{ symbol: 'A', note: 'x'.repeat(300000) }] } }) }), env, g.upstream);
+  const g = github({}); const r = await alerteStare(req('POST', { body: JSON.stringify({ fisier: 'alerts', continut: { alerts: [{ symbol: 'A', note: 'x'.repeat(900000) }] } }) }), env, g.upstream); // 27.10 (revizia lotului 2): limita e 768 KB (News crește), sub 1 MB
   assert.equal(r.status, 413); assert.equal(g.calls.length, 0);
 });
 test('news-watch: seen / eventSeen uniți cu ce a acumulat robotul, _meta al robotului păstrat, lastCheck completat; o reîncercare la 409', async () => {

@@ -112,13 +112,17 @@ async function cancelOrders(request,env,upstream,headers,reply,{now=Date.now()}=
     const raw=await ro.json();if(!Array.isArray(raw))return reply({error:'broker_schema_mismatch'},502);
     let orders;try{orders=raw.map(pendingOrder);}catch(_){return reply({error:'broker_schema_mismatch'},502);}
     // 27.10.2026 (lotul E): niciun ordin nu dispare tăcut din răspuns — cel fără id valid și cele rămase neîncercate după termen intră la „esuate”
-    const anulate=[],esuate=[],row=o=>({id:o.id,ticker:o.ticker,stopPrice:o.stopPrice,side:o.side,quantity:o.quantity,type:o.type});let expirat=false;
+    // 27.10.2026 (revizia lotului 2): 404 la DELETE = ordinul nu mai era în așteptare (executat sau anulat deja) ⇒ „disparute”, NU „anulate”;
+    // după anulare ordinele se RECITESC: ce e încă în așteptare trece la „esuate” (inca_in_asteptare); recitirea picată ⇒ confirmat:false, complet:false
+    const anulate=[],esuate=[],disparute=[],row=o=>({id:o.id,ticker:o.ticker,stopPrice:o.stopPrice,side:o.side,quantity:o.quantity,type:o.type});let expirat=false;
     for(const o of orders){
       if(expirat){esuate.push({...row(o),error:'broker_timeout'});continue;}
       if(typeof o.id!=='string'||!/^\d{1,20}$/.test(o.id)){esuate.push({...row(o),error:'invalid_id'});continue;}
-      try{const rd=await call('/api/v0/equity/orders/'+o.id,{method:'DELETE'});if(rd.ok||rd.status===404)anulate.push(row(o));else esuate.push({...row(o),error:rd.status===401?'broker_credentials_invalid':rd.status===403?'broker_permission_missing':rd.status===429?'rate_limited':'broker_unavailable'});}
+      try{const rd=await call('/api/v0/equity/orders/'+o.id,{method:'DELETE'});if(rd.ok)anulate.push(row(o));else if(rd.status===404)disparute.push(row(o));else esuate.push({...row(o),error:rd.status===401?'broker_credentials_invalid':rd.status===403?'broker_permission_missing':rd.status===429?'rate_limited':'broker_unavailable'});}
       catch(error){esuate.push({...row(o),error:failureCode(error)});if(error?.name==='TimeoutError'||error?.name==='AbortError')expirat=true;}}
-    return reply({source:'Trading 212',environment:auth.environment,cancelledAt:at,data:{anulate,esuate,total:orders.length,complet:esuate.length===0&&anulate.length===orders.length}});
+    let confirmat=false;
+    if(!expirat){try{const r2=await call(ROUTES['orders-pending']);if(r2.ok){const raw2=await r2.json();if(Array.isArray(raw2)){const inca=new Set(raw2.map(x=>{try{return String(pendingOrder(x).id);}catch(_){return '';}}));for(const o of anulate.splice(0).concat(disparute.splice(0).map(x=>({...x,_disparut:true}))))if(inca.has(String(o.id)))esuate.push({...row(o),error:'inca_in_asteptare'});else if(o._disparut)disparute.push(row(o));else anulate.push(row(o));confirmat=true;}}}catch(_){confirmat=false;}}
+    return reply({source:'Trading 212',environment:auth.environment,cancelledAt:at,data:{anulate,esuate,disparute,total:orders.length,confirmat,complet:confirmat&&esuate.length===0&&anulate.length+disparute.length===orders.length}});
   }catch(error){return reply({error:failureCode(error)},502);}
 }
 export async function handle(request,env,upstream=fetch,options={}) {

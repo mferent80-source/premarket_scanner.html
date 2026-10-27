@@ -14,7 +14,7 @@ const pending=()=>[{id:77,ticker:'MU_US_EQ',type:'STOP',quantity:-5.5,stopPrice:
 function broker({orders=pending(),cancel=()=>new Response(null,{status:200})}={}){
   const calls=[];
   const upstream=async(url,options={})=>{calls.push({url,method:options.method||'GET',options});
-    if(options.method==='DELETE')return cancel(url);
+    if(options.method==='DELETE'){const r=cancel(url);if(r.status===200)orders=orders.filter(o=>String(o.id)!==url.split('/').pop());return r;} // 27.10: brokerul simulat scoate ordinul anulat (recitirea de după anulare îl vede plecat)
     if(url.endsWith('/api/v0/equity/orders'))return json(orders);
     throw Error('neașteptat '+url);};
   return {calls,upstream,deletes:()=>calls.filter(c=>c.method==='DELETE')};
@@ -39,7 +39,7 @@ test('cancel-all: citește ordinele în așteptare și le anulează pe toate (v�
   const b=broker(),r=await handle(req(ALL,{method:'POST',body:{confirm:'OPRESC-TOT'}}),env,b.upstream),out=await r.json();
   assert.equal(r.status,200);assert.equal(out.source,'Trading 212');assert.equal(out.data.total,2);assert.equal(out.data.complet,true);
   assert.deepEqual(out.data.anulate.map(o=>[o.id,o.ticker,o.stopPrice,o.side]),[['77','MU_US_EQ',800.5,'SELL'],['78','AAPL_US_EQ',null,'BUY']]);assert.deepEqual(out.data.esuate,[]);
-  assert.deepEqual(b.calls.map(c=>c.method+' '+new URL(c.url).pathname),['GET /api/v0/equity/orders','DELETE /api/v0/equity/orders/77','DELETE /api/v0/equity/orders/78']);
+  assert.deepEqual(b.calls.map(c=>c.method+' '+new URL(c.url).pathname),['GET /api/v0/equity/orders','DELETE /api/v0/equity/orders/77','DELETE /api/v0/equity/orders/78','GET /api/v0/equity/orders'],'27.10: recitirea de după anulare confirmă lista goală');assert.equal(out.data.confirmat,true);
   assert.equal(new Set(b.calls.map(c=>c.options.signal)).size,1,'un singur termen pentru toată oprirea');
 });
 test('cancel-all fără confirmarea explicită, cu alt tip de conținut sau cu GET nu atinge brokerul',async()=>{

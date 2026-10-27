@@ -196,7 +196,7 @@ function renderOprire(stare){const O=window.TTOprire;if(!O)return;const s=stare=
 function scoateAnulate(ids){
  if(!ids.length||!journalScope)return;
  try{window.TTReconciliere?.anulat({storage:localStorage,scope:journalScope,ids});}catch(_){}
- try{const P=window.T212Pending,a=P&&P.read(localStorage,journalScope);if(a){const gone=new Set(ids.map(String));P.save(localStorage,journalScope,a.environment||brokerEnvironment,a.items.filter(o=>!(o.id!=null&&gone.has(String(o.id)))),a.fetchedAt);}}catch(_){}
+ try{const P=window.T212Pending,a=P&&P.read(localStorage,journalScope);if(a){const gone=new Set(ids.map(String));P.save(localStorage,journalScope,a.environment||brokerEnvironment,a.items.filter(o=>!(o.id!=null&&gone.has(String(o.id)))),a.fetchedAt,{modificatLa:new Date().toISOString()}); /* 27.10 (revizia lotului 2): schimbarea locală e marcată, ca unirea să n-o piardă în fața copiei vechi */}}catch(_){}
  renderOrdine();
 }
 $('oprireConfirm').hidden=true;

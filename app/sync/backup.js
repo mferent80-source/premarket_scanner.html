@@ -1,4 +1,4 @@
-import {browserAdapter,createController,GROUPS,MAX_BYTES} from '../../lib/system-backup.mjs?v=26.10.19.1845';
+import {browserAdapter,createController,GROUPS,MAX_BYTES} from '../../lib/system-backup.mjs?v=26.10.27.2240';
 
 const $=id=>document.getElementById(id),cloud=()=>parent!==window?parent.TTCloud:null;
 const privateStore=()=>parent!==window&&parent.TTCloudStore?parent.TTCloudStore:window.TTCloudStore;

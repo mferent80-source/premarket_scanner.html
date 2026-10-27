@@ -141,13 +141,17 @@ async function cancelOrders(request,env,upstream,headers,reply,{now=Date.now()}=
     const raw=await ro.json();if(!Array.isArray(raw))return reply({error:'broker_schema_mismatch'},502);
     let orders;try{orders=raw.map(pendingOrder);}catch(_){return reply({error:'broker_schema_mismatch'},502);}
     // 27.10.2026 (lotul E): niciun ordin nu dispare tăcut din răspuns — cel fără id valid și cele rămase neîncercate după termen intră la „esuate”
-    const anulate=[],esuate=[],row=o=>({id:o.id,ticker:o.ticker,stopPrice:o.stopPrice,side:o.side,quantity:o.quantity,type:o.type});let expirat=false;
+    // 27.10.2026 (revizia lotului 2): 404 la DELETE = ordinul nu mai era în așteptare (executat sau anulat deja) ⇒ „disparute”, NU „anulate”;
+    // după anulare ordinele se RECITESC: ce e încă în așteptare trece la „esuate” (inca_in_asteptare); recitirea picată ⇒ confirmat:false, complet:false
+    const anulate=[],esuate=[],disparute=[],row=o=>({id:o.id,ticker:o.ticker,stopPrice:o.stopPrice,side:o.side,quantity:o.quantity,type:o.type});let expirat=false;
     for(const o of orders){
       if(expirat){esuate.push({...row(o),error:'broker_timeout'});continue;}
       if(typeof o.id!=='string'||!/^\d{1,20}$/.test(o.id)){esuate.push({...row(o),error:'invalid_id'});continue;}
-      try{const rd=await call('/api/v0/equity/orders/'+o.id,{method:'DELETE'});if(rd.ok||rd.status===404)anulate.push(row(o));else esuate.push({...row(o),error:rd.status===401?'broker_credentials_invalid':rd.status===403?'broker_permission_missing':rd.status===429?'rate_limited':'broker_unavailable'});}
+      try{const rd=await call('/api/v0/equity/orders/'+o.id,{method:'DELETE'});if(rd.ok)anulate.push(row(o));else if(rd.status===404)disparute.push(row(o));else esuate.push({...row(o),error:rd.status===401?'broker_credentials_invalid':rd.status===403?'broker_permission_missing':rd.status===429?'rate_limited':'broker_unavailable'});}
       catch(error){esuate.push({...row(o),error:failureCode(error)});if(error?.name==='TimeoutError'||error?.name==='AbortError')expirat=true;}}
-    return reply({source:'Trading 212',environment:auth.environment,cancelledAt:at,data:{anulate,esuate,total:orders.length,complet:esuate.length===0&&anulate.length===orders.length}});
+    let confirmat=false;
+    if(!expirat){try{const r2=await call(ROUTES['orders-pending']);if(r2.ok){const raw2=await r2.json();if(Array.isArray(raw2)){const inca=new Set(raw2.map(x=>{try{return String(pendingOrder(x).id);}catch(_){return '';}}));for(const o of anulate.splice(0).concat(disparute.splice(0).map(x=>({...x,_disparut:true}))))if(inca.has(String(o.id)))esuate.push({...row(o),error:'inca_in_asteptare'});else if(o._disparut)disparute.push(row(o));else anulate.push(row(o));confirmat=true;}}}catch(_){confirmat=false;}}
+    return reply({source:'Trading 212',environment:auth.environment,cancelledAt:at,data:{anulate,esuate,disparute,total:orders.length,confirmat,complet:confirmat&&esuate.length===0&&anulate.length+disparute.length===orders.length}});
   }catch(error){return reply({error:failureCode(error)},502);}
 }
 async function handle(request,env,upstream=fetch,options={}) {
@@ -217,7 +221,7 @@ const TTCloudModel=(()=>{
 const KEYS=Object.freeze(['tt_journal_v1','tt_trade_plans_v1','tt_ticket_capital','tt_journal_settings_v1','tt_trading212_fills_v1','tt_trading212_portfolio_v1','tt_trading212_account_history_v1','tt_trading212_cash_v1','tt_holdings_theses_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','wl_stocks','tt_theme','tt_pf_account','cloud_credentials','tt_europe_signals_v1','tt_europe_risk_settings_v1','tt_radar_access_v1',globalThis.TradeEvidenceSchema.KEY,...Array.from({length:64},(_,i)=>globalThis.TradeEvidenceSchema.KEY+':'+i.toString(16).padStart(2,'0')),...Array.from({length:64},(_,i)=>'tt_holdings_forecast_sync_v1:'+i.toString(16).padStart(2,'0')),'tt_trading212_fills_v1:cont',...Array.from({length:16},(_,i)=>'tt_trading212_fills_v1:'+i.toString(16).padStart(2,'0')),
  // 27.10.2026 (lotul A, I-749 + contractele dintre loturi): ordinele în așteptare de la broker, kill switch-ul, limitele Governor (fără capital), jurnalul limitelor, cititorii Trading 212 (I-748)
  'tt_trading212_orders_pending_v1','tt_governor_oprire_v1','tt_governor_cfg_v1','tt_governor_limite_jurnal_v1','tt_t212_cititori_v1',
- 'tt_journal_incidente_v1','tt_governor_override_v1']); // 27.10 (lotul 2, C ↔ A): registrul de incidente și relaxările programate, unire pe id (îmbinarea generică a listelor cu id)
+ 'tt_journal_incidente_v1','tt_governor_override_v1','tt_reconciliere_v1']); // 27.10 (lotul 2, C ↔ A): registrul de incidente și relaxările programate, unire pe id (îmbinarea generică a listelor cu id)
 // Captures are immutable. Fixed buckets keep each encrypted record below the
 // service limit without discarding older analyses or changing their local identity.
 const EvidenceSchema=globalThis.TradeEvidenceSchema,EVIDENCE_KEY=EvidenceSchema.KEY;
@@ -414,6 +418,7 @@ function validateOrders(value){
  if(!object(value)||Object.keys(value).length>50)throw Error('invalid_value');
  for(const [scope,a] of Object.entries(value)){
   if(!scope||scope.length>200||!object(a)||!Array.isArray(a.items)||a.items.length>500||!(a.fetchedAt===null||iso(a.fetchedAt))||!(a.environment==null||typeof a.environment==='string'&&a.environment.length<=20))throw Error('invalid_value');
+  if(a.modificatLa!==undefined&&!iso(a.modificatLa))throw Error('invalid_value');
   if(a.eroare!==undefined&&(!object(a.eroare)||!iso(a.eroare.la)||typeof a.eroare.mesaj!=='string'||a.eroare.mesaj.length>200))throw Error('invalid_value');
   for(const o of a.items)if(!object(o)||typeof o.ticker!=='string'||!o.ticker||o.ticker.length>64||!numOrNull(o.quantity)||!numOrNull(o.stopPrice)||!numOrNull(o.limitPrice)||!(o.type==null||typeof o.type==='string')||!(o.side==null||o.side==='BUY'||o.side==='SELL'))throw Error('invalid_value');
  }
@@ -426,12 +431,20 @@ const CFG_INTERZISE=['accountSize','_accountBasis','configIssues','capitalNecuno
 function validateGovernorCfg(v){if(!object(v)||Object.keys(v).length>60)throw Error('invalid_value');for(const [k,x] of Object.entries(v))if(CFG_INTERZISE.includes(k)||k.length>60||!(x===null||['number','boolean','string'].includes(typeof x))||typeof x==='number'&&!Number.isFinite(x)||typeof x==='string'&&x.length>200)throw Error('invalid_value');}
 function validateLimite(v){if(!Array.isArray(v)||v.length>LIMITE_MAX)throw Error('invalid_value');for(const r of v)if(!object(r)||!Number.isFinite(r.ts)||typeof r.aparat!=='string'||!r.aparat||r.aparat.length>100||typeof r.cheia!=='string'||!r.cheia||r.cheia.length>60)throw Error('invalid_value');}
 /* 27.10.2026 (lotul 2): incidentele (lib/journal-incidente.js) și relaxările programate ale limitelor (lib/governor.js, OVERRIDE_KEY) — liste cu id text unic. */
-const INCIDENTE_KEY='tt_journal_incidente_v1',OVERRIDE_KEY='tt_governor_override_v1';
+const INCIDENTE_KEY='tt_journal_incidente_v1',OVERRIDE_KEY='tt_governor_override_v1',RECONCILIERE_KEY='tt_reconciliere_v1';
+/* revizia lotului 2 (I-759): reconcilierea aplicație ↔ Trading 212 se vede pe ambele aparate (CAUTION și pe cel care nu citește brokerul) și în fișa zilei */
+function validateReconciliere(v){if(!object(v)||!iso(v.la)||typeof v.ok!=='boolean'||!(v.scope==null||typeof v.scope==='string'&&v.scope.length<=200)||!Array.isArray(v.diferente)||v.diferente.length>500)throw Error('invalid_value');for(const d of v.diferente)if(!object(d)||typeof d.tip!=='string'||d.tip.length>20||typeof d.text!=='string'||d.text.length>500||!(d.ticker==null||typeof d.ticker==='string'&&d.ticker.length<=64)||!numOrNull(d.app)||!numOrNull(d.broker))throw Error('invalid_value');}
 function uniceDupaId(v,max){if(!Array.isArray(v)||v.length>max)throw Error('invalid_value');const ids=new Set();for(const x of v){if(!object(x)||typeof x.id!=='string'||!x.id||x.id.length>80||ids.has(x.id))throw Error('invalid_value');ids.add(x.id);}}
 function validateIncidente(v){uniceDupaId(v,500);for(const x of v)if(!iso(x.la)||typeof x.titlu!=='string'||x.titlu.length>200||!['mic','mediu','mare'].includes(x.gravitate)||!['deschis','inchis'].includes(x.stare)||typeof x.ce!=='string'||x.ce.length>3000)throw Error('invalid_value');}
 function validateOverride(v){uniceDupaId(v,100);for(const x of v)if(typeof x.cheia!=='string'||!x.cheia||x.cheia.length>60||!Number.isFinite(x.intraLa)||!Number.isFinite(x.expiraLa)||x.expiraLa<x.intraLa||typeof x.motiv!=='string'||x.motiv.length>600||!(x.anulatLa==null||Number.isFinite(x.anulatLa)))throw Error('invalid_value');}
 function validateCititori(v){if(!object(v)||Object.keys(v).length>50)throw Error('invalid_value');for(const [k,x] of Object.entries(v))if(!k||k.length>100||!object(x)||!iso(x.la)||!(x.env==null||typeof x.env==='string'&&x.env.length<=20))throw Error('invalid_value');}
 // pe cheie (cont / aparat): cea mai nouă oră câștigă; la egalitate aceeași alegere pe ambele aparate
+/* 27.10.2026 (revizia lotului 2, 🔴2): pe fiecare cont, întâi baza (ce s-a schimbat doar pe un aparat trece), apoi cea mai nouă observație —
+   citirea brokerului (fetchedAt) sau schimbarea locală (modificatLa: ordin anulat scos, ordin pus adăugat). */
+function newestByKey3(base,local,remote,at){const value={...remote,...local};for(const k of Object.keys(remote)){const l=local[k],r=remote[k],b=object(base)?base[k]:undefined;if(!object(l)||!object(r))continue;if(equal(l,r)){value[k]=l;continue;}if(b!==undefined&&equal(r,b)){value[k]=l;continue;}if(b!==undefined&&equal(l,b)){value[k]=r;continue;}const tl=at(l),tr=at(r);value[k]=tr>tl?r:tl>tr?l:smaller(l,r);}if(object(base))for(const k of Object.keys(base)){if(!(k in local)&&equal(remote[k],base[k]))delete value[k];else if(!(k in remote)&&equal(local[k],base[k]))delete value[k];}return {value,conflicts:[]};}
+/* 🔴1: oprirea de urgență — întâi baza; la editări concurente câștigă oprirea ACTIVĂ (închis la eroare: o re-armare concurentă se mai face o dată);
+   două opriri ⇒ cea mai nouă, la aceeași oră cea mai completă (finala bate „în curs”); două re-armări ⇒ cea mai nouă. */
+function oprireConcurenta(a,b){if(a.activ!==b.activ)return a.activ?a:b;if(a.activ){const ta=ms(a.la),tb=ms(b.la);if(ta!==tb)return ta>tb?a:b;const p=v=>(v.eroare==='în curs'?0:1000)+(Array.isArray(v.ordineAnulate)?v.ordineAnulate.length:0)+(Array.isArray(v.esuate)?v.esuate.length:0);return p(a)!==p(b)?(p(a)>p(b)?a:b):smaller(a,b);}const ra=ms(a.rearmatLa),rb=ms(b.rearmatLa);return ra!==rb?(ra>rb?a:b):smaller(a,b);}
 function newestByKey(local,remote,at){const value={...remote,...local};for(const k of Object.keys(remote)){const l=local[k],r=remote[k];if(!object(l)||!object(r))continue;const tl=at(l),tr=at(r);value[k]=tr>tl?r:tl>tr?l:smaller(l,r);}return {value,conflicts:[]};}
 function mergeRecord(key,base,local,remote,times){
  if(LAST_WRITE_WINS.includes(key)){const m=merge(base,local,remote,key);if(!m.conflicts.length)return m;const sec=t=>Math.floor((Number(t)||0)/1000);return {value:sec(times?.localAt)>sec(times?.remoteAt)?local:remote,conflicts:[]};}
@@ -465,11 +478,13 @@ function mergeRecord(key,base,local,remote,times){
   return {value,conflicts:[]};
  }
  // 27.10.2026 (lotul A, I-749): ordinele în așteptare = observații ale brokerului — pe fiecare cont cea mai nouă citire (fetchedAt) câștigă; conturile se unesc
- if(key===ORDERS_KEY&&object(local)&&object(remote))return newestByKey(local,remote,a=>ms(a.fetchedAt));
+ if(key===ORDERS_KEY&&object(local)&&object(remote))return newestByKey3(base,local,remote,a=>Math.max(ms(a.fetchedAt),ms(a.modificatLa)));
  // kill switch (contractul cu E/C): cea mai nouă stare (oprirea sau re-armarea) câștigă
- if(key===OPRIRE_KEY&&object(local)&&object(remote)){const t=v=>Math.max(ms(v.la),ms(v.rearmatLa));const tl=t(local),tr=t(remote);return {value:tr>tl?remote:tl>tr?local:smaller(local,remote),conflicts:[]};}
+ if(key===OPRIRE_KEY&&object(local)&&object(remote)){if(equal(local,remote))return {value:local,conflicts:[]};if(object(base)&&equal(remote,base))return {value:local,conflicts:[]};if(object(base)&&equal(local,base))return {value:remote,conflicts:[]};return {value:oprireConcurenta(local,remote),conflicts:[]};}
  // jurnalul limitelor: unire pe ts + aparat + cheia, ordonat după ts, cel mult LIMITE_MAX (cele mai noi)
  if(key===LIMITE_KEY&&Array.isArray(local)&&Array.isArray(remote)){const rows=new Map();for(const x of [...remote,...local])rows.set(x.ts+'|'+x.aparat+'|'+x.cheia,x);return {value:[...rows.values()].sort((a,b)=>a.ts-b.ts||String(a.aparat).localeCompare(String(b.aparat))||String(a.cheia).localeCompare(String(b.cheia))).slice(-LIMITE_MAX),conflicts:[]};}
+ // reconcilierea (revizia lotului 2): întâi baza, apoi cea mai nouă (la)
+ if(key===RECONCILIERE_KEY&&object(local)&&object(remote)){if(equal(local,remote))return {value:local,conflicts:[]};if(object(base)&&equal(remote,base))return {value:local,conflicts:[]};if(object(base)&&equal(local,base))return {value:remote,conflicts:[]};const tl=ms(local.la),tr=ms(remote.la);return {value:tr>tl?remote:tl>tr?local:smaller(local,remote),conflicts:[]};}
  // cititorii T212 (I-748): pe aparat, cea mai nouă citire
  if(key===CITITORI_KEY&&object(local)&&object(remote))return newestByKey(local,remote,a=>ms(a.la));
  return merge(base,local,remote,key);
@@ -486,6 +501,7 @@ function validateValue(key,value,{limita=true}={}){
  else if(key===CITITORI_KEY)validateCititori(value);
  else if(key===INCIDENTE_KEY)validateIncidente(value);
  else if(key===OVERRIDE_KEY)validateOverride(value);
+ else if(key===RECONCILIERE_KEY)validateReconciliere(value);
  else if(forecastKeys.includes(key))validateForecast(key,value);
  else if(fillsKeys.includes(key))validateFills(key,value);
  else if(key==='tt_europe_signals_v1')validateEuropeHistory(value);
@@ -626,6 +642,9 @@ function dupaInchidere(now=Date.now()){try{const p=Object.fromEntries(F_ORA.form
    altfel stopul documentat). Fără ele, stopurile din fișă sunt spuse „documentate, neverificate la broker”. */
 /* 27.10.2026 (lotul 2, contractul C ↔ A): rândul incidentelor din fișă = JournalIncidente.randFisa din lib/journal-incidente.js (copie, ca stopul;
    echivalența caz cu caz e în tools/lot2-legaturi.test.mjs). Ziua New York; un incident e „deschis” cât n-are stare „inchis”. */
+/* revizia lotului 2 (I-764): eticheta pe orice text trimis automat; (I-759) reconcilierea cu brokerul în fișă, din cheia sincronizată tt_reconciliere_v1 */
+const ETICHETA_AUTOMAT='generat automat · neverificat de om';
+function reconciliereRand(r){if(!r||typeof r!=='object'||typeof r.ok!=='boolean'||!finite(Date.parse(r.la)))return null;const d=Array.isArray(r.diferente)?r.diferente:[],t=F_ZI.format(new Date(Date.parse(r.la))),cand=' ('+t.slice(8,10)+'.'+t.slice(5,7)+')';return r.ok&&!d.length?'Reconcilierea cu brokerul: fără diferențe'+cand+'.':'Reconcilierea cu brokerul: '+d.length+(d.length===1?' diferență':' diferențe')+cand+(d.length?' — '+d.slice(0,3).map(x=>x.text).join('; ')+(d.length>3?'; …':''):'')+'.';}
 function incidenteRand(lista,zi){
  const l=Array.isArray(lista)?lista:[],zz=t=>{const d=F_ZI.format(new Date(t));return d.slice(8,10)+'.'+d.slice(5,7);};
  const noi=l.filter(x=>x&&F_ZI.format(new Date(Date.parse(x.la)))===zi),desc=l.filter(x=>x&&x.stare!=='inchis').slice().sort((a,b)=>Date.parse(a.la)-Date.parse(b.la));
@@ -633,7 +652,7 @@ function incidenteRand(lista,zi){
  const p2=desc.length?desc.length+(desc.length===1?' deschis':' deschise')+', cel mai vechi din '+zz(Date.parse(desc[0].la)):'niciunul deschis';
  return 'Incidente: '+p1+(noi.length?' · ':', ')+p2+'.';
 }
-function fisaZilei({scope,summary,positions=[],notes={},istoric=null,ordine=null,ordineEroare=null,incidente=null,now=Date.now()}={}){
+function fisaZilei({scope,summary,positions=[],notes={},istoric=null,ordine=null,ordineEroare=null,incidente=null,reconciliere=null,now=Date.now()}={}){
  const c=summary?.currency,total=finite(summary?.totalValue)&&summary.totalValue>0?summary.totalValue:null,n1=v=>finite(v)?(Math.round(v*10)/10).toLocaleString('ro-RO',{minimumFractionDigits:1,maximumFractionDigits:1}):'—',sym=t=>String(t).replace(/_[A-Z]{2}_EQ$/,'');
  const citite=Array.isArray(ordine),stopuri=citite?ordineStop(ordine):new Map(),faraOrdin=citite?[]:null,peHartie=citite?[]:null,partial=citite?[]:null;
  const cur=(Array.isArray(positions)?positions:[]).filter(p=>p&&typeof p.ticker==='string'&&finite(p.quantity)&&p.quantity>0),faraStop=[],conc=[];let risc=0,riscOk=true;
@@ -645,10 +664,10 @@ function fisaZilei({scope,summary,positions=[],notes={},istoric=null,ordine=null
  const varf=(Array.isArray(istoric)?istoric:[]).filter(x=>x&&finite(x.total)&&x.currency===c&&finite(Date.parse(x.at))&&Date.parse(x.at)<=now).reduce((m,x)=>Math.max(m,x.total),-Infinity),dd=total&&varf>0?Math.max(0,(1-total/varf)*100):null;
  const zi=F_ZI.format(new Date(now)),rap=[];
  for(const p of cur){const e=(notes[scope+'|'+p.ticker]||{}).earnings;if(typeof e==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(e)){const d=(Date.parse(e+'T12:00:00Z')-Date.parse(zi+'T12:00:00Z'))/86400000;if(d>=0&&d<=7)rap.push(sym(p.ticker)+' ('+e.slice(8,10)+'.'+e.slice(5,7)+')');}}
- const rInc=Array.isArray(incidente)?incidenteRand(incidente,zi):null;
+ const rInc=Array.isArray(incidente)?incidenteRand(incidente,zi):null,rRec=reconciliereRand(reconciliere);
  const caldura=faraStop.length||!riscOk?null:risc,caldPct=caldura!=null&&total?caldura/total*100:null;
- const text='Fișa zilei '+zi.slice(8,10)+'.'+zi.slice(5,7)+' · cont '+(total?n1(total)+' '+c:'—')+' · '+cur.length+(cur.length===1?' poziție':' poziții')+' · căldura până la stopuri '+(caldura==null?'NECUNOSCUTĂ ('+(faraStop.length?faraStop.length+' fără stop':'curs neverificat')+')':n1(caldura)+' '+c+(caldPct!=null?' = '+n1(caldPct)+' % din cont':''))+' · cea mai mare poziție '+(conc[0]?sym(conc[0].t)+' '+n1(conc[0].pct)+' %':'—')+(citite?' · fără niciun stop (nici ordin întreg, nici documentat): ':' · fără stop documentat: ')+(faraStop.length?faraStop.map(sym).join(', '):'niciuna')+ordineText(cur.length,citite,faraOrdin,peHartie,partial,ordineEroare,sym)+' · scăderea de la vârful observațiilor '+(dd!=null?n1(dd)+' % (fără ajustare la depuneri / retrageri)':'— (istoricul contului nesincronizat)')+' · raportări în 7 zile: '+(rap.length?rap.join(', '):'niciuna')+'.'+(rInc?' '+rInc:'');
- return {zi,text,total,currency:c||null,pozitii:cur.length,caldura,caldPct,faraStop,concentrare:conc[0]||null,dd,raportari:rap,ordineCitite:citite,ordineEroare:citite?null:ordineEroare||null,faraOrdin,peHartie,partial,incidente:rInc};
+ const text='Fișa zilei '+zi.slice(8,10)+'.'+zi.slice(5,7)+' · cont '+(total?n1(total)+' '+c:'—')+' · '+cur.length+(cur.length===1?' poziție':' poziții')+' · căldura până la stopuri '+(caldura==null?'NECUNOSCUTĂ ('+(faraStop.length?faraStop.length+' fără stop':'curs neverificat')+')':n1(caldura)+' '+c+(caldPct!=null?' = '+n1(caldPct)+' % din cont':''))+' · cea mai mare poziție '+(conc[0]?sym(conc[0].t)+' '+n1(conc[0].pct)+' %':'—')+(citite?' · fără niciun stop (nici ordin întreg, nici documentat): ':' · fără stop documentat: ')+(faraStop.length?faraStop.map(sym).join(', '):'niciuna')+ordineText(cur.length,citite,faraOrdin,peHartie,partial,ordineEroare,sym)+' · scăderea de la vârful observațiilor '+(dd!=null?n1(dd)+' % (fără ajustare la depuneri / retrageri)':'— (istoricul contului nesincronizat)')+' · raportări în 7 zile: '+(rap.length?rap.join(', '):'niciuna')+'.'+(rRec?' '+rRec:'')+(rInc?' '+rInc:'')+' — '+ETICHETA_AUTOMAT;
+ return {zi,text,total,currency:c||null,pozitii:cur.length,caldura,caldPct,faraStop,concentrare:conc[0]||null,dd,raportari:rap,ordineCitite:citite,ordineEroare:citite?null:ordineEroare||null,faraOrdin,peHartie,partial,incidente:rInc,reconciliere:rRec};
 }
 function ordineText(n,citite,faraOrdin,peHartie,partial,eroare,sym){
  if(!citite)return ' · ordinele brokerului NECITITE ('+(eroare||'necerute')+') — stopurile de mai sus sunt documentate, neverificate la broker';
@@ -678,8 +697,8 @@ async function runOne(subject,env,deps,upstream,now){
   if(dupaInchidere(now)&&state.fisaZi!==ziNY){let istoric=null;try{const h=(await read(db,subject,'tt_trading212_account_history_v1',env,unseal))?.value;istoric=h&&Array.isArray(h[state.scope])?h[state.scope]:null;}catch{istoric=null;}
    // I-749: ordinele în așteptare, DOAR citire prin releu, o dată pe zi (la fișă); o citire picată nu oprește fișa — motivul intră în text
    let ordine=null,ordineEroare=null;try{const r=await brokerHandle(new Request('https://monitor/api/trading212/orders-pending',{headers}),{...env,T212_AUTH_MODE:'session'},upstream),b=await r.json();if(!r.ok)throw Error(BROKER_ERRORS.includes(b?.error)?b.error:'monitor_broker_unavailable');if(b.source!=='Trading 212'||b.environment!=='live'||!Array.isArray(b.data))throw Error('monitor_schema_invalid');ordine=b.data;}catch(e){ordineEroare=[...BROKER_ERRORS,'monitor_schema_invalid'].includes(e?.message)?e.message:'monitor_broker_unavailable';}
-   let incidente=null;try{const v=(await read(db,subject,'tt_journal_incidente_v1',env,unseal))?.value;incidente=Array.isArray(v)?v:null;}catch{incidente=null;}
-   fisa=fisaZilei({scope:state.scope,summary:payload[0],positions:payload[1],notes,istoric,ordine,ordineEroare,incidente,now});}
+   let incidente=null;try{const v=(await read(db,subject,'tt_journal_incidente_v1',env,unseal))?.value;incidente=Array.isArray(v)?v:null;}catch{incidente=null;}let reconciliere=null;try{reconciliere=(await read(db,subject,'tt_reconciliere_v1',env,unseal))?.value||null;}catch{reconciliere=null;}
+   fisa=fisaZilei({scope:state.scope,summary:payload[0],positions:payload[1],notes,istoric,ordine,ordineEroare,incidente,reconciliere,now});}
   const fisaEvents=fisa?[{id:now+':fisa:'+ziNY,key:'fisa:'+ziNY,type:'fisa',ticker:'Fișa zilei',text:fisa.text,at:now}]:[];
   state={...state,lastChecked:now,lastError:null,report,activeKeys:report.alerts.map(a=>a.key),events:[...newEvents,...fisaEvents,...(state.events||[])].slice(0,200),...(fisa?{fisaZi:ziNY}:{})};
  }catch(e){const allowed=['monitor_credentials_missing','monitor_account_changed','monitor_schema_invalid','rate_limited','broker_credentials_invalid','broker_permission_missing','broker_timeout','monitor_broker_unavailable'],code=allowed.includes(e.message)?e.message:'monitor_broker_unavailable',key='error:'+code,event={id:now+':'+key,key,type:'error',ticker:null,text:code,at:now};state={...state,lastError:{code,at:now},activeKeys:[key],events:[...(state.activeKeys?.includes(key)?[]:[event]),...(state.events||[])].slice(0,200)};}
@@ -706,7 +725,7 @@ async function runMonitors(env,deps,upstream=fetch,now=Date.now()){
  const heartbeat=await read(db,'__monitor_service__',HEARTBEAT_KEY,env,deps.unseal);await write(db,'__monitor_service__',HEARTBEAT_KEY,{at:now,checked,failed},heartbeat?.revision||0,env,deps.seal,now);return {checked,failed};
 }
 
-return {MONITOR_KEY,HEARTBEAT_KEY,monitorScope,stopLa,stopValabil,ordineStop,monitorRules,US_INCHIS,US_SCURT,dupaInchidere,incidenteRand,fisaZilei,schedulerStatus,handleMonitor,runMonitors};
+return {MONITOR_KEY,HEARTBEAT_KEY,monitorScope,stopLa,stopValabil,ordineStop,monitorRules,US_INCHIS,US_SCURT,dupaInchidere,ETICHETA_AUTOMAT,reconciliereRand,incidenteRand,fisaZilei,schedulerStatus,handleMonitor,runMonitors};
 })();
 const TTCloudWorker=(()=>{
 const {KEYS,validateValue,ForecastCloud,FillsCloud}=TTCloudModel;const {handle:brokerHandle}=TTBrokerRelay;const {handleMonitor,runMonitors,schedulerStatus}=TTCloudMonitor;const {handlePush,pushReceipt}=TTCloudPush;const {handleAudit}=TTCloudAudit;

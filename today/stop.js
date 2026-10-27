@@ -54,7 +54,7 @@
     desen(); window.dispatchEvent(new Event('tt-stop-salvat')); if (!err) trimite(true);
   });
   /* I-758: copia ordinelor citită pe acest aparat (lista T212Pending) — null = necitită (dublura o verifică doar releul, la broker) */
-  function ordinePending(scope) { try { const P = window.T212Pending, a = P && typeof P.read === 'function' ? P.read(localStorage, scope) : null; return a && Array.isArray(a.items) ? a.items : null; } catch (_) { return null; } }
+  function ordinePending(scope) { try { const P = window.T212Pending, a = P && typeof P.read === 'function' ? P.read(localStorage, scope) : null; return P && typeof P.proaspete === 'function' ? P.proaspete(a) : (a && Array.isArray(a.items) ? a.items : null); } catch (_) { return null; } } /* 27.10 (revizia lotului 2): copia veche (> 6 h) = necunoscut, nu blochează stopul */
   function garda(poz, acum, d, confirmatInAfara) { return { poz: poz || null, acum: acum ?? null, pending: ordinePending(d ? d.scope : null), confirmatInAfara: !!confirmatInAfara, storage: localStorage }; }
   async function trimiteOrdin() {
     if (trimitOrdin || !confirm || !window.T212Orders) return; const c = confirm;

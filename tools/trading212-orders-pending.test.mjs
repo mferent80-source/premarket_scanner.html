@@ -31,7 +31,7 @@ test('sumarul păstrează banii din Pies (cash.inPies), ca valoarea contului să
   assert.equal(s.inPies,300);assert.equal(summary({currency:'RON',totalValue:1,cash:{availableToTrade:1}}).inPies,null);
 });
 test('cancel-all: un ordin fără id valid nu dispare tăcut — intră la „esuate” și oprirea nu e completă',async()=>{
-  const deletes=[];const r=await handle(req('/api/trading212/orders/cancel-all',{method:'POST',body:{confirm:'OPRESC-TOT'}}),env,async(url,options={})=>{if(options.method==='DELETE'){deletes.push(url);return new Response(null,{status:200});}return json([{id:77,ticker:'MU_US_EQ',type:'STOP',quantity:-1,stopPrice:10},{ticker:'AAPL_US_EQ',type:'LIMIT',quantity:2,limitPrice:150}]);});
+  const deletes=[];const r=await handle(req('/api/trading212/orders/cancel-all',{method:'POST',body:{confirm:'OPRESC-TOT'}}),env,async(url,options={})=>{if(options.method==='DELETE'){deletes.push(url);return new Response(null,{status:200});}return json([{id:77,ticker:'MU_US_EQ',type:'STOP',quantity:-1,stopPrice:10},{ticker:'AAPL_US_EQ',type:'LIMIT',quantity:2,limitPrice:150}].filter(o=>!deletes.some(d=>d.endsWith('/'+o.id))));}); // 27.10: brokerul simulat scoate ordinul anulat (recitirea de după anulare)
   const out=await r.json();assert.equal(r.status,200);
   assert.equal(deletes.length,1);assert.equal(out.data.total,2);assert.equal(out.data.complet,false);
   assert.deepEqual(out.data.anulate.map(o=>o.id),['77']);assert.deepEqual(out.data.esuate.map(o=>[o.ticker,o.error]),[['AAPL_US_EQ','invalid_id']]);
