@@ -60,8 +60,10 @@ test('only non-overlapping periods count, and the exact sign test matches the bi
 test('no verdict before the required periods: one logged day is “wait”; the protocol requires more than 8 at the principal horizon (power)', () => {
   const w = lume(1, { sesiuni: 6 }), o = ev(w);
   assert.equal(o.verdict, 'astept'); assert.equal(o.necesare, 8); assert.ok(o.perioade < 8); assert.deepEqual(o.judecata, { la: 8, data: null, verdict: null, unic: true });
-  const implicit = evalueaza(w.jurnal, w.serii, { k: 20, versiune: V, sesiuni: w.sesiuni });
-  assert.equal(implicit.necesare, PROTOCOL.perioadeCerute[20]); assert.ok(PROTOCOL.perioadeCerute[20] > 8 && PROTOCOL.perioadeCerute[5] > 8, 'v2: puterea la 8 perioade e sub 50 % ⇒ se cer mai multe');
+  // 27.10.2026 (revizia F, decizia (a)): principal = 5 sesiuni, la N din puterea recalculată (> 8); 20 de sesiuni = doar monitorizare
+  const implicit = evalueaza(w.jurnal, w.serii, { k: 5, versiune: V, sesiuni: w.sesiuni }), mon = evalueaza(w.jurnal, w.serii, { k: 20, versiune: V, sesiuni: w.sesiuni });
+  assert.equal(PROTOCOL.principal, 5); assert.equal(implicit.necesare, PROTOCOL.perioadeCerute[5]); assert.ok(PROTOCOL.perioadeCerute[5] > 8, 'v2: puterea la 8 perioade e sub 50 % ⇒ se cer mai multe');
+  assert.equal(PROTOCOL.perioadeCerute[20], undefined); assert.equal(mon.necesare, null); assert.equal(mon.verdict, 'monitorizare'); assert.equal(mon.judecata.verdict, null);
 });
 test('v2: the verdict is given ONCE, on the first N periods; later periods only feed the monitoring and never change it', () => {
   const w = lume(21, { sesiuni: 14 * 5 + 6, avantaj: 0.004 }), o = ev(w);
@@ -103,8 +105,12 @@ test('POWER (I-741, written before): the simulated worlds have daily records and
   assert.ok(r.rezultate[PROTOCOL.perioadeCerute[5]]['1'] >= 0.35, 'la N cerut, +1 % se vede în cel puțin ~jumătate din lumi (60 de lumi: ' + r.rezultate[PROTOCOL.perioadeCerute[5]]['1'] + ')');
   const f = 'docs/proba-putere-2026-10-27.json'; assert.ok(existsSync(f), 'cifrele scrise înainte: ' + f);
   const doc = JSON.parse(readFileSync(f, 'utf8'));
-  for (const k of [5, 20]) { const x = doc.v1[k]; assert.ok(x.lumi >= 2000); assert.equal(x.cerute.laPlus1, PROTOCOL.perioadeCerute[k], 'perioadele cerute pentru k=' + k + ' sunt cele din simulare'); assert.ok(x.rezultate[8]['1'] < 0.5, 'la 8 perioade puterea e sub 50 %'); }
-  assert.deepEqual(PROTOCOL.putere.rezultate, Object.fromEntries([5, 20].map((k) => [k, { '0.5': doc.v1[k].rezultate[PROTOCOL.perioadeCerute[k]]['0.5'], '1': doc.v1[k].rezultate[PROTOCOL.perioadeCerute[k]]['1'] }])), 'PROTOCOL.putere.rezultate = cifrele din fișier la N cerut');
+  for (const k of [5, 20]) { const x = doc.v1[k]; assert.ok(x.lumi >= 2000); assert.ok(x.rezultate[8]['1'] < 0.5, 'la 8 perioade puterea e sub 50 %'); }   // cifrele lotului F, păstrate
+  // 27.10.2026 (revizia F, 🟡6): puterea recalculată cu abaterea MĂSURATĂ pe motorul real; N-ul din protocol e cel ales de regulă pe ea
+  const r5 = doc.revizie.probe.v1.k5, N = PROTOCOL.perioadeCerute[5]; assert.ok(r5.lumi >= 2000); assert.equal(r5.cerute.laPlus1, N, 'N cerut = cel din simularea cu abaterea măsurată');
+  assert.ok(Math.abs(r5.sigmaPerioada - PROTOCOL.putere.sigmaPerioada[5]) < 0.002, 'lumile reproduc abaterea măsurată: ' + r5.sigmaPerioada);
+  assert.ok(r5.grila.filter((n) => n < N).every((n) => r5.rezultate[n]['1'] < 0.5), 'N e cel mai mic din grilă cu ≥ 50 %');
+  assert.deepEqual(PROTOCOL.putere.rezultate, { 5: { '0.5': r5.rezultate[N]['0.5'], '1': r5.rezultate[N]['1'] } }, 'PROTOCOL.putere.rezultate = cifrele din fișier la N cerut');
 });
 test('I-743: the version is a SHA on the V1 rules (independent-scanner.js, transitive closure) AND on the evaluator; display texts are not rules', () => {
   const src = readFileSync('lib/independent-scanner.js', 'utf8'), v = versiuneV1(src);
@@ -123,7 +129,9 @@ test('SIZE with persistence (written before): the fixed-sample sign test at the 
   assert.ok(Math.abs(r0 - pSemne(12, 16)) < 0.012, 'ρ = 0 ⇒ coada binomială exactă (' + r0 + ' față de ' + pSemne(12, 16) + ')');
   assert.ok(r3 > r0, 'persistența umflă mărimea: ' + r3 + ' > ' + r0);
   const doc = JSON.parse(readFileSync('docs/proba-putere-2026-10-27.json', 'utf8'));
-  for (const k of [5, 20]) { const m = doc.marime?.[k]; assert.ok(m && m.lumi >= 4000, 'mărimea la k=' + k + ' scrisă cu ≥ 4000 de lumi'); assert.equal(m.N, PROTOCOL.perioadeCerute[k]); assert.ok(m.rho['0'] <= 0.05, 'fără persistență ≤ 5 %'); }
+  // 27.10.2026 (revizia F): mărimea la N-ul nou (principal 5 sesiuni), în `revizie.marime`; cifrele lotului F rămân în `marime`
+  const m = doc.revizie.marime[5]; assert.ok(m && m.lumi >= 4000, 'mărimea scrisă cu ≥ 4000 de lumi'); assert.equal(m.N, PROTOCOL.perioadeCerute[5]); assert.ok(m.rho['0'] <= 0.05, 'fără persistență ≤ 5 %');
+  assert.equal(doc.revizie.marime[20], undefined, 'orizontul de 20 n-are judecată, deci nici mărime');
 });
 test('the contract with the panels: putere.laPlus, primulVerdict from the NYSE calendar, judecata', () => {
   const cal = calendarSUA('.'), w = lume(5, { sesiuni: 12 }), o = ev(w), c = contract(o, { cal, azi: '2026-10-27', notate: 2, asteptate: 7 });
@@ -137,7 +145,10 @@ test('the robot JSON (contract with lot D): every horizon and the top level carr
   // jurnalul are 12 zile la rând ⇒ nicio sesiune pierdută; tăiem 3 zile din mijloc ⇒ 3 pierdute din cele așteptate
   const toate = contractProba(or, { jurnal: w.jurnal, versiune: V2, cal, azi: '2026-10-27' }), lipsa = contractProba(or, { jurnal: { zile: w.jurnal.zile.filter((_, i) => i < 4 || i > 6) }, versiune: V2, cal, azi: '2026-10-27' });
   for (const x of [toate, lipsa]) {
-    for (const o of x.orizonturi) { assert.ok(o.putere && Array.isArray(o.putere.laPlus) && o.primulVerdict && o.judecata); assert.equal(o.judecata.unic, true); assert.equal(o.judecata.la, PROTOCOL.perioadeCerute[o.k]); }
+    for (const o of x.orizonturi) {
+      assert.ok(o.judecata); assert.equal(o.judecata.unic, true); assert.equal(o.judecata.la, PROTOCOL.perioadeCerute[o.k] ?? null);
+      if (o.necesare) assert.ok(o.putere && Array.isArray(o.putere.laPlus) && o.primulVerdict); else assert.ok(o.putere === null && o.primulVerdict === null, 'monitorizarea n-are putere și nici termen de verdict');
+    }
     const p = x.orizonturi.find((o) => o.principal); assert.deepEqual(x.putere, p.putere); assert.deepEqual(x.primulVerdict, p.primulVerdict); assert.deepEqual(x.judecata, p.judecata);
     assert.match(x.primulVerdict.optimist, /^\d{4}-\d{2}-\d{2}$/);
   }
@@ -153,7 +164,7 @@ test('the V1 robot writes the SHA version, the precedent probe and the contract 
   const j = continutProba({ jurnal: w.jurnal, V, rec, report: { verifiedCount: 2, items: [1, 2, 3] }, serii: w.serii, sesiuni: w.sesiuni, cal, azi: '2026-10-27' });
   assert.equal(j.protocol, 'v1-proba-2'); assert.equal(j.versiune, V); assert.equal(j.precedent.id, 'v1-proba-1'); assert.match(j.precedent.nota, /rămân/);
   assert.equal(j.zile, 12); assert.deepEqual(j.azi, { verificate: 2, total: 3, indeplinesc: 1, sus: 2 });
-  assert.ok(j.putere && j.primulVerdict && j.judecata && j.sesiuni); assert.equal(j.orizonturi.length, 2); assert.ok(j.orizonturi.every((o) => o.putere && o.primulVerdict && o.judecata));
+  assert.ok(j.putere && j.primulVerdict && j.judecata && j.sesiuni); assert.equal(j.orizonturi.length, 2); assert.ok(j.orizonturi.every((o) => o.judecata && (o.necesare ? o.putere && o.primulVerdict : o.putere === null && o.primulVerdict === null)), 'orizontul de monitorizare n-are putere și nici termen');
 });
 test('I-743 in the robot flow: the V1 rules of today are the ones of the running probe (until the first v2 run, the file is still the precedent)', async () => {
   const { versiuneaDeAzi } = await import('./v1-jurnal.mjs'), f = 'scanner-verdicts/generated/v1-proba.json'; if (!existsSync(f)) return;

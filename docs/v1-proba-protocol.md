@@ -38,6 +38,7 @@ doar zilele cu versiunea de acum).
 - Nu schimbă nimic din ce face aplicația: doar adună dovezi.
 
 ## Protocolul v2 — o singură judecată, puterea scrisă înainte (27.10.2026, I-741 / I-743)
+*(27.10.2026: înlocuit parțial de § „Revizia independentă din 27.10.2026” de mai jos — acolo sunt regulile în vigoare.)*
 Scris pe **27.10.2026**, înaintea oricărei zile notate sub v2. Proba v1 (`v1-proba-1`, versiunea `experimental-1.0.0`) avea 2 zile în
 jurnal (16.10 și 23.10) și **niciun verdict** (0 / 8 perioade la 20 de sesiuni, 1 / 8 la 5). **Proba repornește ca `v1-proba-2`**: zilele
 v1 rămân în `scanner-verdicts/generated/v1-jurnal.json` sub versiunea veche — nu se șterg, nu se rescriu și nu intră în v2.
@@ -100,6 +101,69 @@ v1 rămân în `scanner-verdicts/generated/v1-jurnal.json` sub versiunea veche �
 abaterea perioadei scade), orizontul de 5 sesiuni ca principal, sau un efect minim mai mare declarat dinainte. Încercarea intră în
 `docs/cercetare/registru.md` (§ 2).
 
+## Revizia independentă din 27.10.2026 — reparațiile, scrise ÎNAINTEA primei zile v2 (regulile în vigoare)
+Scris pe **27.10.2026**, după revizia independentă a lotului F („nu se publică până la reparații”). Nicio zi v2 nu e notată (jurnalul are doar
+16.10 și 23.10, sub versiunea veche) ⇒ nimic nu se pierde și nu e o repornire. Unde secțiunea „Protocolul v2” de mai sus spune altceva, e în
+vigoare ce scrie aici.
+
+- **Prețurile acoperă toată proba (🔴1).** Robotul aducea 2 ani de prețuri (scannerul, reperele și SPY pe `'2y'`) ⇒ la 20 de sesiuni judecata
+  nu putea veni niciodată (cel mult 25 de perioade), iar la 5 se refăcea pe o fereastră alunecătoare. Acum (`planReluare` în
+  `tools/v1-jurnal.mjs`) toate simbolurile zilelor versiunii + SPY se reiau pe un interval care acoperă prima zi a probei + orizontul (2y ⇒ 5y ⇒
+  10y, regula Top Long din 19.10, mutată în `lib/proba-contract.mjs`); test: `tools/v1-jurnal-serii.test.mjs`.
+- **Perioadele și judecata se îngheață (🔴2).** O perioadă (start + k sesiuni) se îngheață când s-au scurs orizontul **+ cele 10 sesiuni de
+  așteptare** — atunci fiecare acțiune e definitivă (randament, ieșire la ultima închidere sau „nejudecată”). Perioada, cu randamentele ei, se
+  scrie o singură dată în `scanner-verdicts/generated/v1-inghetat.jsonl` (JSONL, fișier care doar crește; garda `tools/probe-inghetat.test.mjs`, în suită și în fluxul robotului).
+  Judecata se scrie o singură dată, în noaptea în care se îngheață a N-a perioadă; cea scrisă are întâietate, iar o recalculare care ar ieși
+  altfel apare doar ca `abatereJudecata`. Evaluarea de noapte citește fișierul, nu recalculează perioadele din Yahoo: o acțiune delistată, o
+  serie scurtă sau o noapte cu SPY pe 6 luni nu mai pot schimba nimic după înghețare (testat: 0 schimbări în 40 de lumi × 3 cazuri; revizia
+  măsurase 1,2–6,1 % cu codul vechi). **Data judecății = ziua înghețării celei de-a N-a perioade** (închiderea ei + 10 sesiuni).
+- **Rularea de rezervă de dimineață (🟡9, 🟡10).** Prima notare a unei zile rămâne (`adauga` nu mai înlocuiește ziua deja notată), pasul
+  robotului primește `DOAR_LIPSA` (și Premarket, nu doar V1), iar seriile de evaluare se taie la ziua notată (la 10:15 UTC bursele UE sunt
+  deschise, bara de azi e intraday). Garda „doar crește” pe jurnale: `tools/probe-amprente-acoperire.test.mjs`.
+- **Puterea, cu abaterea MĂSURATĂ (🟡6).** Abaterea presupusă de lotul F (3,4 % pe 20 de sesiuni, 2,2 %/zi) era prea mică. Calibrarea mea:
+  motoarele ADEVĂRATE (`candidate-engine/engine.js`, `lib/independent-scanner.js`) rulate ca roboții probei pe fiecare zi din 01.11.2022 –
+  23.10.2026 (998 de zile), pe universul Core85 înghețat (inclusiv acțiunile volatile care lipseau din datele reviziei: MARA, RIOT, CIFR, APLD,
+  LCID, ENPH…), prețuri Yahoo pe 5 ani, toate fazele, perioade care nu se suprapun, exact `perioadeDin` — **s-a citit doar abaterea; media
+  diferențelor nu s-a tipărit și nu s-a folosit** (proba e pe zile noi). Puterea de mai jos e din lumile sintetice ale depozitului cu abaterea
+  măsurată (`node tools/proba-putere.mjs --proba v1 --k 5 --sigmaPerioada 0.024 --verificate 81 --sus 28`, 2000 de lumi, mulberry32;
+  `docs/proba-putere-2026-10-27.json`, cheia `revizie`).
+
+  | | Reguli V1 |
+  |---|---|
+  | abaterea pe perioadă, 5 sesiuni / 20 de sesiuni (motorul real) | **2,40 %** / **4,86 %** (revizia: Core 1,7–3,4 % / 4,3–7 %) |
+  | autocorelarea perioadelor ρ₁ (5 / 20) | −0,04 / −0,03 |
+  | grupurile medii (SUS / JOS) | 28 / 53 |
+  | puterea la +1 %/perioadă, 5 sesiuni, pe grilă | 16: 32,6 % · 20: 28,1 % · 24: 40,8 % · **30: 54,9 %** · 36: 54,3 % · 40: 61,1 % · 48: 63,8 % · 60: 80,0 % |
+  | **la N = 30**: „ajută” fals / +0,5 % / +1 % | **4,3 % / 22,4 % / 54,9 %** |
+  | la N = 30, pe forma REALĂ a diferențelor (exact binomial) / normala cu aceeași abatere | 72 % / 56,1 % la +1 % |
+  | la N = 30 cu abaterea pesimistă a reviziei (3,4 %, selecție de tip momentum) | ~35 % la +1 % |
+  | 20 de sesiuni, la 60 de perioade (doar monitorizare) | +1 % văzut în 32,0 % (de aceea nu mai e verdict) |
+
+  Puterea testului semnelor nu crește monoton cu N (pragul binomial sare din 2 în 2), de aceea grila are și 20 / 24. **Mărimea la N = 30**
+  (20.000 de lumi, `revizie.marime`): perioade independente **4,9 %** (coada binomială exactă 4,94 %); cu persistență ρ = 0,1 ⇒ 6,0 %,
+  ρ = 0,2 ⇒ 7,7 %, ρ = 0,3 ⇒ 9,2 %. Persistența măsurată pe istoric e ~0 (−0,04), deci mărimea reală e cea fără persistență. Regula
+  „cu rezerve” (ρ̂ ≥ 0,2) rămâne; spus cinstit, ρ̂ ≥ 0,2 iese și din zgomot în **9,4 %** din cazuri la 30 de perioade (simulare, 20.000 de
+  lumi) — o rezervă e un semnal de verificat, nu o dovadă de persistență. Un „ajută” cu rezerve **nu ridică plafonul** desk-ului (🟡11,
+  politica F § 2).
+- **Decizia de protocol (a) — IPOTEZĂ declarată, ușor de schimbat până la prima zi v2 notată; motivul: recomandarea reviziei independente din
+  27.10.2026.** **Verdictul principal e pe orizontul de 5 sesiuni, la exact N = 30 de perioade** (cel mai mic N din grilă la care +1 %/perioadă
+  e văzut în ≥ 50 % din lumi, cu abaterea măsurată). **Orizontul de 20 de sesiuni rămâne monitorizare, cu bilanț, fără verdict** (`necesare:
+  null`, `verdict: "monitorizare"` în fișier; perioadele lui se îngheață și se numără la fel): la 60 de perioade verdictul ar fi venit pe
+  ~22.08.2031, cu puterea 32,0 %. Spus cinstit: 5 sesiuni răspund la „ajută pe o săptămână?”, nu la „ajută planul de 20 de zile?”.
+  „Nu s-a văzut un avantaj” rămâne rezultatul cel mai probabil dacă avantajul e mic și **nu înseamnă „s-a dovedit că nu”**.
+- **Primul verdict posibil:** 30 de perioade de 5 sesiuni de la prima zi v2 (28.10.2026) + 10 sesiuni până la înghețarea ultimei ⇒ optimist
+  ~**17.06.2027** (calendarul oficial NYSE); realist mai târziu, cu cât pierde robotul zile (`primulVerdict.realist` în fișier). Dincolo de
+  2027, sărbătorile NYSE se calculează după regulile bursei (🔵12), nu se mai numără doar zilele lucrătoare.
+- **Dacă LUI îi alege altfel (tot înaintea primei zile v2):** (b) **20 de sesiuni principal** ⇒ în `lib/v1-proba.mjs` `principal: 20` și
+  `perioadeCerute: { 5: 30, 20: N20 }` (cu regula de mai sus N20 > 120, ~9,5 ani; cu 60 de perioade puterea e 32,0 % ⇒ de scris cinstit
+  „sub 50 %”), `PROTOCOL.putere.rezultate[20]` din `revizie.probe.*.k20`, același lucru în `lib/premarket-proba.mjs`; testele care fixează
+  principalul (`tools/v1-proba.test.mjs`, `tools/premarket-proba.test.mjs`) și un rând nou în tabelul amprentelor. (c) **t pe mediile
+  perioadelor** (≈ +50 % eficiență) ⇒ un judecător nou în `judeca`, cu mărimea simulată pe forma reală a diferențelor înainte (necodat).
+  Ambele orizonturi cu verdict ⇒ corecție Holm între ele, scrisă înainte.
+- **Amprenta (🟡7).** Evaluatorul acoperă acum și înregistrarea zilei (`inregistrare`, cu codurile `COD` în reguli) și `adauga`, plus funcțiile
+  înghețului. Tabelul „Amprentele v2” de la sfârșit are rândurile, cu motivul fiecăruia (toate înaintea primei zile v2).
+
+
 ## Amprentele v2 (tabel care doar crește; rândul de jos e cel în vigoare)
 Scris pe 27.10.2026 (revizia independentă a lotului F, 🔵17: o singură linie se putea rescrie fără urmă). Fiecare rând nou se adaugă
 dedesubt, cu motivul; un rând vechi nu se șterge și nu se rescrie (garda: `tools/probe-amprente.test.mjs`). Un rând nou după prima zi
@@ -110,3 +174,4 @@ v2 notată înseamnă o regulă nouă ⇒ o probă nouă, scrisă înainte (nu u
 | 27.10.2026 | `v1-2a71899d9bf5` | protocolul v2 (lotul F; evaluatorul `238115b9d45e`) | 0 |
 | 27.10.2026 | `v1-e7e7526efd5a` | revizia F 🔴2: perioadele și judecata înghețate în `v1-inghetat.jsonl` (evaluatorul citește fișierul) | 0 |
 | 27.10.2026 | `v1-e78c757c68c7` | revizia F 🟡7 / 🟡9: evaluatorul acoperă și `inregistrare` (cu `COD`) și `adauga`; prima notare a unei zile rămâne | 0 |
+| 27.10.2026 | `v1-bec732f9281a` | revizia F, decizia (a): principal 5 sesiuni la N = 30, 20 de sesiuni doar monitorizare; textul rezervei la N = 30 (evaluatorul `7fc3524ca5ba`) | 0 |

@@ -56,7 +56,7 @@ aleg pe validare în fiecare fereastră și se judecă pe test — nu se adună 
 |---|---|---|---|---|---|---|
 | 19 | 2026-10-14 | Momentum 12-1 pe universul de azi, 5 ani, față de alte acțiuni aceleași zile (nulul B) | 7 variante (`trend-12-1-lib.mjs`: Sharpe deflat 75 % cu 7 variante) | +0,8 % / 20 z, t ≈ 1,5 pe 48 de ferestre nesuprapuse ⇒ indiciu, nu probat | în probă | raportul din 14.10 |
 | 20 | 2026-10-14 | Criteriul bilanțului: marginea bootstrap (13,2 % „probat” fals) ⇒ t pe ferestre, praguri 2,5 / 2,8 / 3,0 / 3,2 | 4 praguri, alese **sub H0** | 3,2: 4,3 % fals în 5 ani de priviri | ales înaintea datelor (mărimea, nu avantajul) | idem, „Corecție la § 2” |
-| 21 | 2026-10-13 | **Proba înainte** (12 ferestre, t > 3,2, priviri repetate) | 1 | 0 ferestre la 27.10; primul verdict posibil ~28.09.2027 | în probă | `docs/trend-12-1-protocol.md` |
+| 21 | 2026-10-13 | **Proba înainte** (12 ferestre, t > 3,2, priviri repetate) | 1 | 0 ferestre la 27.10; primul verdict posibil ~28.09.2027 | în probă; din 27.10 (revizia F, 🔴3) prețurile pe tot istoricul și zilele închise înghețate (`trend-12-1-inghetat.jsonl`) — aceeași judecată, fără fereastra alunecătoare | `docs/trend-12-1-protocol.md` |
 
 **Total Trend: ≈ 8** (7 + 1; pragurile alese sub H0 nu se numără ca încercări de avantaj).
 
@@ -69,8 +69,10 @@ aleg pe validare în fiecare fereastră și se judecă pe test — nu se adună 
 | 24 | 2026-10-17 | Ipoteza I-680: creditul HYG / IEF > 1 % sub media de 50 ⇒ cel mult −1 | 1 | — | ipoteză în regulă, neprobată separat | idem |
 | 25 | 2026-10-17 | Revizia (rotunjirea simetrică, HYG / IEF pe zile comune) | 2 schimbări | — | regula v2.1; 16.10 rămâne sub regula veche (27.10) | idem, „Schimbări” |
 | 26 | 2026-10-17 | **Proba înainte** (căderea maximă SPY pe 5 sesiuni, Welch, ≥ 20 / grup) | 1 | 0 „redus” / 1 „normal” separate la 27.10 (după excluderea lui 16.10) | în probă; din 27.10 judecată o singură dată | idem |
+| 27 | 2026-10-27 | Revizia F (🔴4): testul probei — Welch ⇒ **permutare pe episoade de etichetă, statistica studentizată** | 3 teste comparate **sub H0** (Welch, permutare cu diferența mediilor, permutare studentizată) pe 12 lumi (i.i.d. / GARCH × persistență × pondere), 4000 de lumi fiecare | aleasă: ≤ 4,0 % fals cu GARCH (Welch până la 7,6 %, diferența simplă până la 6,8 %) | aleasă după mărime, înaintea primei zile „redus” măsurate (23.10 se închide pe 30.10) — nu e o încercare de avantaj | protocolul, § „Revizia independentă” |
+| 28 | 2026-10-27 | Revizia F (🟡8): regula verdictului cu amprentă din conținut (`rv-…`), 4 amprente din istoric recunoscute ca v2.1 cu motivul | — | — | regulă de notare, nu încercare | protocolul, § „Amprentele regulii v2.1” |
 
-**Total Verdict: ≈ 6.** Filtrul din Planuri (A / B / fără filtru, § 3) e o alegere a lui Marius, nu o căutare pe date.
+**Total Verdict: ≈ 6** (rândurile 27–28 sunt alegeri sub H0 / reguli de notare, nu încercări de avantaj). Filtrul din Planuri (A / B / fără filtru, § 3) e o alegere a lui Marius, nu o căutare pe date.
 
 ## 1e. Laboratoarele din Portofoliu (`lib/holdings-*.js`; toate `reviewOnly`, nu dimensionează poziții)
 
@@ -88,8 +90,11 @@ aleg pe validare în fiecare fereastră și se judecă pe test — nu se adună 
 | 29 | 2026-10-18 | Reguli V1 — cele 8 verificări (fără backtest), proba înainte | 1 regulă × 2 orizonturi | v1 închisă fără verdict; v2 în probă |
 | 30 | 2026-10-18 | Top Long — proba înainte | 1 × 2 orizonturi | v1 închisă fără verdict; v2 în probă |
 | 31 | 2026-10-19 | Stopul Reversal în umbră (rândul 10 de sus) | 1 | în probă |
+| 32 | 2026-10-27 | Revizia F (🟡6): calibrarea abaterii pe perioadă cu motoarele ADEVĂRATE pe Core85, 998 de zile (01.11.2022 – 23.10.2026) | măsurătoare: doar abaterea și autocorelarea; media diferențelor NU s-a citit | Top Long 2,27 % / 4,89 %, V1 2,40 % / 4,86 % (5 / 20 de sesiuni); ρ₁ ≈ 0 |
+| 33 | 2026-10-27 | Revizia F, decizia (a) (ipoteză declarată, a lui de confirmat): principal 5 sesiuni la N = 30, 20 de sesiuni doar monitorizare | aceeași ipoteză, alt orizont principal ales ÎNAINTE de orice zi v2 — cele 2 orizonturi erau deja numărate | în probă din prima zi v2; primul verdict ~17.06.2027 |
 
-**Total: ≈ 6** (2 + 2 + 1, plus repornirea v2 a celor două, care NU e o încercare nouă de avantaj — aceeași ipoteză, altă judecată).
+**Total: ≈ 6** (2 + 2 + 1, plus repornirea v2 a celor două, care NU e o încercare nouă de avantaj — aceeași ipoteză, altă judecată; la fel
+rândurile 32–33 din revizia F: o măsurătoare a abaterii și alegerea orizontului principal înaintea datelor).
 
 ## 1g. Totalul pe familii
 
@@ -98,9 +103,9 @@ aleg pe validare în fiecare fereastră și se judecă pe test — nu se adună 
 | Scannerul (§ 1) | ≈ 31 | ≥ 31 |
 | Clasificatorul (§ 1b) | ≈ 31 | ≥ 31; proba înainte: Holm pe ținte și pe clasamente, feliile exploratorii |
 | Trend 12 luni (§ 1c) | ≈ 8 | Sharpe deflat cu 7; pragul t > 3,2 pentru privirile repetate |
-| Verdictul pieței (§ 1d) | ≈ 6 | proba e una (Welch, eșantion fix) |
+| Verdictul pieței (§ 1d) | ≈ 6 | proba e una (din 27.10 permutare pe episoade de etichetă, eșantion fix) |
 | Portofoliu (§ 1e) | ≈ 19 | laborator — niciun avantaj nu se folosește la bani fără o probă înainte |
-| Reguli V1 / Top Long / umbră (§ 1f) | ≈ 6 | fiecare probă cu testul ei; cele două orizonturi ale V1 / Top Long nu sunt corectate între ele (principal + secundar, scris în protocoale) |
+| Reguli V1 / Top Long / umbră (§ 1f) | ≈ 6 | fiecare probă cu testul ei; din 27.10 doar orizontul de 5 sesiuni are verdict (20 = monitorizare), deci nicio corecție între orizonturi |
 | **Total** | **≈ 101** | |
 
 ## 2. Probele în timp (pre-înregistrate)
@@ -108,11 +113,11 @@ aleg pe validare în fiecare fereastră și se judecă pe test — nu se adună 
 | Proba | Protocol | Început | Pragurile scrise înainte | Mărimea testului | Stare |
 |---|---|---|---|---|---|
 | Top Long (Premarket) | `docs/premarket-proba-protocol.md` · amprenta `pm-cb956aef5680` (orice schimbare a funcțiilor înghețate repornește proba) | 2026-10-16 | testul semnelor pe perioade care nu se suprapun; 8 perioade | simulată | **închisă 27.10.2026 fără verdict** (2 zile, 0 / 8 și 1 / 8) ⇒ repornită ca v2 (rândul de mai jos); zilele rămân în jurnal sub amprenta veche |
-| Top Long v2 (`premarket-proba-2`) | idem, § „Protocolul v2” · amprenta `pm-f9f254159993` (motor + ajutoarele din `analyze` + evaluator) | 2026-10-28 (prima zi v2) | judecată UNICĂ la 16 perioade (5 sesiuni) / 60 (20); testul semnelor; „cu rezerve” la persistență ≥ 0,2 | simulată înainte: 3,4–3,5 % fals; persistența ρ = 0,2 ⇒ 6,3–7,0 %; putere la +1 %/perioadă 52,6 % / 54,6 % | în probă; primul verdict ~02–05.2027 (5) / ~2031 (20) |
-| Trend 12 luni | `docs/trend-12-1-protocol.md` (scris la un loc pe 27.10; până atunci regulile erau doar în cod și în auditul din 14.10) · judecătorul `jt-f0cc2da31fb4` | 2026-10-13 | ≥ 12 ferestre de 20 z nesuprapuse, t > 3,2 cu priviri repetate; din 27.10 delistatele la ultima închidere | în depozit (27.10): 1,5 % fals în 5 ani (gaussian), 5,7 % cu asimetria ferestrelor reale (14.10, pe ferestrele reale: 4,3 %); putere la +1 %/fereastră 4,1 % / 17,2 % / 30,0 % la 1 / 3 / 5 ani | în probă (0 ferestre); primul verdict posibil ~28.09.2027 |
+| Top Long v2 (`premarket-proba-2`) | idem, § „Revizia independentă din 27.10.2026” · amprenta `pm-20f73dff32f3` (motor + ajutoarele + indicatorii și harta de sectoare apelate + înregistrarea + evaluator; tabelul „Amprentele v2”) | 2026-10-28 (prima zi v2) | judecată UNICĂ la **30 de perioade de 5 sesiuni** (principal, decizia (a)); 20 de sesiuni doar monitorizare; perioadele și judecata înghețate (`premarket-inghetat.jsonl`); „cu rezerve” la ρ̂ ≥ 0,2 (nu ridică plafonul) | 4,9 % fals (exact 4,94 %); ρ = 0,2 ⇒ 7,7 %; putere la +1 %/perioadă **59,3 %** cu abaterea măsurată 2,27 % (35,5 % la abaterea pesimistă 3,4 %) | în probă; primul verdict ~17.06.2027 |
+| Trend 12 luni | `docs/trend-12-1-protocol.md` (scris la un loc pe 27.10; până atunci regulile erau doar în cod și în auditul din 14.10) · judecătorul `jt-7098991f68d3` (revizia F: tot istoricul, zilele închise înghețate) | 2026-10-13 | ≥ 12 ferestre de 20 z nesuprapuse, t > 3,2 cu priviri repetate; din 27.10 delistatele la ultima închidere | în depozit (27.10): 1,5 % fals în 5 ani (gaussian), 5,7 % cu asimetria ferestrelor reale (14.10, pe ferestrele reale: 4,3 %); putere la +1 %/fereastră 4,1 % / 17,2 % / 30,0 % la 1 / 3 / 5 ani | în probă (0 ferestre); primul verdict posibil ~28.09.2027 |
 | Reguli V1 (Piață) | `docs/v1-proba-protocol.md` · univers înghețat de 85 | 2026-10-16 | SUS (6–8 verificări) față de JOS (≤ 5), testul semnelor; verdict la 5 sesiuni după ~8 săptămâni | 1,45 % (2000 lumi), putere 85 % la +0,4 %/sesiune | **închisă 27.10.2026 fără verdict** (2 zile, versiunea `experimental-1.0.0`) ⇒ repornită ca v2; zilele rămân sub versiunea veche |
-| Reguli V1 v2 (`v1-proba-2`) | idem, § „Protocolul v2” · amprenta `v1-2a71899d9bf5` (regulile V1 + evaluatorul, nu un șir) | 2026-10-28 (prima zi v2) | judecată UNICĂ la 16 / 60 perioade; restul ca v1 | 3,7–4,8 % fals; ρ = 0,2 ⇒ 6,3–7,0 %; putere la +1 %/perioadă 66,8 % / 66,4 % (cea veche, „85 % la +0,4 %/sesiune”, plantase ≈ +2 %/perioadă) | în probă; primul verdict ~02–05.2027 (5) / ~2031 (20) |
-| Verdictul pieței | `docs/verdict-piata-protocol.md` · regula `v2.1` pe fiecare linie, judecătorul `jv-0612f187c9e9` | 2026-10-17 | căderea maximă SPY în 5 sesiuni după „redus” față de „normal”, zile separate, Welch unilateral, ≥ 20 / grup; din 27.10 **o singură judecată** (rejudecarea nocturnă dădea 8,6–14,4 % fals) și doar liniile regulii v2.1 (16.10 iese) | în depozit: 4,0 % fals; putere 14,3 % la +0,5 pp, 34,9 % la +1 pp | în probă (0 „redus” / 1 „normal”); primul verdict ~2028 |
+| Reguli V1 v2 (`v1-proba-2`) | idem, § „Revizia independentă din 27.10.2026” · amprenta `v1-bec732f9281a` (regulile V1 + evaluatorul cu înregistrarea; tabelul „Amprentele v2”) | 2026-10-28 (prima zi v2) | judecată UNICĂ la **30 de perioade de 5 sesiuni** (principal, decizia (a)); 20 de sesiuni doar monitorizare; prețuri pe toată proba; perioadele și judecata înghețate (`v1-inghetat.jsonl`) | 4,9 % fals (exact 4,94 %); ρ = 0,2 ⇒ 7,7 %; putere la +1 %/perioadă **54,9 %** cu abaterea măsurată 2,40 % (cea veche, „85 % la +0,4 %/sesiune”, plantase ≈ +2 %/perioadă) | în probă; primul verdict ~17.06.2027 |
+| Verdictul pieței | `docs/verdict-piata-protocol.md` · regula `v2.1` pe fiecare linie, din 27.10 cu amprentă din conținut (`rv-3e18543febee`); judecătorul `jv-ef4eca49d1b8` | 2026-10-17 | căderea maximă SPY în 5 sesiuni după „redus” față de „normal”, zile separate, Welch unilateral, ≥ 20 / grup; din 27.10 **o singură judecată** (rejudecarea nocturnă dădea 8,6–14,4 % fals) și doar liniile regulii v2.1 (16.10 iese) | din 27.10 **permutare pe episoade de etichetă** (studentizată): ≤ 4,0 % fals cu GARCH (Welch: până la 7,6 %); putere 13,6 % la +0,5 pp, 33,5 % la +1 pp | în probă (0 „redus” măsurate: 23.10 se închide pe 30.10); primul verdict ~2028 |
 | Clasificatorul long / hold / short | `docs/clasificator-protocol.md` · judecătorul `jc-3ed212502e15` (`docs/clasificator-versiuni.md`) | 2026-10-16 | câștig ≥ 0,02 față de ambele repere, t pe 8 perioade cu pauze, Holm; eșantion fix 180 / 252 zile | 4,8–5,4 % (protocol); din 27.10 reprodusă în `tools/clasificator-jurnal.test.mjs` | în probă (2 / 180 la 27.10); feliile pe regim exploratorii (§ 1b) |
 | Stopul Reversal în umbră | `docs/reversal-stop-umbra-protocol.md` · judecătorul `ju-0916cb874187` (27.10, umbra nu repornește) | 2026-10-19 | t unilateral prag 3,0 | 10–12 % fals la testul semnelor ⇒ înlocuit | în probă |
 | Bilanț săptămânal Top Long (Discord) | anexa de monitorizare (I-717) | 2026-10-19 | alarmă −1,645 × 3,4 % / √k; 11,7 % alarme false până la 8 perioade ⇒ „de revăzut” | — | monitorizare, nu verdict |

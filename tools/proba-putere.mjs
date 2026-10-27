@@ -44,7 +44,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (process.argv.includes('--marime')) {
     const m = marime({ lumi: Number(arg('lumi', 20000)) });
     for (const k of Object.keys(m)) console.log(`k=${k} · N=${m[k].N} · ${m[k].lumi} lumi · ` + RHO.map((r) => `ρ ${r}: ${(100 * m[k].rho[String(r)]).toFixed(1)} % (la 8: ${(100 * m[k].la8[String(r)]).toFixed(1)} %)`).join(' · '));
-    if (process.argv.includes('--scrie')) { const d = JSON.parse(readFileSync(DOC, 'utf8')); d.marime = { ce: 'rata „ajută” fals a judecății unice (testul semnelor, p ≤ 0,05) sub H0, când diferențele perioadelor au autocorelare ρ (AR(1) gaussian); ρ = 0 = coada binomială exactă', ...m }; writeFileSync(DOC, JSON.stringify(d, null, 1).replace(/\n/g, '\r\n') + '\r\n'); console.log('scris: ' + DOC); }
+    if (process.argv.includes('--scrie')) { const d = JSON.parse(readFileSync(DOC, 'utf8')); /* 27.10.2026 (revizia F): mărimea la N-ul nou intră în `revizie`; `marime` (lotul F) rămâne ca istoric */ d.revizie = d.revizie || {}; d.revizie.marime = { ce: 'rata „ajută” fals a judecății unice (testul semnelor, p ≤ 0,05) sub H0, când diferențele perioadelor au autocorelare ρ (AR(1) gaussian); ρ = 0 = coada binomială exactă', ...m }; writeFileSync(DOC, JSON.stringify(d, null, 1).replace(/\n/g, '\r\n') + '\r\n'); console.log('scris: ' + DOC); }
     process.exit(0);
   }
   const proba = arg('proba', 'v1'), k = Number(arg('k', 20)), lumi = Number(arg('lumi', PROTOCOL.putere.lumi)), out = arg('out', null), t0 = Date.now();
