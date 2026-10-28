@@ -218,6 +218,15 @@ Revizia independentă F2 a lotului F a dat „se poate publica după trei repara
   numărată la vedere în `nejudecate`.
 - **Data primului verdict (🔵9):** ~21.06.2027, dacă prima zi v2 e 28.10.2026.
 
+## Revizia F3 din 28.10.2026 — decizia de dinaintea primei zile v2
+Revizia independentă F3 (a reparațiilor F2) a dat „se poate publica după o decizie luată înainte de 21:45 UTC”:
+- **Seriile zilnice ies din versiune (🟡1, decizia (a) a revizorului).** `lib/daily-series.js` e o bibliotecă a întregii aplicații: în
+  versiune, o reparație de viteză sau un comentariu acolo ar fi însemnat probă nouă (și garda din flux ar fi oprit roboții), iar formatorul
+  `partsFmt` (scris pe un rând cu altă declarație) scăpa oricum. Acum se NOTEAZĂ pe zi în `d`, ca și calendarul bursei: o schimbare se vede,
+  cu ziua ei, fără repornire. Garda privirii în viitor (sesiunile neînchise) rămâne păzită de testele seriilor zilnice.
+- **`d` cuprinde și roboții și contractul comun (🔵7)**, deci și noaptea robotului (tăietura seriilor la ziua notată).
+- **Panoul arată banda puterii (🔵11)**: Verdictele și Planurile citesc `putere.banda`, cu anul de acum.
+
 ## Amprentele v2 (tabel care doar crește; rândul de jos e cel în vigoare)
 Scris pe 27.10.2026 (revizia independentă a lotului F, 🔵17: o singură linie se putea rescrie fără urmă). Fiecare rând nou se adaugă
 dedesubt, cu motivul; un rând vechi nu se șterge și nu se rescrie (garda: `tools/probe-amprente.test.mjs`). Un rând nou după prima zi
@@ -231,3 +240,4 @@ v2 notată înseamnă o regulă nouă ⇒ o probă nouă, scrisă înainte (nu u
 | 27.10.2026 | `pm-8184f0aef323` | revizia F 🟡7 / 🟡9: versiunea acoperă și indicatorii apelați (`TI.calcEMA`, `TI.calcRSI`, `TI.calcATR` din `lib/indicators.js`), harta de sectoare (`EL.sectorOf` din `lib/early-long.js`, fără `CFG`), `inregistrare`, `adauga`, perioadele cerute și orizontul principal; prima notare a unei zile rămâne | 0 |
 | 27.10.2026 | `pm-20f73dff32f3` | revizia F, decizia (a): principal 5 sesiuni la N = 30 (puterea Top Long, abaterea măsurată 2,27 %), 20 de sesiuni doar monitorizare | 0 |
 | 28.10.2026 | `pm-febbaa42e895` | revizia F2 🟡3: versiunea acoperă și funcțiile din `lib/daily-series.js` chemate din `analyze` (`DailySeries.read`, garda sesiunilor neînchise, și `DailySeries.date`) și evaluatorul V1 nou (filtrul barelor robotului `baraValida`, `ziValida`, ρ cu o zecimală) | 0 |
+| 28.10.2026 | `pm-25c7a3be0f23` | revizia F3 🟡1: seriile zilnice ies din versiune (notate în `d`); `d` cuprinde și roboții (`tools/premarket-jurnal.mjs`, `tools/v1-jurnal.mjs`) și contractul (🔵7) | 0 |

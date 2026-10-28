@@ -182,6 +182,15 @@ Revizia independentă F2 a lotului F a dat „se poate publica după trei repara
   numărată la vedere în `nejudecate`.
 - **Data primului verdict (🔵9):** ~21.06.2027, dacă prima zi v2 e 28.10.2026.
 
+## Revizia F3 din 28.10.2026 — decizia de dinaintea primei zile v2
+Revizia independentă F3 (a reparațiilor F2) a dat „se poate publica după o decizie luată înainte de 21:45 UTC”:
+- **Seriile zilnice ies din versiune (🟡1, decizia (a) a revizorului).** `lib/daily-series.js` e o bibliotecă a întregii aplicații: în
+  versiune, o reparație de viteză sau un comentariu acolo ar fi însemnat probă nouă (și garda din flux ar fi oprit roboții), iar formatorul
+  `partsFmt` (scris pe un rând cu altă declarație) scăpa oricum. Acum se NOTEAZĂ pe zi în `d`, ca și calendarul bursei: o schimbare se vede,
+  cu ziua ei, fără repornire. Garda privirii în viitor (sesiunile neînchise) rămâne păzită de testele seriilor zilnice.
+- **`d` cuprinde și roboții și contractul comun (🔵7)**, deci și noaptea robotului (tăietura seriilor la ziua notată).
+- **Panoul arată banda puterii (🔵11)**: Verdictele și Planurile citesc `putere.banda`, cu anul de acum.
+
 ## Amprentele v2 (tabel care doar crește; rândul de jos e cel în vigoare)
 Scris pe 27.10.2026 (revizia independentă a lotului F, 🔵17: o singură linie se putea rescrie fără urmă). Fiecare rând nou se adaugă
 dedesubt, cu motivul; un rând vechi nu se șterge și nu se rescrie (garda: `tools/probe-amprente.test.mjs`). Un rând nou după prima zi
@@ -194,3 +203,4 @@ v2 notată înseamnă o regulă nouă ⇒ o probă nouă, scrisă înainte (nu u
 | 27.10.2026 | `v1-e78c757c68c7` | revizia F 🟡7 / 🟡9: evaluatorul acoperă și `inregistrare` (cu `COD`) și `adauga`; prima notare a unei zile rămâne | 0 |
 | 27.10.2026 | `v1-bec732f9281a` | revizia F, decizia (a): principal 5 sesiuni la N = 30, 20 de sesiuni doar monitorizare; textul rezervei la N = 30 (evaluatorul `7fc3524ca5ba`) | 0 |
 | 28.10.2026 | `v1-cf90f3811a5c` | revizia F2 🟡3: versiunea acoperă și funcțiile din `lib/daily-series.js` chemate de reguli (`DailySeries.read`, garda sesiunilor neînchise, și `DailySeries.date`); evaluatorul e închiderea calculată din sursă (intră și `ziValida`, `baraValida` — filtrul barelor mutat din robot —, `COD`, `INDEX`) plus înregistrarea judecății din contract; ρ din textul rezervei cu o zecimală (🔵15). Calendarul bursei, scannerul întreg, contractul și robotul se notează pe zi (`d`), fără repornire (evaluatorul `c4b973eb9617`) | 0 |
+| 28.10.2026 | `v1-4132f4315217` | revizia F3 🟡1: seriile zilnice (`lib/daily-series.js`) ies din versiune și se notează pe zi în `d` (bibliotecă comună; o reparație de viteză nu e regulă nouă); evaluatorul neschimbat (`c4b973eb9617`) | 0 |

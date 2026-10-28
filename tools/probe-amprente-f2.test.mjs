@@ -26,10 +26,14 @@ test('🟡3 declarațiile se găsesc și într-un fișier învelit într-o func�
   assert.ok(declaratii(citeste('lib/indicators.js')).includes('calcRSI'), 'fișierele indentate cu 2 rămân ca înainte');
 });
 
-test('🟡3 V1: seriile zilnice (`DailySeries.read`, garda sesiunilor neînchise) intră în versiune', () => {
+// 28.10.2026 (revizia F3, 🟡1 — decis înaintea primei zile v2): `lib/daily-series.js` e o bibliotecă comună a aplicației; în versiune, o
+// reparație de viteză acolo ar fi repornit proba (și garda din flux ar fi oprit roboții), iar formatorul `partsFmt` (pe un rând cu altă
+// declarație) scăpa oricum. Acum seriile zilnice se NOTEAZĂ pe zi (`d`), ca și calendarul: o schimbare se vede, cu ziua ei, fără repornire.
+test('🟡1 F3 V1: seriile zilnice nu sunt în versiune, dar orice schimbare a lor se vede în `d`', () => {
   const v = versiuneV1(SCANNER);
   assert.match(v, /^v1-[0-9a-f]{12}$/);
-  assert.notEqual(versiuneV1(SCANNER, SERII_MUT), v, '`DailySeries.read` schimbat ⇒ altă versiune V1');
+  assert.equal(versiuneV1(SCANNER, SERII_MUT), v, 'lib/daily-series.js schimbat ⇒ aceeași versiune (nu e o regulă V1)');
+  assert.notEqual(amprentaDependinteV1(SERII_MUT), amprentaDependinteV1(citeste), '… dar `d` o arată');
   assert.equal(versiuneV1(SCANNER, citeste), v, 'aceeași sursă ⇒ aceeași versiune');
 });
 
@@ -54,12 +58,17 @@ test('🟡3 filtrul barelor: în bibliotecă (`baraValida`), robotul îl cheamă
   assert.match(r, /baraValida\(ts\[i\], o, h, l, c\)/); assert.doesNotMatch(r, /h >= l/, 'filtrul nu mai e copiat în robot');
 });
 
-test('🟡3 Top Long: seriile zilnice și filtrul barelor (prin evaluatorul V1) intră în versiune', () => {
-  assert.ok(partiVersiune(h).includes('DailySeries.read'), 'lipsește DailySeries.read din părțile versiunii');
+test('🟡1 F3 Top Long: filtrul barelor (prin evaluatorul V1) e în versiune; seriile zilnice, roboții și contractul se notează în `d`', async () => {
+  const { amprentaDependinte, DEPENDINTE } = await import('../lib/premarket-proba.mjs');
+  assert.ok(!partiVersiune(h).some((x) => x.startsWith('DailySeries.')), 'seriile zilnice nu mai sunt în versiunea Top Long');
   const v = versiune(h);
-  assert.notEqual(versiune(h, undefined, SERII_MUT), v, '`DailySeries.read` schimbat ⇒ altă versiune Top Long');
+  assert.equal(versiune(h, undefined, SERII_MUT), v, 'lib/daily-series.js schimbat ⇒ aceeași versiune');
+  assert.notEqual(amprentaDependinte(SERII_MUT, h), amprentaDependinte(citeste, h), '… dar `d` o arată');
   assert.notEqual(versiune(h, undefined, cu('lib/v1-proba.mjs', 'h >= l && ', '')), v, 'filtrul barelor schimbat ⇒ altă versiune Top Long');
   assert.equal(versiune(h, undefined, citeste), v);
+  // revizia F3, 🔵7: noaptea robotului (ex. tăietura seriilor la ziua notată) și contractul comun se văd în `d`
+  for (const f of ['tools/premarket-jurnal.mjs', 'tools/v1-jurnal.mjs', 'lib/proba-contract.mjs', 'lib/daily-series.js']) assert.ok(DEPENDINTE.includes(f), 'lipsește din d: ' + f);
+  assert.notEqual(amprentaDependinte(cu('tools/premarket-jurnal.mjs', 'taieLaZi(sr, rec.zi)', 'sr'), h), amprentaDependinte(citeste, h), 'noaptea Top Long fără tăietură ⇒ `d` se schimbă');
 });
 
 test('🟡3 calendarul bursei nu repornește proba V1, dar se notează pe zi (`d`), ca la Top Long', () => {
