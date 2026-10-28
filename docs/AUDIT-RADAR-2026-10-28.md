@@ -63,6 +63,19 @@ La întrebarea „asta e tot la Crypto Radar?”: nu. Depozitul Crypto Radar e p
 
 Ce NU am putut verifica: worker-ul publicat (secretele, cota KV reală, jurnalele Cloudflare), colectorul în mers pe PC-ul de acasă, pagina T212 din Radar (grep: `stopT212` nu apare în `public/lib/t212-ecran.js`, deci probabil nici Radarul nu arată ordinul brokerului pe pagina lui; de verificat pe ecran). Modificările din depozitul crypto cer drept de scriere acolo.
 
+## Partea a treia — cele trei lucruri rămase, făcute (28.10, seara; crypto v100.263, aici 26.10.28.1745)
+
+| Ce | Unde | Cum se verifică |
+|---|---|---|
+| **Cheie de scriere separată (I-791).** Paznicul cere `CHEIE_SCRIERE` pentru `/simboluri`, `/stopuri`, `/salt-cereri`; cât secretul nu e pus în Cloudflare, cheia de citire scrie ca înainte, deci publicarea nu lasă nimic în pană. `/` spune `cheieScriere: true/false`. Aici: al treilea câmp în caseta 🔑, `#scriere=…` în link, `radar_cheie_scriere` doar pe dispozitiv (nu urcă în cont); lista de simboluri, cererile Salt și lista „cu stop” din Decision App pleacă cu ea când e pusă; 401 „cheia de scriere” e spus pe nume în Alerte și pe Astăzi | crypto `paznic/worker.mjs`; aici `lib/radar-poza.js`, `lib/radar-ecran.js`, `alerts/index.html`, `lib/stop-setter.js`, `today/stop.js` | crypto `scripts/proba-v100263.mjs` (ambele moduri, GET /poza rămâne pe cheia de citire); aici `tools/radar-pastrare.test.mjs` (caseta, linkul, cine trimite ce, Decision App) |
+| **Contractul pozei (I-786).** `scripts/exemplu-poza.mjs` (crypto) produce `paznic/exemplu-poza.json` chiar din `construiestePoza`: poziție cu plan, insideri, sugestie și `stopT212`, poziție cu null-uri, bot, simbol cu intrare, simbol cu trend în jos, rând Salt, cereri Salt, alerte. Copia lui e `tools/exemplu-poza.json` aici | crypto `scripts/exemplu-poza.mjs`, `paznic/exemplu-poza.json`; aici `tools/exemplu-poza.json`, `tools/radar-contract.test.mjs` | crypto: proba cere fișierul la zi (`--check`) și toate câmpurile pe care pagina le randează; aici: exemplul se randează pe ambele file fără NaN/undefined, iar HTML pus în **fiecare** dintre cele peste 150 de frunze (text sau număr) nu ajunge brut în pagină, nici în `style=`, nici în `href=` |
+| **ETag și puls din orice ordine a câmpurilor (P2).** Regexul pe primele 200/300 de caractere rămâne calea rapidă; dacă nu prinde, worker-ul parsează JSON-ul | crypto `paznic/worker.mjs` (`campDinText`) | proba: poză cu `la` după 300 de caractere ⇒ 200 + ETag, 304 la `If-None-Match` |
+| **`la` din viitor (P3).** Peste 10 minute în viitor ⇒ 400 cu motivul | crypto `paznic/worker.mjs` (`pozaScrie`) | proba |
+| **Moneda de rezervă (P3).** Colectorul: `monedaBursa` din calendarul burselor (.SW nu mai e „€”, .L e „£”); pagina: aceeași regulă în `uneste`, eticheta „Londra” / „bursă europeană” | crypto `scripts/colector.mjs`, `scripts/lib/poza.mjs`; aici `lib/radar-ecran.js` | probe în ambele depozite |
+| **`#parola=` cu confirmare (P3).** O parolă diferită de cea ținută pe dispozitiv întreabă o dată înainte s-o înlocuiască | crypto `public/app.js` | proba (regex pe bloc) |
+
+Ce rămâne de făcut pe PC: `git pull` (lansatorul îl face la pornire), `wrangler secret put CHEIE_SCRIERE` în `paznic/` și `wrangler deploy`, apoi cheia de scriere pusă în Alerte pe fiecare dispozitiv. Până atunci nimic nu se schimbă în comportament. Cheia de scriere nu urcă încă în cont (I-792).
+
 ## Idei prioritizate, cu criterii de acceptare
 
 1. **Contract al pozei (I-786).** Un `exemplu-poza.json` cu toate câmpurile, în ambele depozite; test aici care pune HTML în fiecare frunză și verifică că nu ajunge brut în pagină; test în colector că exemplul e produs valid. Verde doar când ambele trec.

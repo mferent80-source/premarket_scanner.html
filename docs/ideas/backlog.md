@@ -7614,7 +7614,7 @@ Context: cerut de Marius („audit sever din toate direcțiile pe radar”). Aco
 - **Soluția:** pagina nu re-randează cât cursorul e în `#radCheieForm`; `randeaza` păstrează `hidden` al casetei și valorile `radCheie`/`radParola`; după salvare reușită caseta se golește și se închide. La prima poză cu status 200, dacă semnătura listei diferă de ultima trimisă cu succes, `radTrimiteSimboluri()`.
 - **Fișiere atinse:** alerts/index.html, lib/radar-ecran.js, tools/radar-ecran.test.mjs, tools/alerts-radar.test.mjs
 
-#### I-786 · Contract al pozei (exemplu JSON + test cu HTML în fiecare frunză), în ambele depozite · [M] · P1 · propus
+#### I-786 · Contract al pozei (exemplu JSON + test cu HTML în fiecare frunză), în ambele depozite · [M] · P1 · făcut 2026-10-28 (crypto v100.263: scripts/exemplu-poza.mjs → paznic/exemplu-poza.json; aici tools/exemplu-poza.json + tools/radar-contract.test.mjs)
 - **Problema/golul:** câmpurile pozei și semnificația lor (`pplLei`, `costLei`, `pctLei`, `boti[].la`) sunt presupuse din comentarii; I-781 a acoperit câmpurile știute azi, un câmp nou nescapat ar trece neobservat.
 - **Soluția:** `exemplu-poza.json` ținut aici și în colector; test aici care parcurge exemplul și pune HTML în fiecare frunză, apoi cere ca nimic să nu ajungă brut în `randeaza`; test în colector că exemplul e produs valid (ca `exemplu-rezumat.json` la Busolă, I-516).
 - **Fișiere:** lib/radar-ecran.js, tools/radar-ecran.test.mjs, docs/ (exemplul)
@@ -7639,7 +7639,12 @@ Context: cerut de Marius („audit sever din toate direcțiile pe radar”). Aco
 - **Soluția:** în „Planul tău, din Radar”: „Ordin de stop la broker: $340,50 · ordin în Trading 212” sau „niciun ordin în Trading 212 · stopul din plan nu execută singur”; colector vechi fără câmp ⇒ niciun rând. Test.
 - **Fișiere atinse:** lib/radar-ecran.js, tools/radar-ecran.test.mjs
 
-#### I-791 · Paznic: cheie de scriere separată de cheia de citire (stopuri, simboluri, cereri Salt) · [S] · P2 · propus (depozitul crypto)
+#### I-791 · Paznic: cheie de scriere separată de cheia de citire (stopuri, simboluri, cereri Salt) · [S] · P2 · făcut 2026-10-28 (crypto v100.263 + aici 26.10.28.1745; tranziție: fără secretul CHEIE_SCRIERE pus, cheia de citire scrie ca înainte)
 - **Problema/golul:** `CHEIE_CITIRE` citește poza și scrie trei liste; prin `/stopuri` poate reduce la tăcere alarma `@here` „fără stop loss”. Cheia stă în fiecare browser și în cont (`tt_radar_access_v1`).
 - **Soluția:** `CHEIE_SCRIERE` în worker (`wrangler secret put`), cerută pe `/stopuri` (cel puțin), apoi `/simboluri` și `/salt-cereri`; pagina Alerte (lib/radar-poza.js), Decision App (lib/stop-setter.js, today/stop.js) o trimit din aceeași casetă; perioadă de tranziție în care worker-ul acceptă ambele.
 - **Fișiere:** crypto: paznic/worker.mjs, scripts/paznic-*.mjs; aici: lib/radar-poza.js, lib/radar-ecran.js (caseta), lib/stop-setter.js, today/stop.js, app/cloud-sync.js
+
+#### I-792 · Cheia de scriere a Paznicului și în cont (tt_radar_access_v1) · [S] · P3 · propus
+- **Problema/golul:** I-791 ține `radar_cheie_scriere` doar pe dispozitiv; pe un telefon nou se pune din nou (din link sau din casetă). Cheia de citire și parola urcă deja în cont.
+- **Soluția:** câmpul `scriere` în `tt_radar_access_v1` (lib/cloud-sync-model.mjs: validare, îmbinare; tools/cloud-sync-worker.bundle.mjs regenerat; app/cloud-sync.js: radarLocal + aplicare), urcat doar după o scriere reușită cu ea (ca `radar_cheie_ok`).
+- **Fișiere:** lib/cloud-sync-model.mjs, tools/cloud-sync-worker.bundle.mjs, app/cloud-sync.js, lib/radar-poza.js, tools/cloud-sync-devices.test.mjs

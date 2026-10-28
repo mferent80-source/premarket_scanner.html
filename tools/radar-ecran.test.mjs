@@ -649,7 +649,7 @@ test('audit 28.10 · caseta cheii deschisă de om și ce a scris în ea rămân 
   // pagina: cât e cursorul în caseta cheii nu se re-randează deloc; după o salvare reușită caseta se golește și se închide
   const html = src('alerts/index.html');
   assert.match(html, /const cf = \$\('radCheieForm'\); if \(cf && document\.activeElement && cf\.contains\(document\.activeElement\)\) return;/);
-  assert.match(html, /if \(r\.cheie === 'pusa' \|\| r\.parola === 'pusa'\) \{ \['radCheie', 'radParola'\]\.forEach/);
+  assert.match(html, /if \(r\.cheie === 'pusa' \|\| r\.parola === 'pusa' \|\| r\.scriere === 'pusa'\) \{ \['radCheie', 'radParola', 'radScriere'\]\.forEach/);
 });
 test('audit 28.10 · mărunțișuri: sparkline-ul sare peste zilele lipsă (null) în loc să le deseneze ca 0; dataRo refuză luna 13', () => {
   const s = RadarEcran.spark([1, null, 3]); assert.match(s, /polyline points="0,32 0\.0,29\.0 120\.0,3\.0 120,32"/, 'două puncte, fără „0” la mijloc: ' + s.slice(0, 160));

@@ -7,7 +7,7 @@
   // 18.10.2026: ordinul de stop REAL în Trading 212 (lib/t212-orders.js) — butonul apare doar cu conexiunea salvată pe dispozitiv; confirmare în pagină
   let ordine = null, confirm = null, trimitOrdin = false;
   // alarma pe Discord (worker-ul Paznicului) află ce poziții au stop: lista pleacă la fiecare schimbare
-  const MES = { 'fara-cheie': 'Alarma pe Discord nu știe de stopurile tale: pune cheia de citire în Alerte (pe acest dispozitiv).', 'cheie-gresita': 'Alarma pe Discord: cheia de citire din Alerte nu e bună.', retea: 'Alarma pe Discord: lista stopurilor n-a putut fi trimisă acum (rețea); se reîncearcă.' };
+  const MES = { 'fara-cheie': 'Alarma pe Discord nu știe de stopurile tale: pune cheia de citire în Alerte (pe acest dispozitiv).', 'cheie-gresita': 'Alarma pe Discord: cheia de citire din Alerte nu e bună.', 'cheie-scriere': 'Alarma pe Discord: Paznicul cere acum cheia de SCRIERE - pune-o în Alerte, în caseta 🔑 (pe acest dispozitiv).', retea: 'Alarma pe Discord: lista stopurilor n-a putut fi trimisă acum (rețea); se reîncearcă.' };
   function trimite(fortat) { S.trimiteLista({ fortat }).then((r) => { const m = MES[r.stare] || ''; if (m !== discord) { discord = m; desen(); } }); }
   // stopurile valide = puse DUPĂ deschiderea poziției de acum (revizia 18.10) + cele din Trading 212 / stopul fix din Radar (poza colectorului)
   let externe = new Set();

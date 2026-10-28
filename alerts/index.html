@@ -20,10 +20,10 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314181f'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link rel="stylesheet" href="../lib/plex.css?v=742">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=700">
-<link rel="stylesheet" href="tema-paznic-suita.css?v=998">
-<link rel="stylesheet" href="../lib/radar-ui.css?v=998">
-<script src="../lib/radar-poza.js?v=998"></script>
-<script src="../lib/radar-ecran.js?v=998"></script>
+<link rel="stylesheet" href="tema-paznic-suita.css?v=999">
+<link rel="stylesheet" href="../lib/radar-ui.css?v=999">
+<script src="../lib/radar-poza.js?v=999"></script>
+<script src="../lib/radar-ecran.js?v=999"></script>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -1104,14 +1104,14 @@ body.al-page :focus-visible{outline:1px solid #E9B949!important;outline-offset:1
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=998"></script>
+<script src="../lib/suite-version.js?v=999"></script>
 <script src="../lib/data.js?v=26.10.19.1845"></script>
-<script src="../lib/poll-wake.js?v=998"></script>
+<script src="../lib/poll-wake.js?v=999"></script>
 <script src="../lib/shell-visibility.js?v=26.10.19.1930"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js?v=26.10.27.2100"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=998"></script>
+<script src="../lib/price-day.js?v=999"></script>
 <script src="../lib/news-rules.js?v=26.10.27.2240"></script>
 <script>
 // ============ CONFIG ============
@@ -3509,7 +3509,7 @@ function radRandeaza(r) {
   const af0 = $('addForm'), pastr = $('radPastrator');
   if (af0 && pastr && el.contains(af0)) pastr.appendChild(af0);   // scos din #rad inainte ca innerHTML sa-l distruga
   RadarPoza.saltNoteazaRaspunsuri(p && p.saltCereri);   // revizia v144 (I5): răspunsul colectorului rămâne și după o repornire a lui
-  RadarEcran.randeaza(el, p, { fila: radFila(), saltAsteptare: RadarPoza.saltInAsteptare(), saltMoneda: _radSaltMoneda, simboluri: radSimboluri(), preturiLive: radPreturiLive(), botiLive: radBotiLive(), acum, cheie: !!RadarPoza.cheie(), parolaRadar: RadarPoza.parolaRadar(), adresa: RadarPoza.adresaAltfel(), prospetime: RadarPoza.prospetime(p, acum), eroare: _radUltima ? _radUltima.eroare : null });
+  RadarEcran.randeaza(el, p, { fila: radFila(), saltAsteptare: RadarPoza.saltInAsteptare(), saltMoneda: _radSaltMoneda, simboluri: radSimboluri(), preturiLive: radPreturiLive(), botiLive: radBotiLive(), acum, cheie: !!RadarPoza.cheie(), cheieScriere: RadarPoza.areCheieScriere ? RadarPoza.areCheieScriere() : false, parolaRadar: RadarPoza.parolaRadar(), adresa: RadarPoza.adresaAltfel(), prospetime: RadarPoza.prospetime(p, acum), eroare: _radUltima ? _radUltima.eroare : null });
   // formularul de adaugare intra in panoul „Simbolurile tale" (nodul e mutat, nu copiat: butoanele isi pastreaza ascultatorii)
   const slot = $('radAdaugaSlot'), af = $('addForm');
   if (slot && af && af.parentNode !== slot) { slot.appendChild(af); af.open = true; }
@@ -3570,12 +3570,16 @@ if ($('rad') && typeof RadarPoza !== 'undefined') {
   // v156 (el, 18.10: „când pun parola Radarului se șterge și cheia”): caseta se salvează prin RadarPoza.salveazaCaseta — parola nu mai ajunge în locul cheii
   $('rad').addEventListener('radar:cheie', e => { const d = e.detail || {}, r = RadarPoza.salveazaCaseta(d); if (d.url) RadarPoza.puneUrl(d.url);
     // 28.10.2026 (audit Radar): după o salvare reușită caseta se golește și se închide (randarea îi păstrează acum starea și textul)
-    if (r.cheie === 'pusa' || r.parola === 'pusa') { ['radCheie', 'radParola'].forEach(id => { const i = $(id); if (i) i.value = ''; }); const cas = $('radCaseta'); if (cas) cas.hidden = true; }
-    const par = r.parola === 'pusa' ? ' · parola Radarului e pusă' : '';
+    if (r.cheie === 'pusa' || r.parola === 'pusa' || r.scriere === 'pusa') { ['radCheie', 'radParola', 'radScriere'].forEach(id => { const i = $(id); if (i) i.value = ''; }); const cas = $('radCaseta'); if (cas) cas.hidden = true; }
+    // 28.10.2026 (I-791): cheia de scriere - pusă ⇒ lista de simboluri pleacă iar cu ea; respinsă ⇒ se spune
+    if (r.scriere === 'pusa') { _radSimUltima = ''; radTrimiteSimboluri(); if (window.StopSetter && StopSetter.trimiteLista) StopSetter.trimiteLista({ fortat: true }).catch(() => {}); }
+    const par = (r.parola === 'pusa' ? ' · parola Radarului e pusă' : '') + (r.scriere === 'pusa' ? ' · cheia de scriere e pusă' : r.scriere === 'respinsa' ? ' · cheia de scriere scrisă nu are forma unei chei (32 de litere și cifre), n-am pus-o' : '');
     toast(r.mutata ? '🔐 Ce ai scris nu e cheia de citire, e parola: am pus-o ca parola Radarului · cheia a rămas neschimbată'
       : r.cheie === 'respinsa' ? '⚠️ Textul din câmpul cheii nu e o cheie de citire (32 de litere și cifre) · cheia a rămas neschimbată' + par
       : r.cheie === 'pusa' ? '🔑 Cheia e pusă · aduc poza' + par
-      : r.parola === 'pusa' ? '🔐 Parola Radarului e pusă · „Deschide în Radar” intră direct' : 'Câmpurile erau goale · nimic schimbat', r.cheie === 'respinsa' ? 'warn' : 'info');
+      : r.parola === 'pusa' ? '🔐 Parola Radarului e pusă · „Deschide în Radar” intră direct' + (r.scriere === 'pusa' ? ' · cheia de scriere e pusă' : '')
+      : r.scriere === 'pusa' ? '✍️ Cheia de scriere e pusă · lista de simboluri și stopurile pleacă cu ea'
+      : r.scriere === 'respinsa' ? '⚠️ Textul din câmpul cheii de scriere nu e o cheie (32 de litere și cifre) · nimic schimbat' : 'Câmpurile erau goale · nimic schimbat', r.cheie === 'respinsa' || r.scriere === 'respinsa' ? 'warn' : 'info');
     if (r.cheie === 'pusa') { RadarPoza.citeste({ fortat: true }).then(radRandeaza); radTrimiteSimboluri(); } else radRandeaza(); });
   // v144 (el, 07.10: „pagina alerts să fie în două” + „la dețineri să pot adăuga și manual cu preț în euro și USD”):
   // filtrele panoului „Alertele de azi” re-randează; cererile Salt pleacă la worker, colectorul le pune în lista Salt din Radar
@@ -3604,7 +3608,7 @@ if ($('rad') && typeof RadarPoza !== 'undefined') {
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v998';
+const SW_VER_INLINE = 'tt-v999';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -3621,7 +3625,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v998';
+  var PAGE_VER = 'tt-v999';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
