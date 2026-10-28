@@ -200,6 +200,24 @@ vigoare ce scrie aici. Evaluatorul e comun cu Reguli V1 (`docs/v1-proba-protocol
   perioade); e o alarmă de revăzut, nu un verdict — pragul nu s-a schimbat aici (decizia LUI).
 
 
+## Revizia F2 din 28.10.2026 — reparațiile și rezervele, scrise ÎNAINTEA primei zile v2
+Revizia independentă F2 a lotului F a dat „se poate publica după trei reparații”; toate sunt în cod, cu teste:
+- **Fluxul (🟡1):** fișierele înghețate se salvează fiecare separat (`tools/git-add-existente.mjs`); un singur `git add` pe două fișiere
+  nu salva nimic cât lipsea unul, iar eroarea era ascunsă.
+- **Amprenta (🟡3):** versiunea acoperă și funcțiile din `lib/daily-series.js` chemate de reguli (garda sesiunilor neînchise) și filtrul
+  barelor robotului (`baraValida`, mutat în bibliotecă); dependențele care nu sunt reguli se notează pe zi (`d`), fără repornire.
+- **Legăturile (🟡5):** noaptea robotului e o funcție pură (`noapte`), testată noapte de noapte cu seriile tăiate la început.
+
+**Rezerve scrise acum (nu schimbă regula, se spun în clar):**
+- **Puterea depinde de volatilitate (🔵7).** La +1 %/perioadă și N = 30, pe abaterea fiecărui an din 2022–2026 luat separat, puterea
+  e între 37,5 % și 72,5 %; pe 2026, 49,4 %. Pe regimul de azi, puterea e chiar sub 50 %; N rămâne 30 (decizia (a), scrisă înainte). Panoul arată banda, nu un singur număr.
+- **Testul semnelor judecă mediana, ipoteza e despre medie (🔵8).** Pe diferențele reale Top Long (k = 5), P(diferența centrată > 0) = 49,7 % ⇒ mărimea la N = 30 ar fi 4,6 %; pe placebo (grup ales la întâmplare, prețurile reale Core85, 20.000 de ferestre): „ajută” fals 3,6 %. Nu s-a dovedit o distorsiune (banda cuprinde 50 %); rămâne
+  o rezervă de citit lângă un eventual „ajută”.
+- **Delistatele (🔵16).** Yahoo șterge de obicei graficul unui simbol delistat. Dacă dispariția cade în cele 15 sesiuni de dinaintea
+  înghețului, rândul devine „nejudecat: fără serie”, nu „ieșit la ultima închidere”. E o selecție de supraviețuitori mică pe Core85,
+  numărată la vedere în `nejudecate`.
+- **Data primului verdict (🔵9):** ~21.06.2027, dacă prima zi v2 e 28.10.2026.
+
 ## Amprentele v2 (tabel care doar crește; rândul de jos e cel în vigoare)
 Scris pe 27.10.2026 (revizia independentă a lotului F, 🔵17: o singură linie se putea rescrie fără urmă). Fiecare rând nou se adaugă
 dedesubt, cu motivul; un rând vechi nu se șterge și nu se rescrie (garda: `tools/probe-amprente.test.mjs`). Un rând nou după prima zi

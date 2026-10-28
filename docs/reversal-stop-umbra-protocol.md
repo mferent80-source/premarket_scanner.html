@@ -82,3 +82,5 @@ schimbă** (ipoteza, stopurile, măsura, perioadele, t > 3,0, minimum 8): se în
   nu %), `primulVerdict` (8 perioade de 20 de sesiuni pe calendarul NYSE: optimist ~**15.06.2027**, realist după zilele pierdute) și
   `judecata` cu `unic: false` — verdictul umbrei e **secvențial** prin construcție (recalculat după fiecare perioadă, cu pragul t > 3,0
   ales tocmai pentru privirile repetate), nu o judecată unică.
+
+**Notă (28.10.2026, revizia F2, 🔵17):** umbra nu se îngheață, spre deosebire de V1, Top Long, Trend și verdictul pieței. E declarată secvențială (`unic: false`) și nu are niciun efect pe risc (nu ridică și nu coboară niciun plafon), deci recalcularea din seriile aduse în fiecare noapte nu poate muta o decizie. Dacă umbra ajunge vreodată să decidă ceva, întâi se îngheață, ca celelalte probe.

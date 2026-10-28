@@ -164,6 +164,24 @@ vigoare ce scrie aici.
   înghețului. Tabelul „Amprentele v2” de la sfârșit are rândurile, cu motivul fiecăruia (toate înaintea primei zile v2).
 
 
+## Revizia F2 din 28.10.2026 — reparațiile și rezervele, scrise ÎNAINTEA primei zile v2
+Revizia independentă F2 a lotului F a dat „se poate publica după trei reparații”; toate sunt în cod, cu teste:
+- **Fluxul (🟡1):** fișierele înghețate se salvează fiecare separat (`tools/git-add-existente.mjs`); un singur `git add` pe două fișiere
+  nu salva nimic cât lipsea unul, iar eroarea era ascunsă.
+- **Amprenta (🟡3):** versiunea acoperă și funcțiile din `lib/daily-series.js` chemate de reguli (garda sesiunilor neînchise) și filtrul
+  barelor robotului (`baraValida`, mutat în bibliotecă); dependențele care nu sunt reguli se notează pe zi (`d`), fără repornire.
+- **Legăturile (🟡5):** noaptea robotului e o funcție pură (`noapte`), testată noapte de noapte cu seriile tăiate la început.
+
+**Rezerve scrise acum (nu schimbă regula, se spun în clar):**
+- **Puterea depinde de volatilitate (🔵7).** La +1 %/perioadă și N = 30, pe abaterea fiecărui an din 2022–2026 luat separat, puterea
+  e între 40,6 % și 73,7 %; pe 2026, 40,6 %. Pe regimul de azi, regula „cel mai mic N cu ≥ 50 % putere” nu e îndeplinită la V1; N rămâne 30 (decizia (a), scrisă înainte), iar „nu s-a văzut un avantaj” înseamnă cu atât mai mult „nu s-a dovedit”. Panoul arată banda, nu un singur număr.
+- **Testul semnelor judecă mediana, ipoteza e despre medie (🔵8).** Pe diferențele reale ale listelor V1 (k = 5), P(diferența centrată > 0) = 51,5 % (bootstrap 90 %: 49,5–53,3 %); dacă avantajul mediu ar fi 0 cu forma asta, mărimea la N = 30 ar fi 6,8 % (banda 4,4–9,9 %), nu 4,9 %. Nu s-a dovedit o distorsiune (banda cuprinde 50 %); rămâne
+  o rezervă de citit lângă un eventual „ajută”.
+- **Delistatele (🔵16).** Yahoo șterge de obicei graficul unui simbol delistat. Dacă dispariția cade în cele 15 sesiuni de dinaintea
+  înghețului, rândul devine „nejudecat: fără serie”, nu „ieșit la ultima închidere”. E o selecție de supraviețuitori mică pe Core85,
+  numărată la vedere în `nejudecate`.
+- **Data primului verdict (🔵9):** ~21.06.2027, dacă prima zi v2 e 28.10.2026.
+
 ## Amprentele v2 (tabel care doar crește; rândul de jos e cel în vigoare)
 Scris pe 27.10.2026 (revizia independentă a lotului F, 🔵17: o singură linie se putea rescrie fără urmă). Fiecare rând nou se adaugă
 dedesubt, cu motivul; un rând vechi nu se șterge și nu se rescrie (garda: `tools/probe-amprente.test.mjs`). Un rând nou după prima zi
