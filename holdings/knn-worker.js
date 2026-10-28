@@ -1,3 +1,3 @@
 'use strict';
-importScripts('../lib/holdings-bars.js?v=holdings-bars-v1','../lib/holdings-neural.js?v=26.10.19.1845','../lib/holdings-neural-evaluation.js?v=walk-forward-v1','../lib/holdings-knn.js?v=holdings-knn-v1');
+importScripts('../lib/holdings-bars.js?v=holdings-bars-v1','../lib/holdings-neural.js?v=26.10.28.1420','../lib/holdings-neural-evaluation.js?v=walk-forward-v1','../lib/holdings-knn.js?v=holdings-knn-v1');
 self.onmessage=function(event){const {id,bars:raw,now}=event.data||{};try{const prep=HoldingsBars.prepare(raw),bars=prep.bars;const data=HoldingsKNN.dataset(bars,now),last=bars.at(-1),result=HoldingsKNN.evaluate(data,{t:last.t,close:last.c,x:data.latest},{progress:p=>self.postMessage({id,progress:p})});if(!HoldingsKNN.valid(result))throw Error('Raportul KNN nu poate fi verificat.');result.historyCut=prep.cut;self.postMessage({id,result});}catch(e){self.postMessage({id,error:e.message||'Comparația cu vecinii istorici a eșuat.'});}};

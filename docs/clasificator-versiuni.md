@@ -18,6 +18,7 @@ Amprentele se scot cu `node tools/clasificator-amprenta.mjs`. Versiunea în prob
 | holdings-clf-v5 | 2026-10-17 | `1d6e809ef648ffc3` | `9aca94a357a3c1ef` | Amprenta extinsă la toate cele 5 fișiere care pot schimba voturile (revizia de cod); `holdings-bars.js` a primit doar citirea „Istoric scurt” (I-665). Rezultate identice ⇒ aceeași versiune, aceeași probă. |
 | holdings-clf-v5 | 2026-10-19 | `5042c17d8d07bdfb` | `9aca94a357a3c1ef` | `lib/daily-series.js`: formatorul de dată ținut minte pe fus orar (I-696, viteză: 7 s la deschiderea Portofoliului pe telefon); zilele calculate sunt aceleași (test pe 3.000 de momente × 8 fusuri). Rezultate identice ⇒ aceeași versiune, aceeași probă. |
 | holdings-clf-v5 | 2026-10-19 | `131e8435df71c86b` | `9aca94a357a3c1ef` | `lib/holdings-neural.js`: `assess` nu mai expiră raportul Neural la 30 de minute — e valabil pe sesiunea EOD (I-703 a: Portofoliul reantrena la fiecare deschidere); clasificatorul nu e atins. Rezultate identice ⇒ aceeași versiune, aceeași probă. |
+| holdings-clf-v5 | 2026-10-28 | `a0cb970f415fc254` | `9aca94a357a3c1ef` | I-779: lib/holdings-neural.js primește testul de mărime al avantajului (permutare pe semne, `testPermutare` / `marimeAvantaj`, câmp nou `report.sizeTest` în raportul Neural). Clasificatorul folosește din fișier doar `dataset`, `scaler`, `metrics` etc., neschimbate: aceleași rezultate pe seriile fixe (amprenta rezultatelor identică). |
 
 ## Amprenta judecătorului (I-743, din 27.10.2026)
 

@@ -32,7 +32,7 @@ test('aceeași versiune peste tot: verdict, registru (cu v1 ca istoric), istoric
   assert.match(citeste('lib/holdings-forecast.js'), /boosting:\['holdings-gbt-v1'\]/, 'estimările v1 rămân valide în registru, ca istoric');
   for (const f of ['lib/holdings-verdict.js', 'lib/holdings-model-history.js', 'lib/holdings-model-summary.js', 'lib/holdings-model-analysis.js']) { assert.match(citeste(f), /holdings-gbt-v2/, f); assert.doesNotMatch(citeste(f), /holdings-gbt-v1/, f + ' nu mai cere v1'); }
   assert.match(citeste('holdings/index.html'), /holdings-boosting\.js\?v=holdings-gbt-v2/); assert.match(citeste('holdings/neural-worker.js'), /holdings-boosting\.js\?v=holdings-gbt-v2/);
-  assert.match(citeste('holdings/neural.js'), /neural-worker\.js\?v='\+N\.VERSION\+'-boost-comparison-v2'/, 'worker-ul schimbat primește alt `?v=`');
+  assert.match(citeste('holdings/neural.js'), /neural-worker\.js\?v='\+N\.VERSION\+'-boost-comparison-v3'/, 'worker-ul schimbat primește alt `?v=`');
   assert.match(citeste('tools/holdings-neural-validation.html'), /holdings-boosting\.js\?v=holdings-gbt-v2/);
 });
 

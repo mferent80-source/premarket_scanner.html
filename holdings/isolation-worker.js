@@ -1,3 +1,3 @@
 'use strict';
-importScripts('../lib/holdings-bars.js?v=holdings-bars-v1','../lib/holdings-neural.js?v=26.10.19.1845','../lib/holdings-isolation.js?v=holdings-isolation-v1');
+importScripts('../lib/holdings-bars.js?v=holdings-bars-v1','../lib/holdings-neural.js?v=26.10.28.1420','../lib/holdings-isolation.js?v=holdings-isolation-v1');
 self.onmessage=function(event){const {id,bars:raw,now}=event.data||{};try{const prep=HoldingsBars.prepare(raw),bars=prep.bars;const rows=HoldingsIsolation.dataset(bars,now),result=HoldingsIsolation.evaluate(rows,{progress:p=>self.postMessage({id,progress:p})});if(!HoldingsIsolation.valid(result))throw Error('Rezultatul Isolation Forest nu poate fi verificat.');result.historyCut=prep.cut;self.postMessage({id,result});}catch(error){self.postMessage({id,error:error.message||'Anomaliile nu au putut fi analizate.'});}};
