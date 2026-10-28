@@ -113,7 +113,8 @@ test('versiunea CERUTĂ există în cache → servită instant (SWR păstrat)', 
 
   const res = await serve(ctx, ORIGIN + LIB + '?v=796');
   assert.equal(res.body, 'EXACT', 'potrivirea exactă pe versiune trebuie servită din cache, fără drum la rețea');
-  assert.ok(calls.fetch.length >= 1, 'revalidarea în fundal (SWR) trebuie să pornească oricum');
+  // 28.10.2026 (I-775): versiunea cerută e definitivă ⇒ nicio revalidare în fundal (înainte: ~120 cereri 304 la fiecare deschidere a Portofoliului)
+  assert.equal(calls.fetch.length, 0, 'un fișier versionat găsit exact nu mai pornește revalidarea');
 });
 
 test('offline: rețeaua pică, versiunea cerută lipsește → cade pe orice copie, nu pe 504', async () => {

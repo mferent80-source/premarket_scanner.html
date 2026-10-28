@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
-const CACHE_VERSION = 'tt-v991-2026-10-28';
+const CACHE_VERSION = 'tt-v992-2026-10-28';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -161,6 +161,16 @@ self.addEventListener('install', e => {
     const fresh = await caches.open(CACHE_NAME);
     const oldKey = (await caches.keys()).filter(k => k.startsWith('trading-tools-') && k !== CACHE_NAME).pop();
     const old = oldKey ? await caches.open(oldKey) : null;
+    // 28.10.2026 (I-775): tot ce era în cache cu `?v=` se COPIAZĂ în cache-ul nou — un fișier cerut cu versiunea lui e același conținut
+    // oricând. Înainte, `activate` ștergea tot și fiecare publicare re-descărca pe telefon toate bibliotecile (Portofoliu: 122 fișiere,
+    // ~1,3 MB), chiar dacă doar două se schimbaseră. Pe fiecare cale rămâne doar ultima versiune cerută (ordinea cheilor = ordinea scrierii).
+    if (old) {
+      try {
+        const ultima = new Map();
+        for (const r of await old.keys()) { const u = new URL(r.url); if (isVersioned(u)) ultima.set(u.origin + u.pathname, r); }
+        await Promise.all([...ultima.values()].map(async r => { try { const hit = await old.match(r); if (hit) await fresh.put(r, hit); } catch (err) { console.warn('[SW] copierea versiunii:', r.url, err && err.message); } }));
+      } catch (err) { console.warn('[SW] copierea versiunilor:', err && err.message); }
+    }
     await Promise.all(PRECACHE.map(async u => {
       try {
         if (old) {
@@ -267,6 +277,10 @@ function assetSWR(e, req, url) {
     ? caches.match(new Request(cacheKeyFor(url)))
     : caches.match(req, { ignoreSearch: true });
   return exact.then(hit => {
+    // 28.10.2026 (I-775): un fișier cerut cu `?v=` și găsit EXACT e definitiv — nu se mai revalidează în fundal. Înainte, fiecare
+    // deschidere a Portofoliului pornea ~120 de cereri de revalidare (304) pe telefon, înaintea datelor paginii (Yahoo, Trading 212).
+    // Fișierele fără `?v=` rămân stale-while-revalidate, ca până acum.
+    if (hit && isVersioned(url)) return hit;
     // refresh-ul din fundal cu 'no-cache': revalidare ETag la origine, nu
     // HTTP cache-ul browserului — altfel cache-ul SW re-primea 10 min
     // același conținut vechi și suita rămânea mereu cu un deploy în urmă
@@ -298,10 +312,23 @@ self.addEventListener('fetch', e => {
   // assetSWR (care face `ignoreSearch:true`, deci ignoră până și `?v=`), un SW vechi returna
   // versiunea veche, paginile re-înregistrau exact acel SW și update-ul se bloca permanent.
   // Fișierul care rupe bucla nu are voie să vină din bucla însăși → network-first.
+  // 28.10.2026 (I-775): HTML-ul unui modul cerut de carcasă cu `v=<versiunea aplicației>` (app/index.html, moduleTarget) e HTML-ul ACELEI
+  // versiuni: copia exactă din cache se servește pe loc, revalidarea merge în fundal. O versiune nouă a aplicației schimbă `v` ⇒ rețea, ca înainte;
+  // hubul, update.html și modulele deschise direct (fără `v`) rămân network-first cu rezervă din cache după 3,5 s.
+  if (isHubEntry(url, req) && isVersionedHtml(url)) { e.respondWith(htmlVersionat(e, req, url)); return; }
   if (isHubEntry(url, req) || /\/lib\/suite-version\.js$/.test(url.pathname)) {
     e.respondWith(htmlNetworkFirst(e, req, url));
   } else e.respondWith(assetSWR(e, req, url));
 });
+const APP_V_RE = /^\d{2}\.\d{2}\.\d{2}\.\d{4}$/;
+function isVersionedHtml(url) { return APP_V_RE.test(url.searchParams.get('v') || ''); }
+function htmlVersionat(e, req, url) {
+  return caches.match(new Request(cacheKeyFor(url))).then(hit => {
+    if (!hit) return htmlNetworkFirst(e, req, url);   // prima deschidere a versiunii: rețea, apoi copia intră în cache sub cheia cu `v`
+    e.waitUntil(fetch(req, { cache: 'no-cache' }).then(res => cachePut(url, res)).catch(() => {}));
+    return hit;
+  });
+}
 
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
