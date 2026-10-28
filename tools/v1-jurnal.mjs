@@ -65,6 +65,14 @@ export function planReluare({ jurnal, V, azi = new Date().toISOString().slice(0,
   const prima = (jurnal?.zile || []).filter((z) => z.v === V && z.zi).map((z) => z.zi).sort()[0] || azi, range = intervalPentru(prima, azi), toate = simboluriDeReluat(jurnal, V);
   return { range, simboluri: range === '2y' ? toate.filter((x) => !cunoscute[x]) : toate };
 }
+/** 28.10.2026 (revizia F2, 🟡5): noaptea după aducerea seriilor, ca funcție pură — fișierul probei, ce e de înghețat și liniile de adăugat,
+ *  din jurnal, ziua notată, seriile (tăiate aici la ziua ei) și TEXTUL fișierului înghețat. `main` doar citește și scrie; testată noapte de
+ *  noapte (tools/robot-noapte.test.mjs): un robot care n-ar citi fișierul înghețat pierde perioadele când seriile se scurtează. */
+export function noapte({ jurnal, V, rec, report, serii: s, cal, azi, inghetatText = '' }) {
+  const ev = taieLaZi(s, rec.zi), sesiuni = (ev.SPY || []).map((x) => x.d), inghetate = citesteInghetat(inghetatText);
+  const { deScris, ...j } = continutProba({ jurnal, V, rec, report, serii: ev, sesiuni, cal, azi, inghetate });
+  return { j, deScris, linii: deScris.length ? liniiInghetat(deScris) : '' };
+}
 async function main() {
   const c = motor(), V = versiuneaDeAzi('.');
   const report = await c.IndependentScanner.scan({ symbols: [...PROTOCOL.univers], concurrency: 3 });
@@ -79,12 +87,10 @@ async function main() {
   // 27.10.2026 (revizia F, 🔴1 / 🟡10): seriile acoperă toată proba (planReluare), apoi se taie la ziua notată (fără bare intraday)
   const plan = planReluare({ jurnal, V });
   for (const s of plan.simboluri) { try { await fetchStock(s, { range: plan.range, interval: '1d' }); } catch (e) { console.log('serie ' + s + ' (' + plan.range + '): ' + e.message); } }
-  const ev = taieLaZi(serii, rec.zi), sesiuni = (ev.SPY || []).map((x) => x.d);
-  const inghetate = existsSync(INGHETAT) ? citesteInghetat(readFileSync(INGHETAT, 'utf8')) : [];
-  const { deScris, ...j } = continutProba({ jurnal, V, rec, report, serii: ev, sesiuni, cal: calendarSUA('.'), azi: new Date().toISOString().slice(0, 10), inghetate });
+  const { j, deScris, linii } = noapte({ jurnal, V, rec, report, serii, cal: calendarSUA('.'), azi: new Date().toISOString().slice(0, 10), inghetatText: existsSync(INGHETAT) ? readFileSync(INGHETAT, 'utf8') : '' });
   writeFileSync(JURNAL, JSON.stringify(jurnal));
   writeFileSync(PROBA, JSON.stringify(j, null, 1));
-  if (deScris.length) { appendFileSync(INGHETAT, liniiInghetat(deScris)); console.log('  înghețat: ' + deScris.map((x) => x.tip + ' k=' + x.k + ' ' + (x.zi || x.data)).join(', ')); }
+  if (linii) { appendFileSync(INGHETAT, linii); console.log('  înghețat: ' + deScris.map((x) => x.tip + ' k=' + x.k + ' ' + (x.zi || x.data)).join(', ')); }
   console.log(`V1 ${V} · ziua ${rec.zi} · ${report.verifiedCount}/${report.items.length} verificate · ${j.zile} zile în probă · primul verdict ~${j.primulVerdict?.realist || '—'}`);
   for (const o of j.orizonturi) console.log(`  k=${o.k}: ` + (o.necesare ? `${o.perioade}/${o.necesare} perioade · ${o.verdict}` : `${o.perioade} perioade · doar monitorizare`));
 }

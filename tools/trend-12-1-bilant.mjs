@@ -6,8 +6,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { bilant, mesajBilantDiscord, continutBilant, citesteInghetatTrend, amprentaClasamentTrend, liniiInProba } from './trend-12-1-lib.mjs';
-import { calendarSUA, intervalPentru } from '../lib/proba-contract.mjs';
+import { bilant, mesajBilantDiscord, continutBilant, citesteInghetatTrend, amprentaClasamentTrend, liniiInProba, intervaleBilant } from './trend-12-1-lib.mjs';
+import { calendarSUA } from '../lib/proba-contract.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GEN = path.join(ROOT, 'candidate-engine', 'generated');
@@ -26,9 +26,8 @@ istoric.forEach((l) => { (l.top || []).forEach(([s]) => simboluri.add(s)); (l.un
 const inghetate = fs.existsSync(F_INGHETAT) ? citesteInghetatTrend(fs.readFileSync(F_INGHETAT, 'utf8')) : [];
 // 27.10.2026 (revizia F, 🔴3): SPY pe un interval care acoperă prima zi a istoricului (le așază pe toate în calendar); acțiunile doar de la prima
 // zi încă neînghețată (2y ⇒ 5y ⇒ 10y) — înainte totul era fix pe 2 ani și ferestrele vechi ieșeau din calcul (fereastră alunecătoare)
-const gataZi = new Set(inghetate.filter((x) => x && x.tip === 'zi' && x.h === 20).map((x) => x.d)), gata60 = new Set(inghetate.filter((x) => x && x.tip === 'zi' && x.h === 60).map((x) => x.d));
-const primaVie = (istoric.find((l) => !(gataZi.has(l.d) && gata60.has(l.d))) || istoric[istoric.length - 1]).d, azi = new Date().toISOString().slice(0, 10);
-const RANGE_SPY = intervalPentru(istoric[0].d, azi), RANGE = intervalPentru(primaVie, azi);
+// 28.10.2026 (revizia F2, 🟡5): intervalele vin din funcția testată (un SPY fix pe 2 ani ar fi oprit bilanțul după ~10.2028)
+const azi = new Date().toISOString().slice(0, 10), { RANGE_SPY, RANGE } = intervaleBilant(istoric, inghetate, azi);
 console.log('istoric: ' + istoric.length + ' zile (' + istoric[0].d + ' … ' + istoric[istoric.length - 1].d + ') · simboluri de adus: ' + simboluri.size + ' · înghețate: ' + inghetate.length + ' · interval ' + RANGE + ' (SPY ' + RANGE_SPY + ')');
 
 const preturi = {}, picate = [];

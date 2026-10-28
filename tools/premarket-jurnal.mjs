@@ -90,6 +90,13 @@ export function continutProba({ jurnal, V, rec, s, serii: sr, sesiuni, cal, azi,
     azi: { verificate: s.verified, total: s.scanned, topLong: rec.r.filter((x) => x[1] === 'm').length, reversal: rec.r.filter((x) => x[5] === 'r').length, repere: s.benchmarks },
     orizonturi: c.orizonturi, putere: c.putere, primulVerdict: c.primulVerdict, judecata: c.judecata, sesiuni: c.sesiuni, deScris };
 }
+/** 28.10.2026 (revizia F2, 🟡5): noaptea după aducerea seriilor, ca funcție pură (ca la V1) — fișierul probei, ce e de înghețat și liniile de
+ *  adăugat, din jurnal, ziua notată, starea scannerului, seriile (tăiate aici la ziua ei) și TEXTUL fișierului înghețat. */
+export function noapte({ jurnal, V, rec, s, serii: sr, cal, azi, inghetatText = '' }) {
+  const ev = taieLaZi(sr, rec.zi), sesiuni = (ev.SPY || []).map((x) => x.d), inghetate = citesteInghetat(inghetatText);
+  const { deScris, ...j } = continutProba({ jurnal, V, rec, s, serii: ev, sesiuni, cal, azi, inghetate });
+  return { j, deScris, linii: deScris.length ? liniiInghetat(deScris) : '', sesiuni };
+}
 async function main() {
   const cal = await calendarPentruProba(PROTOCOL);   /* 19.10.2026 — I-720: oprit pentru premarket-proba-1; 27.10: și pentru premarket-proba-2 */
   console.log('calendar: ' + (cal.folosit ? cal.n + ' raportări din Finnhub' : cal.motiv));
@@ -110,12 +117,11 @@ async function main() {
   const range = intervalPentru(jurnal.zile.find((z) => z.v === V)?.zi || rec.zi);
   for (const sym of simboluriDeReluat(jurnal, V)) { try { await fetchCuBare(sym, { range, interval: '1d' }); } catch (e) { console.log('serie ' + sym + ': ' + e.message); } }
   // 27.10.2026 (revizia F, 🟡10): seriile de evaluare se taie la ziua notată (o rulare de dimineață vede bursele UE deschise)
-  const ev = taieLaZi(serii, rec.zi), sesiuni = (ev.SPY || []).map((x) => x.d), calNY = calendarSUA('.'), azi = new Date().toISOString().slice(0, 10);
-  const inghetate = existsSync(INGHETAT) ? citesteInghetat(readFileSync(INGHETAT, 'utf8')) : [];
-  const { deScris, ...j } = continutProba({ jurnal, V, rec, s, serii: ev, sesiuni, cal: calNY, azi, inghetate });
+  const calNY = calendarSUA('.'), azi = new Date().toISOString().slice(0, 10);
+  const { j, deScris, linii, sesiuni } = noapte({ jurnal, V, rec, s, serii, cal: calNY, azi, inghetatText: existsSync(INGHETAT) ? readFileSync(INGHETAT, 'utf8') : '' });
   writeFileSync(JURNAL, JSON.stringify(jurnal));
   writeFileSync(PROBA, JSON.stringify(j, null, 1));
-  if (deScris.length) { appendFileSync(INGHETAT, liniiInghetat(deScris)); console.log('  înghețat: ' + deScris.map((x) => x.tip + ' k=' + x.k + ' ' + (x.zi || x.data)).join(', ')); }
+  if (linii) { appendFileSync(INGHETAT, linii); console.log('  înghețat: ' + deScris.map((x) => x.tip + ' k=' + x.k + ' ' + (x.zi || x.data)).join(', ')); }
   console.log(`Premarket ${V} · ziua ${rec.zi} · ${s.verified}/${s.scanned} verificate · Top Long ${j.azi.topLong} · ${j.zile} zile în probă · primul verdict ~${j.primulVerdict?.realist || '—'}`);
   for (const o of j.orizonturi) console.log(`  k=${o.k}: ` + (o.necesare ? `${o.perioade}/${o.necesare} perioade · ${o.verdict}` : `${o.perioade} perioade · doar monitorizare`));
   umbra(h, s, rec.zi, sesiuni, calNY, azi);   /* 19.10.2026 — I-716; 27.10: + calendarul pentru câmpurile de contract */

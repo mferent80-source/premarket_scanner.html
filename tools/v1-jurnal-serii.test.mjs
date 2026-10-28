@@ -38,9 +38,10 @@ test('seriile de evaluare se taie la ultima sesiune încheiată (ziua notată); 
   assert.deepEqual(taieLaZi(s, null), s, 'fără zi: nimic tăiat');
 });
 test('robotul V1 folosește planul reluării și seriile tăiate (nu mai evaluează pe barele brute de 2 ani)', () => {
-  const src = readFileSync('tools/v1-jurnal.mjs', 'utf8'), main = src.slice(src.indexOf('async function main'));
-  assert.match(main, /planReluare\(/); assert.match(main, /taieLaZi\(serii, rec\.zi\)/);
+  // 28.10.2026 (revizia F2, 🟡5): tăietura stă în funcția de noapte (testată noapte de noapte în tools/robot-noapte.test.mjs), chemată de main
+  const src = readFileSync('tools/v1-jurnal.mjs', 'utf8'), main = src.slice(src.indexOf('async function main')), noapte = src.slice(src.indexOf('export function noapte'), src.indexOf('async function main'));
+  assert.match(main, /planReluare\(/); assert.match(noapte, /taieLaZi\(s, rec\.zi\)/); assert.match(main, /noapte\(\{ jurnal, V, rec, report, serii,/);
   assert.doesNotMatch(main, /range: '2y', interval: '1d'/, 'reperele nu mai sunt aduse fix pe 2 ani');
-  const pm = readFileSync('tools/premarket-jurnal.mjs', 'utf8'), mainPm = pm.slice(pm.indexOf('async function main'));
-  assert.match(mainPm, /taieLaZi\(serii, rec\.zi\)/, 'Top Long: aceeași tăietură (rularea de dimineață)');
+  const pm = readFileSync('tools/premarket-jurnal.mjs', 'utf8'), mainPm = pm.slice(pm.indexOf('async function main')), noaptePm = pm.slice(pm.indexOf('export function noapte'), pm.indexOf('async function main'));
+  assert.match(noaptePm, /taieLaZi\(sr, rec\.zi\)/, 'Top Long: aceeași tăietură (rularea de dimineață)'); assert.match(mainPm, /noapte\(\{ jurnal, V, rec, s, serii,/);
 });

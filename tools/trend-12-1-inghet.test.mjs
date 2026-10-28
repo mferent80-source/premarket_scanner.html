@@ -60,7 +60,7 @@ test('garda: trend-12-1-inghetat.jsonl doar crește față de ultimul commit', (
 });
 test('robotul bilanțului: prețuri pe intervalul care acoperă istoricul, fișierul înghețat citit și crescut, fluxul îl salvează și îl păzește', () => {
   const s = readFileSync('tools/trend-12-1-bilant.mjs', 'utf8');
-  assert.doesNotMatch(s, /range=2y/, 'nu mai e fix pe 2 ani'); assert.match(s, /intervalPentru\(/); assert.match(s, /trend-12-1-inghetat\.jsonl/); assert.match(s, /appendFileSync\(F_INGHETAT/);
+  assert.doesNotMatch(s, /range=2y/, 'nu mai e fix pe 2 ani'); assert.match(s, /intervaleBilant\(/, '28.10 (revizia F2, 🟡5): intervalele din funcția testată'); assert.match(s, /trend-12-1-inghetat\.jsonl/); assert.match(s, /appendFileSync\(F_INGHETAT/);
   assert.match(s, /mesajBilantDiscord\(/, 'Discord primește mesajul cu eticheta');
   const y = readFileSync('.github/workflows/trend-12-1-bilant.yml', 'utf8'); assert.match(y, /trend-12-1-inghetat\.jsonl/); assert.match(y, /tools\/trend-12-1-inghet\.test\.mjs/);
 });

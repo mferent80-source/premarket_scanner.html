@@ -11,7 +11,7 @@
 //   regim = SPY închis peste media simplă pe 200 de zile (2022, an negativ, cade când regimul e oprit)
 
 import { readFileSync } from 'node:fs';
-import { mulberry32, gauss, amprentaFunctii, amprentaText, inchidere, dupaSesiuni, sesiuniIntre, primulVerdict, judecata as judecataDin } from '../lib/proba-contract.mjs';
+import { mulberry32, gauss, amprentaFunctii, amprentaText, inchidere, dupaSesiuni, sesiuniIntre, primulVerdict, intervalPentru, judecata as judecataDin } from '../lib/proba-contract.mjs';
 import { ETICHETA_NEVERIFICAT } from './discord-mesaj.mjs';
 
 const zi = (t) => new Date(t).toISOString().slice(0, 10);
@@ -345,6 +345,14 @@ export function continutBilant(b, istoric, { cal = null, azi, la }) {
     putere: c.putere, primulVerdict: c.primulVerdict, judecata: c.judecata, sesiuni: { notate: zile.length, asteptate }
   };
 }
+/** 28.10.2026 (revizia F2, 🟡5): intervalele Yahoo ale bilanțului, ca funcție (testată pe comportament, nu pe șir): SPY acoperă prima zi a
+ *  istoricului (le așază pe toate în calendar), acțiunile doar de la prima zi încă neînghețată la 20 ȘI la 60 de zile (2y ⇒ 5y ⇒ 10y). */
+export function intervaleBilant(istoric, inghetate, azi) {
+  const zi = (h) => new Set((inghetate || []).filter((x) => x && x.tip === 'zi' && x.h === h).map((x) => x.d)), g20 = zi(20), g60 = zi(60);
+  const primaVie = ((istoric || []).find((l) => !(g20.has(l.d) && g60.has(l.d))) || istoric[istoric.length - 1]).d;
+  return { RANGE_SPY: intervalPentru(istoric[0].d, azi), RANGE: intervalPentru(primaVie, azi), primaVie };
+}
+
 /* ---------- 28.10.2026 (revizia F2, 🟡3): amprenta CLASAMENTULUI pe fiecare linie de istoric ---------- */
 /** Ce decide primele 20 și universul zilei: închiderea din acest fișier pornind de la `clasament`, `curataUnivers`, `regim`,
  *  `taieBaraPartiala`, `liniaIstoric`, plus pragurile robotului (`MIN_CAP`, `N`, `TOP` din tools/trend-12-1.mjs). `instantaneuUnivers`
