@@ -7582,3 +7582,54 @@ Context: măsurat pe fișierele paginilor — Portofoliu 122 de fișiere (~1,3 M
 - **Constatarea (audit cu biblioteca reală, 28.10):** pe seria demo deterministă KNN bate ambele repere la log-loss cu mult (≈0,6 față de ≈0,9), dar pică la a doua condiție a lui `edge`: acuratețea echilibrată a argmax-ului (0,49–0,63) nu depășește cu 0,02 regula de momentum (0,53–0,60), deci `advantage` e fals în 2–3 ferestre din 3 ⇒ 0/4 „research” pe demo; pe 20 de lumi de mers aleator: 0 avantaj, 11 „fără avantaj”, 9 „de graniță” (diferență sub 10 pp între vecini). Verdictul cere KNN „research” (`k.eligible`) pentru direcție ⇒ chiar cu Neural și Boosting „research” (demo FICTIVB), verdictul rămâne „Neconcludent”. KNN e un estimator de FRECVENȚE: log-loss-ul e metrica lui firească; acuratețea echilibrată a argmax-ului penalizează un model bine calibrat dar înclinat spre clasa majoritară.
 - **Decizia (28.10, Marius: „OK” la propunerea b):** KNN e model de CONTEXT, ca HMM. Raportul lui rămâne obligatoriu (fără el verdictul e incomplet), dar fără avantaj repetat nu votează și nu blochează; blochează doar când, eligibil, estimează altă clasă (conflict, ca înainte) sau când e de graniță cu vecinii împărțiți între cele două EXTREME, Declin și Avans (`card.split` ⇒ „Prudență · vecini istorici împărțiți”; de graniță între Mixt și o extremă nu e „împărțit”). Motivarea: KNN nu are informație pe care Neural și Boosting să n-o aibă (aceiași indicatori, etichete, istoric); argmax-ul lui pe frecvențe nu e metrica pe care trece testul, deci veto-ul lui pe direcție era incoerent; vecinii împărțiți între extreme sunt însă un semn real de prudență. Neural și Boosting rămân cerute în toate cele trei ferestre; cuantilele, HMM și Isolation rămân cerute. Verdictul devine `holdings-verdict-v4` în registru (regulile s-au schimbat în I-777 și aici); v3 rămâne istoric (`LEGACY.verdict`). Diagnosticul mută KNN în panoul de context și pune „fără avantaj” ca notă, nu blocaj. Fără simulare nouă: nu e un test statistic nou, iar niciun prag nu coboară pentru modelele care dau direcția.
 - **Opțiunile cântărite:** (a) `holdings-knn-v2`: `edge` doar pe log-loss (marja 0,02 rămâne), cu simulare de mărime sub H0 înainte; (b) KNN devine model de CONTEXT în verdict, ca HMM: nu mai e cerut „research” pentru direcție, dar un KNN eligibil de sens opus blochează („conflict”) ca acum; (c) rămâne așa — direcția va cere ca KNN să bată momentumul și la acuratețe, ceea ce pe acțiuni reale e aproape imposibil. (a) respinsă: ar da KNN drept de veto pe baza unei metrici (log-loss) care nu măsoară direcția pe care votează (argmax); în plus 9/20 lumi aleatoare ies „de graniță”. (b) aleasă. (c) respinsă de Marius.
+
+
+## 28.10.2026 — Audit sever „Din Radar” (Alerte) — docs/AUDIT-RADAR-2026-10-28.md
+Context: cerut de Marius („audit sever din toate direcțiile pe radar”). Acoperire: lib/radar-poza.js, lib/radar-ecran.js, lib/radar-ui.css, blocul DIN RADAR din alerts/index.html, legăturile spre worker (stop-setter, today/stop), CSP, precache, sincronizarea cheii. Worker-ul Paznicului și colectorul (alt depozit) nu au fost auditate. Pump Radar rămâne oprit (12.10).
+
+#### I-781 · Numerele din poză intră în HTML doar ca numere (XSS prin câmpurile insiderilor / probei / planului botului) · [S] · P1 · făcut 2026-10-28
+- **Problema/golul:** `insText` (bp, sp, buys, sells), `blocInsideri`, `dovadaSLTP` (k), `randSimbol` (proba.n) și `randBot` (plan.afaraOre) concatenau valoarea din poză direct în HTML; textele treceau prin `esc()`, numerele nu. Probă: `bp: '<img src=x onerror=…>'` ajungea brut în pagină, pe ambele file — pe aceeași origine cu cheia de citire, parola Radarului și cheia releului.
+- **Soluția:** `cnt(x)`: doar un număr finit e scris, altfel „—”; folosit în toate cele șapte locuri. Test cu HTML în fiecare câmp, pe ambele file.
+- **Fișiere atinse:** lib/radar-ecran.js, tools/radar-ecran.test.mjs
+
+#### I-782 · Parola Radarului pleacă în link doar spre gazdele Radarului lui · [S] · P1 · făcut 2026-10-28
+- **Problema/golul:** `radarLink` punea `#parola=` spre ORICE adresă http(s) din `poza.radarUrl`; o poză cu adresă străină ducea parola pe pagina altcuiva (o citește din `location.hash`).
+- **Soluția:** `gazdaDeIncredere`: 127.0.0.1 / localhost, `*.ts.net`, `*.trycloudflare.com`. Altfel linkul rămâne fără parolă și nota spune „parola NU intră în link”. Test cu 4 gazde bune și 4 străine (inclusiv `ts.net.rau.com`).
+- **Rămâne:** parola să nu mai plece prin URL deloc (sesiune Tailscale o singură dată, în Radar).
+- **Fișiere atinse:** lib/radar-ecran.js, tools/radar-ecran.test.mjs
+
+#### I-783 · Pauza de noapte explică doar poza de aseară; una mai veche e „oprit” · [S] · P1 · făcut 2026-10-28
+- **Problema/golul:** `prospetime` între 23:00 și 08:10 întorcea „noapte” (verde în sumar) pentru orice poză, și pentru una de acum 3 zile; colectorul oprit de ieri trecea neobservat toată noaptea și la deschiderea de dimineață.
+- **Soluția:** vârsta pozei ≤ minutele de la ultimul 23:00 + 60 ⇒ noapte; altfel „oprit de N h · nu e doar pauza de noapte”. Test: 3 zile / ieri 10:00 ⇒ oprit; aseară 22:59 ⇒ noapte (și la 08:05).
+- **Fișiere atinse:** lib/radar-poza.js, tools/radar-poza-ore.test.mjs
+
+#### I-784 · P&L-ul live al poziției: valoarea din poză × raportul prețurilor − cost (nu scalarea prin poză − mediu) · [S] · P1 · făcut 2026-10-28
+- **Problema/golul:** `pplLei * (live − mediu) / (poză − mediu)`: la poziția pe zero numitorul → 0; probă: −5 lei comisioane deveneau −500 lei pe ecran (așteptat ≈ +40 lei la +1 %).
+- **Soluția:** `(costLei + pplLei) × live / poză − costLei`; fără `costLei` în poză rămâne cifra nescalată. Test: +40 lei; paritate cu regula veche pe o poziție obișnuită; colector vechi fără cost ⇒ cifra din poză.
+- **Rămâne (I-787):** sumarul „Trading 212 · pe deschise” adună încă `pplLei` din poză, nu cifrele live ale rândurilor.
+- **Fișiere atinse:** lib/radar-ecran.js, tools/radar-ecran.test.mjs
+
+#### I-785 · Caseta cheii și textul scris rămân peste re-randare; lista de simboluri se retrimite după o citire reușită · [S] · P2 · făcut 2026-10-28
+- **Problema/golul:** re-randarea integrală la 30 s (poll) și la 10 s (Binance) închidea caseta 🔑 deschisă de om și îi golea câmpurile cât tasta — `radRandeaza` păzea doar formularele de simbol și Salt (candidat la „se tot șterge cheia”, 18.10). Separat: lista de simboluri pleca la worker doar la schimbare; worker căzut atunci = colectorul nu afla de simbolul nou.
+- **Soluția:** pagina nu re-randează cât cursorul e în `#radCheieForm`; `randeaza` păstrează `hidden` al casetei și valorile `radCheie`/`radParola`; după salvare reușită caseta se golește și se închide. La prima poză cu status 200, dacă semnătura listei diferă de ultima trimisă cu succes, `radTrimiteSimboluri()`.
+- **Fișiere atinse:** alerts/index.html, lib/radar-ecran.js, tools/radar-ecran.test.mjs, tools/alerts-radar.test.mjs
+
+#### I-786 · Contract al pozei (exemplu JSON + test cu HTML în fiecare frunză), în ambele depozite · [M] · P1 · propus
+- **Problema/golul:** câmpurile pozei și semnificația lor (`pplLei`, `costLei`, `pctLei`, `boti[].la`) sunt presupuse din comentarii; I-781 a acoperit câmpurile știute azi, un câmp nou nescapat ar trece neobservat.
+- **Soluția:** `exemplu-poza.json` ținut aici și în colector; test aici care parcurge exemplul și pune HTML în fiecare frunză, apoi cere ca nimic să nu ajungă brut în `randeaza`; test în colector că exemplul e produs valid (ca `exemplu-rezumat.json` la Busolă, I-516).
+- **Fișiere:** lib/radar-ecran.js, tools/radar-ecran.test.mjs, docs/ (exemplul)
+
+#### I-787 · Sumarul T212 din aceleași cifre ca rândurile (live), cu eticheta sursei · [S] · P2 · propus
+- **Problema/golul:** cardul „Trading 212 · pe deschise” adună `pplLei` din poză; rândurile arată P&L-ul la cotația live (I-784) ⇒ cardul și rândurile pot spune altceva în aceeași secundă.
+- **Soluția:** o singură funcție de P&L pe rând, refolosită de sumar; eticheta „la cotația live” / „din poză”; test: card = suma rândurilor.
+- **Fișiere:** lib/radar-ecran.js
+
+#### I-788 · Binance la 10 s doar pe fila „Ce dețin”, rărit noaptea · [S] · P2 · propus
+- **Problema/golul:** `radAduBotiLive` cere `fapi.binance.com/klines` pentru fiecare bot la 10 s, zi și noapte, pe ambele file, cât pagina e vizibilă (3 boți ≈ 1 000 de cereri pe oră, baterie pe telefon).
+- **Soluția:** doar pe fila det; 60 s noaptea (ritmul lui `citireMs`); test că pe fila urm nu pleacă nimic.
+- **Fișiere:** alerts/index.html, tools/alerts-radar.test.mjs
+
+#### I-789 · Vârsta pe fiecare tabel și `boti[].la` în regula de vârstă a rândului · [S] · P2 · propus
+- **Problema/golul:** vârsta pozei se vede doar în cap; un bot citit demult într-o poză vie arată la fel ca unul proaspăt; `radar_url` acceptă orice https, dar CSP-ul lasă doar `*.mferent80.workers.dev` și `*.ts.net` — o adresă nelistată dă „Radarul nu răspunde (Failed to fetch)” fără să spună că CSP-ul a oprit-o.
+- **Soluția:** „poza de la HH:MM” lângă T212 / boți / Salt; chip „citit acum N min” pe bot când `la` e mai vechi de 10 min; mesaj „adresa nu e permisă de politica paginii” când gazda nu e în CSP.
+- **Fișiere:** lib/radar-ecran.js, lib/radar-poza.js

@@ -139,3 +139,8 @@ test('v142: pagina dă ecranului adresa neobișnuită și ascultă butonul ↺ (
   assert.match(HTML, /adresa: RadarPoza\.adresaAltfel\(\)/, 'randeaza primește adresa');
   assert.match(HTML, /addEventListener\('radar:adresa'[^\n]*RadarPoza\.puneUrl\(null\)[^\n]*citeste\(\{ fortat: true \}\)/, '↺ șterge adresa salvată și citește iar');
 });
+// 28.10.2026 (audit Radar): lista de simboluri care n-a ajuns la worker (căzut la schimbare) pleacă iar la prima poză citită cu succes
+test('audit 28.10: lista de simboluri se retrimite la worker după o citire reușită dacă ultima trimitere n-a ajuns', () => {
+  assert.match(HTML, /if \(r && r\.status === 200 && JSON\.stringify\(radSimboluri\(\)\) !== _radSimUltima\) radTrimiteSimboluri\(\);/);
+  assert.match(HTML, /RadarPoza\.trimiteSimboluri\(l\)\.then\(ok => \{ if \(ok\) _radSimUltima = semn; \}\)/, 'semnătura se notează doar la succes');
+});

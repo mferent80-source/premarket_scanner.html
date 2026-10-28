@@ -580,3 +580,79 @@ test('v146 (el, 07.10: „la boți Pionex pune totalul, suma, și cât are botul
   assert.match(el.innerHTML, /investit 48,9 USDT/); assert.match(el.innerHTML, /▲ \+1,0 USDT \(\+2,1%\)/);
   assert.match(el.innerHTML, /Investit <b>48,9 USDT<\/b> · acum <b>49,9 USDT<\/b>/, 'antetul tabelului');
 });
+
+// ===== 28.10.2026 — auditul sever al Radarului (docs/AUDIT-RADAR-2026-10-28.md) =====
+// Poza e date, nu cod: numerele care intrau în HTML fără esc() (persoane, cumpărări, vânzări, intrări, orele planului botului)
+// trec acum printr-un filtru numeric; orice text sau HTML pus acolo devine „—”.
+test('audit 28.10 · securitate: HTML strecurat în câmpurile numerice ale pozei (insideri, proba sugestiei, planul botului) nu ajunge în pagină', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const RAU = ['<img src=x onerror=alert(1)>', '<svg onload=1>', '<u>nn</u>', '<i>sp</i>', '<em>k</em>'];
+  const poza = { la: ACUM, t212: [{ s: 'AVGO', pret: 100, prev: 99, la: ACUM, mediu: 90, buc: 1, pplLei: 10, costLei: 400,
+      insideri: { form4: true, verdict: 'bull', bp: RAU[0], net: 5, buys: RAU[0], sells: RAU[1], sp: RAU[3], n60: 1 }, sugestie: { stop: 80, tinta: 120, k: RAU[4], proba: { n: RAU[2], pePlus: .5, medie: .01 } } }],
+    boti: [{ s: 'JTO', pret: 1, plan: { plus: 1, minus: 1, afaraOre: RAU[1] }, lev: 5, investit: 10 }],
+    simboluri: [{ s: 'NFLX', pret: 10, prev: 9, closes30: [9, 10], insideri: { form4: true, verdict: 'bear', bp: 0, sp: RAU[3], sells: RAU[0], buys: 0, net: -5, n60: 1 }, sugestie: { stop: 8, tinta: 12, k: RAU[4], intrare: { pret: 9.5, motiv: 'x' }, proba: { n: RAU[2], pePlus: .4, medie: -.01 } } }] };
+  for (const fila of ['det', 'urm']) {
+    RadarEcran.randeaza(el, poza, O(poza, { fila, simboluri: [{ s: 'NFLX', nota: '' }] }));
+    for (const r of RAU) assert.ok(!el.innerHTML.includes(r), fila + ': a intrat brut în HTML: ' + r);
+    assert.doesNotMatch(el.innerHTML, /onerror|onload/, fila);
+  }
+  assert.match(el.innerHTML, /— intrări/, 'numărul lipsă se scrie „—”');
+  assert.equal(RadarEcran.insText({ form4: true, verdict: 'bull', bp: 3, net: 1200 }, true).m, '3 persoane · net +1 k acț.', 'numerele adevărate rămân numere');
+});
+// Parola Radarului pleacă în linkurile „Deschide în Radar” doar spre gazdele LUI: acasă (127.0.0.1 / localhost), *.ts.net, *.trycloudflare.com.
+test('audit 28.10 · securitate: cu o adresă străină în poză, linkul spre Radar nu mai duce parola după #; adresele lui o duc ca înainte', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  for (const buna of ['https://abc-def.trycloudflare.com', 'https://pc.tailabc.ts.net:8443', 'http://127.0.0.1:8788', 'http://localhost:8788']) {
+    const poza = POZA_BAZA(); poza.radarUrl = buna; RadarEcran.randeaza(el, poza, O(poza, { parolaRadar: 'Secret.1' }));
+    assert.match(el.innerHTML, /#parola=Secret\.1&amp;ecran=t212/, 'parola merge spre ' + buna);
+  }
+  for (const straina of ['https://evil.example/', 'https://ts.net.rau.com/', 'https://trycloudflare.com.rau.net/', 'http://192.168.1.20:8788/']) {
+    const poza = POZA_BAZA(); poza.radarUrl = straina; RadarEcran.randeaza(el, poza, O(poza, { parolaRadar: 'Secret.1' }));
+    assert.doesNotMatch(el.innerHTML, /Secret\.1/, 'parola NU pleacă spre ' + straina);
+    assert.match(el.innerHTML, /#ecran=t212"/, 'linkul rămâne, fără parolă: ' + straina);
+    assert.match(el.innerHTML, /parola NU intră în link/, 'se spune de ce: ' + straina);
+  }
+  const fara = POZA_BAZA(); RadarEcran.randeaza(el, fara, O(fara, { parolaRadar: 'Secret.1' }));
+  assert.match(el.innerHTML, /http:\/\/127\.0\.0\.1:8788\/#parola=Secret\.1&amp;ecran=t212/, 'fără adresă în poză: acasă, cu parola');
+});
+// Rezultatul în lei la cotația live: valoarea din poză înmulțită cu raportul prețurilor, minus costul; nu scalarea prin (poză − mediu).
+test('audit 28.10 · corectitudine: P&L-ul live al poziției aproape de zero nu mai explodează (−5 lei comisioane deveneau −500 lei)', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const rez = (p, live) => { const poza = { la: ACUM, t212: [p], boti: [], simboluri: [] }; RadarEcran.randeaza(el, poza, O(poza, { preturiLive: live })); return /c-rez"><b class="[a-z]*">([^<]*)</.exec(el.innerHTML)[1]; };
+  const bazaZero = { s: 'X', pret: 100.01, mediu: 100, buc: 10, pplLei: -5, costLei: 4600, la: ACUM - 60 * 60000, prev: 99 };
+  assert.equal(rez(bazaZero, { X: { pret: 101, prev: 99, la: ACUM } }), '+40 lei', '(4600 − 5) × 101 / 100,01 − 4600 ≈ +40,5 lei');
+  assert.equal(rez(bazaZero, {}), '−5 lei', 'fără cotație live: cifra din poză');
+  // o poziție obișnuită: aceeași cifră ca regula veche când poza și costul sunt consecvente
+  assert.equal(rez({ s: 'X', pret: 100, mediu: 90, buc: 10, pplLei: 400, costLei: 3600, la: ACUM - 60 * 60000, prev: 99 }, { X: { pret: 110, prev: 99, la: ACUM } }), '+800 lei');
+  // fără costul în lei în poză (colector vechi): nu se inventează o scalare - rămâne cifra din poză
+  assert.equal(rez({ s: 'X', pret: 100.01, mediu: 100, buc: 10, pplLei: -5, la: ACUM - 60 * 60000, prev: 99 }, { X: { pret: 101, prev: 99, la: ACUM } }), '−5 lei');
+});
+// „se tot șterge cheia” (18.10): poll-ul la 30 s și prețurile live ale boților la 10 s re-randează tot panoul; caseta deschisă de om
+// se închidea și câmpurile se goleau cât încă tasta. Acum starea casetei și textul scris rămân peste re-randare.
+function domCaseta() {
+  const noduri = {}; let html = '';
+  return { dataset: {}, addEventListener() {}, dispatchEvent() {}, querySelectorAll() { return []; },
+    querySelector(s) { const m = /^#(\w+)$/.exec(s); if (!m || !html.includes('id="' + m[1] + '"')) return null; if (!noduri[m[1]]) noduri[m[1]] = { value: '', hidden: new RegExp('id="' + m[1] + '"[^>]*\\shidden').test(html) }; return noduri[m[1]]; },
+    get innerHTML() { return html; }, set innerHTML(v) { html = v; Object.keys(noduri).forEach((k) => delete noduri[k]); } };
+}
+test('audit 28.10 · caseta cheii deschisă de om și ce a scris în ea rămân peste re-randare; închisă, rămâne închisă', () => {
+  const el = domCaseta(), poza = POZA_BAZA();
+  RadarEcran.randeaza(el, poza, O(poza, { parolaRadar: 'x' }));
+  assert.equal(el.querySelector('#radCaseta').hidden, true, 'cu cheia pusă caseta e închisă');
+  el.querySelector('#radCaseta').hidden = false; el.querySelector('#radCheie').value = 'CheieNouaScrisaPeJumatate'; el.querySelector('#radParola').value = 'Par';
+  RadarEcran.randeaza(el, poza, O(poza, { parolaRadar: 'x' }));   // poll-ul
+  assert.equal(el.querySelector('#radCaseta').hidden, false, 'rămâne deschisă');
+  assert.equal(el.querySelector('#radCheie').value, 'CheieNouaScrisaPeJumatate'); assert.equal(el.querySelector('#radParola').value, 'Par');
+  el.querySelector('#radCaseta').hidden = true; el.querySelector('#radCheie').value = ''; el.querySelector('#radParola').value = '';
+  RadarEcran.randeaza(el, poza, O(poza, { parolaRadar: 'x' }));
+  assert.equal(el.querySelector('#radCaseta').hidden, true, 'închisă de om, rămâne închisă');
+  // pagina: cât e cursorul în caseta cheii nu se re-randează deloc; după o salvare reușită caseta se golește și se închide
+  const html = src('alerts/index.html');
+  assert.match(html, /const cf = \$\('radCheieForm'\); if \(cf && document\.activeElement && cf\.contains\(document\.activeElement\)\) return;/);
+  assert.match(html, /if \(r\.cheie === 'pusa' \|\| r\.parola === 'pusa'\) \{ \['radCheie', 'radParola'\]\.forEach/);
+});
+test('audit 28.10 · mărunțișuri: sparkline-ul sare peste zilele lipsă (null) în loc să le deseneze ca 0; dataRo refuză luna 13', () => {
+  const s = RadarEcran.spark([1, null, 3]); assert.match(s, /polyline points="0,32 0\.0,29\.0 120\.0,3\.0 120,32"/, 'două puncte, fără „0” la mijloc: ' + s.slice(0, 160));
+  assert.equal(RadarEcran.spark([null, 2]), '', 'un singur număr: nimic');
+  assert.equal(RadarEcran.dataRo('2026-13-05'), '—'); assert.equal(RadarEcran.dataRo('2026-10-22'), '22 oct');
+});

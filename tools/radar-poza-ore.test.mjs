@@ -49,3 +49,14 @@ test('noaptea pagina nu zice „tace / oprit”: pauza de noapte (23:00–08:00 
   assert.equal(RP.prospetime({ la: T('2026-10-02T07:00:00Z') }, T('2026-10-02T09:00:00Z')).stare, 'oprit', '12:00 RO, poza de la 10:00: oprit, ca inainte');
   assert.match(readFileSync(join(ROOT, 'lib', 'radar-ecran.js'), 'utf8'), /stare === 'noapte'/, 'ecranul stie starea noapte');
 });
+// 28.10.2026 (audit Radar): pauza de noapte explică doar o poză de dinainte de 23:00 din seara asta; una mai veche rămâne „oprit”
+test('audit 28.10: noaptea, o poză de ieri sau de acum 3 zile e „oprit” (nu „pauză de noapte”, verde); poza de aseară rămâne pauză', () => {
+  const { RP } = incarca(true);
+  const la02 = T('2026-10-28T00:00:00Z');   // 02:00 RO (ora de iarnă)
+  assert.equal(RP.prospetime({ la: la02 - 3 * 86400000 }, la02).stare, 'oprit', 'poza de acum 3 zile');
+  assert.equal(RP.prospetime({ la: T('2026-10-27T08:00:00Z') }, la02).stare, 'oprit', 'poza de ieri la 10:00 RO');
+  assert.match(RP.prospetime({ la: la02 - 3 * 86400000 }, la02).text, /oprit de 3 zile|oprit de 72 h/);
+  assert.equal(RP.prospetime({ la: T('2026-10-27T20:59:00Z') }, la02).stare, 'noapte', 'poza de la 22:59 aseară');
+  assert.equal(RP.prospetime({ la: T('2026-10-27T20:59:00Z') }, T('2026-10-28T06:05:00Z')).stare, 'noapte', '08:05 RO, poza de la 22:59: colectorul abia pornește');
+  assert.equal(RP.prospetime({ la: T('2026-10-26T20:59:00Z') }, T('2026-10-28T06:05:00Z')).stare, 'oprit', '08:05 RO, poza de alaltăieri');
+});
