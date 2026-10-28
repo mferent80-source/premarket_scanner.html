@@ -23,7 +23,7 @@ test('asteptat: istoricul comun pentru verdict vine din raportul Neural păstrat
 function intrareVerdict(k, { direction = 2, actual = 2, state = 'resolved' } = {}) {
   const t0 = Date.UTC(2026, 8, 1, 20) + k * 7 * 86400000, asOf = new Date(t0).toISOString().slice(0, 10), path = [1, 2, 3, 4, 5].map((i) => ({ t: t0 + i * 86400000, c: 100 * (1 + (actual === 2 ? .03 : actual === 0 ? -.03 : .001) * i / 5) }));
   const end = path[4];
-  return { version: 'holdings-forecast-v1', id: 'verdict|' + asOf, symbol: 'TE', currency: 'USD', kind: 'market', model: 'verdict', modelVersion: 'holdings-verdict-v3', horizon: 5, capturedAt: t0 + 3600000, trainedAt: t0 + 60000, state: 'up',
+  return { version: 'holdings-forecast-v1', id: 'verdict|' + asOf, symbol: 'TE', currency: 'USD', kind: 'market', model: 'verdict', modelVersion: 'holdings-verdict-v4', horizon: 5, capturedAt: t0 + 3600000, trainedAt: t0 + 60000, state: 'up',
     source: { t: t0, asOf, timezone: 'America/New_York', closeMinutes: 960, close: 100, atrPct: 2 },
     estimate: { title: 't', verdictState: direction === null ? 'weak' : direction === 2 ? 'up' : direction === 0 ? 'down' : 'mixed', direction, sourceFingerprint: 'f', reasons: ['r'], cards: [] },
     outcome: state === 'resolved' ? { t: end.t, asOf: new Date(end.t).toISOString().slice(0, 10), close: end.c, path, checkedAt: end.t + 3600000, retrievedAt: end.t + 1800000 } : null,
