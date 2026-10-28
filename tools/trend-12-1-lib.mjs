@@ -171,6 +171,15 @@ export function pragAbatere(k) {
   for (const [n, p] of PRAG_ABATERE) if (k >= n) return p;
   return null;
 }
+/** 28.10.2026 (revizia F2, 🔵14): verdictul pe ferestrele în ordinea lor = PRIMA privire (prefixul de la 12 ferestre) care trece pragul — exact
+ *  ce numără mărimea scrisă (`marimePutereTrend`: orice trecere e un „probat” anunțat); odată dat, rămâne. Promisiunea din protocol, acum în
+ *  cod: la 60 de ferestre fără verdict, pragul pentru privirile de după se rescrie ÎNAINTE, ca probă nouă — până atunci, „prag de rescris”. */
+export const FERESTRE_MAX = 60;
+export function verdictSecvential(w) {
+  const t = (m) => { let s = 0; for (let i = 0; i < m; i++) s += w[i]; const mm = s / m; let q = 0; for (let i = 0; i < m; i++) q += (w[i] - mm) ** 2; const sd = Math.sqrt(q / (m - 1)); return Math.max(-99, Math.min(99, sd > 0 ? mm / (sd / Math.sqrt(m)) : mm > 0 ? 99 : mm < 0 ? -99 : 0)); };
+  for (let m = 12; m <= Math.min(w.length, FERESTRE_MAX); m++) { const x = t(m); if (x > T_PRAG) return { verdict: 'probat față de alte acțiuni', laFereastra: m }; if (x < -T_PRAG) return { verdict: 'picat față de alte acțiuni', laFereastra: m }; }
+  return { verdict: w.length > FERESTRE_MAX ? 'prag de rescris (60 de ferestre fără verdict; pragul pentru privirile de după se scrie înainte, ca probă nouă)' : 'în probă', laFereastra: null };
+}
 /** Ferestrele care nu se suprapun: din (indexul zilei în calendarul SPY, valoare), câte una la cel puțin h zile de bursă de precedenta. */
 export function ferestreNesuprapuse(perechi, h) {
   const out = []; let ult = -Infinity;
@@ -237,16 +246,14 @@ export function bilant(istoric, preturi, o = {}) {
   const t20 = ferestre20 > 1 ? Math.max(-99, Math.min(99, sW > 0 ? mW / (sW / Math.sqrt(ferestre20)) : mW > 0 ? 99 : mW < 0 ? -99 : 0)) : null;
   const se20 = ferestre20 > 1 ? sW / Math.sqrt(ferestre20) : null, mDif = medie(r20.dif);
   const difInterval = se20 != null && mDif != null ? [mDif - 2 * se20, mDif + 2 * se20] : dif20;   // ± 2 erori standard măsurate pe ferestre
-  let verdict = 'în probă';
-  if (ferestre20 >= 12 && t20 > T_PRAG) verdict = 'probat față de alte acțiuni';
-  else if (ferestre20 >= 12 && t20 < -T_PRAG) verdict = 'picat față de alte acțiuni';
+  const { verdict, laFereastra } = verdictSecvential(w);   // 28.10.2026 (revizia F2, 🔵14): prima trecere a pragului; după 60 fără verdict ⇒ „prag de rescris”
   const prag = pragAbatere(ferestre20), abatere = prag == null ? null : { k: ferestre20, medie: mW, prag, atinsa: mW < prag };
   const starturi20 = ferestreNesuprapuse(r20.si.map((s) => [s, s]), H[0]).map((s) => zi(spy[s].t));   // ziua de start a fiecărei ferestre
   return {
     zile, n20: r20.top.length, n60: r60.top.length, ferestre20, starturi20, nejudecate: nej, oprite: opr, deIngheta,
     exces20: medie(r20.top), exces60: medie(r60.top), nulB20: medie(r20.nul), nulB60: medie(r60.nul),
     interval20: interval(r20.top, 1000, H[0]), diferenta20: { medie: mDif, interval: difInterval, ferestre: mW }, t20, abatere, diferenta60: { medie: medie(r60.dif), interval: interval(r60.dif, 1000, H[1] || 60) },
-    verdict, criterii: 'cel puțin 12 ferestre de 20 de zile care nu se suprapun și t > 3,2 pe diferența față de universul zilei ⇒ probat; t < −3,2 ⇒ picat; altfel în probă. Pragul e ales (14.10.2026) ca „probat” fals să rămână sub 5 % în 5 ani de priviri săptămânale; cu avantajul din istorie trece în ~25 % din cazuri în 3 ani — după un an, cel mai probabil tot „în probă”. Abatere: media ferestrelor sub pragul scris înainte (−3,0 % după 3, −1,8 % după 6, −1,2 % după 9, −0,9 % după 12)',
+    verdict, laFereastra, criterii: 'cel puțin 12 ferestre de 20 de zile care nu se suprapun și t > 3,2 pe diferența față de universul zilei ⇒ probat; t < −3,2 ⇒ picat; altfel în probă. Pragul e ales (14.10.2026) ca „probat” fals să rămână sub 5 % în 5 ani de priviri săptămânale; cu avantajul din istorie trece în ~25 % din cazuri în 3 ani — după un an, cel mai probabil tot „în probă”. Abatere: media ferestrelor sub pragul scris înainte (−3,0 % după 3, −1,8 % după 6, −1,2 % după 9, −0,9 % după 12)',
   };
 }
 
@@ -323,7 +330,8 @@ export const PUTERE_TREND = Object.freeze({ unitate: '% pe fereastră de 20 de z
  *  repetate), deci `unic: false`; `la` = 12 ferestre (primul verdict posibil). */
 export function contractTrend(b, { cal, azi, primaZi = null, notate = 0, asteptate = 0 }) {
   const laPlus = PUTERE_TREND.laPlus.map((x) => ({ ...x })), unu = (x) => (x * 100).toFixed(1).replace('.', ',');
-  const gata = b.verdict && b.verdict !== 'în probă', ult = (b.starturi20 || []).at(-1), data = gata && ult && cal ? dupaSesiuni(cal, ult, 20).zi : null;
+  // 28.10.2026 (revizia F2, 🔵14): judecată = doar „probat” / „picat” („prag de rescris” nu e verdict); data = închiderea ferestrei care a trecut pragul
+  const gata = /^(probat|picat)/.test(String(b.verdict || '')), ult = gata && Number.isInteger(b.laFereastra) ? (b.starturi20 || [])[b.laFereastra - 1] : (b.starturi20 || []).at(-1), data = gata && ult && cal ? dupaSesiuni(cal, ult, 20).zi : null;
   return { putere: { ...PUTERE_TREND, laPlus, text: `La 12 ferestre de 20 de zile (≈ 1 an), pragul t > 3,2 trece cu un avantaj de +1 %/fereastră în ${unu(laPlus[1].putere)} % din cazuri (${unu(laPlus[1].la36)} % în 3 ani, ${unu(laPlus[1].la60)} % în 5) și cu +0,5 % în ${unu(laPlus[0].putere)} %: „în probă” e rezultatul aproape sigur în primul an.` },
     primulVerdict: cal ? primulVerdict({ cal, azi, inceput: primaZi, starturi: b.starturi20 || [], k: 20, perioade: 12, notate, asteptate, ce: 'ferestre' }) : null,
     judecata: judecataDin({ la: 12, data, verdict: gata ? b.verdict : null, unic: false }) };
@@ -375,4 +383,5 @@ export function versiuneLinie(l) { return l && typeof l.v === 'string' && l.v ? 
 export function liniiInProba(istoric, V = amprentaClasamentTrend()) { return (istoric || []).filter((l) => versiuneLinie(l) === V); }
 
 /** Amprenta judecătorului probei Trend: funcțiile care măsoară și judecă bilanțul + pragurile; scrisă în docs/trend-12-1-protocol.md. */
-export function amprentaJudecatorTrend() { return 'jt-' + amprentaFunctii({ bilant, ferestreNesuprapuse, pragAbatere, interval, rnd }, ['bilant', 'ferestreNesuprapuse', 'pragAbatere', 'interval', 'rnd'], JSON.stringify({ T_PRAG, PRAG_ABATERE, ASTEPTARE })); }
+// 28.10.2026 (revizia F2, 🔵14): și `verdictSecvential` + `FERESTRE_MAX` (verdictul la prima trecere, „prag de rescris” după 60 de ferestre)
+export function amprentaJudecatorTrend() { return 'jt-' + amprentaFunctii({ bilant, ferestreNesuprapuse, pragAbatere, interval, rnd, verdictSecvential }, ['bilant', 'ferestreNesuprapuse', 'pragAbatere', 'interval', 'rnd', 'verdictSecvential'], JSON.stringify({ T_PRAG, PRAG_ABATERE, ASTEPTARE, FERESTRE_MAX })); }

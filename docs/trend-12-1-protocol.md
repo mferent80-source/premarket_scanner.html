@@ -82,8 +82,21 @@ cu forma asimetrică aproximată, mărimea trece puțin de 5 % după 5 ani (5,5 
 reale dădea 4,3 % în 5 ani. Pragul 3,2 nu se schimbă aici (e regula probei din 14.10); dacă proba ajunge la 60 de ferestre fără verdict,
 pragul pentru privirile de după se rescrie ÎNAINTE, ca probă nouă.
 
-**Amprenta judecătorului: `jt-7098991f68d3`** (înlocuiește `jt-f0cc2da31fb4`, înaintea primei ferestre): același SHA, acum și pe
+**Amprenta judecătorului (revizia F, înlocuită pe 28.10.2026 de revizia F2 — vezi mai jos) `jt-7098991f68d3`** (înlocuiește `jt-f0cc2da31fb4`, înaintea primei ferestre): același SHA, acum și pe
 zilele înghețate din `bilant`.
+
+## Revizia F2 din 28.10.2026 (🔵14) — verdictul la prima trecere și regula celor 60 de ferestre, în cod (înaintea primei ferestre închise)
+Protocolul promitea: „dacă proba ajunge la 60 de ferestre fără verdict, pragul pentru privirile de după se rescrie ÎNAINTE, ca probă nouă”.
+Codul n-o făcea: bilanțul ar fi privit mai departe cu 3,2. Acum `verdictSecvential` (în `tools/trend-12-1-lib.mjs`) judecă ferestrele în
+ordinea lor: **verdictul e prima privire, de la 12 ferestre, care trece pragul** (t > 3,2 ⇒ „probat”, t < −3,2 ⇒ „picat”), și rămâne. Asta
+e exact ce numără mărimea scrisă (`marimePutereTrend`: orice trecere e un „probat” anunțat). Până acum verdictul se recalcula din toate
+ferestrele și putea reveni la „în probă” după ce fusese anunțat. **După 60 de ferestre fără verdict** rezultatul e „prag de rescris”, nu
+„probat” sau „picat” cu pragul vechi, iar judecata din fișier rămâne goală. Data judecății e închiderea ferestrei care a trecut pragul.
+Pragurile nu se schimbă; mărimea nu poate decât să scadă (privirile de după a 60-a nu mai pot da „probat”).
+
+**Amprenta judecătorului: `jt-14925476f661`** (înlocuiește `jt-7098991f68d3`, înaintea primei ferestre): SHA pe `bilant`,
+`ferestreNesuprapuse`, `pragAbatere`, `interval`, `rnd`, `verdictSecvential` + pragurile (`T_PRAG`, `PRAG_ABATERE`, `ASTEPTARE`,
+`FERESTRE_MAX`).
 
 ## Amprentele clasamentului (revizia F2, 28.10.2026, 🟡3; tabel care doar crește, rândul de jos e cel în probă)
 Regula de clasament n-avea amprentă, iar liniile istoricului nu purtau versiunea: o regulă schimbată ar fi intrat tăcut în aceeași probă.

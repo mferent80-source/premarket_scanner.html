@@ -53,3 +53,9 @@ test('🟡5 Trend: intervalele bilanțului vin dintr-o funcție — SPY acoperă
   const b = readFileSync('tools/trend-12-1-bilant.mjs', 'utf8');
   assert.match(b, /intervaleBilant\(istoric, inghetate, azi\)/); assert.doesNotMatch(b, /const RANGE_SPY = intervalPentru/);
 });
+
+test('🔵14 intervalul Yahoo nu se mai oprește la 10 ani: peste ~10 ani de probă, „max”', async () => {
+  const { intervalPentru } = await import('../lib/proba-contract.mjs');
+  assert.equal(intervalPentru('2026-10-15', '2028-06-01'), '2y'); assert.equal(intervalPentru('2026-10-15', '2031-01-01'), '5y');
+  assert.equal(intervalPentru('2026-10-15', '2035-01-01'), '10y'); assert.equal(intervalPentru('2026-10-15', '2037-06-01'), 'max');
+});

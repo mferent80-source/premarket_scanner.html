@@ -44,3 +44,24 @@ test('🟡3 Trend: amprenta clasamentului de acum e scrisă în protocol (tabel 
   const r = [...doc.replace(/\r\n/g, '\n').matchAll(/^\| [^|\n]+ \| `(tc-[0-9a-f]{12})` \|.*$/gm)].map((m) => m[1]);
   assert.ok(r.length >= 2, 'tabelul are regula veche și pe cea de acum'); assert.equal(r.at(-1), amprentaClasamentTrend(), 'rândul de jos = amprenta de acum');
 });
+
+// ── 🔵14: promisiunea din protocol („la 60 de ferestre fără verdict, pragul pentru privirile de după se rescrie ÎNAINTE”), acum în cod;
+//    verdictul = PRIMA privire care trece pragul (exact ce numără mărimea scrisă: orice trecere e un „probat” anunțat) ──
+test('🔵14 Trend: verdictul vine la prima trecere a pragului și rămâne; după 60 de ferestre fără verdict ⇒ „prag de rescris”, nu „probat” cu pragul vechi', async () => {
+  const { verdictSecvential, FERESTRE_MAX, T_PRAG, contractTrend } = await import('./trend-12-1-lib.mjs');
+  const tPe = (a) => { const n = a.length, m = a.reduce((x, y) => x + y, 0) / n, s = Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (n - 1)); return m / (s / Math.sqrt(n)); };
+  assert.equal(FERESTRE_MAX, 60);
+  const sus = Array.from({ length: 14 }, (_, i) => 0.05 + (i % 3) * 0.002), jos = Array.from({ length: 40 }, (_, i) => -0.05 - (i % 3) * 0.002);
+  const a = verdictSecvential(sus.concat(jos));
+  assert.equal(a.verdict, 'probat față de alte acțiuni'); assert.equal(a.laFereastra, 12, 'prima privire posibilă (12 ferestre)');
+  assert.ok(tPe(sus.concat(jos)) < 0, 'controlul: pe toate ferestrele t ar fi negativ — verdictul nu se mai întoarce');
+  const zgomot = (n) => Array.from({ length: n }, (_, i) => (i % 2 ? 0.01 : -0.01) + (i % 7) * 0.0001);
+  assert.equal(verdictSecvential(zgomot(59)).verdict, 'în probă'); assert.equal(verdictSecvential(zgomot(11)).verdict, 'în probă');
+  const tarziu = zgomot(60).concat(Array.from({ length: 40 }, () => 0.05));
+  assert.ok(tPe(tarziu) > T_PRAG, 'controlul: cu pragul vechi, după 60 ar ieși „probat”');
+  const t = verdictSecvential(tarziu); assert.match(t.verdict, /^prag de rescris/); assert.equal(t.laFereastra, null);
+  const c = contractTrend({ verdict: t.verdict, laFereastra: null, starturi20: [] }, { cal: null, azi: '2031-01-01' });
+  assert.equal(c.judecata.verdict, null, '„prag de rescris” nu e o judecată');
+  const c2 = contractTrend({ verdict: a.verdict, laFereastra: 12, starturi20: Array.from({ length: 54 }, (_, i) => '2027-' + String(1 + Math.floor(i / 5)).padStart(2, '0') + '-0' + (1 + (i % 5))) }, { cal: null, azi: '2031-01-01' });
+  assert.equal(c2.judecata.verdict, a.verdict);
+});
