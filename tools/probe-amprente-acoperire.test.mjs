@@ -12,6 +12,7 @@ import { execFileSync } from 'node:child_process';
 import { versiune, partiVersiune, PROTOCOL as PM } from '../lib/premarket-proba.mjs';
 import { versiuneV1, FUNCTII_EVALUATOR, adauga, amprentaEvaluator } from '../lib/v1-proba.mjs';
 import { motor } from './premarket-jurnal.mjs';
+import { BAZA } from './git-baza.mjs';   // 28.10.2026 (revizia F2, 🔵12): commitul de dinaintea push-ului în poartă, altfel HEAD
 
 const h = motor(async () => { throw Error('fără rețea'); }).hooks, citeste = (f) => readFileSync(f, 'utf8');
 const cu = (fisier, vechi, nou) => (f) => { const s = citeste(f); if (f !== fisier) return s; assert.ok(s.includes(vechi), fisier + ' nu mai conține ' + vechi); return s.replace(vechi, nou); };
@@ -41,7 +42,7 @@ test('🟡9: fluxul dă DOAR_LIPSA și pasului Premarket; robotul Top Long nu re
 });
 for (const f of ['scanner-verdicts/generated/v1-jurnal.json', 'scanner-verdicts/generated/premarket-jurnal.json', 'scanner-verdicts/generated/reversal-umbra-jurnal.json']) {
   test('🟡9 garda: ' + f + ' doar crește față de ultimul commit (nicio zi ștearsă sau rescrisă)', () => {
-    let vechi; try { vechi = JSON.parse(execFileSync('git', ['show', 'HEAD:' + f], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] })); } catch { return; }
+    let vechi; try { vechi = JSON.parse(execFileSync('git', ['show', BAZA + ':' + f], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] })); } catch { return; }
     const azi = existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) : { zile: [] }, cheie = (z) => z.zi + '|' + z.v, nou = new Map((azi.zile || []).map((z) => [cheie(z), JSON.stringify(z)]));
     for (const z of vechi.zile || []) assert.equal(nou.get(cheie(z)), JSON.stringify(z), f + ': ziua ' + cheie(z) + ' a fost ștearsă sau rescrisă');
   });

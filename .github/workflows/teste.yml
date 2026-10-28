@@ -40,6 +40,9 @@ jobs:
       - name: Suita Node (node:test, tools/*.test.mjs)
         id: node
         continue-on-error: true
+        # 28.10.2026 (revizia F2, 🔵12): gărzile „doar crește” compară cu commitul de dinaintea push-ului, nu cu HEAD (= discul după commit)
+        env:
+          DOAR_CRESTE_BAZA: ${{ github.event.before }}
         run: |
           set -o pipefail
           node --test tools/*.test.mjs 2>&1 | tee suita-node.log

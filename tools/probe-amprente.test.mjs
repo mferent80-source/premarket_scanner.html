@@ -10,6 +10,7 @@ import { versiuneV1 } from '../lib/v1-proba.mjs';
 import { versiune as versiunePm } from '../lib/premarket-proba.mjs';
 import { amprentaJudecator as judecatorUmbra } from '../lib/reversal-umbra.mjs';
 import { motor } from './premarket-jurnal.mjs';
+import { BAZA } from './git-baza.mjs';   // 28.10.2026 (revizia F2, 🔵12): commitul de dinaintea push-ului în poartă, altfel HEAD
 
 const scris = (f, re) => { const m = re.exec(readFileSync(f, 'utf8')); assert.ok(m, f + ' nu scrie amprenta (' + re + ')'); return m[1]; };
 // 27.10.2026 (revizia F, 🔵17): amprentele v2 stau într-un tabel care doar crește; cea în vigoare e rândul de jos
@@ -44,7 +45,7 @@ test('Umbra stopului Reversal: judecătorul = cel scris în docs/reversal-stop-u
 test('revizia F (🔵17): tabelele „Amprentele v2” doar cresc față de ultimul commit (niciun rând vechi șters sau rescris)', async () => {
   const { execFileSync } = await import('node:child_process');
   for (const [f, prefix] of [['docs/v1-proba-protocol.md', 'v1'], ['docs/premarket-proba-protocol.md', 'pm']]) {
-    let vechi; try { vechi = execFileSync('git', ['show', 'HEAD:' + f], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }); } catch { continue; }
+    let vechi; try { vechi = execFileSync('git', ['show', BAZA + ':' + f], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }); } catch { continue; }
     const azi = randuri(readFileSync(f, 'utf8'), prefix), ieri = randuri(vechi, prefix);
     assert.deepEqual(azi.slice(0, ieri.length), ieri, f + ': un rând din tabelul amprentelor a fost șters sau rescris');
   }

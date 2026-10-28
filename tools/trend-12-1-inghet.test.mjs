@@ -10,6 +10,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { bilant, mesajBilantDiscord, citesteInghetatTrend, ASTEPTARE } from './trend-12-1-lib.mjs';
 import { ETICHETA_NEVERIFICAT } from './discord-mesaj.mjs';
+import { BAZA } from './git-baza.mjs';   // 28.10.2026 (revizia F2, 🔵12): commitul de dinaintea push-ului în poartă, altfel HEAD
 
 function mulberry32(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const T0 = Date.parse('2024-01-02T14:30:00Z');
@@ -55,7 +56,7 @@ test('fișierul înghețat Trend: o linie JSON pe zi, citit înapoi identic', ()
 });
 test('garda: trend-12-1-inghetat.jsonl doar crește față de ultimul commit', () => {
   const f = 'candidate-engine/generated/trend-12-1-inghetat.jsonl';
-  let vechi = null; try { vechi = execFileSync('git', ['show', 'HEAD:' + f], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\r\n/g, '\n'); } catch { return; }
+  let vechi = null; try { vechi = execFileSync('git', ['show', BAZA + ':' + f], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\r\n/g, '\n'); } catch { return; }
   const azi = existsSync(f) ? readFileSync(f, 'utf8').replace(/\r\n/g, '\n') : ''; assert.ok(azi.startsWith(vechi), f + ' a fost rescris, nu doar crescut');
 });
 test('robotul bilanțului: prețuri pe intervalul care acoperă istoricul, fișierul înghețat citit și crescut, fluxul îl salvează și îl păzește', () => {

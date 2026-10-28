@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { PROTOCOL, simuleaza, evalueaza, ingheata, citesteInghetat, liniiInghetat } from '../lib/v1-proba.mjs';
 import { evalueaza as evalueazaPm } from '../lib/premarket-proba.mjs';
+import { BAZA } from './git-baza.mjs';   // 28.10.2026 (revizia F2, 🔵12): commitul de dinaintea push-ului în poartă, altfel HEAD
 
 const N = 16, k = 5;
 /** O noapte a robotului: jurnalul și seriile tăiate la ziua t, evaluarea cu fișierul înghețat de până atunci; întoarce fișierul crescut. */
@@ -75,7 +76,7 @@ test('fișierul înghețat: o linie JSON pe înregistrare, citit înapoi identic
 // garda „doar crește” (ca jurnalul clasificatorului, I-669): fiecare fișier din ultimul commit e începutul exact al celui de pe disc
 for (const f of ['scanner-verdicts/generated/v1-inghetat.jsonl', 'scanner-verdicts/generated/premarket-inghetat.jsonl']) {
   test('garda: ' + f + ' doar crește față de ultimul commit (perioadele și judecata nu se rescriu)', () => {
-    let vechi = null; try { vechi = execFileSync('git', ['show', 'HEAD:' + f], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\r\n/g, '\n'); } catch { return; }
+    let vechi = null; try { vechi = execFileSync('git', ['show', BAZA + ':' + f], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\r\n/g, '\n'); } catch { return; }
     const azi = existsSync(f) ? readFileSync(f, 'utf8').replace(/\r\n/g, '\n') : ''; assert.ok(azi.startsWith(vechi), f + ' a fost rescris, nu doar crescut');
     assert.ok(citesteInghetat(azi).every((x) => (x.tip === 'perioada' || x.tip === 'judecata') && /^v1-|^pm-/.test(x.v)));
   });

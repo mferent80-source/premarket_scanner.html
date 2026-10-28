@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { ruleaza, proba, mariDin, breadthDin, adaugaLinie, citesteIstoric, motorVerdict, linieZi, deRegula, contractVerdict, amprentaJudecator, rataAjuta, lumeVerdict, PUTERE, FISIER, ISTORIC, VERSIUNE, REGULA } from './verdict-piata-robot.mjs';
+import { BAZA } from './git-baza.mjs';   // 28.10.2026 (revizia F2, 🔵12): commitul de dinaintea push-ului în poartă, altfel HEAD
 
 const zi = (i) => Date.UTC(2026, 0, 5) + i * 86400000, dateOf = (t) => new Date(t).toISOString().slice(0, 10);
 test('I-681: marile companii — primele 15 după capitalizare, cu ziua și momentul raportării', () => {
@@ -82,7 +83,7 @@ test('robotul cap-coadă pe date controlate: verdict, linie de istoric, fișier 
 });
 test('garda: fișierul publicat (dacă există) are forma bună; istoricul doar crește față de ultimul commit', () => {
   if (existsSync(FISIER)) { const j = JSON.parse(readFileSync(FISIER, 'utf8')); assert.equal(j.version, VERSIUNE); assert.ok(Array.isArray(j.indicatori) && Array.isArray(j.istoric) && j.proba && typeof j.proba.mesaj === 'string'); }
-  let vechi = null; try { vechi = execFileSync('git', ['show', 'HEAD:' + ISTORIC], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }).replace(/\r\n/g, '\n'); } catch { return; } // 27.10: buffer peste 1 MiB (lecția clasificatorului)
+  let vechi = null; try { vechi = execFileSync('git', ['show', BAZA + ':' + ISTORIC], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }).replace(/\r\n/g, '\n'); } catch { return; } // 27.10: buffer peste 1 MiB (lecția clasificatorului)
   const azi = existsSync(ISTORIC) ? readFileSync(ISTORIC, 'utf8').replace(/\r\n/g, '\n') : ''; assert.ok(azi.startsWith(vechi), 'istoricul verdictului a fost rescris, nu doar crescut');
   assert.ok(citesteIstoric(azi).every((l) => /^\d{4}-\d{2}-\d{2}$/.test(l.asOf)));
 });

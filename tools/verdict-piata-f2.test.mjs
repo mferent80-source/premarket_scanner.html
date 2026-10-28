@@ -12,6 +12,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { proba, rotatie, amprentaRegulii, amprentaJudecator, lumeVerdict, REGULA, PROBA, PUTERE, INGHETAT, citesteIstoric, AMPRENTE_V21 } from './verdict-piata-robot.mjs';
 import { mulberry32, gauss } from '../lib/proba-contract.mjs';
+import { BAZA } from './git-baza.mjs';   // 28.10.2026 (revizia F2, 🔵12): commitul de dinaintea push-ului în poartă, altfel HEAD
 
 const ZI = 86400000, T0 = Date.UTC(2027, 0, 4), dateOf = (t) => new Date(t).toISOString().slice(0, 10);
 /** Lumea revizorului: SPY GARCH(1,1) α 0,10, β 0,88, inovații t5; etichete Markov (sta = probabilitatea de a păstra eticheta de ieri),
@@ -100,7 +101,7 @@ test('🟡4 robotul și fluxul: fișierul înghețat se citește, se completeaz�
   assert.equal(INGHETAT, 'candidate-engine/generated/verdict-piata-inghetat.jsonl');
   const y = readFileSync('.github/workflows/verdict-piata.yml', 'utf8');
   assert.match(y, /node tools\/git-add-existente\.mjs[^\n]*verdict-piata-inghetat\.jsonl/);
-  let vechi; try { vechi = execFileSync('git', ['show', 'HEAD:' + INGHETAT], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }); } catch { return; }
+  let vechi; try { vechi = execFileSync('git', ['show', BAZA + ':' + INGHETAT], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }); } catch { return; }
   const azi = existsSync(INGHETAT) ? readFileSync(INGHETAT, 'utf8') : '';
   assert.ok(azi.replace(/\r\n/g, '\n').startsWith(vechi.replace(/\r\n/g, '\n')), INGHETAT + ' a fost rescris (doar crește)');
   assert.ok(citesteIstoric(azi).length >= citesteIstoric(vechi).length);

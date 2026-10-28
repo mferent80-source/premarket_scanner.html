@@ -10,6 +10,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { motor } from './clasificator-date.mjs';
 import { amprentaFisier, amprentaRezultate, registru } from './clasificator-amprenta.mjs';
 import { PRAG, PROBA } from './clasificator-jurnal.mjs';
+import { BAZA } from './git-baza.mjs';   // 28.10.2026 (revizia F2, 🔵12): commitul de dinaintea push-ului în poartă, altfel HEAD
 
 test('I-661: motorul e cel din registru (versiune + amprenta fișierului + amprenta rezultatelor)', () => {
   const c = motor('.'), V = c.HoldingsClassifier.VERSION, rows = registru(readFileSync('docs/clasificator-versiuni.md', 'utf8')).filter((r) => r.versiune === V);
@@ -34,7 +35,7 @@ test('I-673: regulile de judecată din cod sunt cele din protocol', () => {
 });
 // Revizia din 17.10: garda nu trebuie să poată fi ocolită din greșeală.
 test('I-661: registrul versiunilor doar crește (niciun rând din ultimul commit nu dispare)', async () => {
-  const { execFileSync } = await import('node:child_process'); let vechi; try { vechi = execFileSync('git', ['show', 'HEAD:docs/clasificator-versiuni.md'], { encoding: 'utf8' }); } catch { return; }
+  const { execFileSync } = await import('node:child_process'); let vechi; try { vechi = execFileSync('git', ['show', BAZA + ':docs/clasificator-versiuni.md'], { encoding: 'utf8' }); } catch { return; }
   const azi = new Set(registru(readFileSync('docs/clasificator-versiuni.md', 'utf8')).map((r) => JSON.stringify(r)));
   for (const r of registru(vechi)) assert.ok(azi.has(JSON.stringify(r)), 'rând șters sau schimbat în registru: ' + r.versiune + ' ' + r.fisier);
 });
@@ -60,7 +61,7 @@ test('I-743: judecătorul probei are amprenta de pe ultimul rând din „Amprent
   assert.equal(rows.at(-1).amprenta, amprentaJudecator(), `Codul care judecă proba s-a schimbat (${amprentaJudecator()}): scrie rândul nou (data, amprenta, motivul) în docs/clasificator-versiuni.md.`);
 });
 test('I-743: rândurile judecătorului doar cresc (niciunul din ultimul commit nu dispare)', async () => {
-  const { execFileSync } = await import('node:child_process'); let vechi; try { vechi = execFileSync('git', ['show', 'HEAD:docs/clasificator-versiuni.md'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }); } catch { return; }
+  const { execFileSync } = await import('node:child_process'); let vechi; try { vechi = execFileSync('git', ['show', BAZA + ':docs/clasificator-versiuni.md'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }); } catch { return; }
   const azi = new Set(randuriJudecator(readFileSync('docs/clasificator-versiuni.md', 'utf8')).map((r) => JSON.stringify(r)));
   for (const r of randuriJudecator(vechi)) assert.ok(azi.has(JSON.stringify(r)), 'rând al judecătorului șters sau schimbat: ' + r.amprenta);
 });
