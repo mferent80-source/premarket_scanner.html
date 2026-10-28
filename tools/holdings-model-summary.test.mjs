@@ -8,7 +8,7 @@ function fixture(demo=false){
  const expected={symbol:'TEST',currency:'USD',asOf:'2026-10-02',demo};
  const record=result=>({...expected,kind:demo?'synthetic':'market',trainedAt:now-1000,result,quantity:900,apiKey:'DO-NOT-EXPORT',accountId:'private-account'});
  return {expected,now,busy:false,
-  neural:{usable:true,record:record({version:'holdings-mlp-v3',classIndex:2,comparison:{status:'evaluated',boosting:{version:'holdings-gbt-v1',classIndex:2}}}),assessment:{state:'research',message:'Neural validat.'},comparison:{state:'research',message:'Acord experimental.'}},
+  neural:{usable:true,record:record({version:'holdings-mlp-v3',classIndex:2,comparison:{status:'evaluated',boosting:{version:'holdings-gbt-v2',classIndex:2}}}),assessment:{state:'research',message:'Neural validat.'},comparison:{state:'research',message:'Acord experimental.'}},
   hmm:{usable:true,record:record({version:'holdings-hmm-v1',current:{state:0},profiles:[{label:'Ascendent'}]}),assessment:{state:'descriptive',message:'Regim descriptiv.'}},
   isolation:{usable:true,record:record({version:'holdings-isolation-v1',current:{score:.4,votes:0},threshold:.6}),assessment:{state:'ordinary',message:'Nu confirmă siguranța.'}}
  };
@@ -64,7 +64,7 @@ test('a comparison alone cannot promote a fragile or no-edge Neural assessment',
 test('export projection contains provenance without model parameters or private account fields',()=>{
  const f=fixture();f.neural.record.result.network={weights:['private-weights']};f.isolation.record.result.forests=['private-forest'];
  const r=S.build(f),json=JSON.stringify(r);assert.ok(!/DO-NOT-EXPORT|private-account|private-weights|private-forest|quantity|apiKey|accountId/.test(json));
- assert.equal(r.cards[0].trainedAt,now-1000);assert.equal(r.cards[1].version,'holdings-gbt-v1');assert.equal(r.cards[3].threshold,.6);assert.ok(json.length<6000);
+ assert.equal(r.cards[0].trainedAt,now-1000);assert.equal(r.cards[1].version,'holdings-gbt-v2');assert.equal(r.cards[3].threshold,.6);assert.ok(json.length<6000);
 });
 test('summary export rebuilds the requested instrument instead of reusing an old visible record',()=>{
  let emitted=null;const button={dataset:{modelSummaryExport:'1'}},c={document:{querySelectorAll:q=>q==='[data-model-summary-export]'?[button]:[]},HoldingsNeuralUI:{exportReport:r=>emitted=r}};

@@ -12,6 +12,8 @@ Sunt necesare șase rezultate actuale. Neural și Gradient Boosting trebuie să 
 
 GARCH estimează volatilitatea cumulată la 5 și 20 de sesiuni. Nu votează direcția. Numai după avantaj istoric repetat față de varianța constantă și EWMA, volatilitatea ridicată adaugă prudență, păstrând clasa direcției. Rezultatul GARCH exploratoriu, limitat sau în drift este explicat fără să modifice concluzia celorlalte modele. Lipsa sau invaliditatea raportului GARCH păstrează verdictul incomplet. Protocol: `docs/HOLDINGS-GARCH.md`.
 
+Combinația probabilistică Neural + Boosting (Învățare în timp) preia direcția doar când e validată și încrezătoare; cât timp doar se colectează sau e candidată, direcția rămâne cea experimentală a acordului modelelor, cu titlul „· probabilități încă nevalidate” (28.10.2026, I-777); o versiune validată care se abține sau e suspendată anulează direcția.
+
 Datele lipsă sau erorile produc verdict incomplet. Lipsa avantajului, validarea slabă sau drift produc verdict neconcludent. Estimările incompatibile produc semnale contradictorii; o anomalie sau clasificare de graniță cere prudență. Nu se însumează probabilități sau voturi și nu se calculează încredere de profit. Orizontul este închiderea la +5 sesiuni, iar știrile, earnings, costurile și riscul portofoliului sunt evaluate separat. Nu se execută ordine.
 
 Închiderea, Escape, Oprește analiza și schimbarea contului, simbolului, monedei, sesiunii sau prețului EOD anulează lucrul deținut de dialog. Mesajele întârziate nu pot actualiza alt context. O analiză manuală deja activă nu este oprită de dialog; este cerută reluarea după finalizarea ei.

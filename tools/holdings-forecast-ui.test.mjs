@@ -5,7 +5,7 @@ function setup({demo=false,corrupt=false}={}){
  let exports=null,refreshes=0,fetches=0,resolveFetch,rejectFetch;
  const bar={t,o:100,h:102,l:99,c:100,v:10000},p={ticker:'TEST_US_EQ',instrumentCurrency:'USD',apiKey:'SECRET',quantity:999};
  const record={symbol:'TEST',currency:'USD',kind:demo?'synthetic':'market',asOf:'2026-10-02',sourceTime:t,sourceClose:100,timezone:'America/New_York',closeMinutes:960,trainedAt:now-1000};
- const neural={usable:true,assessment:{state:'no-edge'},comparison:{state:'no-edge'},record:{...record,result:{version:'holdings-mlp-v3',latest:[0,0,0,0,0,0,0,50,2,1],classIndex:2,report:{train:{confusion:[[2,3,5],[6,7,9],[1,2,4]]}},comparison:{boosting:{version:'holdings-gbt-v1',classIndex:0}}}}};
+ const neural={usable:true,assessment:{state:'no-edge'},comparison:{state:'no-edge'},record:{...record,result:{version:'holdings-mlp-v3',latest:[0,0,0,0,0,0,0,50,2,1],classIndex:2,report:{train:{confusion:[[2,3,5],[6,7,9],[1,2,4]]}},comparison:{boosting:{version:'holdings-gbt-v2',classIndex:0}}}}};
  const quantile={usable:true,assessment:{state:'no-edge'},record:{...record,result:{version:'holdings-quantile-v1',current:{t,close:100,atrPct:2,x:[],prices:[98,101,104]},baseline:{},baselineCalibration:{delta:0}}}};
  const hmm={usable:true,assessment:{state:'transition'},record:{...record,result:{version:'holdings-hmm-v1',current:{state:0},latest:[1,1,2],profiles:[{state:0,label:'Ascendent',means:[1,1,2]}]}}};
  const isolation={usable:true,assessment:{state:'ordinary'},record:{...record,result:{version:'holdings-isolation-v1',current:{score:.4,votes:0},threshold:.6}}};
