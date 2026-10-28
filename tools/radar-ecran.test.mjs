@@ -656,3 +656,14 @@ test('audit 28.10 · mărunțișuri: sparkline-ul sare peste zilele lipsă (null
   assert.equal(RadarEcran.spark([null, 2]), '', 'un singur număr: nimic');
   assert.equal(RadarEcran.dataRo('2026-13-05'), '—'); assert.equal(RadarEcran.dataRo('2026-10-22'), '22 oct');
 });
+// Contractul pozei (audit 28.10, partea a doua): colectorul trimite ordinul real de stop din Trading 212 (stopT212, v101.130); alarma
+// „fără stop loss” a Paznicului se dă pe el, dar pagina nu-l arăta. Stopul din plan rămâne nivel de alertă.
+test('audit 28.10 · contract: ordinul de stop din Trading 212 se vede în rândul desfăcut; lipsa lui e spusă; poza veche fără câmp nu scrie nimic', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const cu = POZA_BAZA(); cu.t212[0].stopT212 = 340.5; RadarEcran.randeaza(el, cu, O(cu));
+  assert.match(el.innerHTML, /<span>Ordin de stop la broker<\/span><b class="good">\$340,50 <span class="muted">· ordin în Trading 212<\/span><\/b>/);
+  const fara = POZA_BAZA(); fara.t212[0].stopT212 = null; RadarEcran.randeaza(el, fara, O(fara));
+  assert.match(el.innerHTML, /<span>Ordin de stop la broker<\/span><b class="warn">niciun ordin în Trading 212 · stopul din plan nu execută singur<\/b>/);
+  const veche = POZA_BAZA(); delete veche.t212[0].stopT212; RadarEcran.randeaza(el, veche, O(veche));
+  assert.doesNotMatch(el.innerHTML, /Ordin de stop la broker/, 'colector vechi: rândul lipsește, nu „niciun ordin” fals');
+});

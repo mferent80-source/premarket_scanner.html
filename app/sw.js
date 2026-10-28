@@ -1,5 +1,5 @@
 // Cache only the application shell. Market data and scans always require network.
-const CACHE = 'tt-decision-phone-design-26.10.28.1545';
+const CACHE = 'tt-decision-phone-design-26.10.28.1620';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './install.js?v=phone-20261003', './icons/icon-192.png', './icons/icon-512.png'];
 const VERSION = CACHE.slice(CACHE.lastIndexOf('-') + 1);
 /* 27.10.2026 (I-746, auditul A [13], [14]): în cache intră și foile de stil + scripturile pe care le cere carcasa, citite din index.html la instalare,

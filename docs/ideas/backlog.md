@@ -7633,3 +7633,13 @@ Context: cerut de Marius („audit sever din toate direcțiile pe radar”). Aco
 - **Problema/golul:** vârsta pozei se vede doar în cap; un bot citit demult într-o poză vie arată la fel ca unul proaspăt; `radar_url` acceptă orice https, dar CSP-ul lasă doar `*.mferent80.workers.dev` și `*.ts.net` — o adresă nelistată dă „Radarul nu răspunde (Failed to fetch)” fără să spună că CSP-ul a oprit-o.
 - **Soluția:** „poza de la HH:MM” lângă T212 / boți / Salt; chip „citit acum N min” pe bot când `la` e mai vechi de 10 min; mesaj „adresa nu e permisă de politica paginii” când gazda nu e în CSP.
 - **Fișiere:** lib/radar-ecran.js, lib/radar-poza.js
+
+#### I-790 · Alerte: ordinul real de stop din Trading 212 (stopT212) în rândul desfăcut al poziției · [S] · P2 · făcut 2026-10-28
+- **Problema/golul:** auditul, partea a doua (depozitul crypto): colectorul trimite din v101.130 `stopT212` (ordinul de stop în așteptare la broker) și alarma „fără stop loss” a Paznicului se dă pe el, dar pagina nu-l arăta; „SL” din bară e nivelul din plan, care nu execută nimic.
+- **Soluția:** în „Planul tău, din Radar”: „Ordin de stop la broker: $340,50 · ordin în Trading 212” sau „niciun ordin în Trading 212 · stopul din plan nu execută singur”; colector vechi fără câmp ⇒ niciun rând. Test.
+- **Fișiere atinse:** lib/radar-ecran.js, tools/radar-ecran.test.mjs
+
+#### I-791 · Paznic: cheie de scriere separată de cheia de citire (stopuri, simboluri, cereri Salt) · [S] · P2 · propus (depozitul crypto)
+- **Problema/golul:** `CHEIE_CITIRE` citește poza și scrie trei liste; prin `/stopuri` poate reduce la tăcere alarma `@here` „fără stop loss”. Cheia stă în fiecare browser și în cont (`tt_radar_access_v1`).
+- **Soluția:** `CHEIE_SCRIERE` în worker (`wrangler secret put`), cerută pe `/stopuri` (cel puțin), apoi `/simboluri` și `/salt-cereri`; pagina Alerte (lib/radar-poza.js), Decision App (lib/stop-setter.js, today/stop.js) o trimit din aceeași casetă; perioadă de tranziție în care worker-ul acceptă ambele.
+- **Fișiere:** crypto: paznic/worker.mjs, scripts/paznic-*.mjs; aici: lib/radar-poza.js, lib/radar-ecran.js (caseta), lib/stop-setter.js, today/stop.js, app/cloud-sync.js
