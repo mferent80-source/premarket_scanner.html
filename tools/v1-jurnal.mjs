@@ -42,6 +42,15 @@ function motor() {
   c.D = { fetchStock: (s, o) => fetchStock(s, o) };
   return c;
 }
+/** 28.10.2026 (revizia F4): de ce au picat TOATE acțiunile — motivele grupate, cele mai dese întâi, cu numărul lor (5 din 7 sesiuni s-au pierdut
+ *  cu „85 eșecuri” și nimic mai mult). Intră în mesajul de eroare, deci în jurnalul rulării și în alarma Discord. Doar text: nu e în versiune. */
+export function rezumatEsecuri(failures) {
+  const n = new Map();
+  for (const f of Array.isArray(failures) ? failures : []) { const m = f && typeof f.reason === 'string' ? f.reason.trim().slice(0, 70) : ''; if (m) n.set(m, (n.get(m) || 0) + 1); }
+  if (!n.size) return 'fără motive raportate';
+  const top = [...n.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([m, k]) => m + ' ×' + k).join(' · ');
+  return n.size > 3 ? top + ' · încă ' + (n.size - 3) + ' motive' : top;
+}
 /** 27.10.2026 (v1-proba-2, I-743): versiunea probei = amprenta SHA a regulilor V1 + a evaluatorului, nu șirul constant VERSION. */
 export function versiuneaDeAzi(radacina = '.') { return versiuneV1(readFileSync(radacina + '/lib/independent-scanner.js', 'utf8')); }
 /** Conținutul fișierului v1-proba.json (pur): evaluarea pe orizonturi + câmpurile de contract (putere / primulVerdict / judecata) +
@@ -77,7 +86,7 @@ async function main() {
   const c = motor(), V = versiuneaDeAzi('.');
   const report = await c.IndependentScanner.scan({ symbols: [...PROTOCOL.univers], concurrency: 3 });
   const rec = { ...inregistrare(report, Date.now(), V), d: amprentaDependinteV1((f) => readFileSync(f, 'utf8')) };   // 28.10.2026 (revizia F2, 🟡3): amprenta dependențelor pe zi, ca la Top Long
-  if (!rec.zi) throw Error('Nicio acțiune verificată azi (' + report.failures.length + ' eșecuri) — jurnalul rămâne neschimbat.');
+  if (!rec.zi) throw Error('Nicio acțiune verificată azi (' + report.failures.length + ' eșecuri: ' + rezumatEsecuri(report.failures) + ') — jurnalul rămâne neschimbat.');
   mkdirSync(DIR, { recursive: true });
   const vechi = existsSync(JURNAL) ? JSON.parse(readFileSync(JURNAL, 'utf8')) : { zile: [] };
   // 27.10.2026: rularea de rezervă de dimineață (DOAR_LIPSA=1) notează ziua doar dacă lipsește; cea notată seara, la timp, nu se rescrie cu ora de dimineață

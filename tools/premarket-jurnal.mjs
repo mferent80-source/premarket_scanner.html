@@ -4,7 +4,7 @@
 // și scrie evaluarea în scanner-verdicts/generated/premarket-proba.json. Fără chei.
 import vm from 'node:vm';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
-import { fetchStock, serii } from './v1-jurnal.mjs';
+import { fetchStock, serii, rezumatEsecuri } from './v1-jurnal.mjs';
 import { adauga, contractProba, citesteInghetat, liniiInghetat } from '../lib/v1-proba.mjs';
 import { PROTOCOL, versiune, inregistrare, evalueaza, amprentaDependinte, istoricDependinte } from '../lib/premarket-proba.mjs';
 import { calendarSUA, intervalPentru, simboluriDeReluat, taieLaZi } from '../lib/proba-contract.mjs';
@@ -103,7 +103,7 @@ async function main() {
   const c = motor(fetchCuBare, { calendar: cal }), h = c.hooks, V = versiune(h);
   await h.scan();
   const s = h.state;
-  if (!s.verified) throw Error('Nicio acțiune verificată azi (' + s.failures.length + ' eșecuri) — jurnalul rămâne neschimbat.');
+  if (!s.verified) throw Error('Nicio acțiune verificată azi (' + s.failures.length + ' eșecuri: ' + rezumatEsecuri(s.failures) + ') — jurnalul rămâne neschimbat.');   /* 28.10.2026 (revizia F4): motivele, nu doar numărul */
   if (s.scanned !== PROTOCOL.univers.length) throw Error('Universul scanat (' + s.scanned + ') nu e lista înghețată de ' + PROTOCOL.univers.length + '.');
   const rec = { ...inregistrare(s, V), d: amprentaDependinte((f) => readFileSync(f, 'utf8'), h) };   // 19.10.2026: amprenta dependențelor pe zi
   mkdirSync(DIR, { recursive: true });

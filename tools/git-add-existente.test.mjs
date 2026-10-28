@@ -82,8 +82,9 @@ test('`| tee` doar cu `set -o pipefail` în același pas (altfel a doua încerca
   }
 });
 
-test('push-ul probelor reîncearcă de 3 ori și pică vizibil (V1 / Top Long și Trend)', () => {
-  for (const n of ['v1-proba.yml', 'trend-12-1-bilant.yml']) {
+// 28.10.2026 (revizia F4): și clasamentul zilnic Trend și bilanțul săptămânal Top Long — un `git push` fără reîncercare pierdea ziua la o cursă cu alt robot
+test('push-ul probelor reîncearcă de 3 ori și pică vizibil (V1 / Top Long, Trend zilnic și bilanț, bilanțul Top Long)', () => {
+  for (const n of ['v1-proba.yml', 'trend-12-1-bilant.yml', 'trend-12-1.yml', 'premarket-bilant.yml']) {
     const y = FLUXURI.find((f) => f.n === n).y;
     assert.match(y, /for i in 1 2 3; do if git pull --rebase origin main && git push origin HEAD:main; then ok=1; break; fi/, n);
     assert.match(y, /\[ "\$ok" = 1 \] \|\| \{ echo 'Push eșuat de 3 ori\.'; exit 1; \}/, n);

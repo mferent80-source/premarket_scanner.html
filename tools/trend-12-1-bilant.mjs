@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { bilant, mesajBilantDiscord, continutBilant, citesteInghetatTrend, amprentaClasamentTrend, liniiInProba, intervaleBilant } from './trend-12-1-lib.mjs';
+import { bilant, mesajBilantDiscord, continutBilant, citesteInghetatTrend, amprentaClasamentTrend, liniiInProba, intervaleBilant, baraTrend } from './trend-12-1-lib.mjs';
 import { calendarSUA } from '../lib/proba-contract.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -39,7 +39,7 @@ async function adu(s, range = s === 'SPY' ? RANGE_SPY : RANGE) {
       if (!r.ok) { picate.push(s); return; }
       const j = await r.json(), x = j.chart && j.chart.result && j.chart.result[0]; if (!x) { picate.push(s); return; }
       const q = x.indicators.quote[0], out = [];
-      (x.timestamp || []).forEach((t, k) => { if ([q.open[k], q.high[k], q.low[k], q.close[k]].every((v) => v > 0)) out.push({ t: t * 1000, o: q.open[k], h: q.high[k], l: q.low[k], c: q.close[k], v: q.volume[k] || 0 }); });
+      (x.timestamp || []).forEach((t, k) => { if (baraTrend(q.open[k], q.high[k], q.low[k], q.close[k])) out.push({ t: t * 1000, o: q.open[k], h: q.high[k], l: q.low[k], c: q.close[k], v: q.volume[k] || 0 }); });   /* 28.10.2026 (revizia F4): același filtru ca robotul zilnic, din bibliotecă, nu o copie */
       preturi[s] = out; return;
     } catch (e) { if (inc === 3) picate.push(s); else await w(1500); }
   }
