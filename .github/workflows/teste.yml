@@ -8,12 +8,12 @@ on:
   push:
     branches: [main]
     # 27.10.2026: un mesaj de commit care CITEAZĂ marcajul de sărit al CI (chiar între ghilimele, în corp) sare toate fluxurile la push — poarta n-a rulat pentru d0cee8ed; nu-l scrie niciodată în text.
+    # 28.10.2026 (revizia F3, 🔵12): fișierele generate (cele înghețate ale probelor) și docs/ (tabelele de amprente) NU se mai sar — un push
+    # care le rescrie trebuie să treacă prin gărzile „doar crește”; roboții își marchează oricum commiturile ca sărite din CI
     paths-ignore:
-      - '**/generated/**'
       - 'market-breadth/data/**'
       - 'tools/alerts.json'
       - 'europe-stocks/calendar.json'
-      - 'docs/**'
   workflow_dispatch:
 
 permissions:

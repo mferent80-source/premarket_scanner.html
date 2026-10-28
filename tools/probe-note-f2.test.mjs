@@ -64,3 +64,13 @@ test('🔵7 puterea la +1 %/perioadă e afișată ca bandă pe ani (și pe 2026)
     assert.ok(t.includes('între ' + min + ' % și ' + max + ' %'), nume + ': ' + t); assert.ok(t.includes('pe ' + b.an + ', ' + an + ' %'), nume + ': ' + t);
   }
 });
+
+// ── revizia F3, 🔵11: banda puterii era doar în fișier; panoul (lib/proba-termen.js, folosit de Verdicte și Planuri) arăta tot „55 %” ──
+test('🔵11 F3 panoul probei arată banda puterii (o zecimală, cu anul de acum), nu un singur număr; fără bandă, textul vechi', () => {
+  const c = { console }; c.window = c; vm.createContext(c); vm.runInContext(readFileSync('lib/proba-termen.js', 'utf8'), c);
+  const j = (putere) => ({ orizonturi: [{ k: 5, principal: true, perioade: 3, necesare: 30 }], inceput: '2026-10-28', putere, primulVerdict: { optimist: '2027-06-21', realist: '2027-06-21' } });
+  const cu = c.TTProbaTermen.linie(j({ laPlus: [{ pct: 0.5, putere: 0.22 }, { pct: 1, putere: 0.549 }], banda: { pct: 1, min: 0.406, max: 0.737, an: 2026, laAn: 0.406 } }));
+  assert.match(cu, /40,6–73,7 % din cazuri/); assert.match(cu, /pe 2026: 40,6 %/); assert.doesNotMatch(cu, /55 %/);
+  const fara = c.TTProbaTermen.linie(j({ laPlus: [{ pct: 0.5, putere: 0.22 }, { pct: 1, putere: 0.549 }] }));
+  assert.match(fara, /doar în 55 % din cazuri/, 'fără bandă: textul de dinainte');
+});

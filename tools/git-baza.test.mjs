@@ -20,3 +20,17 @@ test('poarta de teste dă baza, iar toate gărzile „doar crește” o folosesc
     if (/\['show', BAZA \+ ':'/.test(s)) assert.match(s, /import \{ BAZA \} from '\.\/git-baza\.mjs';/, f);
   }
 });
+
+// 28.10.2026 (revizia F3, 🔵12): gărzile ieșeau tăcute când baza lipsea (force-push), iar poarta sărea commiturile doar cu generated/ sau docs/
+test('🔵12 F3 în poartă, baza dată există în istoric — altfel roșu, nu „sar”', () => {
+  const v = String(process.env.DOAR_CRESTE_BAZA || '').trim();
+  if (!/^[0-9a-f]{40}$/.test(v) || /^0+$/.test(v)) return;   // local / ramură nouă: baza e HEAD
+  let ok = true; try { execFileSync('git', ['cat-file', '-e', v + '^{commit}'], { stdio: 'ignore' }); } catch { ok = false; }
+  assert.ok(ok, 'baza ' + v + ' lipsește din istoric — gărzile „doar crește” n-ar avea cu ce compara');
+});
+test('🔵12 F3 poarta rulează și la commiturile care ating doar fișierele generate (înghețate) sau documentele (tabelele de amprente); roboții își sar CI-ul', () => {
+  const y = readFileSync('.github/workflows/teste.yml', 'utf8'), ign = (y.replace(/\r\n/g, '\n').match(/paths-ignore:\n((?:[ \t]+- [^\n]*\n)+)/) || [, ''])[1];
+  assert.ok(/paths-ignore:/.test(y) ? ign.length > 0 : true, 'lista căilor ignorate se citește');
+  assert.doesNotMatch(ign, /generated/, 'fișierele înghețate stau în generated/'); assert.doesNotMatch(ign, /docs\//, 'tabelele de amprente stau în docs/');
+  for (const f of readdirSync('.github/workflows').filter((n) => n.endsWith('.yml'))) for (const l of readFileSync('.github/workflows/' + f, 'utf8').split(/\r?\n/)) if (/git commit -m/.test(l)) assert.match(l, /skip ci/, f + ': commitul robotului trebuie să sară CI-ul (altfel poarta ar rula la fiecare noapte)');
+});
