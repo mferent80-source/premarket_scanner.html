@@ -7466,3 +7466,21 @@ Lentile: Trader — aplicația spune cum e piața, dar nu încă ce înseamnă p
 - **Impact:** O cheie scursă dintr-un cititor nu poate pune ordine.
 - **Riscuri/dependențe:** T212: cheia se restricționează la creare — EL o face în cont.
 - **Fișiere atinse:** broker/broker.js, app/settings/index.html, tools/cloud-sync-worker.mjs, docs/politica-de-risc.md
+
+
+## 28.10.2026 — TE „văzut o dată, apoi dispărut” din Portofoliu (diagnosticul sesiunii de pe PC, reparat în sesiunea cloud „Decision desk”)
+Context: „de ce nu văd în portofoliu TE, l-am cumpărat aseară?” — lanțul releu → cont → Portofoliu lua toate pozițiile; cauza era filtrul listei ținut minte pe aparat. Lentile: Trader — o poziție reală care „dispare” din aplicație e cel mai scump fel de tăcere; Designer — „X / Y dețineri afișate” spunea cifra, nu numele; Inginer — noutatea unei poziții nu era calculată nicăieri (reperul vizitei o vede o singură dată); Automator — ordinul pus după 22:00 e „în așteptare” în Cont · broker, dar Portofoliul nu știa de el.
+
+#### I-765 · O poziție nouă nu mai dispare tăcut sub un filtru ținut minte: „TE · poziție nouă (cumpărată 27.10) · ascunsă de filtrul «…» · Arată” · [S] · P1 · făcut 2026-10-28
+- **Problema/golul:** `holdings/holdings.js` ține minte filtrul (`tt_holdings_filters_v1`); „De revizuit · tehnic și plan” arată doar pozițiile cu `review` (`lib/holdings-review.js`; analiza lipsă nu contează), iar „Schimbate de la ultima vizită” marchează o poziție nouă doar la prima deschidere (`lib/holding-roster.js`, `newPosition`). Pe PC filtrul salvat era `{"state":"review","sort":"review"}` ⇒ TE a apărut o dată și apoi a ieșit din listă fără nicio urmă (incidentul din 28.10).
+- **Soluția:** `lib/holdings-ascunse.js` (pur): `recente()` = pozițiile noi — întâi din execuțiile contului (prima cumpărare în ultimele 7 zile, nicio execuție mai veche), apoi din istoricul zilnic al pozițiilor (absentă din citirile mai vechi de 7 zile), apoi din reperul vizitei; când nicio sursă nu poate spune, nu se inventează. `ascunse()` = cele noi care nu sunt în lista afișată, cu filtrele active numite ca în pagină. Rândul stă sub „X / Y dețineri afișate”; „Arată” scoate filtrele (același drum ca „Reset”) și deschide analiza.
+- **Impact:** o poziție cumpărată de curând nu mai poate „dispărea” din aplicație: dacă nu e în listă, pagina spune cine o ascunde și o arată la un clic.
+- **Riscuri/dependențe:** fără execuții, fără istoric de o săptămână și fără reper al vizitei, poziția nu e declarată nouă (închis la eroare, nu alarmă falsă); demo-ul nu arată rândul.
+- **Fișiere atinse:** lib/holdings-ascunse.js (nou), holdings/holdings.js, holdings/roster.js (`noi()`), holdings/index.html, holdings/holdings.css, tools/holdings-ascunse.test.mjs (nou), docs/incidente.md
+
+#### I-766 · Ordinele de CUMPĂRARE în așteptare la vedere și în Portofoliu („nu e încă poziție”) · [S] · P2 · făcut 2026-10-28
+- **Problema/golul:** copia locală a ordinelor în așteptare (I-723, `lib/t212-pending.js`) se folosea doar pentru „are stop la broker”; un ordin de cumpărare pus după închidere (22:00 RO) stă în așteptare până la 15:30 și se vedea doar în Cont · broker — exact pagina pe care n-o deschizi când cauți poziția în Portofoliu.
+- **Soluția:** `HoldingsAscunse.cumparari()` + `markupCumparari()`: rândul „N ordine de cumpărare în așteptare — devine poziție doar la execuție”, cu simbolul, cantitatea, tipul, limita / stopul, ora punerii și „nu e încă poziție” / „completează poziția”; copia mai veche de 6 h e spusă ca veche; fără citire pe acest aparat nu se afișează nimic (nu „fără ordine”). Se redesenează la fiecare desen al paginii și la schimbarea cheii `tt_trading212_orders_pending_v1` (sincronizare).
+- **Impact:** „am cumpărat aseară și nu-l văd” primește răspunsul în Portofoliu, înainte să cauți în altă parte.
+- **Riscuri/dependențe:** ordinele se citesc doar pe aparatul care sincronizează contul (I-713); pe celălalt rândul lipsește până la sincronizare.
+- **Fișiere atinse:** lib/holdings-ascunse.js, holdings/holdings.js, holdings/index.html (încarcă lib/t212-pending.js), holdings/holdings.css, tools/holdings-ascunse.test.mjs

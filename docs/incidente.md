@@ -6,6 +6,13 @@
 
 ## Incidente
 
+### 2026-10-28 · Portofoliul ascundea tăcut o poziție nouă sub filtrul ținut minte · gravitate mediu
+- **Ce s-a întâmplat:** TE, cumpărată pe 27.10 seara, s-a văzut în Portofoliu la prima deschidere și apoi n-a mai apărut; pagina nu spunea de ce.
+- **Impact:** o poziție reală părea lipsă din aplicație (fără bani pierduți); timp pierdut căutând cauza în sincronizare și la broker.
+- **Cauza:** filtrul listei se ține minte pe aparat (`tt_holdings_filters_v1`): „De revizuit · tehnic și plan” arată doar pozițiile care cer revizuire, iar „Schimbate de la ultima vizită” marchează o poziție nouă doar la prima deschidere; sub oricare din ele poziția nouă ieșea din listă fără nicio urmă.
+- **Ce s-a schimbat:** sub „X / Y dețineri afișate” apare „TE · poziție nouă (cumpărată 27.10) · ascunsă de filtrul «…» · Arată”, cu noutatea luată din execuțiile contului, apoi din istoricul zilnic, apoi din reperul vizitei (I-765); ordinele de cumpărare în așteptare se spun și în Portofoliu, nu doar în Cont · broker (I-766); `lib/holdings-ascunse.js`, `tools/holdings-ascunse.test.mjs`.
+- **Stare:** închis.
+
 ### 2026-10-27 · Robotul probei V1 pierduse 5 din 7 sesiuni fără alarmă · gravitate mare
 - **Ce s-a întâmplat:** robotul care notează proba Reguli V1 / Top Long / umbra Reversal nu a scris 5 din ultimele 7 sesiuni; nimic nu a anunțat lipsa.
 - **Impact:** 5 sesiuni lipsă din probele în timp (eșantionul probei mai mic, judecata amânată).

@@ -38,5 +38,7 @@ for(const [i,id] of ['holdingCompareA','holdingCompareB'].entries())$(id).onchan
 $('holdingComparison').addEventListener('toggle',()=>{if($('holdingComparison').open)renderComparison();});$('holdingCompareRefresh').onclick=renderComparison;
 $('holdingVisitSeen').onclick=()=>{const r=engine().acknowledge(context.scope,kind());message=r.reason||'';$('holdingChangesOnly').checked=false;refresh();};
 $('holdingVisitDemo').onclick=()=>{if(!context?.demo)return;const now=Date.now(),priorAt=now-86400000,old=context.positions.map(p=>{const prior=context.previous?.(p),m=context.model(p);return project({...p,unrealized:p.unrealized-12},priorAt,{model:prior&&m?{...prior,symbol:context.symbol(p),currency:m.currency}:m,brokerAt:new Date(priorAt).toISOString()});});engine().simulate(context.scope,{version:1,at:priorAt,entries:old});refresh();};
-g.HoldingsRosterUI={setContext,filter,controls,badge,bindRoster,renderComparison};
+/* 28.10.2026 (I-765): tickerele „prima dată văzute” față de reperul vizitei — a treia sursă pentru „poziție nouă” (lib/holdings-ascunse.js) */
+function noi(){return new Set((visit?.rows||[]).filter(r=>r.newPosition).map(r=>r.ticker));}
+g.HoldingsRosterUI={setContext,filter,controls,badge,bindRoster,renderComparison,noi};
 })(typeof window!=='undefined'?window:globalThis);
