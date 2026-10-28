@@ -7511,3 +7511,29 @@ Context: a treia privire, cerută de Marius („fă și lotul F și finalizează
 - **🔵5 ziua notată pe sărbătoare SUA cu Europa deschisă:** `inregistrare` ia `zi` = cea mai nouă dată EOD (a Europei), iar rândurile SUA din acel record au `d` = sesiunea precedentă; dacă ziua devine start, ferestrele rândurilor SUA și UE pornesc cu o sesiune diferență. ≈ 9 zile/an, doar dacă una e start. În amprentă ⇒ aceeași alegere ca mai sus; recomandare: fără repornire, notat în protocol.
 - **🔵6 ora cronului de seară (protocol, nu amprentă):** `45 21 * * 1-5` cade în fereastra în care Yahoo încă revizuiește volumul zilei (16:15–18:00 New York: 16:45 ET iarna, 17:45 ET vara) ⇒ Top Long e notat cu RVOL posibil nerevizuit (RVOL ⇒ scor ⇒ apartenența la Top Long), iar rezerva de 10:15 UTC notează pe date finale; „prima notare rămâne” păstrează oricare a venit întâi. Opțiuni: (a) acceptat și scris în protocol (e ce arată pagina la ora aceea); (b) cronul de seară după 18:00 ET tot anul (≥ 23:05 UTC), cu prețul de a cădea mai des în golul Yahoo de după 00:00 UTC (rezerva îl acoperă); (c) rezerva de dimineață ca notare principală. Nu s-a schimbat nimic.
 - **Fișiere atinse:** lib/v1-proba.mjs (excesRec, inregistrare), docs/v1-proba-protocol.md, docs/premarket-proba-protocol.md, .github/workflows/v1-proba.yml
+
+
+## 28.10.2026 — „Salvează asocierea și analizează” pentru TE: butonul mergea, omul nu vedea nimic (cerut de Marius; probat cu clic real de sesiunea de pe PC, reparat în sesiunea cloud)
+Context: TE (T1 Energy) cumpărată pe 27.10; după tt-v990 se vedea în Portofoliu, dar fără analiză, iar „NU SE ÎNTÂMPLĂ NIMIC CÂND APĂS SALVEAZĂ”. Cu clic real pe site: butonul salva și pornea `scan()`, 0 erori JS — dar câmpul precompletat dădea „FREYTE”, mesajul pleca în `#status` (sus, în afara ecranului), analiza apărea pe altă filă, asocierea stătea îngropată, iar `scanDue` sărea tăcut poziția fără simbol. Lentile: Trader — o poziție reală fără analiză e o decizie luată orb; Designer — răspunsul trebuie lângă degetul care a apăsat; Inginer — câmpul și statusul se iau din caseta butonului, nu din primul `[data-symbol]` din document; Automator — proba de ecran cu atingeri, ca drumul să fie păzit și după publicare.
+
+#### I-771 · Răspunsul lângă buton: „Salvat · analizez TE…” → „Gata” + mutarea pe „Poziție & direcție”, sau eroarea exactă · [S] · P1 · făcut 2026-10-28
+- **Problema/golul:** `$('status')` e în capul paginii; pe telefon, apăsând în „Planul meu”, nu se vedea; analiza se desena pe „Poziție & direcție”, unde omul nu era; `scan()` nu era așteptat, deci nu exista „gata” / „eroare”.
+- **Soluția:** `salveazaAsocierea(b)`: câmpul și `[data-map-status]` din caseta butonului apăsat (`closest('[data-asociere]')`), textele din `HoldingsAsociere.mesaj`; `await scan()`, apoi `HoldingsLayout.openHolding(ticker,{tab:'summary',scroll:true})` la reușită sau `cache[id].error` chiar acolo; statusul rămâne și după redesenare (`mapStatus`).
+- **Impact:** apăsarea are mereu un răspuns vizibil acolo unde s-a apăsat.
+- **Fișiere atinse:** holdings/holdings.js, lib/holdings-asociere.js (nou), holdings/holdings.css, tools/holdings-asociere.test.mjs (nou)
+
+#### I-772 · Câmpul „Simbol date”: textul se selectează tot la focus; în casetă câmpul e gol, cu indiciul „acum: FREY” · [S] · P1 · făcut 2026-10-28
+- **Problema/golul:** câmpul venea precompletat cu simbolul de acum; „TE” tastat fără ștergere dădea „FREYTE” ⇒ „Yahoo: simbol invalid sau indisponibil — FREYTE”.
+- **Soluția:** `onfocus=()=>el.select()` pe toate câmpurile `[data-symbol]`; caseta de pe „Poziție & direcție” are câmpul gol și `placeholder="acum: FREY · scrie simbolul nou"`.
+- **Fișiere atinse:** holdings/holdings.js, lib/holdings-asociere.js
+
+#### I-773 · Poziția fără simbol sau cu simbolul refuzat de Yahoo: caseta de asociere direct pe „Poziție & direcție”, cu propunere după ISIN doar afișată · [M] · P1 · făcut 2026-10-28
+- **Problema/golul:** asocierea era îngropată (card → Risc → Planul meu → pliul închis); `scanDue` sărea tăcut poziția fără simbol (`if(!symbol(p))return false`); cu un simbol refuzat reîncerca la 15 minute la nesfârșit, fără să spună.
+- **Soluția:** `HoldingsAsociere.stare` (lipsa / refuzat / ok) ⇒ `caseta()` în panoul „Poziție & direcție”, eticheta cardului „Simbol lipsă” / „Simbol refuzat”, rândul listei „Simbol lipsă · asociază”. Propunerea: căutarea Yahoo `v1/finance/search?q=<ISIN>` prin `D.fetchJSON` (calea aplicației), prima acțiune / ETF, cu nume, bursă și moneda din seria de prețuri; doar ARĂTATĂ, cu „Folosește TE” care umple câmpul și salvează la o atingere — niciodată singură („Nu schimba listarea doar pentru că numele seamănă”). Fără ISIN sau fără rezultat: spus în clar.
+- **Riscuri/dependențe:** ISIN-ul vine din `position()` (`lib/trading212-model.mjs`); pe un cont sincronizat înainte de câmpul `isin` lipsește ⇒ „Brokerul n-a dat ISIN-ul”.
+- **Fișiere atinse:** lib/holdings-asociere.js, holdings/holdings.js, holdings/layout.js, holdings/holdings.css
+
+#### I-774 · Proba de ecran: drumul asocierii, cu atingeri, pe un cont sintetic cu ticker nestandard · [M] · P2 · făcut 2026-10-28
+- **Problema/golul:** nicio probă nu apăsa butonul; bugul s-a văzut abia cu o unealtă scrisă pe loc (ca pe 19–20.10).
+- **Soluția:** pagina `holdings-asociere` în `tools/proba-ecran-decizie.mjs`: contul sintetic (`MUl_US_EQ`, ISIN Micron) pus în `localStorage` înainte de încărcare și șters după; atingeri reale (`Input.dispatchTouchEvent`, cu clic de rezervă) pe rând → câmp, `Input.insertText("MU")`, buton; element-cheie: răspunsul de lângă buton („Gata” sau „Eroare: …”; „nimic” e roșu). Rulată local pe Chromium: 6 pași verzi, răspunsul lângă buton („Eroare: Yahoo…”, sandboxul n-are Yahoo). Rulează și după publicare (proba-ecran.yml, toate paginile).
+- **Fișiere atinse:** tools/proba-ecran-decizie.mjs, tools/proba-ecran-decizie.test.mjs

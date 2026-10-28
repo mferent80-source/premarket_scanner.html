@@ -125,7 +125,7 @@ test('argumentele: implicite, BASE din mediu, --pagini și forma --x=y', () => {
   const o = citesteArgumente([], {});
   assert.equal(o.base, BAZA_IMPLICITA);
   assert.equal(o.timp, 60000);
-  assert.deepEqual(o.pagini.map((p) => p.id), ['today', 'scanner-verdicts', 'holdings', 'desk', 'desk-tichet', 'journal', 'health']);
+  assert.deepEqual(o.pagini.map((p) => p.id), ['today', 'scanner-verdicts', 'holdings', 'holdings-asociere', 'desk', 'desk-tichet', 'journal', 'health']);   // 28.10.2026 (I-774): + asocierea simbolului, cu atingeri
   assert.equal(citesteArgumente([], { BASE: 'http://127.0.0.1:8080/premarket_scanner.html' }).base, 'http://127.0.0.1:8080/premarket_scanner.html/');
   const x = citesteArgumente(['--pagini=today/,journal/#exec,desk/?ticket=1', '--timp', '45000', '--pastreaza-profil'], {});
   assert.deepEqual(x.pagini.map((p) => p.id), ['today', 'journal', 'desk-tichet']);

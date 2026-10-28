@@ -6,6 +6,13 @@
 
 ## Incidente
 
+### 2026-10-28 · „Salvează asocierea și analizează” părea că nu face nimic (TE) · gravitate mediu
+- **Ce s-a întâmplat:** pentru TE (cumpărată pe 27.10, ticker T212 în afara formei cunoscute), apăsarea butonului nu arăta nimic; analiza lui TE nu pornea.
+- **Impact:** o poziție reală a rămas fără analiză EOD câteva zile; timp pierdut (fără bani pierduți).
+- **Cauza:** butonul mergea, dar omul nu vedea: câmpul venea precompletat cu simbolul de acum (tastat „TE” peste „FREY” ⇒ „FREYTE” ⇒ Yahoo refuză), mesajul pleca în bara de stare de sus (în afara ecranului pe telefon), analiza apărea pe fila „Poziție & direcție” când omul stătea pe „Planul meu”, asocierea era îngropată (card → Risc → Planul meu → pliu închis), iar analiza automată sărea TĂCUT poziția fără simbol.
+- **Ce s-a schimbat:** răspunsul lângă buton (Salvat · analizez… → Gata și mutarea pe „Poziție & direcție”, sau eroarea exactă), câmpul se selectează la focus, caseta de asociere direct pe „Poziție & direcție” când simbolul lipsește sau e refuzat, cu propunere după ISIN doar afișată; „Simbol lipsă” la vedere în card și în listă; proba de ecran cu atingeri pe acest drum (I-771…I-774; `lib/holdings-asociere.js`, `tools/holdings-asociere.test.mjs`).
+- **Stare:** închis.
+
 ### 2026-10-28 · Portofoliul ascundea tăcut o poziție nouă sub filtrul ținut minte · gravitate mediu
 - **Ce s-a întâmplat:** TE, cumpărată pe 27.10 seara, s-a văzut în Portofoliu la prima deschidere și apoi n-a mai apărut; pagina nu spunea de ce.
 - **Impact:** o poziție reală părea lipsă din aplicație (fără bani pierduți); timp pierdut căutând cauza în sincronizare și la broker.

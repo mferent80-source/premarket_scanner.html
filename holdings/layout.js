@@ -46,7 +46,7 @@ function rosterCard({p,m},review,c,selected){
  <span class="roster-identity"><b>${esc(sym)}</b><span class="roster-company">${esc(p.name||p.ticker)}</span>${g.HoldingsRosterUI?.badge(p)||''}</span>
  <span class="roster-money"><span><small>Valoare · ${currency}</small><strong>${fmt(p.value)}</strong></span><span><small>P&amp;L · ${currency}</small><strong class="${p.unrealized<0?'bad':p.unrealized>0?'good':''}">${pnl}</strong></span></span>
  <span class="roster-state"><span><small>Trend mediu</small><b class="${kind}">${esc(trend)}</b></span><em class="review-cue ${review.kind}">${esc(review.label)}</em></span>
- <span class="roster-foot"><small>${m?.asOf?'EOD '+esc(m.asOf):'Analiză EOD indisponibilă'}</small><span class="roster-selection">${active?'Analiză deschisă':'Deschide analiza →'}</span></span>
+ <span class="roster-foot"><small>${m?.asOf?'EOD '+esc(m.asOf):c.symbol(p)?'Analiză EOD indisponibilă':'Simbol lipsă · asociază'}</small><span class="roster-selection">${active?'Analiză deschisă':'Deschide analiza →'}</span></span>
  </button>${g.HoldingsRosterUI?.controls(p)||''}</li>`;
 }
 function renderRoster(host,c,reviews,selected,sameScope){

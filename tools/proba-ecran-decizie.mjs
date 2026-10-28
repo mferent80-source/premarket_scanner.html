@@ -41,6 +41,12 @@ const TEXT_MINIM = 200;
 // și nu ține de modulul măsurat ⇒ cererile lui nu amână „gata” (eșecurile lor se numără totuși)
 const RE_FUNDAL = /candidate-engine\/[^#]*[?&]background=1/;
 
+/* 28.10.2026 (I-774): contul Trading 212 SINTETIC pentru proba asocierii — o poziție pe un ticker în afara formei cunoscute (`MUl_US_EQ`: litera
+   mică nu trece de `symbol()` ⇒ „simbol lipsă”), cu ISIN-ul Micron pentru propunerea după ISIN. Intră în localStorage înainte de încărcare, doar pe
+   pagina care îl cere, și se șterge după. `fetchedAt` se pune la rulare (o citire „de acum”). */
+export const CONT_SINTETIC = Object.freeze({ 'proba-sintetic:asociere': Object.freeze({ environment: 'live', active: true, fetchedAt: null, summary: Object.freeze({ currency: 'USD', totalValue: 1000, available: 500, invested: 210 }),
+  positions: Object.freeze([Object.freeze({ ticker: 'MUl_US_EQ', name: 'Micron Technology · poziție SINTETICĂ (proba de ecran)', isin: 'US5951121038', instrumentCurrency: 'USD', quantity: 2, averagePrice: 100, currentPrice: 105, currency: 'USD', value: 210, unrealized: 10 })]) }) });
+export const TICKER_SINTETIC = 'MUl_US_EQ', SIMBOL_PROPUS = 'MU';
 /** Paginile probate, în ordine. Selectorii sunt aleși citind HTML-ul și scripturile fiecărei pagini (20.10.2026).
  *  `text` = expresie regulată pe textul elementului; `diferitDe` = textul static din HTML pe care scriptul paginii trebuie să-l înlocuiască;
  *  `continut` = selector care trebuie să existe ca pagina să aibă „conținut” (tichetul). */
@@ -66,6 +72,14 @@ export const PAGINI = Object.freeze([
     // holdings/holdings.js snapshotStatus(): înlocuiește textul static (în profil gol: „Fără portofoliu Invest sincronizat.”)
     { nume: 'bara de stare', selector: '#status', diferitDe: 'Citesc ultimul portofoliu Invest sincronizat…' },
     { nume: 'fila Dețineri', selector: '#workspace-tab-holdings[aria-selected="true"]' },
+  ] },
+  // 28.10.2026 (I-774): drumul lui Marius pe telefon, cu atingeri — lista scurtă → cardul → caseta de pe „Poziție & direcție” → simbolul tastat →
+  // „Salvează asocierea și analizează” → răspunsul LÂNGĂ buton („Gata” sau eroarea exactă; „nimic” e roșu). Yahoo poate refuza de pe runner ⇒ „Eroare: …” trece.
+  { id: 'holdings-asociere', ruta: 'holdings/', nume: 'Portofoliu · asocierea simbolului', sintetic: CONT_SINTETIC, pasi: 'asociere', continut: '#holdingQuickList [data-pick-holding]', elemente: [
+    // la final rândul poate spune „Simbol lipsă · asociază” (înainte de pași) sau „MU · Analiză EOD indisponibilă / EOD …” (după) ⇒ doar existența
+    { nume: 'poziția cu ticker nestandard în listă', selector: '#holdingQuickList [data-pick-holding="' + TICKER_SINTETIC + '"]' },
+    { nume: 'caseta de asociere pe „Poziție & direcție”', selector: '.holding[data-ticker="' + TICKER_SINTETIC + '"] [data-asociere="summary"], .holding[data-ticker="' + TICKER_SINTETIC + '"] .asociere-status[data-kind="gata"]' },
+    { nume: 'răspunsul de lângă buton după apăsare', selector: '.holding[data-ticker="' + TICKER_SINTETIC + '"] [data-map-status], .holding[data-ticker="' + TICKER_SINTETIC + '"] .asociere-status[data-kind="gata"]', text: 'Gata|Eroare' },
   ] },
   { id: 'desk', ruta: 'desk/', nume: 'Planuri', elemente: [
     // desk/index.html: „—” static; Guardrail scrie verdictul (în profil gol „NEVERIFICAT”, proba pe viu 20.10)
@@ -500,6 +514,68 @@ async function inPagina(cdp, S, expresie) {
     return r.exceptionDetails ? null : (r.result ? r.result.value : null);
   } catch { return null; }
 }
+/* ---------- 28.10.2026 (I-774): pașii cu atingeri, în cadrul modulului (rulate în carcasă, trimise ca text) ---------- */
+// Rulează ÎN carcasă: contul sintetic în localStorage (același origin ca modulul) înainte ca pagina să se încarce; `fetchedAt` = acum.
+function scriptSintetic(cont) {
+  return '(function(){try{var c=' + JSON.stringify(cont) + ';for(var k in c)c[k].fetchedAt=new Date().toISOString();localStorage.setItem("tt_trading212_portfolio_v1",JSON.stringify(c));}catch(e){}})();';
+}
+// Rulează ÎN carcasă: șterge contul sintetic și asocierile scrise de probă (profilul rămâne curat pentru paginile următoare).
+function curataSintetic() {
+  try { localStorage.removeItem('tt_trading212_portfolio_v1'); for (const k of ['tt_holdings_symbols_v1', 'tt_holdings_benchmarks_v1', 'tt_holdings_sector_benchmarks_v1', 'tt_holdings_analysis_v1', 'tt_holdings_filters_v1']) localStorage.removeItem(k); return true; } catch (e) { return false; }
+}
+// Rulează ÎN carcasă: centrul elementului din cadrul modulului, în coordonatele ferestrei (cadrul + elementul), după ce e adus la vedere.
+function punctElement(sel) {
+  const f = document.querySelector('iframe[data-tt-active="1"]') || document.getElementById('frame');
+  let d = null;
+  try { d = f && f.contentDocument; } catch (e) { return null; }
+  const el = d && d.querySelector(sel);
+  if (!el) return null;
+  el.scrollIntoView({ block: 'center', inline: 'nearest' });
+  const r = el.getBoundingClientRect(), fr = f.getBoundingClientRect();
+  if (!(r.width > 0 && r.height > 0)) return null;
+  return { x: Math.round(fr.left + r.left + r.width / 2), y: Math.round(fr.top + r.top + r.height / 2) };
+}
+// Rulează ÎN carcasă: există elementul în cadrul modulului?
+function existaInCadru(sel) {
+  const f = document.querySelector('iframe[data-tt-active="1"]') || document.getElementById('frame');
+  try { const d = f && f.contentDocument; return !!(d && d.querySelector(sel)); } catch (e) { return false; }
+}
+// Rulează ÎN carcasă: focalizează elementul (ca tastarea să ajungă în el).
+function focalizeaza(sel) {
+  const f = document.querySelector('iframe[data-tt-active="1"]') || document.getElementById('frame');
+  try { const d = f && f.contentDocument, el = d && d.querySelector(sel); if (!el) return false; el.focus(); return d.activeElement === el; } catch (e) { return false; }
+}
+async function asteaptaInCadru(ctx, sel, ms) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) { if (await inPagina(ctx.cdp, ctx.S, '(' + existaInCadru + ')(' + JSON.stringify(sel) + ')')) return true; await asteapta(PAS_MS); }
+  return false;
+}
+/** O atingere reală (touchStart + touchEnd) pe elementul din cadru; dacă efectul așteptat (`verifica`) nu apare în 2,5 s, un clic de mouse. */
+async function atinge(ctx, sel, verifica) {
+  const { cdp, S } = ctx, p = await inPagina(cdp, S, '(' + punctElement + ')(' + JSON.stringify(sel) + ')');
+  if (!p) return { ok: false, motiv: 'elementul lipsește sau n-are mărime: ' + sel };
+  try {
+    await cdp.trimite('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: p.x, y: p.y }] }, S, 5000);
+    await cdp.trimite('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }, S, 5000);
+  } catch (e) { return { ok: false, motiv: 'atingerea a picat: ' + e.message }; }
+  if (!verifica) return { ok: true, fel: 'atingere' };
+  if (await asteaptaInCadru(ctx, verifica, 2500)) return { ok: true, fel: 'atingere' };
+  for (const type of ['mousePressed', 'mouseReleased']) await cdp.trimite('Input.dispatchMouseEvent', { type, x: p.x, y: p.y, button: 'left', clickCount: 1 }, S, 5000).catch(() => {});
+  return { ok: await asteaptaInCadru(ctx, verifica, 2500), fel: 'clic' };
+}
+/** Drumul asocierii, pe telefon: rândul poziției sintetice → caseta de pe „Poziție & direcție” → câmpul → simbolul tastat → butonul. */
+async function pasiAsociere(ctx, rez) {
+  const T = TICKER_SINTETIC, card = '.holding[data-ticker="' + T + '"]', caseta = card + ' [data-asociere="summary"]', pasi = [];
+  const noteaza = (nume, r) => { pasi.push({ nume, ok: !!r.ok, ...(r.fel ? { fel: r.fel } : {}), ...(!r.ok && r.motiv ? { motiv: r.motiv } : {}) }); if (!r.ok) rez.avertismente.push('pasul „' + nume + '” n-a mers: ' + (r.motiv || 'efectul așteptat n-a apărut')); return !!r.ok; };
+  if (!noteaza('poziția sintetică în listă', { ok: await asteaptaInCadru(ctx, '#holdingQuickList [data-pick-holding="' + T + '"]', 15000), motiv: 'lista n-a arătat poziția' })) return pasi;
+  if (!noteaza('atingerea rândului', await atinge(ctx, '#holdingQuickList [data-pick-holding="' + T + '"]', caseta + ' [data-symbol]'))) return pasi;
+  noteaza('atingerea câmpului', await atinge(ctx, caseta + ' [data-symbol]'));
+  const foc = await inPagina(ctx.cdp, ctx.S, '(' + focalizeaza + ')(' + JSON.stringify(caseta + ' [data-symbol]') + ')');
+  if (!noteaza('focalizarea câmpului', { ok: !!foc, motiv: 'câmpul nu a primit focusul' })) return pasi;
+  try { await ctx.cdp.trimite('Input.insertText', { text: SIMBOL_PROPUS }, ctx.S, 5000); noteaza('tastarea „' + SIMBOL_PROPUS + '”', { ok: true }); } catch (e) { noteaza('tastarea', { ok: false, motiv: e.message }); return pasi; }
+  noteaza('apăsarea „Salvează asocierea și analizează”', await atinge(ctx, caseta + ' [data-map]', card + ' [data-map-status]:not(:empty), ' + card + ' .asociere-status[data-kind="gata"]'));
+  return pasi;
+}
 
 function formateazaExceptie(det) {
   const ex = det.exception || {}, cf = (det.stackTrace && det.stackTrace.callFrames) || [];
@@ -735,6 +811,9 @@ async function masoaraPagina(ctx, pagina, opt, publicat) {
   const expr = '(' + stareInPagina + ')(' + JSON.stringify(pagina.elemente.map((e) => e.selector)) + ', ' + JSON.stringify(pagina.continut || null) + ')';
   const t0 = Date.now();
   c.ultimaActivitate = t0;
+  // 28.10.2026 (I-774): contul sintetic intră înainte de încărcare (în toate cadrele filei); atingerile cer emularea ecranului tactil
+  if (pagina.sintetic) await cdp.trimite('Page.addScriptToEvaluateOnNewDocument', { source: scriptSintetic(pagina.sintetic) }, S, 10000).catch((e) => { rez.eroare = 'contul sintetic n-a putut fi pus: ' + e.message; });
+  if (pagina.pasi) await cdp.trimite('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 }, S, 10000).catch(() => {});
   try {
     const nav = await cdp.trimite('Page.navigate', { url: rez.adresa }, S, opt.timp);
     if (nav.errorText) rez.eroare = 'navigarea a eșuat: ' + nav.errorText;
@@ -757,11 +836,14 @@ async function masoaraPagina(ctx, pagina, opt, publicat) {
     }
     if (!continutLa && s.text > TEXT_MINIM && s.continutSel) continutLa = Date.now();
     if (!continutLa) continue;
+    // 28.10.2026 (I-774): pașii cu atingeri, o singură dată, după ce modulul are conținut; apoi așteptarea obișnuită (răspunsul de lângă buton e element-cheie)
+    if (pagina.pasi === 'asociere' && !rez.pasi && s.stareDoc !== 'loading' && /\/holdings\//.test(s.cadru)) { rez.pasi = await pasiAsociere(ctx, rez); c.ultimaActivitate = Date.now(); continue; }
     const liniste = Date.now() - c.ultimaActivitate;
     const toate = pagina.elemente.every((e, i) => verificaElement(e, s.elemente[i]).ok);
     if (liniste >= LINISTE_MS && (toate || liniste >= LINISTE_MS + ASTEPTARE_ELEMENTE_MS)) { rez.gataMs = Math.max(continutLa, c.ultimaActivitate) - t0; break; }
   }
   const fin = rez.eroare ? stare : (await inPagina(cdp, S, expr)) || stare;
+  if (pagina.sintetic) { const curat = await inPagina(cdp, S, '(' + curataSintetic + ')()'); if (!curat) rez.avertismente.push('contul sintetic n-a putut fi șters din profil (localStorage.removeItem(\'tt_trading212_portfolio_v1\'))'); }
   rez.continutMs = continutLa ? continutLa - t0 : null;
   rez.durataMs = Date.now() - t0;
   if (!rez.eroare) {
