@@ -94,9 +94,19 @@ ferestrele și putea reveni la „în probă” după ce fusese anunțat. **Dup�
 „probat” sau „picat” cu pragul vechi, iar judecata din fișier rămâne goală. Data judecății e închiderea ferestrei care a trecut pragul.
 Pragurile nu se schimbă; mărimea nu poate decât să scadă (privirile de după a 60-a nu mai pot da „probat”).
 
-**Amprenta judecătorului: `jt-14925476f661`** (înlocuiește `jt-7098991f68d3`, înaintea primei ferestre): SHA pe `bilant`,
+**Amprenta judecătorului (revizia F2, înlocuită pe 28.10.2026 de revizia F3 — vezi mai jos) `jt-14925476f661`** (înlocuiește `jt-7098991f68d3`, înaintea primei ferestre): SHA pe `bilant`,
 `ferestreNesuprapuse`, `pragAbatere`, `interval`, `rnd`, `verdictSecvential` + pragurile (`T_PRAG`, `PRAG_ABATERE`, `ASTEPTARE`,
 `FERESTRE_MAX`).
+
+## Revizia F3 din 28.10.2026 — judecata doar pe ferestrele înghețate; filtrul barelor în amprentă (înaintea primei ferestre închise)
+- **🔵9:** `verdictSecvential` judecă doar ferestrele ale căror zile sunt definitive (orizont + 10 sesiuni scurse ⇒ înghețate). O fereastră
+  provizorie își mai schimbă valoarea la îngheț (intră acțiunile fără date), deci nu poate da un verdict care apoi s-ar pierde. Fișierul arată
+  `ferestreJudecate` lângă `ferestre20`. Data judecății (închiderea ferestrei care a trecut pragul) e testată cu calendarul NYSE.
+- **🔵8:** filtrul barelor (`baraTrend`) și intervalul Yahoo (`RANGE_CLASAMENT`) stau în bibliotecă, în amprenta clasamentului, mutate
+  neschimbate din robot ⇒ amprenta nouă `tc-268dd7fd71ef`, ECHIVALENTĂ cu `tc-86d0c9bbf68a` (`TC_ECHIVALENTE`, tabel care doar crește; o
+  probă). Ce linii se judecă (`versiuneLinie`, `liniiInProba`, `LINII_FARA_V`, `TC_ECHIVALENTE`) intră în amprenta judecătorului.
+
+**Amprenta judecătorului: `jt-ddec714a93cf`** (înlocuiește `jt-14925476f661`, înaintea primei ferestre).
 
 ## Amprentele clasamentului (revizia F2, 28.10.2026, 🟡3; tabel care doar crește, rândul de jos e cel în probă)
 Regula de clasament n-avea amprentă, iar liniile istoricului nu purtau versiunea: o regulă schimbată ar fi intrat tăcut în aceeași probă.
@@ -111,3 +121,4 @@ Liniile scrise înainte de 28.10 n-au `v`; rândurile de mai jos sunt reconstrui
 |---|---|---|---|
 | 14.10.2026 (`6c449ee7` … `c9df34a9`) | `tc-b7a4179a6e14` | regulile din ziua pornirii (ultima, din seara de 14.10) | 13.10 și 14.10 — în afara probei (linia din 14.10 a fost rescrisă la 15.10, 04:08:41 UTC, de un robot pornit pe codul vechi) |
 | 15.10.2026 04:08 UTC (`a3bd8443`) | `tc-86d0c9bbf68a` | o zi de întârziere a barei nu mai scoate acțiunea din clasament (se clasează pe ultima ei zi, marcată `intarziat`) | de la 15.10 (fără `v` până pe 28.10, cu `v` de atunci) |
+| 28.10.2026 (revizia F3, 🔵8) | `tc-268dd7fd71ef` | filtrul barelor (`baraTrend`) și intervalul (`RANGE_CLASAMENT`) mutate neschimbate din robot în bibliotecă — echivalentă cu `tc-86d0c9bbf68a` (`TC_ECHIVALENTE`) | aceleași linii (de la 15.10), aceeași probă |

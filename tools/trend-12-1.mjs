@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { amprentaClasamentTrend, curataUnivers, instantaneuUnivers, caleArhivaUnivers, clasament, regim, liniaIstoric, adaugaIstoric, taieBaraPartiala, raporteazaDinCalendar, iesiri, intrari, mesajDiscord, validareFisiere, decizieDateVechi } from './trend-12-1-lib.mjs';
+import { amprentaClasamentTrend, baraTrend, RANGE_CLASAMENT, curataUnivers, instantaneuUnivers, caleArhivaUnivers, clasament, regim, liniaIstoric, adaugaIstoric, taieBaraPartiala, raporteazaDinCalendar, iesiri, intrari, mesajDiscord, validareFisiere, decizieDateVechi } from './trend-12-1-lib.mjs';
 import zlib from 'node:zlib';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -48,12 +48,12 @@ const serii = {}, picate = [];
 async function adu(s) {
   for (let inc = 0; inc < 4; inc++) {
     try {
-      const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(s) + '?interval=1d&range=2y', { headers: UA, signal: AbortSignal.timeout(20000) });
+      const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(s) + '?interval=1d&range=' + RANGE_CLASAMENT, { headers: UA, signal: AbortSignal.timeout(20000) });   // 28.10.2026 (revizia F3, 🔵8): intervalul din bibliotecă, în amprentă
       if (r.status === 429) { await w(3000 * (inc + 1)); continue; }
       if (!r.ok) { picate.push(s + ' ' + r.status); return; }
       const j = await r.json(), x = j.chart && j.chart.result && j.chart.result[0]; if (!x) { picate.push(s + ' gol'); return; }
       const q = x.indicators.quote[0], out = [];
-      (x.timestamp || []).forEach((t, k) => { if ([q.open[k], q.high[k], q.low[k], q.close[k]].every((v) => v > 0)) out.push({ t: t * 1000, o: q.open[k], h: q.high[k], l: q.low[k], c: q.close[k], v: q.volume[k] || 0 }); });
+      (x.timestamp || []).forEach((t, k) => { if (baraTrend(q.open[k], q.high[k], q.low[k], q.close[k])) out.push({ t: t * 1000, o: q.open[k], h: q.high[k], l: q.low[k], c: q.close[k], v: q.volume[k] || 0 }); });
       serii[s] = out; return;
     } catch (e) { if (inc === 3) picate.push(s + ' ' + String(e.message || 'eroare').slice(0, 40)); else await w(1500); }
   }

@@ -40,6 +40,10 @@ export function instantaneuUnivers(rows, la, minCap = 2e9) {
 export const caleArhivaUnivers = (d) => 'univers-sua-istoric/' + d.slice(0, 4) + '/' + d + '.json.gz';
 
 /** serii = { simbol: bare[] } (bare zilnice {t,o,h,l,c,v}), spy = bare[] ⇒ clasamentul 12-1 al zilei. */
+/** 28.10.2026 (revizia F3, 🔵8): bara zilnică primită de robotul Trend și intervalul Yahoo al clasamentului stau aici, nu în robot, ca să
+ *  intre în amprenta clasamentului (mutate neschimbate: același filtru, același interval). */
+export const RANGE_CLASAMENT = '2y';
+export function baraTrend(o, h, l, c) { return [o, h, l, c].every((v) => v > 0); }
 export function clasament(serii, spy, o = {}) {
   const top = o.top ?? 40, minPret = o.minPret ?? 5, minDolari = o.minDolari ?? 1e7;
   const dataUltimei = zi(spy[spy.length - 1].t), excluse = { pret: 0, bani: 0, scurt: 0, vechi: 0 }, l = [], faraDate = [];
@@ -200,7 +204,7 @@ export function bilant(istoric, preturi, o = {}) {
   // (nu se mai recalculează din Yahoo), iar zilele cu orizontul + ASTEPTARE sesiuni scurse se întorc în `deIngheta` (de adăugat în fișier)
   const ing = Array.isArray(o.inghetate) ? new Map(o.inghetate.filter((x) => x && x.tip === 'zi').map((x) => [x.h + '|' + x.d, x])) : null, deIngheta = [];
   const idx = {}; for (const [s, b] of Object.entries(preturi)) { const m = new Map(); (b || []).forEach((x, i) => m.set(zi(x.t), i)); idx[s] = m; }
-  const rez = {}, nej = {}, opr = {}, vazut = new Set(); for (const h of H) { rez[h] = { top: [], nul: [], dif: [], si: [] }; nej[h] = { n: 0, motive: {} }; opr[h] = 0; }
+  const rez = {}, nej = {}, opr = {}, vazut = new Set(); for (const h of H) { rez[h] = { top: [], nul: [], dif: [], si: [], fix: [] }; nej[h] = { n: 0, motive: {} }; opr[h] = 0; }
   // 27.10.2026 (docs/trend-12-1-protocol.md, scris înaintea primei ferestre): o acțiune fără date la ASTEPTARE sesiuni după orizont iese la
   // ultima închidere cunoscută (față de SPY pe aceleași date); fără serie / fără ziua intrării ⇒ „nejudecată”, cu motiv (înainte: tăcut afară)
   const nejudecat = (h, l, s, motiv, loc) => { const k = h + '|' + l.d + '|' + s; if (vazut.has(k)) return; vazut.add(k); nej[h].n++; nej[h].motive[motiv] = (nej[h].motive[motiv] || 0) + 1; if (loc) loc.nej[motiv] = (loc.nej[motiv] || 0) + 1; };
@@ -214,7 +218,7 @@ export function bilant(istoric, preturi, o = {}) {
         if (si == null) throw Error('SPY nu acoperă ziua înghețată ' + l.d + ' — prețurile trebuie să acopere tot istoricul; bilanțul vechi rămâne');
         for (const [m, n] of Object.entries(f.nej || {})) { nej[h].n += n; nej[h].motive[m] = (nej[h].motive[m] || 0) + n; } opr[h] += f.oprite || 0;
         if (f.top === null) continue;
-        rez[h].top.push(f.top); if (f.nul !== null) { rez[h].nul.push(f.nul); rez[h].dif.push(f.top - f.nul); rez[h].si.push(si); }
+        rez[h].top.push(f.top); if (f.nul !== null) { rez[h].nul.push(f.nul); rez[h].dif.push(f.top - f.nul); rez[h].si.push(si); rez[h].fix.push(true); }
         continue;
       }
       if (si == null || si + h >= spy.length) continue;
@@ -235,7 +239,7 @@ export function bilant(istoric, preturi, o = {}) {
       const mTop = top.length ? top.reduce((a, b) => a + b, 0) / top.length : null, mUniv = univ.length ? univ.reduce((a, b) => a + b, 0) / univ.length : null;
       if (ing && gata) deIngheta.push({ tip: 'zi', d: l.d, h, top: mTop, nul: mTop === null ? null : mUniv, nTop: top.length, nUniv: univ.length, nej: loc.nej, oprite: loc.opr });
       if (!top.length) continue;
-      rez[h].top.push(mTop); if (mUniv !== null) { rez[h].nul.push(mUniv); rez[h].dif.push(mTop - mUniv); rez[h].si.push(si); }
+      rez[h].top.push(mTop); if (mUniv !== null) { rez[h].nul.push(mUniv); rez[h].dif.push(mTop - mUniv); rez[h].si.push(si); rez[h].fix.push(gata); }
     }
   }
   const medie = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
@@ -246,14 +250,18 @@ export function bilant(istoric, preturi, o = {}) {
   const t20 = ferestre20 > 1 ? Math.max(-99, Math.min(99, sW > 0 ? mW / (sW / Math.sqrt(ferestre20)) : mW > 0 ? 99 : mW < 0 ? -99 : 0)) : null;
   const se20 = ferestre20 > 1 ? sW / Math.sqrt(ferestre20) : null, mDif = medie(r20.dif);
   const difInterval = se20 != null && mDif != null ? [mDif - 2 * se20, mDif + 2 * se20] : dif20;   // ± 2 erori standard măsurate pe ferestre
-  const { verdict, laFereastra } = verdictSecvential(w);   // 28.10.2026 (revizia F2, 🔵14): prima trecere a pragului; după 60 fără verdict ⇒ „prag de rescris”
+  // 28.10.2026 (revizia F2, 🔵14): prima trecere a pragului; după 60 fără verdict ⇒ „prag de rescris”. Revizia F3, 🔵9: doar pe ferestrele ale
+  // căror zile sunt definitive (orizont + 10 sesiuni scurse ⇒ înghețate) — o fereastră provizorie se mai schimbă la îngheț, deci nu poate da
+  // un verdict care apoi s-ar pierde. Zilele definitive sunt primele în timp, deci selecția pe ele e începutul selecției pe toate.
+  const wFix = ferestreNesuprapuse(r20.si.map((s, i) => [s, r20.dif[i], r20.fix[i]]).filter((x) => x[2]).map((x) => [x[0], x[1]]), H[0]), ferestreJudecate = wFix.length;
+  const { verdict, laFereastra } = verdictSecvential(wFix);
   const prag = pragAbatere(ferestre20), abatere = prag == null ? null : { k: ferestre20, medie: mW, prag, atinsa: mW < prag };
   const starturi20 = ferestreNesuprapuse(r20.si.map((s) => [s, s]), H[0]).map((s) => zi(spy[s].t));   // ziua de start a fiecărei ferestre
   return {
     zile, n20: r20.top.length, n60: r60.top.length, ferestre20, starturi20, nejudecate: nej, oprite: opr, deIngheta,
     exces20: medie(r20.top), exces60: medie(r60.top), nulB20: medie(r20.nul), nulB60: medie(r60.nul),
     interval20: interval(r20.top, 1000, H[0]), diferenta20: { medie: mDif, interval: difInterval, ferestre: mW }, t20, abatere, diferenta60: { medie: medie(r60.dif), interval: interval(r60.dif, 1000, H[1] || 60) },
-    verdict, laFereastra, criterii: 'cel puțin 12 ferestre de 20 de zile care nu se suprapun și t > 3,2 pe diferența față de universul zilei ⇒ probat; t < −3,2 ⇒ picat; altfel în probă. Pragul e ales (14.10.2026) ca „probat” fals să rămână sub 5 % în 5 ani de priviri săptămânale; cu avantajul din istorie trece în ~25 % din cazuri în 3 ani — după un an, cel mai probabil tot „în probă”. Abatere: media ferestrelor sub pragul scris înainte (−3,0 % după 3, −1,8 % după 6, −1,2 % după 9, −0,9 % după 12)',
+    verdict, laFereastra, ferestreJudecate, criterii: 'cel puțin 12 ferestre de 20 de zile care nu se suprapun și t > 3,2 pe diferența față de universul zilei ⇒ probat; t < −3,2 ⇒ picat; altfel în probă. Pragul e ales (14.10.2026) ca „probat” fals să rămână sub 5 % în 5 ani de priviri săptămânale; cu avantajul din istorie trece în ~25 % din cazuri în 3 ani — după un an, cel mai probabil tot „în probă”. Abatere: media ferestrelor sub pragul scris înainte (−3,0 % după 3, −1,8 % după 6, −1,2 % după 9, −0,9 % după 12)',
   };
 }
 
@@ -366,7 +374,7 @@ export function intervaleBilant(istoric, inghetate, azi) {
  *  `taieBaraPartiala`, `liniaIstoric`, plus pragurile robotului (`MIN_CAP`, `N`, `TOP` din tools/trend-12-1.mjs). `instantaneuUnivers`
  *  (arhiva zilnică a universului) nu decide clasamentul. Fiecare linie nouă de istoric poartă amprenta (`v`); bilanțul judecă doar liniile
  *  versiunii de acum — o regulă schimbată repornește proba Trend, iar liniile vechi rămân în istoric. */
-export const RADACINI_CLASAMENT = Object.freeze(['clasament', 'curataUnivers', 'regim', 'taieBaraPartiala', 'liniaIstoric']);
+export const RADACINI_CLASAMENT = Object.freeze(['clasament', 'curataUnivers', 'regim', 'taieBaraPartiala', 'liniaIstoric', 'baraTrend', 'RANGE_CLASAMENT']);
 const citesteDepozit = (f) => readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 export function amprentaClasamentTrend(citeste = citesteDepozit) {
   const lib = citeste('tools/trend-12-1-lib.mjs'), rob = citeste('tools/trend-12-1.mjs');
@@ -379,9 +387,14 @@ export function amprentaClasamentTrend(citeste = citesteDepozit) {
  *  liniile fără `v` cu ziua ≥ 15.10 sunt ale ei; 13.10 și 14.10 sunt sub regula de dinainte (`tc-b7a4179a6e14`) și ies din probă. */
 export const LINII_FARA_V = Object.freeze({ deLa: '2026-10-15', v: 'tc-86d0c9bbf68a', inainte: 'tc-b7a4179a6e14' });
 export function versiuneLinie(l) { return l && typeof l.v === 'string' && l.v ? l.v : l && typeof l.d === 'string' && l.d >= LINII_FARA_V.deLa ? LINII_FARA_V.v : LINII_FARA_V.inainte; }
-/** Liniile istoricului care aparțin versiunii `V` (cea de acum, implicit). */
-export function liniiInProba(istoric, V = amprentaClasamentTrend()) { return (istoric || []).filter((l) => versiuneLinie(l) === V); }
+/** 28.10.2026 (revizia F3, 🔵8): amprentele clasamentului recunoscute ca ACEEAȘI regulă (tabel care doar crește, ca `AMPRENTE_V21` la verdict;
+ *  docs/trend-12-1-protocol.md § „Amprentele clasamentului”). Un rând nou = acoperire mai bună a aceluiași cod, fără efect pe clasament. */
+export const TC_ECHIVALENTE = Object.freeze(['tc-86d0c9bbf68a', 'tc-268dd7fd71ef']);
+const grupTc = (v) => (TC_ECHIVALENTE.includes(v) ? TC_ECHIVALENTE[0] : v);
+/** Liniile istoricului care aparțin versiunii `V` (cea de acum, implicit), cu echivalențele din tabel. */
+export function liniiInProba(istoric, V = amprentaClasamentTrend()) { const g = grupTc(V); return (istoric || []).filter((l) => grupTc(versiuneLinie(l)) === g); }
 
 /** Amprenta judecătorului probei Trend: funcțiile care măsoară și judecă bilanțul + pragurile; scrisă în docs/trend-12-1-protocol.md. */
 // 28.10.2026 (revizia F2, 🔵14): și `verdictSecvential` + `FERESTRE_MAX` (verdictul la prima trecere, „prag de rescris” după 60 de ferestre)
-export function amprentaJudecatorTrend() { return 'jt-' + amprentaFunctii({ bilant, ferestreNesuprapuse, pragAbatere, interval, rnd, verdictSecvential }, ['bilant', 'ferestreNesuprapuse', 'pragAbatere', 'interval', 'rnd', 'verdictSecvential'], JSON.stringify({ T_PRAG, PRAG_ABATERE, ASTEPTARE, FERESTRE_MAX })); }
+// revizia F3, 🔵8: și ce linii se judecă — `versiuneLinie`, `liniiInProba`, `LINII_FARA_V`, `TC_ECHIVALENTE`
+export function amprentaJudecatorTrend() { return 'jt-' + amprentaFunctii({ bilant, ferestreNesuprapuse, pragAbatere, interval, rnd, verdictSecvential, versiuneLinie, liniiInProba }, ['bilant', 'ferestreNesuprapuse', 'pragAbatere', 'interval', 'rnd', 'verdictSecvential', 'versiuneLinie', 'liniiInProba'], JSON.stringify({ T_PRAG, PRAG_ABATERE, ASTEPTARE, FERESTRE_MAX, LINII_FARA_V, TC_ECHIVALENTE })); }

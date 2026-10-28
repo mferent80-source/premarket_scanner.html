@@ -59,3 +59,10 @@ test('🔵14 intervalul Yahoo nu se mai oprește la 10 ani: peste ~10 ani de pro
   assert.equal(intervalPentru('2026-10-15', '2028-06-01'), '2y'); assert.equal(intervalPentru('2026-10-15', '2031-01-01'), '5y');
   assert.equal(intervalPentru('2026-10-15', '2035-01-01'), '10y'); assert.equal(intervalPentru('2026-10-15', '2037-06-01'), 'max');
 });
+
+test('🔵10 F3 Trend: cu zile înghețate vechi, SPY acoperă tot istoricul (5y), acțiunile doar de la prima zi neînghețată (2y)', () => {
+  const zi = (de, i) => new Date(Date.parse(de + 'T12:00:00Z') + i * 86400000).toISOString().slice(0, 10);
+  const istoric = Array.from({ length: 400 }, (_, i) => ({ d: zi('2026-10-15', i) })), ing = istoric.slice(0, 380).flatMap((l) => [{ tip: 'zi', h: 20, d: l.d }, { tip: 'zi', h: 60, d: l.d }]);
+  const r = intervaleBilant(istoric, ing, '2028-09-01');
+  assert.equal(r.primaVie, istoric[380].d); assert.equal(r.RANGE_SPY, '5y', 'SPY pe prima zi a istoricului'); assert.equal(r.RANGE, '2y', 'acțiunile pe prima zi neînghețată');
+});
