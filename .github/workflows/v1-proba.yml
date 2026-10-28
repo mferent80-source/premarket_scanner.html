@@ -41,7 +41,9 @@ jobs:
           set -o pipefail
           node tools/v1-jurnal.mjs 2>&1 | tee v1-ziua.log || (sleep 180 && node tools/v1-jurnal.mjs 2>&1 | tee v1-ziua.log)
       - name: Anunță pe Discord că ziua V1 lipsește
-        if: steps.v1.outcome == 'failure'
+        # 28.10.2026: doar la pierderea reală (rezerva de dimineață sau o rulare de mână); seara, GitHub pornește fluxul abia la 00:07–00:48 UTC,
+        # când Yahoo nu dă încă bara zilei (DATE STALE) — o acoperă rezerva de la 10:15 UTC, deci seara motivul rămâne doar în jurnal
+        if: steps.v1.outcome == 'failure' && github.event.schedule != '45 21 * * 1-5'
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
@@ -61,7 +63,7 @@ jobs:
           DOAR_LIPSA: ${{ github.event.schedule == '15 10 * * 2-6' && '1' || '' }}
         run: node tools/premarket-jurnal.mjs || (sleep 180 && node tools/premarket-jurnal.mjs)
       - name: Anunță pe Discord că ziua Premarket lipsește
-        if: steps.premarket.outcome == 'failure'
+        if: steps.premarket.outcome == 'failure' && github.event.schedule != '45 21 * * 1-5'   # 28.10.2026: ca la V1, doar la pierderea reală
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |

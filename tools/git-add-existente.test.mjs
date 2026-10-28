@@ -89,3 +89,11 @@ test('push-ul probelor reîncearcă de 3 ori și pică vizibil (V1 / Top Long ș
     assert.match(y, /\[ "\$ok" = 1 \] \|\| \{ echo 'Push eșuat de 3 ori\.'; exit 1; \}/, n);
   }
 });
+
+// 28.10.2026: cu `pipefail` (🔵6), rularea de seară — pornită de GitHub abia la 00:07–00:48 UTC, când Yahoo nu dă încă bara zilei (DATE STALE,
+// văzut pe 20–23, 26–27.10) — ar fi trimis Discord în fiecare noapte. Alarma e doar pentru pierderea reală: rezerva de dimineață sau o rulare de mână.
+test('Discord-ul „ziua lipsește” nu sună la rularea de seară (o acoperă rezerva de dimineață), ci doar la rezervă și la rularea de mână', () => {
+  const y = FLUXURI.find((f) => f.n === 'v1-proba.yml').y;
+  for (const pas of ['v1', 'premarket']) assert.ok(y.includes("if: steps." + pas + ".outcome == 'failure' && github.event.schedule != '45 21 * * 1-5'"), pas);
+  assert.match(y, /cron: '45 21 \* \* 1-5'/); assert.match(y, /cron: '15 10 \* \* 2-6'/);
+});
