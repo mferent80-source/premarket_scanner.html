@@ -36,6 +36,9 @@ export function amprentaRegulii(radacina = '.', citeste = (f) => readFileSync(f,
  *  crește; fiecare rând nou are motivul „fără efect asupra etichetei”. O amprentă necunoscută = altă regulă: linia o poartă ca `regula`. */
 export const AMPRENTE_V21 = Object.freeze(['rv-62c4d5d5f014', 'rv-2d9c18951701', 'rv-3ae2d077258b', 'rv-3e18543febee', 'rv-9e8358a5273b']);
 export function regulaPentru(amprenta) { return AMPRENTE_V21.includes(amprenta) ? REGULA : amprenta; }
+/** 28.10.2026 (revizia F2, 🔵19): regula liniei zilei — cea recunoscută, afară de o zi cu Fear & Greed în afara 0–100, când „fără efect” (rândul
+ *  `rv-3e18543febee`) nu mai e adevărat: atunci linia poartă amprenta ca regulă și rămâne în afara probei v2.1. */
+export function regulaLiniei(fg, amprenta, regula) { return fg && Number.isFinite(fg.valoare) && (fg.valoare < 0 || fg.valoare > 100) ? amprenta : regula; }
 export const CURS = 'candidate-engine/generated/curs-bnr.json';
 /** I-686: cursul oficial BNR (lei pentru o unitate; multiplicatorul se împarte), din fișierele anuale curs.bnr.ro. Doar EUR / USD / GBP / CHF. */
 export function cursDin(xml) {
@@ -231,13 +234,16 @@ export async function ruleaza({ radacina = '.', now = Date.now(), sursa = adu, f
   const items = ['SPY', 'QQQ', '^VIX', '^TNX'].map((s) => (raw[s] ? item(c, s, raw[s], now) : { symbol: s, state: 'error' }));
   const { breadth, raport } = breadthDin(existsSync(radacina + '/market-breadth/data/latest.json') ? JSON.parse(readFileSync(radacina + '/market-breadth/data/latest.json', 'utf8')) : null);
   let fg = null; try { fg = c.MacroRegime.fgDin(await (await fetchImpl('https://api.alternative.me/fng/?limit=1', { signal: AbortSignal.timeout(15000) })).json()); } catch (e) { log('Fear & Greed ✗ ' + e?.message); }
+  // 28.10.2026 (revizia F2, 🔵19): rândul `rv-3e18543febee` („F&G în afara 0–100 ⇒ semn invalid”) e „fără efect” doar dacă API-ul dă 0–100 — o
+  // presupunere despre date, verificată aici: o zi cu F&G în afara 0–100 nu contează la regula v2.1 (linia poartă amprenta ca regulă)
+  const regulaZi = regulaLiniei(fg, rv, regula); if (regulaZi !== regula) log('Fear & Greed în afara 0–100 (' + fg.valoare + ') ⇒ linia de azi nu contează la ' + REGULA);
   const extra = { serii: Object.fromEntries(MV.EXTRA.filter((s) => raw[s]).map((s) => [s, raw[s].map((b) => ({ t: b.t, c: b.c }))])), fg, la: now, erori: MV.EXTRA.filter((s) => !raw[s]) };
   const market = { items, breadth }, regim = MV.regimDin(market, extra);
   const zile = []; for (let k = 0, d = new Date(now); k < 10 && zile.length < 6; k++, d = new Date(d.getTime() + 86400000)) { const iso = d.toISOString().slice(0, 10), w = d.getUTCDay(); if (w === 0 || w === 6) continue; try { const r = await fetchImpl('https://api.nasdaq.com/api/calendar/earnings?date=' + iso, { headers: { 'user-agent': 'Mozilla/5.0', accept: 'application/json' }, signal: AbortSignal.timeout(15000) }); zile.push([iso, r.ok ? (await r.json())?.data?.rows || [] : []]); } catch (e) { log(`Nasdaq ${iso} ✗ ${e?.message}`); } }
   const rezultateMari = mariDin(zile);
   let events = []; try { events = c.MCTX.hardcodedEvents(); } catch (e) { log('calendar ✗ ' + e?.message); }
   const v = MV.compute({ market, raport, regime: regim, extra, events, robot: { rezultateMari, istoric }, now }), generat = new Date(now).toISOString();
-  const linie = adaugaLinie(istoric, linieZi(v, generat, regim, regula, rv)), toate = linie ? istoric.concat(linie) : istoric;
+  const linie = adaugaLinie(istoric, linieZi(v, generat, regim, regulaZi, rv)), toate = linie ? istoric.concat(linie) : istoric;
   const spy = raw.SPY ? (() => { try { return c.DailySeries.read(raw.SPY, 'SPY', now).bars; } catch { return []; } })() : [];
   // 28.10.2026 (revizia F2, 🟡4): zilele separate și judecata înghețate intră în probă; cele noi se întorc spre scriere (fișierul doar crește)
   const judecator = amprentaJudecator(), { deScris, ...pr } = proba(toate, spy, dateOf, c.ExchangeCalendar, { inghetate, judecator });

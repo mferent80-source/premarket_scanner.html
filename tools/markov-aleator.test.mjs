@@ -21,6 +21,19 @@ test('the new generator: uniform deciles (±1 pp on 50.000), ≥ 49.900 distinct
   assert.ok(vazute.size >= 49900, 'valori distincte: ' + vazute.size);
   const a = MK._rng(7), b = MK._rng(7); for (let i = 0; i < 5; i++) assert.equal(a(), b());
 });
+// 28.10.2026 (revizia F2, 🔵18): testul de decile de mai sus e slab (±1 pp pe 50.000 ≈ 7,5 erori standard). Aici: identic bit cu bit cu
+// mulberry32 de referință, hi-pătrat pe 100 de intervale (10⁶ trageri, prag la p = 0,001) și autocorelarea la pasul 1 sub 0,005.
+test('🔵18 generatorul e mulberry32 bit cu bit; hi-pătrat pe 100 de intervale și autocorelarea la pasul 1 trec la praguri strânse', () => {
+  const ref = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const MK = mk();
+  for (const s of [1, 7, 987654321, 2 ** 31 - 1]) { const a = MK._rng(s), b = ref(s); for (let i = 0; i < 10000; i++) assert.equal(a(), b(), 'sămânța ' + s + ', pasul ' + i); }
+  const r = MK._rng(20261028), n = 1e6, k = 100, bins = new Array(k).fill(0); let prev = r(), sxy = 0, sx = 0, sxx = 0;
+  for (let i = 0; i < n; i++) { const x = r(); bins[Math.floor(x * k)]++; sxy += prev * x; sx += x; sxx += x * x; prev = x; }
+  const e = n / k, chi = bins.reduce((acc, o) => acc + (o - e) ** 2 / e, 0);
+  assert.ok(chi < 148.2, 'hi-pătrat (99 grade, prag p = 0,001: 148,2): ' + chi.toFixed(1));
+  const m = sx / n, rho = (sxy / n - m * m) / (sxx / n - m * m);
+  assert.ok(Math.abs(rho) < 0.005, 'autocorelarea la pasul 1: ' + rho.toFixed(5));
+});
 test('HMM restarts and the first-passage Monte Carlo stay deterministic (same input ⇒ same numbers)', () => {
   const MK = mk(), obs = []; let s = 1; for (let i = 0; i < 400; i++) { s = (s * 16807) % 2147483647; obs.push(((s / 2147483647) - 0.5) * (i % 50 < 25 ? 0.01 : 0.04)); }
   const f1 = MK.fitHMM(obs, 2, { restarts: 3 }), f2 = MK.fitHMM(obs, 2, { restarts: 3 });

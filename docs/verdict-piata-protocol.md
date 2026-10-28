@@ -167,3 +167,5 @@ schimbare nu atinge eticheta:
 | 20.10.2026 (`14c00a09`, I-727 / I-731) | `rv-3ae2d077258b` | seriile portofoliului își păstrează `meta`; `regula()` pentru Drafturi | beta / corelațiile sunt informative; `regula()` aplică eticheta, n-o calculează |
 | 27.10.2026 (`d0cee8ed`, auditul A–E) | `rv-3e18543febee` | Fear & Greed în afara 0–100 ⇒ semn invalid (macro); textul riscului la „Prudent” (×0,75) | API-ul alternative.me dă doar 0–100 (nicio zi cu efect); textul nu intră în scor |
 | 28.10.2026 (revizia F2, 🟡3) | `rv-9e8358a5273b` | amprenta acoperă și funcțiile robotului care pregătesc piața pentru `compute`: `item` (doar sesiuni încheiate, media de 50 de zile) și `breadthDin` (lățimea pieței) | doar acoperire: codul lor nu s-a schimbat, eticheta iese la fel |
+
+Notă (28.10.2026, revizia F2, 🔵19): „fără efect” la `rv-3e18543febee` („F&G în afara 0–100 ⇒ semn invalid”) e o presupunere despre date, verificată de robot: din 28.10, o zi în care alternative.me dă Fear & Greed în afara 0–100 nu contează la v2.1 (`regulaLiniei`: linia poartă amprenta ca regulă și rămâne în afara probei), iar jurnalul robotului o spune.

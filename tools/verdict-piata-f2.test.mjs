@@ -115,3 +115,17 @@ test('🟡3 amprenta regulii acoperă și `item` (media de 50 de zile) și `brea
   assert.equal(amprentaRegulii('.', cu('export function mariDin(', 'export function mariDin(/* afișaj */')), a, 'marile companii (afișaj) nu decid eticheta');
   assert.ok(AMPRENTE_V21.includes(a), 'amprenta de azi e recunoscută ca v2.1 (rândul nou din protocol: acoperire, fără efect pe etichetă)');
 });
+
+// ── 🔵19: rândul `rv-3e18543febee` din AMPRENTE_V21 („F&G în afara 0–100 ⇒ semn invalid”) e „fără efect” doar dacă API-ul dă 0–100 — o
+//    presupunere despre date, acum verificată de robot: o zi cu F&G în afara 0–100 nu contează la v2.1 (linia poartă amprenta ca regulă) ──
+test('🔵19 o zi cu Fear & Greed în afara 0–100 nu contează la regula v2.1 (presupunerea „fără efect” verificată noapte de noapte)', async () => {
+  const { regulaLiniei, deRegula, linieZi } = await import('./verdict-piata-robot.mjs');
+  const rv = amprentaRegulii(), v = { asOf: '2026-10-28', label: { id: 'neutru' }, score: 0, citite: 6, indicatori: [{ id: 'trend', score: 0 }] };
+  for (const x of [0, 55, 100]) assert.equal(regulaLiniei({ valoare: x }, rv, REGULA), REGULA, 'F&G ' + x + ' ⇒ v2.1');
+  assert.equal(regulaLiniei(null, rv, REGULA), REGULA, 'F&G lipsă: semnul lipsește, regula nu se schimbă');
+  for (const x of [-1, 100.5, 150]) {
+    const r = regulaLiniei({ valoare: x }, rv, REGULA); assert.equal(r, rv, 'F&G ' + x + ' ⇒ linia poartă amprenta ca regulă');
+    assert.equal(deRegula(linieZi(v, '2026-10-29T05:00:00Z', null, r, rv)), false, 'și rămâne în afara probei v2.1');
+  }
+  const doc = readFileSync('docs/verdict-piata-protocol.md', 'utf8'); assert.match(doc, /rv-3e18543febee[^\n]*presupunere despre date, verificată de robot/);
+});

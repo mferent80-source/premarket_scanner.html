@@ -31,5 +31,5 @@ test('linia nouă poartă regula și amprenta din conținut', () => {
   const v = { asOf: '2026-10-28', label: { id: 'neutru' }, score: 0, citite: 6, indicatori: [{ id: 'trend', score: 0 }] }, a = amprentaRegulii();
   const l = linieZi(v, '2026-10-29T05:00:00Z', null, regulaPentru(a), a); assert.equal(l.regula, 'v2.1'); assert.equal(l.amprentaRegula, a); assert.equal(deRegula(l), true);
   const src = readFileSync('tools/verdict-piata-robot.mjs', 'utf8'), rul = src.slice(src.indexOf('export async function ruleaza'));
-  assert.match(rul, /amprentaRegulii\(radacina\)/); assert.match(rul, /linieZi\(v, generat, regim, regula, rv\)/);
+  assert.match(rul, /amprentaRegulii\(radacina\)/); assert.match(rul, /linieZi\(v, generat, regim, regulaZi, rv\)/); assert.match(rul, /regulaZi = regulaLiniei\(fg, rv, regula\)/);   // 28.10 (revizia F2, 🔵19)
 });
