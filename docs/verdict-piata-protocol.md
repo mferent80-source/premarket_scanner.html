@@ -140,13 +140,40 @@ la „Prudent”).
 judecata scrisă nu se mai potrivește cu zilele înghețate, fișierul probei arată `abatereJudecata`. Fluxul salvează fișierul separat
 (`tools/git-add-existente.mjs`).
 
-**Amprenta judecătorului: `jv-6871a59f149e`** (înlocuiește `jv-ef4eca49d1b8`, înaintea oricărei zile „redus” măsurate): SHA pe `deRegula`,
+**Amprenta judecătorului (revizia F2, înlocuită pe 28.10.2026 de revizia F3 — vezi mai jos) `jv-6871a59f149e`** (înlocuiește `jv-ef4eca49d1b8`, înaintea oricărei zile „redus” măsurate): SHA pe `deRegula`,
 `welch`, `proba`, `tcdf`, `rotatie` + pragurile (`PROBA` cu `test: 'rotatie'`), `REGULA`, `REVIZIE`. Lista `AMPRENTE_V21` a ieșit din
 amprentă: ea decide doar ce regulă poartă o linie nouă, nu cum se judecă, iar un rând nou acolo nu mai schimbă judecătorul.
 
 **Decizia LUI, până pe 30.10:** e aplicată varianta (a), rotația, recomandată de revizie. Varianta (b) ar fi permutarea pe episoade cu un
 rezultat nou, „fără putere”, când p-ul minim posibil trece de α sau episoadele sunt sub 10. Pentru (b): în `proba`, `rotatie(fix)` înapoi
 pe `permutareEpisoade(fix)`, verdictul `fara-putere`, `PROBA.test: 'permutare-episoade'`, testele de mărime refăcute și o amprentă nouă aici.
+
+## Revizia F3 din 28.10.2026 — puterea pe etichetele reale, înghețul cu așteptare, dependențele (înaintea primei zile „redus” măsurate)
+**Puterea scrisă era a etichetelor independente de SPY (🟡2).** Verdictul real e făcut din semne care urmează trendul SPY (SPY / QQQ față de
+mediile de 50 și 200, participarea, creditul). Simularea mea (scratchpad `sim-trend-etichete.mjs`, funcția reală `proba`, 2000 de lumi pe
+celulă, mulberry32): cu „redus” = SPY sub media de 50 de zile, „ajută” fals 0,3 % (GARCH) / 0,2 % (i.i.d.) și puterea la +1 pp doar 7,9 % /
+3,8 %; cu media de 200, 2,4 % și 21,1 %. Pe etichete independente de SPY puterea rămâne 30,9–35,5 %. Revizia F3 a dat aceeași ordine (6–17 %).
+Mesajul de la „nu ajută” și fișierul spun acum banda **~3,8–35,5 %** („cu atât mai rar cu cât etichetele urmează trendul SPY”), nu 34 %.
+Testul rămâne prudent (niciun „ajută” fals în plus); dar partea „dăunează” nu e calibrată pe etichete legate de trend (revizia F3: 6,4–9,6 %
+„dăunează” fals), deci **pe rotație nu se adaugă un verdict „dăunează”**.
+
+**Înghețul cu așteptare (🔵5).** O zi separată devine definitivă — se îngheață și intră în judecată — abia după orizont + 10 sesiuni
+(`PROBA.asteptare`), ca la V1 și Trend; până atunci apare doar la monitorizare. O fereastră se măsoară doar pe sesiuni NYSE la rând
+(`sesiuniLaRand`, numărătoarea din contract — calendarul bursei, iar dincolo de el sărbătorile calculate, deci nu se oprește în 2028): o bară
+SPY lipsă ar fi mutat căderea pe alte zile. Puterea scrisă, recalculată: mărimea 3,9 %, +0,5 pp 14,6 %, +1 pp 33,9 % (lumea din § „Schimbări”).
+
+**Dependențele pe linie (🟡3).** Seriile zilnice (tăietura sesiunilor încheiate), calendarul, contextul macro, robotul întreg, aducătorul de
+date (cu intervalul lui) și contractul se notează pe fiecare linie nouă (`d`, `amprentaDependinteVerdict`); fișierul probei arată
+schimbările (`dependinte`). Pregătirea seriilor extra (VIX9D, VIX3M, HYG, IEF) e scoasă din `ruleaza` în `pregatestePiata` și intră în
+amprenta regulii (rândul `rv-051f4e5b9738`, acoperire, fără efect pe etichetă).
+
+**Legătura cu robotul (🟡4)** e testată: `ruleaza` dă probei fișierul înghețat (o noapte fără SPY păstrează judecata), iar `main` refuză
+să scrie zile înaintea ultimei zile înghețate. O judecată care nu se mai potrivește cu zilele înghețate se spune în mesaj, cu p în format
+românesc (🔵13).
+
+**Amprenta judecătorului: `jv-d366fa570d07`** (înlocuiește `jv-6871a59f149e`, înaintea oricărei zile „redus” măsurate): ÎNCHIDEREA din
+sursă pornind de la `proba`, `deRegula`, `rotatie` (fără `PUTERE`), plus funcțiile din contract chemate (`judecata`, numărarea sesiunilor)
+și `tcdf` (🔵6) — nu o listă scrisă de mână.
 
 ## Amprentele regulii v2.1 (revizia independentă din 27.10.2026, 🟡8; tabel care doar crește)
 `REGULA = 'v2.1'` era scrisă de mână: o schimbare în `lib/market-verdict.js` / `lib/macro-regime.js` nota mai departe sub v2.1. Acum
@@ -167,5 +194,6 @@ schimbare nu atinge eticheta:
 | 20.10.2026 (`14c00a09`, I-727 / I-731) | `rv-3ae2d077258b` | seriile portofoliului își păstrează `meta`; `regula()` pentru Drafturi | beta / corelațiile sunt informative; `regula()` aplică eticheta, n-o calculează |
 | 27.10.2026 (`d0cee8ed`, auditul A–E) | `rv-3e18543febee` | Fear & Greed în afara 0–100 ⇒ semn invalid (macro); textul riscului la „Prudent” (×0,75) | API-ul alternative.me dă doar 0–100 (nicio zi cu efect); textul nu intră în scor |
 | 28.10.2026 (revizia F2, 🟡3) | `rv-9e8358a5273b` | amprenta acoperă și funcțiile robotului care pregătesc piața pentru `compute`: `item` (doar sesiuni încheiate, media de 50 de zile) și `breadthDin` (lățimea pieței) | doar acoperire: codul lor nu s-a schimbat, eticheta iese la fel |
+| 28.10.2026 (revizia F3, 🟡3) | `rv-051f4e5b9738` | amprenta acoperă și `pregatestePiata` (seriile extra pentru regim: VIX9D, VIX3M, HYG, IEF), scoasă din `ruleaza` neschimbată | doar acoperire: codul nu s-a schimbat, eticheta iese la fel |
 
 Notă (28.10.2026, revizia F2, 🔵19): „fără efect” la `rv-3e18543febee` („F&G în afara 0–100 ⇒ semn invalid”) e o presupunere despre date, verificată de robot: din 28.10, o zi în care alternative.me dă Fear & Greed în afara 0–100 nu contează la v2.1 (`regulaLiniei`: linia poartă amprenta ca regulă și rămâne în afara probei), iar jurnalul robotului o spune.

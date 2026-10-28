@@ -62,8 +62,9 @@ test('🟡2 la „nu ajută”, mesajul spune puterea și că nu s-a dovedit —
   assert.ok(r, 'o lume fără efect cu „nu ajută”');
   assert.doesNotMatch(r.mesaj, /tratează-l ca descriere/);
   assert.match(r.mesaj, /nu s-a dovedit/); assert.match(r.mesaj, /1 pp/);
-  const pct = (PUTERE.laPlus.find((x) => x.pct === 1).putere * 100).toFixed(1).replace('.', ',');
-  assert.ok(r.mesaj.includes(pct + ' %'), 'puterea scrisă (' + pct + ' %) e în mesaj');
+  // revizia F3, 🟡2: banda puterii (etichetele reale urmează trendul SPY ⇒ puterea mult sub cea a etichetelor independente), nu un singur număr
+  const u = (x) => (x * 100).toFixed(1).replace('.', ','), b = PUTERE.banda;
+  assert.ok(r.mesaj.includes('~' + u(b.min) + '–' + u(b.max) + ' %'), 'banda puterii (' + u(b.min) + '–' + u(b.max) + ' %) e în mesaj'); assert.match(r.mesaj, /urmează trendul SPY/);
 });
 
 test('🟡4 judecata se îngheață: o noapte fără SPY și un SPY care nu mai acoperă începutul probei nu o mai șterg și nu o mai schimbă', () => {
@@ -72,7 +73,7 @@ test('🟡4 judecata se îngheață: o noapte fără SPY și un SPY care nu mai 
   const J = amprentaJudecator(), noapte1 = proba(lume.linii, lume.spy, dateOf, null, { inghetate: [], judecator: J });
   assert.equal(noapte1.verdict, r0.verdict); assert.equal(noapte1.p, r0.p, 'înghețul nu schimbă judecata din prima noapte');
   const zile = noapte1.deScris.filter((x) => x.tip === 'zi'), jud = noapte1.deScris.filter((x) => x.tip === 'judecata');
-  assert.equal(jud.length, 1, 'judecata se scrie o singură dată'); assert.equal(zile.length, noapte1.zile, 'fiecare zi separată închisă se îngheață');
+  assert.equal(jud.length, 1, 'judecata se scrie o singură dată'); assert.ok(zile.length <= noapte1.zile && noapte1.zile - zile.length <= 3, 'zilele separate definitive se îngheață; cele din ultimele orizont + 10 sesiuni rămân provizorii (revizia F3, 🔵5)');
   for (const z of zile) { assert.equal(z.regula, REGULA); assert.equal(z.h, PROBA.orizont); assert.ok(Number.isFinite(z.dd) && Number.isFinite(z.r)); }
   assert.equal(jud[0].judecator, J); assert.equal(jud[0].verdict, r0.verdict);
   const ing = JSON.parse(JSON.stringify(noapte1.deScris));
@@ -128,4 +129,73 @@ test('🔵19 o zi cu Fear & Greed în afara 0–100 nu contează la regula v2.1 
     assert.equal(deRegula(linieZi(v, '2026-10-29T05:00:00Z', null, r, rv)), false, 'și rămâne în afara probei v2.1');
   }
   const doc = readFileSync('docs/verdict-piata-protocol.md', 'utf8'); assert.match(doc, /rv-3e18543febee[^\n]*presupunere despre date, verificată de robot/);
+});
+
+// ── revizia F3 pe verdictul pieței ──
+const sesiuniNYSE = async (de, n) => { const { dupaSesiuni } = await import('../lib/proba-contract.mjs'); const out = [de]; while (out.length < n) out.push(dupaSesiuni(null, out[out.length - 1], 1).zi); return out; };
+async function lumeNYSE(seed, { n = 900, pRedus = 0.4, sta = 0.8, gol = null } = {}) {
+  const zile = await sesiuniNYSE('2027-01-04', n), R = mulberry32(seed), g = gauss(R); let p = 100; const spy = [], linii = []; let red = R() < pRedus;
+  for (let i = 0; i < n; i++) { p *= 1 + 0.01 * g(); if (i !== gol) spy.push({ t: Date.parse(zile[i] + 'T21:00:00Z'), c: p }); if (i < n - 6) { if (i && R() > sta) red = R() < pRedus; linii.push({ asOf: zile[i], generat: 'x', regula: REGULA, label: red ? 'prudent' : 'neutru' }); } }
+  return { spy, linii, zile };
+}
+const calNYSE = { next: () => null };   // fără calendarul bursei din aplicație: numărătoarea NYSE calculată (sărbătorile după regulile bursei)
+const cuSursa = (fis, v, n) => (f) => { const s = readFileSync(f, 'utf8'); if (!String(f).split(String.fromCharCode(92)).join('/').endsWith(fis)) return s; assert.ok(s.includes(v), fis + ' nu conține ' + v); return s.replace(v, n); };
+
+test('🔵5 F3 o zi separată se îngheață abia după orizont + 10 sesiuni, iar o fereastră cu o sesiune lipsă din SPY nu se măsoară', async () => {
+  const { spy, linii } = await lumeNYSE(61000), J = amprentaJudecator(), idx = new Map(spy.map((b, i) => [dateOf(b.t), i]));
+  const r = proba(linii, spy, dateOf, calNYSE, { inghetate: [], judecator: J }), zile = r.deScris.filter((x) => x.tip === 'zi');
+  assert.ok(zile.length > 40, 'zile înghețate: ' + zile.length);
+  for (const z of zile) assert.ok(idx.get(z.asOf) + PROBA.orizont + PROBA.asteptare < spy.length, 'ziua ' + z.asOf + ' e definitivă');
+  const ultima = idx.get(zile[zile.length - 1].asOf); assert.ok(ultima + PROBA.orizont + PROBA.asteptare >= spy.length - 5, 'și se îngheață imediat ce devine definitivă');
+  const g = await lumeNYSE(61000, { gol: 300 }), zg = g.zile[300], rg = proba(g.linii, g.spy, dateOf, calNYSE, { inghetate: [], judecator: J });
+  const fereastra = (d) => { const i = g.zile.indexOf(d); return i < 300 && i + PROBA.orizont >= 300; };
+  assert.ok(!rg.deScris.some((x) => x.tip === 'zi' && fereastra(x.asOf)), 'nicio zi a cărei fereastră cuprinde sesiunea lipsă ' + zg);
+});
+
+test('🔵6 F3 judecătorul verdictului e închiderea din sursă: o schimbare în funcțiile din contract chemate de judecată schimbă amprenta', async () => {
+  const { amprentaJudecator: aj } = await import('./verdict-piata-robot.mjs');
+  const a = aj();
+  assert.notEqual(aj(cuSursa('lib/proba-contract.mjs', 'return { la, data, verdict, unic }; }', 'return { la, data, verdict, unic: false }; }')), a, 'contractul `judecata`');
+  assert.notEqual(aj(cuSursa('tools/verdict-piata-robot.mjs', 'if (nR < 2 || nN < 2) return null;', 'if (nR < 3 || nN < 3) return null;')), a, 'rotația');
+  assert.equal(aj(cuSursa('tools/verdict-piata-robot.mjs', 'laPlus: Object.freeze([Object.freeze({ pct: 0.5, putere: 0.146 })', 'laPlus: Object.freeze([Object.freeze({ pct: 0.5, putere: 0.149 })')), a, 'cifrele puterii nu decid judecata');
+});
+
+test('🟡3 F3 amprenta regulii acoperă și pregătirea seriilor (VIX9D, HYG, IEF…); dependențele (seriile zilnice, robotul, aducătorul) se notează pe linie (`d`)', async () => {
+  const { amprentaDependinteVerdict, linieZi, pregatestePiata } = await import('./verdict-piata-robot.mjs');
+  const citeste = (f) => readFileSync(f, 'utf8');
+  const a = amprentaRegulii(), d = amprentaDependinteVerdict('.', citeste);
+  assert.match(d, /^dep-[0-9a-f]{12}$/);
+  assert.notEqual(amprentaRegulii('.', cuSursa('tools/verdict-piata-robot.mjs', 'raw[s].map((b) => ({ t: b.t, c: b.c }))', 'raw[s].slice(0, -1).map((b) => ({ t: b.t, c: b.c }))')), a, 'pregătirea seriilor extra schimbată ⇒ altă amprentă');
+  assert.equal(amprentaRegulii('.', cuSursa('lib/daily-series.js', 'b.t>now+60000', 'b.t>now+6000000')), a, 'seriile zilnice nu sunt în regulă…');
+  assert.notEqual(amprentaDependinteVerdict('.', cuSursa('lib/daily-series.js', 'b.t>now+60000', 'b.t>now+6000000')), d, '… dar se văd în `d`');
+  assert.notEqual(amprentaDependinteVerdict('.', cuSursa('tools/clasificator-date.mjs', "range = '5y'", "range = '1y'")), d, 'intervalul aducătorului se vede în `d`');
+  const p = pregatestePiata({ VIX9D: [{ t: 1, c: 2, o: 9 }] }, ['VIX9D', 'HYG'], null, 5);
+  assert.deepEqual(p.serii, { VIX9D: [{ t: 1, c: 2 }] }); assert.deepEqual(p.erori, ['HYG']); assert.equal(p.la, 5);
+  const v = { asOf: '2026-10-28', label: { id: 'neutru' }, score: 0, citite: 6, indicatori: [{ id: 'trend', score: 0 }] };
+  assert.equal(linieZi(v, '2026-10-29T05:00:00Z', null, REGULA, a, d).d, d, 'linia poartă `d`');
+  const src = citeste('tools/verdict-piata-robot.mjs'); assert.ok(src.includes('linieZi(v, generat, regim, regulaZi, rv, amprentaDependinteVerdict(radacina))')); assert.ok(src.includes('pregatestePiata(raw, MV.EXTRA, fg, now)'));
+  assert.ok(AMPRENTE_V21.includes(a), 'rândul nou (acoperire) e în tabel');
+});
+
+test('🟡4 F3 robotul dă probei fișierul înghețat: o noapte prin `ruleaza`, fără SPY, păstrează judecata din fișier și nu mai scrie nimic', async () => {
+  const { ruleaza } = await import('./verdict-piata-robot.mjs');
+  const J = amprentaJudecator(), zile = await sesiuniNYSE('2027-01-04', 400);
+  const ing = []; for (let k = 0; k < 40; k++) ing.push({ tip: 'zi', regula: REGULA, h: PROBA.orizont, asOf: zile[k * 5], grup: k % 2 ? 'normal' : 'redus', dd: -1 - (k % 3) * 0.1, r: 0.1 });
+  const tz = rotatie(ing.map((x) => ({ grup: x.grup, dd: x.dd })));
+  ing.push({ tip: 'judecata', regula: REGULA, judecator: J, la: 20, data: zile[205], verdict: 'nu-ajuta', p: tz.p, test: { metoda: 'rotație pe zilele separate (decalaj circular)', decalaje: 40 }, zile: ing.map((x) => x.asOf) });
+  const bare = () => { const out = Array.from({ length: 30 }, (_, i) => ({ t: Date.parse('2025-07-01T13:30:00Z') + i * 86400000, o: 1, h: 1, l: 1, c: 1, v: 1 })); Object.defineProperty(out, 'meta', { value: { symbol: 'X', regularEnd: null } }); return out; };
+  const fetchImpl = async () => ({ ok: true, json: async () => ({ data: [] }) }), now = Date.parse('2028-05-16T12:00:00Z');
+  const { j, deScris } = await ruleaza({ sursa: async () => bare(), fetchImpl, now, istoric: [], inghetate: ing });
+  assert.equal(j.proba.verdict, 'nu-ajuta', 'judecata vine din fișier'); assert.equal(j.proba.p, tz.p); assert.equal(deScris.length, 0, 'nimic nou de scris');
+  const src = readFileSync('tools/verdict-piata-robot.mjs', 'utf8');
+  assert.ok(src.includes('await ruleaza({ log: console.log, istoric, inghetate })'), 'main dă fișierul înghețat lui `ruleaza`');
+  assert.ok(src.includes("deScris.some((x) => x.tip === 'zi' && ultimaIng && !(x.asOf > ultimaIng))"), 'main verifică: zilele noi sunt după ultima înghețată');
+});
+
+test('🔵13 F3 o judecată care nu se mai potrivește cu zilele înghețate se spune în mesajul probei, cu p în format românesc', async () => {
+  const J = amprentaJudecator(), zile = await sesiuniNYSE('2027-01-04', 400);
+  const ing = []; for (let k = 0; k < 40; k++) ing.push({ tip: 'zi', regula: REGULA, h: PROBA.orizont, asOf: zile[k * 5], grup: k % 2 ? 'normal' : 'redus', dd: k % 2 ? -1 : -3 - k * 0.001, r: 0.1 });
+  ing.push({ tip: 'judecata', regula: REGULA, judecator: J, la: 20, data: zile[205], verdict: 'nu-ajuta', p: 0.48387096774, zile: [] });
+  const r = proba([], [], dateOf, null, { inghetate: ing, judecator: J });
+  assert.ok(r.abatereJudecata, 'abaterea e găsită'); assert.match(r.mesaj, /nu se mai potrivește/); assert.match(r.abatereJudecata, /p 0,484/); assert.doesNotMatch(r.abatereJudecata, /0\.4838/);
 });

@@ -12,14 +12,16 @@ import { readFileSync, writeFileSync, existsSync, appendFileSync } from 'node:fs
 import { pathToFileURL } from 'node:url';
 import { adu } from './clasificator-date.mjs';
 import { tcdf } from './clasificator-jurnal.mjs';
-import { mulberry32, gauss, amprentaFunctii, amprentaText, inchidere, declaratii, dupaSesiuni, sesiuniIntre, judecata as judecataDin } from '../lib/proba-contract.mjs';
+import { createHash } from 'node:crypto';
+import { mulberry32, gauss, amprentaFunctii, amprentaText, inchidere, declaratii, functieDinText, dupaSesiuni, sesiuniIntre, judecata as judecataDin } from '../lib/proba-contract.mjs';
 
 export const FISIER = 'candidate-engine/generated/verdict-piata.json', ISTORIC = 'candidate-engine/generated/verdict-piata-istoric.jsonl', VERSIUNE = 'verdict-piata-v1';
 // 28.10.2026 (revizia F2, 🟡4): zilele separate închise și judecata, înghețate (o linie JSON pe rând; fișierul doar crește)
 export const INGHETAT = 'candidate-engine/generated/verdict-piata-inghetat.jsonl';
 // 27.10.2026 (revizia independentă F, 🔴4): testul era permutarea pe EPISOADE de etichetă (nu Welch); `permutari` / `samanta` rămân pentru ea (comparație)
 // 28.10.2026 (revizia F2, 🟡2): judecătorul e ROTAȚIA pe zilele separate (`rotatie`) — permutarea orbea la etichete persistente
-export const PROBA = Object.freeze({ orizont: 5, minimPeGrup: 20, alfa: 0.05, protocol: '2026-10-17', revizie: '2026-10-28', test: 'rotatie', permutari: 4000, samanta: 17102026 });
+// 28.10.2026 (revizia F3, 🔵5): `asteptare` = sesiunile după orizont până când o zi separată devine definitivă (se îngheață), ca la V1 / Trend
+export const PROBA = Object.freeze({ orizont: 5, minimPeGrup: 20, alfa: 0.05, protocol: '2026-10-17', revizie: '2026-10-28', test: 'rotatie', permutari: 4000, samanta: 17102026, asteptare: 10 });
 /** 27.10.2026 (I-743): versiunea regulii verdictului (docs/setup-filtru-piata.md, 2.1) pe fiecare linie nouă din istoric. Liniile vechi n-o au:
  *  contează ca v2.1 doar dacă au fost notate după revizia din 17.10.2026 (264e74af, 13:06 UTC) — 16.10 a fost notat sub regula dinainte. */
 export const REGULA = 'v2.1', REVIZIE = '2026-10-17T13:06:14Z';
@@ -30,11 +32,18 @@ export function deRegula(l) { if (l && l.regula !== undefined) return l.regula =
  *  50 de zile) și `breadthDin` (lățimea pieței), cu închiderea lor din acest fișier. */
 export function amprentaRegulii(radacina = '.', citeste = (f) => readFileSync(f, 'utf8')) {
   const mv = citeste(radacina + '/lib/market-verdict.js'), mr = citeste(radacina + '/lib/macro-regime.js'), rb = citeste(radacina + '/tools/verdict-piata-robot.mjs');
-  return 'rv-' + amprentaText(mv, inchidere(mv, ['compute', 'regimDin']), 'macro\n' + amprentaText(mr, declaratii(mr)) + '\nrobot\n' + amprentaText(rb, inchidere(rb, ['item', 'breadthDin'])));
+  // 28.10.2026 (revizia F3, 🟡3): și `pregatestePiata` (seriile extra: VIX9D, VIX3M, HYG, IEF — decid VIX-ul și creditul)
+  return 'rv-' + amprentaText(mv, inchidere(mv, ['compute', 'regimDin']), 'macro\n' + amprentaText(mr, declaratii(mr)) + '\nrobot\n' + amprentaText(rb, inchidere(rb, ['item', 'breadthDin', 'pregatestePiata'])));
 }
+/** 28.10.2026 (revizia F3, 🟡3): ce poate schimba eticheta fără să fie regula — seriile zilnice (tăietura sesiunilor încheiate), calendarul,
+ *  contextul macro, robotul întreg, aducătorul de date cu intervalul lui, contractul — se NOTEAZĂ pe fiecare linie (`d`), ca la V1 / Top Long. */
+export const DEPENDINTE_VERDICT = Object.freeze(['lib/daily-series.js', 'lib/exchange-calendar.js', 'lib/macro-context.js', 'tools/verdict-piata-robot.mjs', 'tools/clasificator-date.mjs', 'lib/proba-contract.mjs']);
+export function amprentaDependinteVerdict(radacina = '.', citeste = (f) => readFileSync(f, 'utf8')) { const h = createHash('sha256'); for (const f of DEPENDINTE_VERDICT) h.update(f + '\n' + String(citeste(radacina + '/' + f)).replace(/\r\n?/g, '\n')); return 'dep-' + h.digest('hex').slice(0, 12); }
+/** 28.10.2026 (revizia F3, 🟡3): pregătirea seriilor extra pentru regim, scoasă din `ruleaza` ca să intre în amprenta regulii. */
+export function pregatestePiata(raw, simboluri, fg, now) { return { serii: Object.fromEntries(simboluri.filter((s) => raw[s]).map((s) => [s, raw[s].map((b) => ({ t: b.t, c: b.c }))])), fg, la: now, erori: simboluri.filter((s) => !raw[s]) }; }
 /** Amprentele de conținut recunoscute ca regula v2.1 — tabelul din docs/verdict-piata-protocol.md (§ „Amprentele regulii v2.1”), care doar
  *  crește; fiecare rând nou are motivul „fără efect asupra etichetei”. O amprentă necunoscută = altă regulă: linia o poartă ca `regula`. */
-export const AMPRENTE_V21 = Object.freeze(['rv-62c4d5d5f014', 'rv-2d9c18951701', 'rv-3ae2d077258b', 'rv-3e18543febee', 'rv-9e8358a5273b']);
+export const AMPRENTE_V21 = Object.freeze(['rv-62c4d5d5f014', 'rv-2d9c18951701', 'rv-3ae2d077258b', 'rv-3e18543febee', 'rv-9e8358a5273b', 'rv-051f4e5b9738']);
 export function regulaPentru(amprenta) { return AMPRENTE_V21.includes(amprenta) ? REGULA : amprenta; }
 /** 28.10.2026 (revizia F2, 🔵19): regula liniei zilei — cea recunoscută, afară de o zi cu Fear & Greed în afara 0–100, când „fără efect” (rândul
  *  `rv-3e18543febee`) nu mai e adevărat: atunci linia poartă amprenta ca regulă și rămâne în afara probei v2.1. */
@@ -74,8 +83,8 @@ export function mariDin(zile, n = 15) {
   return rows.sort((a, b) => b.cap - a.cap).slice(0, n).sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 /** Linia de istoric a zilei (scorurile pe indicatori, pentru „ce s-a mutat” și pentru probă). */
-export function linieZi(v, generat, regim, regula = REGULA, amprenta = null) {
-  return { asOf: v.asOf, generat, regula, ...(amprenta ? { amprentaRegula: amprenta } : {}), label: v.label.id, score: v.score, citite: v.citite, indicatori: Object.fromEntries(v.indicatori.map((x) => [x.id, x.score])), regim: regim?.treapta?.cod || null };
+export function linieZi(v, generat, regim, regula = REGULA, amprenta = null, d = null) {
+  return { asOf: v.asOf, generat, regula, ...(amprenta ? { amprentaRegula: amprenta } : {}), ...(d ? { d } : {}), label: v.label.id, score: v.score, citite: v.citite, indicatori: Object.fromEntries(v.indicatori.map((x) => [x.id, x.score])), regim: regim?.treapta?.cod || null };
 }
 export function adaugaLinie(linii, l) { return !l.asOf || l.label === 'necunoscut' || linii.some((x) => x.asOf === l.asOf) ? null : l; }
 /** Welch unilateral (H1: căderile din zilele „redus” sunt mai mari, adică mai negative): p sau null sub 2 zile pe grup. */
@@ -110,6 +119,9 @@ export function permutareEpisoade(rows, { B = PROBA.permutari, samanta = PROBA.s
   for (let b = 0; b < B; b++) { let sR = 0, qR = 0, nR = 0; for (let i = 0; i < R; i++) { const j = i + Math.floor(rnd() * (E - i)), t = idx[i]; idx[i] = idx[j]; idx[j] = t; sR += S[idx[i]]; qR += Q[idx[i]]; nR += N[idx[i]]; } if (stat(sR, qR, nR) <= obs + tol) k++; }
   return { ...baza, p: (1 + k) / (1 + B), exact: false, aranjamente: B };
 }
+/** 28.10.2026 (revizia F3, 🔵5): barele SPY de la i la i + h sunt sesiuni NYSE la rând — numărătoarea din contract: calendarul bursei, iar
+ *  dincolo de el sărbătorile NYSE calculate (nu se oprește când calendarul oficial se termină). O bară lipsă ar muta căderea pe alte zile. */
+export function sesiuniLaRand(cal, bare, i, h, dateOf) { try { for (let k = 1; k <= h; k++) if (dupaSesiuni(cal, dateOf(bare[i + k - 1].t), 1).zi !== dateOf(bare[i + k].t)) return false; return true; } catch { return false; } }
 /** 28.10.2026 (revizia F2, 🟡2): testul prin ROTAȚIE (decalaj circular) pe zilele separate, în ordinea lor în timp: etichetele rămân pe loc,
  *  șirul căderilor se rotește cu fiecare decalaj 0..n−1. Rotația păstrează întregi și ciorchinii volatilității SPY, și persistența etichetelor;
  *  H0 = etichetele nu spun nimic despre căderile care urmează. Statistica: t-ul Welch pe zile (studentizat); p unilateral = partea decalajelor
@@ -133,7 +145,7 @@ export function rotatie(rows) {
  *  9–14 % din lumile fără efect (simulare, 20.000 de lumi), nu 5 %. Zilele de după apar doar ca monitorizare.
  *  27.10.2026 (revizia independentă F, 🔴4, protocolul § „Revizia”): judecata e permutarea pe episoade de etichetă (Welch minte până la ~8 %
  *  cu volatilitate în ciorchini); Welch rămâne doar în `ajutaOricand` — ce ar fi spus regula veche, rejudecată în fiecare noapte. */
-export function proba(linii, spyBars, dateOf, cal, { orizont = PROBA.orizont, minim = PROBA.minimPeGrup, alfa = PROBA.alfa, inghetate = null, judecator = null } = {}) {
+export function proba(linii, spyBars, dateOf, cal, { orizont = PROBA.orizont, minim = PROBA.minimPeGrup, alfa = PROBA.alfa, asteptare = PROBA.asteptare, inghetate = null, judecator = null } = {}) {
   const idx = new Map(spyBars.map((b, i) => [dateOf(b.t), i])), c = spyBars.map((b) => b.c), rows = [], excluse = [];
   // 28.10.2026 (revizia F2, 🟡4): cu `inghetate` (robotul), zilele separate închise și judecata vin din fișierul care doar crește. Zilele: doar
   // ale regulii și ale orizontului de acum (conținutul lor nu depinde de judecător); judecata: doar a judecătorului de acum. Fără `inghetate`
@@ -148,6 +160,7 @@ export function proba(linii, spyBars, dateOf, cal, { orizont = PROBA.orizont, mi
     if (ultimaIng && !(l.asOf > ultimaIng)) continue;   // ziua (sau una de după ea) e deja înghețată
     if (cal && Number.isFinite(Date.parse(l.generat)) && cal.beforeNextOpen({ timezone: 'America/New_York', closeMinutes: 960, asOf: l.asOf }, Date.parse(l.generat)) === false) continue; // notată după deschidere: nu contează
     const i = idx.get(l.asOf); if (i === undefined || i + orizont >= c.length) continue;
+    if (cal && !sesiuniLaRand(cal, spyBars, i, orizont, dateOf)) continue;   // 28.10.2026 (revizia F3, 🔵5): fereastra doar pe sesiuni la rând
     let dd = 0; for (let k = 1; k <= orizont; k++) dd = Math.min(dd, c[i + k] / c[i] - 1);
     rows.push({ asOf: l.asOf, i, grup: l.label === 'prudent' || l.label === 'defensiv' ? 'redus' : 'normal', dd: dd * 100, r: (c[i + orizont] / c[i] - 1) * 100 });
   }
@@ -156,40 +169,55 @@ export function proba(linii, spyBars, dateOf, cal, { orizont = PROBA.orizont, mi
   // SPY, prin calendarul bursei; fără niciunul, ziua nouă nu se adaugă (închis la eroare)
   const sep = zileIng.map((z) => ({ asOf: z.asOf, i: idx.has(z.asOf) ? idx.get(z.asOf) : null, grup: z.grup, dd: z.dd, r: z.r, inghetat: true })), deScris = [];
   const departe = (u, r) => { if (u.i !== null) return r.i >= u.i + orizont; if (cal && typeof cal.next === 'function') { try { return sesiuniIntre(cal, u.asOf, r.asOf) >= orizont; } catch { return false; } } return false; };
-  for (const r of rows) { const u = sep[sep.length - 1]; if (u && !departe(u, r)) continue; sep.push(r); if (inghetate) deScris.push({ tip: 'zi', regula: REGULA, h: orizont, asOf: r.asOf, grup: r.grup, dd: r.dd, r: r.r }); }
+  // 28.10.2026 (revizia F3, 🔵5): o zi nouă e DEFINITIVĂ (se îngheață și intră în judecată) abia după orizont + `asteptare` sesiuni; zilele
+  // definitive sunt primele în timp, deci judecata stă pe începutul șirului; cele încă provizorii apar doar la monitorizare
+  const definitiva = (r) => r.inghetat || r.i + orizont + asteptare < c.length;
+  for (const r of rows) { const u = sep[sep.length - 1]; if (u && !departe(u, r)) continue; sep.push(r); if (inghetate && definitiva(r)) deScris.push({ tip: 'zi', regula: REGULA, h: orizont, asOf: r.asOf, grup: r.grup, dd: r.dd, r: r.r }); }
+  const sepDef = sep.filter(definitiva);
   // eșantionul fix: zilele separate până la prima în care ambele grupuri au câte `minim`; „ajutaOricand” arată doar ce ar fi spus rejudecarea
   let na = 0, nb = 0, cut = -1, ajutaOricand = false;
-  for (let j = 0; j < sep.length; j++) {
-    if (sep[j].grup === 'redus') na++; else nb++;
-    if (na >= minim && nb >= minim) { const pre = sep.slice(0, j + 1), A0 = pre.filter((r) => r.grup === 'redus'), B0 = pre.filter((r) => r.grup !== 'redus'), q = welch(A0, B0);
+  for (let j = 0; j < sepDef.length; j++) {
+    if (sepDef[j].grup === 'redus') na++; else nb++;
+    if (na >= minim && nb >= minim) { const pre = sepDef.slice(0, j + 1), A0 = pre.filter((r) => r.grup === 'redus'), B0 = pre.filter((r) => r.grup !== 'redus'), q = welch(A0, B0);
       if (cut < 0) cut = j; if (q !== null && q < alfa && A0.reduce((s, x) => s + x.dd, 0) / A0.length < B0.reduce((s, x) => s + x.dd, 0) / B0.length) ajutaOricand = true; }
   }
-  const fix = cut >= 0 ? sep.slice(0, cut + 1) : sep, g = (xs, k) => xs.filter((r) => r.grup === k), A = g(fix, 'redus'), B = g(fix, 'normal'), m = (xs, f) => (xs.length ? xs.reduce((s, x) => s + f(x), 0) / xs.length : null);
+  const fix = cut >= 0 ? sepDef.slice(0, cut + 1) : sepDef, g = (xs, k) => xs.filter((r) => r.grup === k), A = g(fix, 'redus'), B = g(fix, 'normal'), m = (xs, f) => (xs.length ? xs.reduce((s, x) => s + f(x), 0) / xs.length : null);
   // 28.10.2026 (revizia F2, 🟡2): rotația pe eșantionul fix. Cu judecata înghețată, verdictul și p-ul vin din fișier; recalculul doar le verifică.
   const tc = cut >= 0 ? rotatie(fix) : null, pc = tc ? tc.p : null, vc = cut < 0 ? 'in-proba' : pc !== null && pc <= alfa && m(A, (x) => x.dd) < m(B, (x) => x.dd) ? 'ajuta' : 'nu-ajuta';
   const gata = !!judIng || cut >= 0, verdict = judIng ? judIng.verdict : vc, p = judIng ? judIng.p : pc, t = judIng ? judIng.test || null : tc;
-  const abatereJudecata = judIng && (vc !== judIng.verdict || pc === null || Math.abs(pc - judIng.p) > 1e-12) ? 'judecata scrisă (' + judIng.verdict + ', p ' + judIng.p + ') nu se mai potrivește cu zilele înghețate (' + vc + ', p ' + pc + ') — fișierul a fost atins?' : null;
+  const fp = (x) => (Number.isFinite(x) ? x.toLocaleString('ro-RO', { maximumFractionDigits: 3 }) : '—');   // 28.10.2026 (revizia F3, 🔵13)
+  const abatereJudecata = judIng && (vc !== judIng.verdict || pc === null || Math.abs(pc - judIng.p) > 1e-12) ? 'judecata scrisă (' + judIng.verdict + ', p ' + fp(judIng.p) + ') nu se mai potrivește cu zilele înghețate (' + vc + ', p ' + fp(pc) + ') — fișierul a fost atins?' : null;
   const ultimaFix = fix[fix.length - 1], dataJ = judIng ? judIng.data ?? null : cut >= 0 && ultimaFix && ultimaFix.i !== null && ultimaFix.i + orizont < spyBars.length ? dateOf(spyBars[ultimaFix.i + orizont].t) : null;
   const n = (x) => (x === null ? '—' : x.toLocaleString('ro-RO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })), unu = (x) => (x * 100).toFixed(1).replace('.', ',');
-  const p1 = PUTERE.laPlus.find((x) => x.pct === 1);
-  const mesaj = verdict === 'in-proba' ? `Regula verdictului e în probă pe zile noi: ${A.length} zile „Prudent / Defensiv” și ${B.length} „Neutru / Favorabil” din câte ${minim} necesare; verdictul se dă o singură dată, când ambele ajung la ${minim}.`
+  const b1 = PUTERE.banda;
+  const mesaj0 = verdict === 'in-proba' ? `Regula verdictului e în probă pe zile noi: ${A.length} zile „Prudent / Defensiv” și ${B.length} „Neutru / Favorabil” din câte ${minim} necesare; verdictul se dă o singură dată, când ambele ajung la ${minim}.`
     : verdict === 'ajuta' ? `Regula verdictului ajută pe zile noi (judecată o singură dată, pe primele ${A.length} și ${B.length} zile separate): după zilele „Prudent / Defensiv” S&P a căzut în medie ${n(m(A, (x) => x.dd))}% în 5 sesiuni, față de ${n(m(B, (x) => x.dd))}%.`
-    : `Pe zile noi (judecată o singură dată, pe primele ${A.length} și ${B.length} zile separate), regula verdictului nu a separat căderile S&P cu pragul scris dinainte. Asta înseamnă „nu s-a dovedit”, nu „s-a dovedit că nu”: o cădere în plus de 1 pp după zilele „Prudent / Defensiv” ar fi fost văzută doar în ~${unu(p1.putere)} % din cazuri.`;
+    : `Pe zile noi (judecată o singură dată, pe primele ${A.length} și ${B.length} zile separate), regula verdictului nu a separat căderile S&P cu pragul scris dinainte. Asta înseamnă „nu s-a dovedit”, nu „s-a dovedit că nu”: o cădere în plus de 1 pp după zilele „Prudent / Defensiv” ar fi fost văzută doar în ~${unu(b1.min)}–${unu(b1.max)} % din cazuri (cu atât mai rar cu cât etichetele urmează trendul SPY, ca cele reale).`;
+  const mesaj = (abatereJudecata ? 'Atenție: ' + abatereJudecata + '. ' : '') + mesaj0;   // 28.10.2026 (revizia F3, 🔵13): abaterea la vedere
   const testInfo = { metoda: 'rotație pe zilele separate (decalaj circular)', decalaje: t ? t.decalaje ?? null : null, exact: true };
   if (inghetate && !judIng && cut >= 0) deScris.push({ tip: 'judecata', regula: REGULA, judecator, la: minim, data: dataJ, verdict: vc, p: pc, test: { metoda: testInfo.metoda, decalaje: tc ? tc.decalaje : null },
     zile: fix.map((r) => r.asOf), redus: { n: A.length, cadere: m(A, (x) => x.dd), randament: m(A, (x) => x.r) }, normal: { n: B.length, cadere: m(B, (x) => x.dd), randament: m(B, (x) => x.r) } });
   const Ma = g(sep, 'redus'), Mb = g(sep, 'normal'), tm = rotatie(sep);
   return { verdict, mesaj, zile: sep.length, redus: { n: A.length, cadere: m(A, (x) => x.dd), randament: m(A, (x) => x.r) }, normal: { n: B.length, cadere: m(B, (x) => x.dd), randament: m(B, (x) => x.r) }, p, prag: PROBA,
     test: testInfo,
-    regula: REGULA, excluse: { n: excluse.length, zile: excluse, motiv: 'notate sub altă regulă decât ' + REGULA },
+    regula: REGULA, excluse: { n: excluse.length, zile: excluse, motiv: 'notate sub altă regulă decât ' + REGULA }, dependinte: istoricDependinteVerdict(linii),
     judecata: judecataDin({ la: minim, data: dataJ, verdict: gata ? verdict : null, unic: true }), abatereJudecata,
     monitorizare: { zile: sep.length, dupaJudecata: gata ? sep.length - fix.length : 0, redus: { n: Ma.length, cadere: m(Ma, (x) => x.dd) }, normal: { n: Mb.length, cadere: m(Mb, (x) => x.dd) }, p: tm ? tm.p : null, ajutaOricand },
     ultimaZiSeparata: sep.length ? sep[sep.length - 1].asOf : null, deScris };
 }
+/** 28.10.2026 (revizia F3, 🟡3): schimbările amprentei dependențelor (`d`) de-a lungul liniilor regulii: [{ de, pana, d }]. */
+export function istoricDependinteVerdict(linii) { const out = []; for (const l of (linii || []).filter(deRegula)) { const d = l.d || null; if (!out.length || out[out.length - 1].d !== d) out.push({ de: l.asOf, pana: l.asOf, d }); else out[out.length - 1].pana = l.asOf; } return out; }
 /** 27.10.2026 (I-743): amprenta judecătorului verdictului — funcțiile care aleg liniile, măsoară și judecă, plus pragurile; scrisă în protocol. */
 /*  28.10.2026 (revizia F2): `rotatie` în locul permutării pe episoade; `AMPRENTE_V21` scos — el decide doar ce regulă poartă o linie NOUĂ (câmpul
  *  `regula`, citit de `deRegula`), nu cum se judecă; un rând nou acolo nu mai schimbă judecătorul și nu mai lasă judecata înghețată fără stăpân. */
-export function amprentaJudecator() { return 'jv-' + amprentaFunctii({ deRegula, welch, proba, tcdf, rotatie }, ['deRegula', 'welch', 'proba', 'tcdf', 'rotatie'], JSON.stringify({ PROBA, REGULA, REVIZIE })); }
+/*  28.10.2026 (revizia F3, 🔵6): ÎNCHIDEREA din sursă (nu o listă scrisă de mână), pornind de la `proba`, `deRegula`, `rotatie`, fără `PUTERE`
+ *  (cifrele puterii se recalibrează fără să schimbe judecata); plus funcțiile din contract chemate (`judecata`, numărarea sesiunilor) și `tcdf`. */
+export function amprentaJudecator(citeste = (f) => readFileSync(f, 'utf8'), radacina = '.') {
+  const src = citeste(radacina + '/tools/verdict-piata-robot.mjs'), contract = citeste(radacina + '/lib/proba-contract.mjs');
+  const nume = inchidere(src, ['proba', 'deRegula', 'rotatie'], { exclude: ['PUTERE'] }), text = nume.map((n) => functieDinText(src, n)).join('\n'), decl = new Set(declaratii(contract));
+  const rad = [...new Set(Object.entries({ judecataDin: 'judecata', sesiuniIntre: 'sesiuniIntre', dupaSesiuni: 'dupaSesiuni' }).filter(([loc]) => new RegExp('\\b' + loc + '\\b').test(text)).map(([, x]) => x))].filter((x) => decl.has(x)).sort();
+  return 'jv-' + amprentaText(src, nume, JSON.stringify({ PROBA, REGULA, REVIZIE }) + '\ncontract ' + rad.join(',') + '\n' + (rad.length ? amprentaText(contract, inchidere(contract, rad)) : '') + '\ntcdf\n' + tcdf.toString().replace(/\r\n?/g, '\n'));
+}
 
 /* ---------- puterea și data primului verdict (contractul cu lotul D, I-744) ---------- */
 /** O lume sintetică pentru mărime / putere: SPY cu pași N(0, 1 %/zi), etichete „redus” cu pondere `pRedus` și persistență `sta` (probabilitatea
@@ -212,7 +240,11 @@ export function rataAjuta({ lumi = 2000, samanta = 27102026, ...o } = {}) {
  *  28.10.2026 (revizia F2, 🟡2): recalculată cu rotația (permutarea: 13,6 % / 33,5 %, mărimea 4,1 %). Pe aceeași lume, la persistența 0,95
  *  puterea la +1 pp rămâne 34,8 % și la 0,98 (50 % zile „redus”) 30,9 % — permutarea cădea la 24,5 % și 10,8 % (protocolul, § „Revizia F2”). */
 export const PUTERE = Object.freeze({ unitate: 'puncte procentuale de cădere maximă a SPY în 5 sesiuni, în plus după zilele „Prudent / Defensiv”', lumi: 2000,
-  laPlus: Object.freeze([Object.freeze({ pct: 0.5, putere: 0.147 }), Object.freeze({ pct: 1, putere: 0.342 })]), marime: 0.04 });
+  // revizia F3 (🔵5): recalculată cu așteptarea de 10 sesiuni înaintea înghețului (înainte: 14,7 % / 34,2 %, mărimea 4,0 %)
+  laPlus: Object.freeze([Object.freeze({ pct: 0.5, putere: 0.146 }), Object.freeze({ pct: 1, putere: 0.339 })]), marime: 0.039,
+  // 28.10.2026 (revizia F3, 🟡2): puterea de mai sus e a etichetelor independente de SPY; etichetele care URMEAZĂ trendul SPY (ca verdictul
+  // real: sub media de 50 / 200) dau doar 3,8–21,1 % la +1 pp (simularea mea, 2000 de lumi pe celulă) ⇒ banda spusă la „nu ajută”
+  banda: Object.freeze({ pct: 1, min: 0.038, max: 0.355, nota: 'etichete care urmează trendul SPY (sub media de 50 / 200): 3,8–21,1 %; etichete independente de SPY: 30,9–35,5 %' }) });
 /** Câmpurile de contract: puterea, data primului verdict (când ambele grupuri ajung la 20 de zile separate), judecata (unică). */
 export function contractVerdict(pr, { cal, azi, notate = 0, asteptate = 0 }) {
   const nA = pr.redus.n, nB = pr.normal.n, tot = nA + nB, q = tot >= 5 ? Math.min(0.9, Math.max(0.1, nA / tot)) : 0.3, min = PROBA.minimPeGrup, o = PROBA.orizont;
@@ -220,7 +252,7 @@ export function contractVerdict(pr, { cal, azi, notate = 0, asteptate = 0 }) {
   const ses = maiTrebuie * o + o, opt = dupaSesiuni(cal, deLa, ses), r = asteptate > 0 && notate < asteptate ? Math.min(0.8, 1 - notate / asteptate) : 0, rl = dupaSesiuni(cal, deLa, Math.round(ses * (r > 0 ? 1 + r / ((1 - r) * o) : 1)));
   const unu = (x) => (x * 100).toFixed(1).replace('.', ',');
   const laPlus = PUTERE.laPlus.map((x) => ({ ...x }));
-  return { putere: { ...PUTERE, laPlus, text: laPlus.every((x) => Number.isFinite(x.putere)) ? `La primul 20 / 20 de zile separate proba vede o cădere în plus de ${laPlus.map((x) => String(x.pct).replace('.', ',') + ' pp în ' + unu(x.putere) + ' %').join(' și de ')} din cazuri; „nu ajută” nu înseamnă „s-a dovedit că nu”.` : null },
+  return { putere: { ...PUTERE, laPlus, text: laPlus.every((x) => Number.isFinite(x.putere)) ? `La primul 20 / 20 de zile separate proba vede o cădere în plus de ${laPlus.map((x) => String(x.pct).replace('.', ',') + ' pp în ' + unu(x.putere) + ' %').join(' și de ')} din cazuri, pentru etichete independente de SPY; pentru etichete care urmează trendul SPY, ca verdictul real, puterea la +1 pp e doar ~${unu(PUTERE.banda.min)}–${unu(PUTERE.banda.max)} % (revizia F3); „nu ajută” nu înseamnă „s-a dovedit că nu”.` : null },
     primulVerdict: { optimist: opt.zi, realist: rl.zi > opt.zi ? rl.zi : opt.zi, motiv: `Verdictul vine când ambele grupuri au câte 20 de zile separate (≥ 5 sesiuni între ele): azi ${nA} „Prudent / Defensiv” și ${nB} „Neutru / Favorabil”; ` +
       (tot >= 5 ? `cu ${Math.round(100 * q)} % zile „redus” cât s-au văzut până acum` : 'presupunând 30 % zile „redus” (prea puține zile ca să se măsoare)') + ` mai trebuie ~${maiTrebuie} zile separate` + (r > 0 ? `; realist: robotul a pierdut ${asteptate - notate} din ${asteptate} sesiuni` : '') + (opt.aproximativ || rl.aproximativ ? '; dincolo de calendarul oficial NYSE datele sunt aproximative' : '') },
     judecata: pr.judecata };
@@ -237,13 +269,13 @@ export async function ruleaza({ radacina = '.', now = Date.now(), sursa = adu, f
   // 28.10.2026 (revizia F2, 🔵19): rândul `rv-3e18543febee` („F&G în afara 0–100 ⇒ semn invalid”) e „fără efect” doar dacă API-ul dă 0–100 — o
   // presupunere despre date, verificată aici: o zi cu F&G în afara 0–100 nu contează la regula v2.1 (linia poartă amprenta ca regulă)
   const regulaZi = regulaLiniei(fg, rv, regula); if (regulaZi !== regula) log('Fear & Greed în afara 0–100 (' + fg.valoare + ') ⇒ linia de azi nu contează la ' + REGULA);
-  const extra = { serii: Object.fromEntries(MV.EXTRA.filter((s) => raw[s]).map((s) => [s, raw[s].map((b) => ({ t: b.t, c: b.c }))])), fg, la: now, erori: MV.EXTRA.filter((s) => !raw[s]) };
+  const extra = pregatestePiata(raw, MV.EXTRA, fg, now);   // 28.10.2026 (revizia F3, 🟡3): în amprenta regulii
   const market = { items, breadth }, regim = MV.regimDin(market, extra);
   const zile = []; for (let k = 0, d = new Date(now); k < 10 && zile.length < 6; k++, d = new Date(d.getTime() + 86400000)) { const iso = d.toISOString().slice(0, 10), w = d.getUTCDay(); if (w === 0 || w === 6) continue; try { const r = await fetchImpl('https://api.nasdaq.com/api/calendar/earnings?date=' + iso, { headers: { 'user-agent': 'Mozilla/5.0', accept: 'application/json' }, signal: AbortSignal.timeout(15000) }); zile.push([iso, r.ok ? (await r.json())?.data?.rows || [] : []]); } catch (e) { log(`Nasdaq ${iso} ✗ ${e?.message}`); } }
   const rezultateMari = mariDin(zile);
   let events = []; try { events = c.MCTX.hardcodedEvents(); } catch (e) { log('calendar ✗ ' + e?.message); }
   const v = MV.compute({ market, raport, regime: regim, extra, events, robot: { rezultateMari, istoric }, now }), generat = new Date(now).toISOString();
-  const linie = adaugaLinie(istoric, linieZi(v, generat, regim, regulaZi, rv)), toate = linie ? istoric.concat(linie) : istoric;
+  const linie = adaugaLinie(istoric, linieZi(v, generat, regim, regulaZi, rv, amprentaDependinteVerdict(radacina))), toate = linie ? istoric.concat(linie) : istoric;
   const spy = raw.SPY ? (() => { try { return c.DailySeries.read(raw.SPY, 'SPY', now).bars; } catch { return []; } })() : [];
   // 28.10.2026 (revizia F2, 🟡4): zilele separate și judecata înghețate intră în probă; cele noi se întorc spre scriere (fișierul doar crește)
   const judecator = amprentaJudecator(), { deScris, ...pr } = proba(toate, spy, dateOf, c.ExchangeCalendar, { inghetate, judecator });
@@ -264,6 +296,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const { j, linie, deScris } = await ruleaza({ log: console.log, istoric, inghetate });
   console.log(`Verdict ${j.asOf}: ${j.label} (scor ${j.score}, ${j.citite} din 6) · regim macro ${j.regim?.treapta?.cod || '—'} · mari ${j.rezultateMari.length} · istoric ${j.istoric.length} · ${j.proba.mesaj}`);
   if (j.citite < 3) { console.error('Prea puține surse citite; fișierul vechi rămâne.'); process.exit(1); }
+  // 28.10.2026 (revizia F3, 🟡4): zilele de înghețat sunt toate DUPĂ ultima zi înghețată (altfel fișierul ar primi dubluri) — închis la eroare
+  const ultimaIng = inghetate.filter((x) => x && x.tip === 'zi' && x.regula === REGULA).map((x) => x.asOf).sort().pop() || null;
+  if (deScris.some((x) => x.tip === 'zi' && ultimaIng && !(x.asOf > ultimaIng))) { console.error('Zile de înghețat înaintea ultimei zile înghețate (' + ultimaIng + ') — fișierul înghețat nu se atinge.'); process.exit(1); }
   if (!process.argv.includes('--uscat')) { writeFileSync(FISIER, JSON.stringify(j) + '\n'); if (linie) appendFileSync(ISTORIC, JSON.stringify(linie) + '\n'); if (deScris.length) appendFileSync(INGHETAT, deScris.map((x) => JSON.stringify(x)).join('\n') + '\n'); }
   if (deScris.length) console.log('  înghețat: ' + deScris.map((x) => x.tip + ' ' + (x.asOf || x.data || '')).join(', '));
   // I-686: cursul BNR pe anul curent și pe cel trecut (pentru raportul fiscal din Jurnal); dacă BNR nu răspunde, fișierul vechi rămâne.
