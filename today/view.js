@@ -10,6 +10,7 @@
  const tone=x=>!finite(x)?'muted':x<0?'negative':x>0?'positive':'muted';
  const when=(x,dateOnly=false)=>finite(stamp(x))?new Date(stamp(x)).toLocaleString('ro-RO',{timeZone:'Europe/Bucharest',day:'2-digit',month:'2-digit',...(dateOnly?{}:{hour:'2-digit',minute:'2-digit'})}):'Oră neconfirmată';
  const dateLabel=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)?x:when(x,true);
+ const dataVeche=x=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(typeof x==='string'?x:'');return m?m[3]+'.'+m[2]:'';};
  function safeURL(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null;}catch(_){return null;}}
  function appURL(route,query=''){
   const allowed=['today/','holdings/','broker/','journal/#raport','journal/#exec','journal/#desk','candidate-engine/','scanner-verdicts/','app/sync/'];
@@ -185,7 +186,8 @@
   const move=sym=>{const m=q(sym);return m&&finite(m.price)&&finite(m.changePct)?'<span>'+esc(sym.replace('^',''))+' <b class="'+(sym==='^VIX'?'':tone(m.changePct))+'">'+esc(pct(m.changePct))+'</b></span>':'';};
   const stale=b.state==='stale'&&hasBreadth?'<span class="brief-line">Ultima valoare '+esc(number(b.above50,1))+'%, nu participarea de azi.</span>':'';
   const lipsa=g.MarketVerdict&&!loading&&!useVerdict?'<span class="brief-line">Verdictul nu poate fi calculat acum.</span>':'';
-  put('briefMarket','<div class="brief-top"><span class="brief-label">Piața</span>'+(hasBreadth?pill('Amploare '+number(b.above50,1)+'%'+(b.state==='stale'?' · veche':''),b.state==='stale'?'idle':b.above50>=50?'ok':'warn'):pill(b.state==='loading'?'Se verifică':'Neconfirmat','idle'))+'</div><h2>'+esc(headline)+'</h2><div class="brief-facts">'+move('SPY')+move('QQQ')+move('^VIX')+(hasBreadth?'<span><b>'+esc(number(b.above50,1))+'%</b> din S&P 500 peste SMA 50</span>':'')+(useVerdict?'<span>'+esc(breadthLine)+'</span>':'')+stale+lipsa+(useVerdict?foaiaBrief(verdictCurent)+semnaleBrief(verdictCurent):'')+'</div><a class="brief-go" href="#contextTitle">Pulsul pieței ↓</a>');
+  const marcaVeche=b.state==='stale'?' · veche'+(dataVeche(b.asOf)?' · '+dataVeche(b.asOf):''):'';
+  put('briefMarket','<div class="brief-top"><span class="brief-label">Piața</span>'+(hasBreadth?pill('Amploare '+number(b.above50,1)+'%'+marcaVeche,b.state==='stale'?'idle':b.above50>=50?'ok':'warn'):pill(b.state==='loading'?'Se verifică':'Neconfirmat','idle'))+'</div><h2>'+esc(headline)+'</h2><div class="brief-facts">'+move('SPY')+move('QQQ')+move('^VIX')+(hasBreadth?'<span><b>'+esc(number(b.above50,1))+'%</b> din S&P 500 peste SMA 50</span>':'')+(useVerdict?'<span>'+esc(breadthLine)+'</span>':'')+stale+lipsa+(useVerdict?foaiaBrief(verdictCurent)+semnaleBrief(verdictCurent):'')+'</div><a class="brief-go" href="#contextTitle">Pulsul pieței ↓</a>');
   const a=ui.account||{},st=accountState(a),cur=/^[A-Z]{3}$/.test(a.currency||''),pos=(a.positions||[]).filter(p=>p);
   if(!a.state||a.state==='missing')put('briefAccount','<div class="brief-top"><span class="brief-label">Contul</span>'+pill('Cont neconectat','bad')+'</div><h2>Conectează contul</h2><div class="brief-facts"><span>Valoarea contului nu este încă disponibilă pe acest dispozitiv.</span></div><a class="brief-go" href="'+appURL('broker/')+'">Verifică contul ↗</a>');
   else{const big=pos.filter(p=>finite(p.weight)).sort((x,y)=>y.weight-x.weight)[0];

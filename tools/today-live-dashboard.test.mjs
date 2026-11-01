@@ -180,13 +180,13 @@ test('brief-ul pune verdictul deasupra și desparte semnalele deja scrise; lăț
  const s=setup({market,news:{state:'ready',items:[],reason:''},extra:{MarketVerdict:ctx.MarketVerdict}});await flush();
  const h=s.element('briefMarket').innerHTML;
  assert.match(h,new RegExp('>'+v.label.text+'<'));
- assert.match(h,/Participare peste jumătate/);assert.match(h,/Amploare 72,0%/);
+ assert.match(h,/Participare peste jumătate/);assert.match(h,/Amploare 72,0%/);assert.doesNotMatch(h,/· veche/);
  assert.match(h,/nu un semnal de cumpărare și nu o probabilitate/);
  if(v.indicatori.some(x=>x.score>0))assert.match(h,/În favoare:/);
  if(v.indicatori.some(x=>x.score<0))assert.match(h,/De urmărit:/);
  const stale=setup({market:{...market,breadth:{...market.breadth,state:'stale',above50:72}},news:{state:'ready',items:[],reason:''},extra:{MarketVerdict:ctx.MarketVerdict}});await flush();
  const hs=stale.element('briefMarket').innerHTML;
- assert.match(hs,/Date breadth de reverificat/);assert.match(hs,/nu participarea de azi/);assert.match(hs,/· veche/);
+ assert.match(hs,/Date breadth de reverificat/);assert.match(hs,/nu participarea de azi/);assert.match(hs,/· veche · 14\.10/);
  assert.doesNotMatch(hs,/Participare peste jumătate/);assert.doesNotMatch(hs,/majoritatea acțiunilor participă/);
 });
 test('brief-ul se rescrie când sursele lente mută verdictul',async()=>{

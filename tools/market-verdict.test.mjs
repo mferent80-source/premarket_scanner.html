@@ -76,6 +76,7 @@ test('foaia zilei traduce eticheta deja scrisă și numește sectoarele care con
   assert.equal(bun.label.id, 'favorabil');
   assert.equal(bun.foaia.titlu, 'Zi de trade');
   assert.match(bun.foaia.unde, /rotația citită stă pe tehnologie, industrie și financiar/);
+  assert.doesNotMatch(bun.foaia.unde, /În lista deja citită/);
   assert.match(bun.foaia.spus, /riscul obișnuit/);
   const rau = MV.compute({ market: piata(false), sectors: sect(true), now: Date.parse('2026-10-17T08:00:00Z') });
   assert.equal(rau.label.id, 'defensiv');
@@ -89,6 +90,23 @@ test('foaia zilei traduce eticheta deja scrisă și numește sectoarele care con
   assert.match(h, /Foaia zilei/);
   assert.match(h, /Zi de trade/);
   assert.match(h, /Nu e un ordin și nu e o probabilitate/);
+  const cu = MV.compute({ market: piata(true), sectors: sect(false), raport: { idei: [{ ticker: 'AAPL', sector: 'Information Technology' }, { ticker: 'MSFT', sector: 'Information Technology' }, { ticker: 'XOM', sector: 'Energy' }, { ticker: 'aapl', sector: 'Information Technology' }] }, now: Date.parse('2026-10-17T08:00:00Z') });
+  assert.match(cu.foaia.unde, /rotația citită stă pe tehnologie, industrie și financiar/);
+  assert.match(cu.foaia.unde, /În lista deja citită: AAPL și MSFT/);
+  assert.doesNotMatch(cu.foaia.unde, /XOM/);
+  const unul = MV.compute({ market: piata(true), sectors: sect(false), raport: { idei: [{ ticker: 'NVDA', sector: 'Information Technology' }] }, now: Date.parse('2026-10-17T08:00:00Z') });
+  assert.match(unul.foaia.unde, /În lista deja citită: NVDA\./);
+  assert.doesNotMatch(unul.foaia.unde, /NVDA și/);
+  const golLista = MV.compute({ market: piata(false), sectors: sect(true), raport: { idei: [{ ticker: 'AAPL', sector: 'Information Technology' }] }, now: Date.parse('2026-10-17T08:00:00Z') });
+  assert.match(golLista.foaia.unde, /nu deschizi după rotație/);
+  assert.doesNotMatch(golLista.foaia.unde, /AAPL|În lista deja citită/);
+});
+test('raportul deja citit aduce simbolurile sectorului, în ordinea lor, fără scor', async () => {
+  const fetchImpl = async () => ({ ok: true, json: async () => ({ sources: { uptrend: { sectors: [{ name: 'Energy', ratio: 0.4 }] } }, full: { ideas: { sectors: [{ sector: 'Energy', ideas: [{ ticker: 'MPC', rs_score: 60 }, { ticker: 'nu e ticker' }, { ticker: 'PSX' }] }] } } }) });
+  const r = await MV.raportBreadth('x.json', fetchImpl);
+  assert.equal(JSON.stringify(r.idei), JSON.stringify([{ ticker: 'MPC', sector: 'Energy' }, { ticker: 'PSX', sector: 'Energy' }]));
+  assert.equal(r.sectors[0].name, 'Energy');
+  assert.equal(JSON.stringify(r.idei).includes('rs_score'), false);
 });
 test('datele rezultatelor rămân pe ziua lor (nu trec în ziua următoare la ora României)', () => {
   const v = MV.compute({ market: piata(true), robot: { rezultateMari: [{ symbol: 'GE', date: '2026-10-20' }, { symbol: 'AXP', date: '2026-10-23' }] }, now: Date.parse('2026-10-17T08:00:00Z') });

@@ -122,6 +122,13 @@ test('I-793 + I-797: ordinul Radar ascunde rândul; oprirea lasă butonul și sp
   await new Promise((r) => setImmediate(r));
   assert.match(oprit.host.innerHTML, /Butonul de stop rămâne protecție și tot trimite un ordin STOP de vânzare/);
   assert.match(oprit.host.innerHTML, /data-stop-t212/);
-  assert.doesNotMatch(oprit.host.innerHTML, /disabled|nu a fost trimis|stopul a fost blocat/);
+  assert.match(oprit.host.innerHTML, /Trimite STOP \(protecție\)/);
+  assert.doesNotMatch(oprit.host.innerHTML, /Pune ordinul în Trading 212|disabled|nu a fost trimis|stopul a fost blocat/);
   assert.match(oprit.host.innerHTML, /Nu are stop/);
+  const deschis = pagina({
+    ctx: { T212Orders: { disponibil: async () => ({ ok: true }), rezumat() {}, verifica: () => ({ ok: true }), confirmareHtml: () => '' } },
+  });
+  await new Promise((r) => setImmediate(r));
+  assert.match(deschis.host.innerHTML, /Pune ordinul în Trading 212/);
+  assert.doesNotMatch(deschis.host.innerHTML, /Trimite STOP \(protecție\)/);
 });

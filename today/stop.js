@@ -57,19 +57,21 @@
     return fel;
   }
   /* I-797: oprirea blochează cumpărările. Butonul de STOP rămâne activ și tot trimite. */
-  function notaOprire() {
+  function oprireActiv() {
     try {
       const o = window.TodayAttention && typeof window.TodayAttention.oprire === 'function' ? window.TodayAttention.oprire(localStorage) : null;
-      if (o && o.activ) return 'Oprirea din Governor blochează cumpărările și planurile noi. Butonul de stop rămâne protecție și tot trimite un ordin STOP de vânzare.';
-    } catch (_) { /* fără cheie nu se inventează oprirea */ }
-    return '';
+      return !!(o && o.activ);
+    } catch (_) { return false; }
+  }
+  function notaOprire() {
+    return oprireActiv() ? 'Oprirea din Governor blochează cumpărările și planurile noi. Butonul de stop rămâne protecție și tot trimite un ordin STOP de vânzare.' : '';
   }
   function desen() {
     const d = date(); if (!d) { host.innerHTML = ''; return; }
     const scris = {}; host.querySelectorAll('[data-stop-ticker]').forEach((a) => { scris[a.dataset.stopTicker] = { alt: a.querySelector('[data-stop-alt]')?.value || '', tinta: a.querySelector('[data-stop-tinta]')?.value || '' }; });
     const activ = document.activeElement && host.contains(document.activeElement) ? { tk: document.activeElement.closest('[data-stop-ticker]')?.dataset.stopTicker, camp: document.activeElement.hasAttribute('data-stop-alt') ? 'data-stop-alt' : document.activeElement.hasAttribute('data-stop-tinta') ? 'data-stop-tinta' : null } : null;
     const poz = typeof S.pentruPanou === 'function' ? S.pentruPanou(d.snapshot, { ordine: ordineLaBroker(d) }) : S.faraStop(d.snapshot, stops(d.scope));
-    host.innerHTML = S.render(poz, { atr, ultim, alese, ordine, confirm, trimite: trimitOrdin, fel: felStop(d, poz), noteBare: noteBara, stare: [stare, pozaNota, notaOprire(), poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul (luni–vineri, 08:00–22:00; în rest tace).') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
+    host.innerHTML = S.render(poz, { atr, ultim, alese, ordine, confirm, trimite: trimitOrdin, fel: felStop(d, poz), noteBare: noteBara, oprire: oprireActiv(), stare: [stare, pozaNota, notaOprire(), poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul (luni–vineri, 08:00–22:00; în rest tace).') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
     host.querySelectorAll('[data-stop-ticker]').forEach((a) => { const v = scris[a.dataset.stopTicker]; if (!v) return; const x = a.querySelector('[data-stop-alt]'), y = a.querySelector('[data-stop-tinta]'); if (x) x.value = v.alt; if (y) y.value = v.tinta; });
     if (activ && activ.tk && activ.camp) host.querySelector('[data-stop-ticker="' + CSS.escape(activ.tk) + '"] [' + activ.camp + ']')?.focus();
     const fetchStock = window.D?.fetchStock; if (typeof fetchStock !== 'function') return;
