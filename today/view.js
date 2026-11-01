@@ -61,7 +61,7 @@
   put('marketStrip',items.map((m,i)=>{const confirmed=finite(m.price),unit=m.unit==='USD'?' USD':m.unit==='%'?'%':m.unit==='puncte'?' puncte':'',move=confirmed&&m.symbol!=='^TNX'&&finite(m.changePct),w=move?Math.min(50,Math.abs(m.changePct)*4):0;return '<article class="market-tile"><div class="market-tile-head"><h2>'+esc(m.label)+'</h2></div><div class="market-quote">'+(confirmed?esc(number(m.price)+unit):'<span style="font:12px var(--sans);letter-spacing:0">'+(m.state==='loading'?'Se verifică…':'Indisponibil')+'</span>')+(confirmed&&m.symbol!=='^TNX'?' <small class="'+(m.symbol==='^VIX'?'muted':tone(m.changePct))+'">'+esc(pct(m.changePct))+'</small>':'')+'</div>'+(move?'<div class="move-bar" aria-hidden="true"><i class="'+(m.symbol==='^VIX'?'neutral':m.changePct<0?'down':'up')+'" style="'+(m.changePct<0?'right':'left')+':50%;width:'+w+'%"></i></div>':m.symbol==='^TNX'&&confirmed?'<p class="tile-note">Randament în procente</p>':'')+(common?'':'<p class="source-note">'+esc(notes[i])+'</p>')+'</article>';}).join('')+(common?'<p class="source-note strip-note">'+esc(common)+(items.some(m=>finite(m.price)&&m.symbol!=='^TNX')?' · bara arată mișcarea zilei față de zero':'')+'</p>':''));
   const b=ui.market?.breadth||{},hasBreadth=finite(b.above50),contextState=b.state==='stale'?'Date breadth de reverificat':hasBreadth?b.above50>=50?'Participare peste jumătate':'Participare sub jumătate':b.state==='loading'?'Verific sursele pieței…':'Context parțial disponibil';
   const asOf=typeof b.asOf==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(b.asOf)?b.asOf.slice(8,10)+'.'+b.asOf.slice(5,7):null;$('contextAsOf').textContent=asOf?'EOD '+asOf:b.state==='loading'?'Se verifică':'Dată neconfirmată';
-  put('marketContext','<h3 class="context-verdict">'+esc(contextState)+'</h3><p class="context-text">'+esc(hasBreadth?'Ponderea din seria originală S&P 500 peste media pe 50 de sesiuni. '+(b.state==='stale'?'Ultima valoare disponibilă, nu context actual.':b.reason||''):b.reason||'Datele lipsă nu sunt interpretate ca un semnal pozitiv sau negativ.')+'</p>'+(hasBreadth?meter('Peste SMA 50',b.above50)+(finite(b.above200)?meter('Peste SMA 200',b.above200):'')+spark(b.points)+'<p class="source-note">'+esc(b.source+' · '+dateLabel(b.asOf)+' · '+b.coverage)+'</p>':''));
+  put('marketContext','<h3 class="context-verdict">'+esc(contextState)+'</h3><p class="context-text">'+esc(hasBreadth?'Ponderea din seria originală S&P 500 peste media pe 50 de sesiuni. '+(b.state==='stale'?'Ultima valoare disponibilă, nu context actual.':b.reason||''):b.reason||'Datele lipsă nu sunt interpretate ca un semnal pozitiv sau negativ.')+'</p>'+(hasBreadth?meter('Peste SMA 50'+(b.state==='stale'?' · ultima valoare, nu contextul de azi':''),b.above50)+(finite(b.above200)?meter('Peste SMA 200'+(b.state==='stale'?' · ultima valoare, nu contextul de azi':''),b.above200):'')+spark(b.points)+'<p class="source-note">'+esc(b.source+' · '+dateLabel(b.asOf)+' · '+b.coverage)+'</p>':''));
   const spy=ui.market?.items?.find(x=>x.symbol==='SPY'),ind=spy?.indicators||{},indicators=[['SPY · RSI 14',ind.rsi14,'Wilder · închideri EOD',''],['SPY vs SMA 50',ind.distanceSma50,'Distanță față de medie','%'],['SPY · 20 sesiuni',ind.change20d,'Variație de preț','%']];
   put('technicalIndicators',indicators.map(([label,v,detail,suffix])=>'<div><span class="indicator-label">'+esc(label)+'</span><span class="indicator-value '+(suffix?tone(v):'')+'">'+esc(finite(v)?suffix?pct(v):number(v,1):'—')+'</span><span class="indicator-detail">'+esc(finite(v)?detail:spy?.state==='loading'?'Se verifică':'Date insuficiente')+'</span></div>').join(''));
   $('indicatorSource').textContent=spy?.asOf?'Yahoo Finance · EOD '+dateLabel(spy.asOf)+' · indicatori descriptivi, fără verdict automat':'Indicatorii SPY necesită o serie EOD verificată. Amploarea pieței rămâne o sursă separată.';
@@ -162,11 +162,25 @@
  g.addEventListener?.('tt-oprire',()=>{try{renderAttention();}catch(_){}}); // 27.10 (lot E emite după „Oprește tot” / re-armare)
  function scannerReports(){const R=g.ScannerResults;let a=null,b=null;try{a=R?.primary()||null;}catch(_){}try{b=R?.independent()||null;}catch(_){}return [a,b];}
  function pill(text,kind){return '<span class="pill '+kind+'">'+esc(text)+'</span>';}
+ function semnaleBrief(v){
+  const ind=v.indicatori||[],poz=ind.filter(x=>x.score>0&&x.why).map(x=>x.why),neg=ind.filter(x=>x.score<0&&x.why).map(x=>x.why),zero=ind.filter(x=>x.score===0).length,nec=ind.filter(x=>x.score===null).map(x=>x.name);
+  let s='';
+  if(v.label.id==='necunoscut')s+='<span class="brief-line">Prea puține surse citite: starea rămâne Neconfirmat.</span>';
+  if(poz.length)s+='<span class="brief-line sig-ok">În favoare: '+esc(poz.slice(0,3).join('; '))+'</span>';
+  if(neg.length)s+='<span class="brief-line sig-bad">De urmărit: '+esc(neg.slice(0,3).join('; '))+'</span>';
+  if(!poz.length&&!neg.length&&v.label.id!=='necunoscut')s+='<span class="brief-line">'+(zero?'Indicatorii citiți stau la zero.':'Niciun indicator citit nu trage într-o parte.')+'</span>';
+  if(nec.length)s+='<span class="brief-line">Necitite: '+esc(nec.slice(0,4).join(', '))+(nec.length>4?'…':'')+'.</span>';
+  return s+'<span class="brief-line">Reguli scrise de context, nu un semnal de cumpărare și nu o probabilitate.</span>';
+ }
  function renderBrief(){
   const items=ui.market?.items||[],q=sym=>items.find(x=>x.symbol===sym),b=ui.market?.breadth||{},hasBreadth=finite(b.above50);
-  const verdict=b.state==='stale'?'Date breadth de reverificat':hasBreadth?b.above50>=50?'Participare peste jumătate':'Participare sub jumătate':b.state==='loading'?'Verific sursele pieței…':'Context parțial disponibil';
+  const breadthLine=b.state==='stale'?'Date breadth de reverificat':hasBreadth?b.above50>=50?'Participare peste jumătate':'Participare sub jumătate':b.state==='loading'?'Verific sursele pieței…':'Context parțial disponibil';
+  const loading=b.state==='loading'&&!hasBreadth,useVerdict=!loading&&verdictCurent&&verdictCurent.label;
+  const headline=useVerdict?verdictCurent.label.text:breadthLine;
   const move=sym=>{const m=q(sym);return m&&finite(m.price)&&finite(m.changePct)?'<span>'+esc(sym.replace('^',''))+' <b class="'+(sym==='^VIX'?'':tone(m.changePct))+'">'+esc(pct(m.changePct))+'</b></span>':'';};
-  put('briefMarket','<div class="brief-top"><span class="brief-label">Piața</span>'+(hasBreadth?pill('Amploare '+number(b.above50,1)+'%',b.above50>=50?'ok':'warn'):pill(b.state==='loading'?'Se verifică':'Neconfirmat','idle'))+'</div><h2>'+esc(verdict)+'</h2><div class="brief-facts">'+move('SPY')+move('QQQ')+move('^VIX')+(hasBreadth?'<span><b>'+esc(number(b.above50,1))+'%</b> din S&P 500 peste SMA 50</span>':'')+'</div><a class="brief-go" href="#contextTitle">Pulsul pieței ↓</a>');
+  const stale=b.state==='stale'&&hasBreadth?'<span class="brief-line">Ultima valoare '+esc(number(b.above50,1))+'%, nu participarea de azi.</span>':'';
+  const lipsa=g.MarketVerdict&&!loading&&!useVerdict?'<span class="brief-line">Verdictul nu poate fi calculat acum.</span>':'';
+  put('briefMarket','<div class="brief-top"><span class="brief-label">Piața</span>'+(hasBreadth?pill('Amploare '+number(b.above50,1)+'%'+(b.state==='stale'?' · veche':''),b.state==='stale'?'idle':b.above50>=50?'ok':'warn'):pill(b.state==='loading'?'Se verifică':'Neconfirmat','idle'))+'</div><h2>'+esc(headline)+'</h2><div class="brief-facts">'+move('SPY')+move('QQQ')+move('^VIX')+(hasBreadth?'<span><b>'+esc(number(b.above50,1))+'%</b> din S&P 500 peste SMA 50</span>':'')+(useVerdict?'<span>'+esc(breadthLine)+'</span>':'')+stale+lipsa+(useVerdict?semnaleBrief(verdictCurent):'')+'</div><a class="brief-go" href="#contextTitle">Pulsul pieței ↓</a>');
   const a=ui.account||{},st=accountState(a),cur=/^[A-Z]{3}$/.test(a.currency||''),pos=(a.positions||[]).filter(p=>p);
   if(!a.state||a.state==='missing')put('briefAccount','<div class="brief-top"><span class="brief-label">Contul</span>'+pill('Cont neconectat','bad')+'</div><h2>Conectează contul</h2><div class="brief-facts"><span>Valoarea contului nu este încă disponibilă pe acest dispozitiv.</span></div><a class="brief-go" href="'+appURL('broker/')+'">Verifică contul ↗</a>');
   else{const big=pos.filter(p=>finite(p.weight)).sort((x,y)=>y.weight-x.weight)[0];
@@ -215,22 +229,22 @@
   const sig=ziBursa()+'|'+pos.map(p=>p.ticker).sort().join(',');if(verdictExtra.expSig===sig)return;verdictExtra.expSig=sig;
   MV.expunere({positions:pos,total:ui.account?.total,currency:ui.account?.currency,spyPoints:spy.points}).then(e=>{if(verdictExtra.expSig!==sig)return;verdictExtra.expunere=e;renderVerdict();renderAttention();});
  }
- let verdictSig=null;
+ let verdictSig=null, verdictCurent=null;
  function renderVerdict(){
-  const host=$('marketVerdict'),MV=g.MarketVerdict;if(!host||!MV)return;verdictLoad();verdictEarnings();verdictExpunere();
+  const host=$('marketVerdict'),MV=g.MarketVerdict;if(!host||!MV){verdictCurent=null;return;}verdictLoad();verdictEarnings();verdictExpunere();
   // I-702 (19.10.2026): se reface doar când s-au schimbat intrările (sau minutul: „azi / mâine”, futures înainte de deschidere)
   let sig=null;try{sig=JSON.stringify([ui.market,ui.news?.items,(ui.account?.positions||[]).map(p=>[p.ticker,p.value]),Math.floor(Date.now()/60000)]);}catch(_){sig=null;}
   const refs=[verdictExtra.raport,verdictExtra.extra,verdictExtra.robot,verdictExtra.earnings,verdictExtra.necunoscute,verdictExtra.expunere];
   if(sig!==null&&verdictSig&&verdictSig.sig===sig&&refs.every((x,i)=>x===verdictSig.refs[i]))return;verdictSig={sig,refs};
   let events=[];try{events=g.MCTX?.hardcodedEvents?.()||[];}catch(_){}
   let regime=null;try{regime=verdictExtra.extra?MV.regimDin(ui.market,verdictExtra.extra):null;if(regime&&regime.partial&&verdictExtra.robot?.regim)regime=verdictExtra.robot.regim;}catch(_){}
-  let html;try{html=MV.render(MV.compute({market:ui.market||{},raport:verdictExtra.raport,regime,extra:verdictExtra.extra,events,earnings:verdictExtra.earnings,earningsNecunoscute:verdictExtra.necunoscute,news:ui.news?.items||[],positions:ui.account?.positions||[],expunere:verdictExtra.expunere,robot:verdictExtra.robot,now:Date.now()}));}
-  catch(_){html='<p class="mv-empty">Verdictul nu poate fi calculat acum; restul paginii rămâne valabil.</p>';}
-  put('marketVerdict',html);
+  let html,v=null;try{v=MV.compute({market:ui.market||{},raport:verdictExtra.raport,regime,extra:verdictExtra.extra,events,earnings:verdictExtra.earnings,earningsNecunoscute:verdictExtra.necunoscute,news:ui.news?.items||[],positions:ui.account?.positions||[],expunere:verdictExtra.expunere,robot:verdictExtra.robot,now:Date.now()});html=MV.render(v);}
+  catch(_){v=null;html='<p class="mv-empty">Verdictul nu poate fi calculat acum; restul paginii rămâne valabil.</p>';}
+  verdictCurent=v;put('marketVerdict',html);renderBrief();
  }
  function render(){renderVerdict();renderRefresh();renderAccount();renderMarket();renderChart();renderNews();renderPositions();renderActivity();renderScanners();renderAttention();renderBrief();if(layoutDirty){layoutDirty=false;fitLayout();}}
  async function load(force=false){
-  const generation=++ui.generation;renderSession();ui.busy=true;
+  const generation=++ui.generation,inceput=Date.now();renderSession();ui.busy=true;
   try{ui.model=ui.model||g.TodayDashboardModel?.create();ui.account=ui.model?.account({days:ui.days})||{state:'error',issues:['Adaptorul datelor locale nu este disponibil.']};}catch(_){ui.account={state:'error',issues:['Contul nu a putut fi citit; datele existente sunt păstrate.']};}
   const scope=ui.account.scope,names=ui.account.newsSymbols?.length?ui.account.newsSymbols.slice(0,3):['SPY','QQQ'],model=ui.model;
   const quiet=!force&&ui.loaded,sameScope=ui.shownScope===scope;ui.shownScope=scope;ui.loud=!quiet;
@@ -243,7 +257,7 @@
    apply('news',()=>model.news({symbols:names,force}),{state:'error',items:[],reason:'Fluxul de știri nu a putut fi verificat.'}),
    apply('activity',()=>model.activity({scope,limit:4,side:'SELL'}),{state:'error',items:[],reason:'Registrul local nu a putut fi citit; datele existente sunt păstrate.'})
   ]);
-  if(generation!==ui.generation)return;ui.busy=false;ui.loaded=true;renderRefresh();renderAttention();const partial=ui.news?.state==='error'||ui.news?.state==='partial'||ui.market?.items?.some(x=>x.state!=='ready')||ui.market?.breadth?.state!=='ready';$('refreshStatus').textContent=(partial?'Actualizare parțială · încercare încheiată la ':'Surse publice citite la ')+when(Date.now())+' · contul păstrează ora citirii sale';
+  if(generation!==ui.generation)return;ui.busy=false;ui.loaded=true;renderRefresh();renderAttention();const partial=ui.news?.state==='error'||ui.news?.state==='partial'||ui.market?.items?.some(x=>x.state!=='ready')||ui.market?.breadth?.state!=='ready';const la=finite(stamp(ui.market?.at))?stamp(ui.market.at):null,dinCache=!force&&la!=null&&la<inceput,ora=when(la!=null?la:Date.now()),cum=la==null?'':dinCache?' · din cache-ul de 10 minute':' · recitite acum';$('refreshStatus').textContent=(partial?'Actualizare parțială · încercare încheiată la ':'Surse publice citite la ')+ora+cum+' · contul păstrează ora citirii sale';
  }
  function openPosition(event){
   if(event.defaultPrevented||event.button&&event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return false;

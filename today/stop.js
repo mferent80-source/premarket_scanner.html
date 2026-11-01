@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   const S = window.StopSetter, host = document.getElementById('stopPanel'); if (!S || !host) return;
-  const atr = {}, ultim = {}, alese = {}; let stare = '', cerut = new Set(), discord = '';
+  const atr = {}, ultim = {}, alese = {}, noteBara = {}; let stare = '', cerut = new Set(), discord = '';
   // 18.10.2026: ordinul de stop REAL în Trading 212 (lib/t212-orders.js) — butonul apare doar cu conexiunea salvată pe dispozitiv; confirmare în pagină
   let ordine = null, confirm = null, trimitOrdin = false;
   // alarma pe Discord (worker-ul Paznicului) află ce poziții au stop: lista pleacă la fiecare schimbare
@@ -36,16 +36,49 @@
     } finally { if (ceas !== null) clearTimeout(ceas); pozaInCurs = false; }
   }
   function date() { const snap = window.T212Snapshot?.read?.('live'); return snap ? { scope: snap[0], snapshot: snap[1] } : null; }
+  /* I-793: ordin real = stopT212 din poza Radar sau ordin în așteptare citit aici (da / parțial). Stopul din teză sau din plan nu scoate rândul. */
+  function ordineLaBroker(d) {
+    const set = new Set();
+    try { const e = window.__ordineExterne; if (e) for (const t of e) set.add(t); } catch (_) { /* fără poză */ }
+    try {
+      const P = window.T212Pending;
+      if (P && typeof P.stare === 'function') {
+        const r = P.stare({ scope: d.scope, positions: d.snapshot.positions || [], storage: localStorage, externe: window.__ordineExterne instanceof Set ? window.__ordineExterne : null });
+        if (r && r.pozitii) for (const [tk, ob] of r.pozitii) if (ob && (ob.stare === 'da' || ob.stare === 'partial')) set.add(tk);
+      }
+    } catch (_) { /* ordinele necitite nu ascund panoul */ }
+    return set;
+  }
+  function felStop(d, poz) {
+    const fel = {}; let teze = new Set();
+    try { teze = S.stopuriValide(JSON.parse(localStorage.getItem('tt_holdings_theses_v1') || '{}'), d.scope, d.snapshot.positions || []); } catch (_) { teze = new Set(); }
+    const ext = window.__stopuriExterne instanceof Set ? window.__stopuriExterne : null;
+    for (const p of poz) fel[p.ticker] = teze.has(p.ticker) ? 'notat' : ext && ext.has(p.ticker) ? 'plan' : 'fara';
+    return fel;
+  }
+  /* I-797: oprirea blochează cumpărările. Butonul de STOP rămâne activ și tot trimite. */
+  function notaOprire() {
+    try {
+      const o = window.TodayAttention && typeof window.TodayAttention.oprire === 'function' ? window.TodayAttention.oprire(localStorage) : null;
+      if (o && o.activ) return 'Oprirea din Governor blochează cumpărările și planurile noi. Butonul de stop rămâne protecție și tot trimite un ordin STOP de vânzare.';
+    } catch (_) { /* fără cheie nu se inventează oprirea */ }
+    return '';
+  }
   function desen() {
     const d = date(); if (!d) { host.innerHTML = ''; return; }
     const scris = {}; host.querySelectorAll('[data-stop-ticker]').forEach((a) => { scris[a.dataset.stopTicker] = { alt: a.querySelector('[data-stop-alt]')?.value || '', tinta: a.querySelector('[data-stop-tinta]')?.value || '' }; });
     const activ = document.activeElement && host.contains(document.activeElement) ? { tk: document.activeElement.closest('[data-stop-ticker]')?.dataset.stopTicker, camp: document.activeElement.hasAttribute('data-stop-alt') ? 'data-stop-alt' : document.activeElement.hasAttribute('data-stop-tinta') ? 'data-stop-tinta' : null } : null;
-    const poz = S.faraStop(d.snapshot, stops(d.scope)); host.innerHTML = S.render(poz, { atr, ultim, alese, ordine, confirm, trimite: trimitOrdin, stare: [stare, pozaNota, poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul (luni–vineri, 08:00–22:00; în rest tace).') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
+    const poz = typeof S.pentruPanou === 'function' ? S.pentruPanou(d.snapshot, { ordine: ordineLaBroker(d) }) : S.faraStop(d.snapshot, stops(d.scope));
+    host.innerHTML = S.render(poz, { atr, ultim, alese, ordine, confirm, trimite: trimitOrdin, fel: felStop(d, poz), noteBare: noteBara, stare: [stare, pozaNota, notaOprire(), poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul (luni–vineri, 08:00–22:00; în rest tace).') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
     host.querySelectorAll('[data-stop-ticker]').forEach((a) => { const v = scris[a.dataset.stopTicker]; if (!v) return; const x = a.querySelector('[data-stop-alt]'), y = a.querySelector('[data-stop-tinta]'); if (x) x.value = v.alt; if (y) y.value = v.tinta; });
     if (activ && activ.tk && activ.camp) host.querySelector('[data-stop-ticker="' + CSS.escape(activ.tk) + '"] [' + activ.camp + ']')?.focus();
     const fetchStock = window.D?.fetchStock; if (typeof fetchStock !== 'function') return;
     for (const p of poz) { const s = S.symYahoo(p.ticker); if (!s || cerut.has(s)) continue; cerut.add(s);
-      fetchStock(s, { range: '3mo', interval: '1d', ttl: 21600 }).then((b) => { atr[s] = S.atrPct(b); const c = Array.isArray(b) ? b.filter((x) => Number.isFinite(x?.c) && x.c > 0).at(-1)?.c : null; ultim[s] = c ?? null; }, () => { atr[s] = null; ultim[s] = null; }).then(desen); }
+      fetchStock(s, { range: '3mo', interval: '1d', ttl: 21600 }).then((b) => {
+        const t = typeof S.barePentruStop === 'function' ? S.barePentruStop(b) : { bars: Array.isArray(b) ? b : [], deschisa: false, neverificata: false };
+        atr[s] = S.atrPct(t.bars); const c = Array.isArray(t.bars) ? t.bars.filter((x) => Number.isFinite(x?.c) && x.c > 0).at(-1)?.c : null; ultim[s] = c ?? null;
+        noteBara[s] = t.deschisa ? 'Sesiunea de azi e încă deschisă. Sugestia folosește închiderea precedentă.' : t.neverificata ? 'Ultima bară Yahoo nu are ora de închidere. Sugestia folosește sesiunea dinainte.' : '';
+      }, () => { atr[s] = null; ultim[s] = null; noteBara[s] = ''; }).then(desen); }
   }
   host.addEventListener('click', (ev) => {
     const art = ev.target.closest('[data-stop-ticker]'); if (!art) return; const tk = art.dataset.stopTicker, v = ev.target.closest('[data-stop-var]');
@@ -93,7 +126,8 @@
     } else stare = '⚠ ' + r.mesaj;
     desen();
   }
-  window.addEventListener('storage', (e) => { if (e.key === 'tt_holdings_theses_v1' || e.key === 'tt_trading212_portfolio_v1') { desen(); trimite(false); } });
+  window.addEventListener('storage', (e) => { if (e.key === 'tt_governor_oprire_v1') { desen(); return; } if (e.key === 'tt_holdings_theses_v1' || e.key === 'tt_trading212_portfolio_v1') { desen(); trimite(false); } });
+  window.addEventListener('tt-oprire', () => { try { desen(); } catch (_) { /* panoul rămâne cum era */ } });
   if (window.T212Orders) window.T212Orders.disponibil().then((r) => { ordine = r; desen(); });
   // 19.10.2026 (I-702): parcată în aplicație (TTShell ascuns) nu mai întreabă worker-ul la 5 minute; la revenire o dată
   desen(); trimite(false); pozaExterna(); if (window.TTShell) window.TTShell.every(pozaExterna, 300000); else setInterval(() => { if (!document.hidden) pozaExterna(); }, 300000);

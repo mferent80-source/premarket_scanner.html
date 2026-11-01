@@ -169,3 +169,44 @@ test('o secțiune cu același conținut nu e rescrisă la reîmprospătare (graf
  assert.equal(writes,0);
  s.click({dataset:{chartTab:'SPY'}});assert.equal(writes,1,'o schimbare reală se desenează');
 });
+
+test('brief-ul pune verdictul deasupra și desparte semnalele deja scrise; lățimea veche nu e un punct live',async()=>{
+ const ctx={URL,Intl};vm.createContext(ctx);vm.runInContext(readFileSync('lib/market-verdict.js','utf8'),ctx);
+ const serie=n=>Array.from({length:n},(_,i)=>({at:i,value:100}));
+ const item=(symbol,price,changePct,points)=>({symbol,label:symbol,unit:'USD',price,changePct,state:'ready',source:'Yahoo Finance',asOf:'2026-10-14',points:points||[],indicators:{}});
+ const market={at:NOW,items:[item('SPY',120,-0.4,serie(260)),item('QQQ',120,-0.2,serie(260)),item('^VIX',13,1),item('^TNX',4,0,serie(60).map((p,i)=>({at:i,value:4.4-i*0.01})))],breadth:{state:'ready',above50:72,above200:60,asOf:'2026-10-14',source:'Market Breadth',coverage:'S&P 500',points:[{at:NOW-DAY,value:70}]}};
+ const v=ctx.MarketVerdict.compute({market,now:NOW});
+ ctx.MarketVerdict.raportBreadth=()=>new Promise(()=>{});ctx.MarketVerdict.robotFile=()=>new Promise(()=>{});ctx.MarketVerdict.extraData=()=>new Promise(()=>{});
+ const s=setup({market,news:{state:'ready',items:[],reason:''},extra:{MarketVerdict:ctx.MarketVerdict}});await flush();
+ const h=s.element('briefMarket').innerHTML;
+ assert.match(h,new RegExp('>'+v.label.text+'<'));
+ assert.match(h,/Participare peste jumătate/);assert.match(h,/Amploare 72,0%/);
+ assert.match(h,/nu un semnal de cumpărare și nu o probabilitate/);
+ if(v.indicatori.some(x=>x.score>0))assert.match(h,/În favoare:/);
+ if(v.indicatori.some(x=>x.score<0))assert.match(h,/De urmărit:/);
+ const stale=setup({market:{...market,breadth:{...market.breadth,state:'stale',above50:72}},news:{state:'ready',items:[],reason:''},extra:{MarketVerdict:ctx.MarketVerdict}});await flush();
+ const hs=stale.element('briefMarket').innerHTML;
+ assert.match(hs,/Date breadth de reverificat/);assert.match(hs,/nu participarea de azi/);assert.match(hs,/· veche/);
+ assert.doesNotMatch(hs,/Participare peste jumătate/);assert.doesNotMatch(hs,/majoritatea acțiunilor participă/);
+});
+test('brief-ul se rescrie când sursele lente mută verdictul',async()=>{
+ const MV={compute(input){return input.extra?{label:{id:'prudent',text:'Prudent'},indicatori:[{score:1,why:'majoritatea acțiunilor participă',name:'Participarea'},{score:-1,why:'creditul slăbește',name:'Dobânzi și credit'},{score:-1,why:'regimul macro e prudent',name:'Regimul macro'}]}:{label:{id:'neutru',text:'Neutru'},indicatori:[{score:1,why:'majoritatea acțiunilor participă',name:'Participarea'},{score:0,name:'Volatilitatea'},{score:0,name:'Dobânzi'}]};},render(v){return '<p>'+v.label.text+'</p>';},raportBreadth:()=>Promise.resolve(null),robotFile:()=>Promise.resolve(null),extraData:()=>Promise.resolve({hy:1}),symbolOf:()=>null};
+ const market={at:NOW,items:[],breadth:{state:'ready',above50:61.4,above200:55,asOf:'2026-10-14',source:'Market Breadth',coverage:'S&P 500',points:[]}};
+ const s=setup({market,news:{state:'ready',items:[],reason:''},extra:{MarketVerdict:MV}});await flush();
+ const h=s.element('briefMarket').innerHTML;
+ assert.match(h,/>Prudent</);assert.match(s.element('marketVerdict').innerHTML,/Prudent/);
+ assert.doesNotMatch(h,/>Neutru</);assert.match(h,/De urmărit: creditul slăbește/);
+});
+test('ștampila spune dacă sursele au fost recitite sau au venit din cache, la ora payload-ului',async()=>{
+ const gata={state:'ready',items:[],reason:''};
+ const cache=setup({market:{items:[],breadth:{state:'error',points:[],reason:'x'},at:NOW-2*3600000},news:gata});await flush();
+ assert.match(cache.element('refreshStatus').textContent,/Actualizare parțială/);
+ assert.match(cache.element('refreshStatus').textContent,/încercare încheiată/);
+ assert.match(cache.element('refreshStatus').textContent,/din cache-ul de 10 minute/);
+ assert.match(cache.element('refreshStatus').textContent,/13:00/);
+ const proaspat=setup({market:{items:[{symbol:'SPY',label:'S&P',unit:'USD',price:1,changePct:0.1,state:'ready',source:'Yahoo',asOf:'2026-10-14',points:[],indicators:{}}],breadth:{state:'ready',above50:50,above200:50,asOf:'2026-10-14',source:'M',coverage:'S',points:[]},at:NOW},news:gata});await flush();
+ assert.match(proaspat.element('refreshStatus').textContent,/Surse publice citite la /);
+ assert.match(proaspat.element('refreshStatus').textContent,/recitite acum/);
+ assert.doesNotMatch(proaspat.element('refreshStatus').textContent,/din cache/);
+ assert.doesNotMatch(proaspat.element('refreshStatus').textContent,/^Citesc/);
+});
