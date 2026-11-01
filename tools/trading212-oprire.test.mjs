@@ -7,14 +7,27 @@ import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 
 const NOW = Date.parse('2026-10-27T15:30:00Z'), CONFIG = { enabled: true, endpoint: 'https://premarket-scanner-html.mferent80.workers.dev', directCredentials: true };
-function setup({ ordine = { key: 'ko', secret: 'so', environment: 'live' }, conexiune = { key: 'k', secret: 's', environment: 'live' }, relay, config = CONFIG, ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } = {}) {
+function setup({ ordine = { key: 'ko', secret: 'so', environment: 'live' }, conexiune = { key: 'k', secret: 's', environment: 'live' }, relay, config = CONFIG, ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', carte } = {}) {
   const store = new Map(), calls = [], events = [];
   class Clock extends Date { constructor(...a) { super(...(a.length ? a : [NOW])); } static now() { return NOW; } }
   const c = { console, Intl, JSON, Math, Date: Clock, URL, String, Number, Array, Object, Map, Set, btoa, AbortController, setTimeout, clearTimeout, CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init && init.detail; } },
     localStorage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: (k) => store.delete(k) }, navigator: { userAgent: ua }, location: { href: 'https://mferent80-source.github.io/premarket_scanner.html/broker/' } };
   c.window = c; c.dispatchEvent = (e) => { events.push(e); return true; }; c.addEventListener = () => {};
   c.T212Vault = { read: async () => conexiune, readOrdine: async () => ordine };
-  c.fetch = async (url, opts = {}) => { calls.push({ url: String(url), opts }); if (String(url).endsWith('trading212-config.json')) return new Response(JSON.stringify(config)); return relay(url, opts); };
+  const book = (opts) => (typeof carte === 'function' ? carte(opts) : { environment: 'live', currency: 'EUR', positions: [{ ticker: 'AAPL_US_EQ', quantity: 2 }] });
+  c.fetch = async (url, opts = {}) => {
+    calls.push({ url: String(url), opts });
+    if (String(url).endsWith('trading212-config.json')) return new Response(JSON.stringify(config));
+    const u = String(url), method = String(opts.method || 'GET').toUpperCase();
+    if (method === 'GET' && (u.endsWith('/api/trading212/summary') || u.endsWith('/api/trading212/positions'))) {
+      const b = book(opts);
+      if (!b) return new Response(JSON.stringify({ error: 'broker_unavailable' }), { status: 502 });
+      const env = b.environment || 'live';
+      const data = u.endsWith('/summary') ? { currency: b.currency } : (b.positions || []);
+      return new Response(JSON.stringify({ source: 'Trading 212', environment: env, data }));
+    }
+    return relay(url, opts);
+  };
   vm.createContext(c); vm.runInContext(readFileSync('lib/trading212-oprire.js', 'utf8'), c);
   return { c, O: c.TTOprire, store, calls, events, J: (k) => JSON.parse(store.get(k)) };
 }
@@ -72,4 +85,29 @@ test('citeste: cheia lipsă, stricată sau cu activ:false înseamnă „nu e opr
   const s = O.citeste(); assert.equal(s.activ, false); assert.match(O.text(s), /re-armat/i); assert.doesNotMatch(O.text(s), /^OPRIT/);
   assert.equal(O.text(null), 'Nu e oprit.');
   assert.equal(O.stare({ motiv: 'a'.repeat(300), aparat: 'PC', la: new Date(NOW).toISOString() }).motiv.length, 200);
+});
+test('aceeași cheie nu citește amprenta; cărți diferite sau ilizibile opresc POST-ul și numesc contul', async () => {
+  const same = setup({ ordine: { key: 'k', secret: 's', environment: 'live' }, relay: ok({ anulate: [], esuate: [], total: 0, complet: true }) });
+  await same.O.opreste({ motiv: 'aceeași cheie' });
+  assert.equal(same.calls.filter((x) => /\/summary$|\/positions$/.test(x.url)).length, 0);
+  assert.equal(same.calls.filter((x) => x.opts.method === 'POST').length, 1);
+  const alta = setup({
+    carte: (opts) => opts.headers.Authorization === 'Basic ' + btoa('ko:so')
+      ? { environment: 'live', currency: 'USD', positions: [{ ticker: 'TSLA_US_EQ', quantity: 1 }] }
+      : { environment: 'live', currency: 'EUR', positions: [{ ticker: 'AAPL_US_EQ', quantity: 2 }] },
+    relay: async () => { throw Error('nu trebuie apelat'); }
+  });
+  const r = await alta.O.opreste({ motiv: 'alt cont' });
+  assert.equal(r.ok, false); assert.equal(alta.calls.filter((x) => x.opts.method === 'POST').length, 0);
+  assert.match(r.mesaj, /USD/); assert.match(r.mesaj, /EUR/); assert.match(r.mesaj, /nu a plecat/);
+  assert.equal(alta.J('tt_governor_oprire_v1').complet, false); assert.deepEqual(alta.J('tt_governor_oprire_v1').ordineAnulate, []);
+  const oarba = setup({ carte: () => null, relay: async () => { throw Error('nu trebuie apelat'); } });
+  const q = await oarba.O.opreste({ motiv: 'nu citesc cartea' });
+  assert.equal(q.ok, false); assert.match(q.mesaj, /amprenta|nu a plecat/i); assert.equal(oarba.calls.filter((x) => x.opts.method === 'POST').length, 0);
+});
+test('releul care confirmă alt mediu decât cheia nu confirmă anularea', async () => {
+  const { O, J } = setup({ relay: async () => new Response(JSON.stringify({ source: 'Trading 212', environment: 'demo', data: { anulate: [{ id: '77', ticker: 'AAPL_US_EQ' }], esuate: [], complet: true } })) });
+  const r = await O.opreste({ motiv: 'mediu greșit' });
+  assert.equal(r.ok, false); assert.match(r.mesaj, /demo/); assert.equal(r.error, 'alt-mediu');
+  assert.equal(J('tt_governor_oprire_v1').complet, false); assert.deepEqual(J('tt_governor_oprire_v1').ordineAnulate, []);
 });

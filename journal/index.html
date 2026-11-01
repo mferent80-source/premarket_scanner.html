@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="../lib/plex.css?v=743">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=678">
 <link rel="stylesheet" href="../lib/capital-ui.css?v=678">
-<script src="../lib/suite-version.js?v=999"></script>
+<script src="../lib/suite-version.js?v=1000"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -277,7 +277,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>Jurnal <span class="ver-badge" id="verBadge">tt-v736</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">—</span></h1>
+  <h1>Jurnal <span class="ver-badge" id="verBadge">tt-v737</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">—</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal" role="status">—</span>
   <details class="jr-tools" id="jrTools">
     <summary>Instrumente</summary>
@@ -1069,6 +1069,12 @@ $('btnSave').addEventListener('click', () => {
     const v = JR.validateEntry(payload);
     if (!v.ok) { alert(v.msg); return; }
   }
+  const entryN = num(payload.entry), sizeN = num(payload.size), slN = num(payload.slAtEntry);
+  /* 01.11.2026: rând deschis fără stop real nu intră în poartă ca 1% din noțional. Editarea care șterge stopul e aceeași refuzare. */
+  if (exitN == null && !(slN > 0)) {
+    alert('Poziție deschisă fără stop: nu se salvează. Riscul fără stop e necunoscut, nu 1% din noțional. Pune stopul real (peste 0) sau închide rândul.');
+    return;
+  }
   if (editId){
     const markN = num($('fMark')?.value);
     if (!JR.update(editId, {
@@ -1084,7 +1090,6 @@ $('btnSave').addEventListener('click', () => {
     return;
   }
   const symU = String(payload.sym || '').trim().toUpperCase();
-  const entryN = num(payload.entry), sizeN = num(payload.size), slN = num(payload.slAtEntry);
   let allowDupOpen = false;
   if (exitN == null && JR.findOpen && JR.findOpen(symU)) {
     if (!confirm(symU + ' e deja OPEN în journal. Adaugi a doua poziție pe același ticker?')) return;
@@ -1104,13 +1109,12 @@ $('btnSave').addEventListener('click', () => {
   }
   if (window.CD && CD.canAddRisk && exitN == null && entryN > 0 && sizeN > 0) {
     const dir = payload.dir || $('fDir')?.value || 'long';
-    let est = entryN * sizeN * 0.01;
-    if (isFinite(slN) && slN > 0) {
-      est = dir === 'short' ? Math.max(0, (slN - entryN) * sizeN) : Math.max(0, (entryN - slN) * sizeN);
-    }
+    const est = dir === 'short' ? (slN - entryN) * sizeN : (entryN - slN) * sizeN;
+    if (!(est > 0)) { alert('Stopul nu e de partea pierderii față de intrare. Rândul deschis nu se salvează.'); return; }
     const fx = JR.fxRate(payload, 'Entry');
     if (fx == null) { alert('Completează moneda și cursul FX de intrare pentru verificarea riscului USD.'); return; }
     const gate = CD.canAddRisk(est * fx);
+    if (gate.blocheaza) { alert('Capital Desk STOP — fără ocolire:\n' + gate.reasons.join('\n')); return; }
     if (gate.halt && !confirm('Capital Desk STOP:\n' + gate.reasons.join('\n') + '\n\nSalvezi execuția oricum?')) return;
   }
   const markRaw = $('fMark')?.value;
@@ -1393,17 +1397,23 @@ function renderOprire(s){
   const ob = $('deskOprire'); if (!ob) return;
   const o = s && s.oprire;
   if (!o || o.activ !== true) { ob.hidden = true; ob.innerHTML = ''; ob.dataset.la = ''; return; }
-  const sem = String(o.la) + '|' + (Array.isArray(o.ordineAnulate) ? o.ordineAnulate.length : 0);
-  if (ob.dataset.la === sem && $('gvRearmMotiv')) return;
+  const es = Array.isArray(o.esuate) ? o.esuate : [];
+  const incomplet = o.complet === false || es.length > 0;
+  const sem = String(o.la) + '|' + (Array.isArray(o.ordineAnulate) ? o.ordineAnulate.length : 0) + '|' + (incomplet ? 'incomplet' : 'complet') + '|' + es.map(x => (x && x.ticker) || '').join(',');
+  if (ob.dataset.la === sem && (incomplet || $('gvRearmMotiv'))) return;
   const ora = iso => { const t = Date.parse(iso); return Number.isFinite(t) ? new Date(t).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'; };
   const ordine = Array.isArray(o.ordineAnulate) ? o.ordineAnulate : [];
   ob.hidden = false; ob.dataset.la = sem;
+  const blocaj = incomplet
+    ? '<p class="note">Re-armarea e blocată' + (es.length ? ': ordine neanulate ' + es.map(x => esc((x && x.ticker) || '?')).join(', ') + '. Anulează-le din aplicația Trading 212 înainte de re-armare.' : ': anularea nu e completă. Verifică ordinele în Trading 212 înainte de re-armare.') + '</p>'
+    : '<div class="frm" style="margin-top:8px"><label class="wide">Motivul re-armării (obligatoriu) <input id="gvRearmMotiv" maxlength="500" placeholder="ce ai verificat, ce ai schimbat"></label></div>' +
+      '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="btnGovRearm" type="button">🔓 Re-armează Governor</button></div>';
   ob.innerHTML = '<h2 style="color:var(--bear-s)">⛔ OPRIT — „Oprește tot” apăsat ' + esc(ora(o.la)) + ' pe ' + esc(o.aparat || 'aparat necunoscut') + '</h2>' +
     '<p>Motivul: <b>' + esc(o.motiv || 'fără motiv scris') + '</b> · ' + ordine.length + ' ordine anulate la broker' + (ordine.length ? ': ' + ordine.slice(0, 8).map(x => esc((x && x.ticker) || '?') + (x && Number.isFinite(x.stopPrice) ? ' @ ' + esc(String(x.stopPrice)) : '')).join(', ') : '') + '</p>' +
     '<p class="note">Fără intrări noi până la re-armare. Înainte: verifică pozițiile și ordinele la broker, pune la loc stopurile anulate (Astăzi / Portofoliu), notează incidentul (docs/incidente.md, formularul de mai jos).</p>' +
-    '<div class="frm" style="margin-top:8px"><label class="wide">Motivul re-armării (obligatoriu) <input id="gvRearmMotiv" maxlength="500" placeholder="ce ai verificat, ce ai schimbat"></label></div>' +
-    '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="btnGovRearm" type="button">🔓 Re-armează Governor</button></div>';
-  $('btnGovRearm').addEventListener('click', () => {
+    blocaj;
+  const btnRearm = $('btnGovRearm');
+  if (btnRearm) btnRearm.addEventListener('click', () => {
     const m = ($('gvRearmMotiv').value || '').trim();
     if (!m) { alert('Scrie motivul re-armării: ce ai verificat și ce ai schimbat. Fără motiv nu se re-armează.'); $('gvRearmMotiv').focus(); return; }
     if (!GV.rearmeaza(m)) { alert('Re-armarea nu s-a putut scrie (sau oprirea nu mai e activă).'); return; }
@@ -1706,13 +1716,14 @@ function showPrefillGate(force){
   const q = new URLSearchParams(location.search);
   const hasCtx = !!(window.SCTX && SCTX.read && SCTX.read({ maxAgeMs: 60 * 60 * 1000 }));
   if (!force && !q.has('sym') && !q.has('prefill') && !hasCtx) { el.innerHTML = ''; return; }
-  const acct = window.GV ? GV.cfg().accountSize : (window.ACCT ? ACCT.get().value : 10000);
   const entryN = parseFloat($('fEntry')?.value), sizeN = parseFloat($('fSize')?.value), slN = parseFloat($('fSl')?.value);
   const dir = $('fDir')?.value || 'long';
-  let est = acct * 0.01;
-  if (entryN > 0 && sizeN > 0 && slN > 0) {
-    est = dir === 'short' ? Math.max(0, (slN - entryN) * sizeN) : Math.max(0, (entryN - slN) * sizeN);
+  if (!(entryN > 0) || !(sizeN > 0) || !(slN > 0)) {
+    el.textContent = 'Stop real obligatoriu pe rândul deschis — fără el riscul nu se socotește ca 1% din noțional și rândul nu se salvează.';
+    return;
   }
+  const est = dir === 'short' ? Math.max(0, (slN - entryN) * sizeN) : Math.max(0, (entryN - slN) * sizeN);
+  if (!(est > 0)) { el.textContent = 'Stopul nu e de partea pierderii. Rândul deschis nu se salvează.'; return; }
   const fx = JR.fxRate({sym: $('fSym').value, quoteCurrency: $('fCurrency').value || null, fxEntryUsd: $('fFxEntry').value}, 'Entry');
   if (fx == null) { el.textContent = 'FX de intrare lipsește — riscul USD nu poate fi verificat.'; return; }
   const gate = CD.canAddRisk(est * fx);
@@ -2061,7 +2072,7 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = 'tt-v999';
+  var ver = 'tt-v1000';
   var full = window.SUITE_VERSION || 'tt-v625-2026-07-12';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
@@ -2089,7 +2100,7 @@ document.addEventListener('click', ev => {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v999';
+  var PAGE_VER = 'tt-v1000';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

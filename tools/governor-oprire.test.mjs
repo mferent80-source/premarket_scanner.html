@@ -45,6 +45,18 @@ test('re-armarea cere motiv; scrie activ:false, rearmatLa, rearmatMotiv și păs
   const stricat = lume({ tt_journal_v1: rand, tt_account_size_v1: '12670', tt_governor_oprire_v1: '{nu e json' }).c.GV.status(); assert.equal(stricat.verdict, 'TRADE');
 });
 
+test('re-armarea e refuzată cât anularea e incompletă; înregistrarea veche fără complet și esuate se re-armează', () => {
+  const incomplet = lume({ tt_journal_v1: rand, tt_account_size_v1: '12670', tt_governor_oprire_v1: oprire({ complet: false, esuate: [{ id: 'o3', ticker: 'MSFT_US_EQ', stopPrice: null }] }) });
+  assert.equal(incomplet.c.GV.rearmeaza('am verificat pozițiile'), false);
+  assert.equal(incomplet.c.GV.status().verdict, 'HALTED');
+  const txt = incomplet.c.GV.status().reasons.join(' ');
+  assert.match(txt, /MSFT_US_EQ/); assert.match(txt, /re-armarea e blocată/);
+  const doarFlag = lume({ tt_journal_v1: rand, tt_account_size_v1: '12670', tt_governor_oprire_v1: oprire({ complet: false, esuate: [] }) });
+  assert.equal(doarFlag.c.GV.rearmeaza('flag fără listă'), false);
+  const veche = lume({ tt_journal_v1: rand, tt_account_size_v1: '12670', tt_governor_oprire_v1: oprire() });
+  assert.equal(veche.c.GV.rearmeaza('înregistrare veche, fără câmpurile noi'), true);
+});
+
 test('reconcilierea cu diferențe ⇒ CAUTION cu lista: în Governor fără broker pe aparat și pe calea brokerului (T212Capital)', () => {
   const rec = { la: '2026-10-27T13:50:00Z', scope: 'live', ok: false, diferente: [{ tip: 'pozitie', ticker: 'AAPL_US_EQ', app: 10, broker: 12, text: 'AAPL: 10 în copie, 12 la broker' }, { tip: 'numerar', ticker: null, app: 1000, broker: 950.5, text: 'numerar: 1.000,0 în copie, 950,5 la broker' }] };
   const { c } = lume({ tt_journal_v1: rand, tt_account_size_v1: '12670', tt_reconciliere_v1: rec });

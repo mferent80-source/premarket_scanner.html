@@ -111,7 +111,7 @@
   function sparkValues(c) { return c.slice(-45).map(function (v) { return +v; }); }
 
   async function earningsGate() {
-    state.earningsOk = false; state.earningsMap = {};
+    state.earningsOk = false; state.earningsMap = {}; state.earningsFerestaSarita = false;
     /* 27.10.2026 (auditul D): motivul REAL al gardei — „fără cheie” și „Finnhub nu a răspuns” sunt două lucruri diferite pentru om */
     state.earningsMotiv = 'modulul calendarului de raportări nu s-a încărcat';
     if (!window.EARN || !EARN.calendar) return;
@@ -119,6 +119,9 @@
       var r = await EARN.calendar({ zile: 14, toate: true });
       if (!r || !r.ok) { state.earningsMotiv = r && r.motiv ? String(r.motiv) : 'calendarul de raportări nu a răspuns'; return; }
       state.earningsOk = true; state.earningsMotiv = '';
+      // 01.11.2026: o fereastră care începe după ziua New York nu dovedește „fără earnings”.
+      state.earningsFerestaSarita = !!(window.EARN && EARN.acoperaZiua && !EARN.acoperaZiua(r.from));
+      if (state.earningsFerestaSarita) state.earningsMotiv = 'calendarul a sărit ziua New York';
       (r.items || []).forEach(function (e) { if (e && e.symbol && !state.earningsMap[e.symbol]) state.earningsMap[e.symbol] = e; });
     } catch (e) { state.earningsMotiv = e && e.message ? e.message : 'calendarul de raportări a dat eroare'; }
   }
@@ -136,7 +139,10 @@
     if (regionOf(sym) === 'EU') return { penalty: 5, blocked: false, unverified: true, eu: true, text: 'earnings EU neverificat — verifică singur calendarul' };
     // revizie 14.10: calendarul vede doar tickere US de forma AAAA sau AAAA-B (BRK-B) — orice altceva NU e „verificat curat”
     if (!/^[A-Z][A-Z0-9]{0,4}(-[A-Z])?$/.test(sym)) return { penalty: 5, blocked: false, unverified: true, text: 'earnings neverificat (simbolul nu e în calendar)' };
-    if (!e || !e.date) return { penalty: 0, blocked: false, text: 'fără earnings în 14z' };
+    if (!e || !e.date) {
+      if (state.earningsFerestaSarita) return { penalty: 5, blocked: true, unverified: true, motiv: state.earningsMotiv || 'fereastra a sărit ziua New York', text: 'earnings neverificat (fereastra a sărit ziua)' };
+      return { penalty: 0, blocked: false, text: 'fără earnings în 14z' };
+    }
     var days = zileNY(e.date);
     if (days <= 1) return { penalty: 30, blocked: true, days: days, text: 'earnings în ' + Math.max(0, days) + 'z' };
     if (days <= 3) return { penalty: 12, blocked: false, inFereastra: true, days: days, text: 'earnings în ' + days + 'z' };
@@ -505,7 +511,10 @@
       x.fapte = x.fapte || [];
       if (!cal || !cal.ok) { x.earnings = 'earnings neverificat (' + (cal && cal.motiv ? cal.motiv : 'calendarul de raportări nu a răspuns') + ')'; x.fapte.push({ k: 'earnings', v: 'neverificat', rol: 'attention' }); return; }
       var e = harta[x.symbol];
-      if (!e) { x.earnings = 'fără raportare în 14z'; x.fapte.push({ k: 'earnings', v: 'fără raportare în 14z', rol: 'info' }); return; }
+      if (!e) {
+        if (window.EARN && EARN.acoperaZiua && !EARN.acoperaZiua(cal.from)) { x.earnings = 'earnings neverificat (fereastra a sărit ziua New York)'; x.fapte.push({ k: 'earnings', v: 'neverificat', rol: 'block' }); return; }
+        x.earnings = 'fără raportare în 14z'; x.fapte.push({ k: 'earnings', v: 'fără raportare în 14z', rol: 'info' }); return;
+      }
       var z = Math.max(0, zileNY(e.date));
       x.earnings = 'raportează în ' + z + 'z' + (e.hour === 'amc' ? ' (după închidere)' : e.hour === 'bmo' ? ' (înainte de deschidere)' : '');
       if (!vechi) x.state = 'RAPORTEAZĂ';
