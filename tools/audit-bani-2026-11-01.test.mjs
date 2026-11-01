@@ -51,8 +51,8 @@ test('fill lipit de stop păstrează riscul salvat în expunere și în căldur�
   const p = T.create(cand, 10000, 0.5, { id: 'm' });
   assert.equal(p.shares, 8); assert.equal(p.risk, 48);
   const lipit = T.transition(p, 'trigger', { fillEntry: 194.01, allowed: true });
-  assert.ok(lipit); assert.equal(T.exposure([lipit]).risk, 48);
-  assert.equal(K.riscDeschis({ contUsd: 100000, plafonPct: 4, plans: [lipit] }).planuriUsd, 48);
+  assert.ok(lipit); assert.equal(T.riscDeclansat(lipit), 48); assert.equal(T.exposure([lipit]).risk, 48);
+  assert.equal(K.riscDeschis({ contUsd: 100000, plafonPct: 4, plans: [lipit] }).planuriUsd, T.exposure([lipit]).risk);
   const x = { symbol: 'FICTIV', mode: 'momentum', currency: 'USD', actionable: true, entryLow: 100, entryHigh: 102, stop: 95, target: 116, ts: Date.now(), sourceDate: '2026-10-02', sourceTimezone: 'America/New_York', score: 80 };
   const vechi = T.transition(T.create(x, 10000, 0.5, { id: 'a' }), 'trigger', { fillEntry: 102, allowed: true });
   assert.equal(T.exposure([vechi]).risk, 49);

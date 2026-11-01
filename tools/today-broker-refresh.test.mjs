@@ -20,7 +20,7 @@ async function setup(options={}){
  window.ViewRefresh={patchList:(host,items,key,markup)=>host.innerHTML=items.map(markup).join('')};
  let override=null;
  const fetch=async(u,request)=>{
-  if(String(u).includes('trading212-config'))return {json:async()=>({enabled:options.enabled!==false,endpoint:'https://owned-private.workers.dev',directCredentials:true})};
+  if(String(u).includes('trading212-config'))return {json:async()=>({enabled:options.enabled!==false,endpoint:'https://premarket-scanner-html.mferent80.workers.dev',directCredentials:true})};
   const name=new URL(u).pathname.split('/').at(-1);calls.push({name,u:String(u),request});
   const body={source:'Trading 212',environment:request.headers['X-T212-Environment'],fetchedAt:new Date(time).toISOString(),data:name==='summary'?{currency:'RON',totalValue:100,available:5}:name==='positions'?[]:{items:[{id:'sale',ticker:'UHS_US_EQ',side:'SELL'}],nextCursor:null}};
   return override?override(name,body,request):{ok:true,json:async()=>body};

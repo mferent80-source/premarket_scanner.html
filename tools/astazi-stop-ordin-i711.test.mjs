@@ -52,11 +52,11 @@ test('I-711: helperul StopSetter.stopDinFormular — valoare scrisă validă, go
   assert.match(S.stopDinFormular('', false, NaN).eroare, /Alege o variantă/);
 });
 
-function relee(relay, vault = { key: 'k', secret: 's', environment: 'live' }) {
+function relee(relay, vault = { key: 'k', secret: 's', environment: 'live' }, endpoint = 'https://premarket-scanner-html.mferent80.workers.dev') {
   const calls = [];
   const c = { Intl, Date, Math, JSON, Map, Set, URL, String, Number, Array, Object, Promise, btoa, AbortController, setTimeout, clearTimeout, location: { href: 'https://mferent80-source.github.io/premarket_scanner.html/today/' } };
   c.window = c; c.T212Vault = { read: async () => vault };
-  c.fetch = async (url, opts = {}) => { calls.push({ url: String(url), opts }); if (String(url).endsWith('trading212-config.json')) return new Response(JSON.stringify({ enabled: true, endpoint: 'https://premarket-scanner-html.mferent80.workers.dev', directCredentials: true })); return relay(url, opts); };
+  c.fetch = async (url, opts = {}) => { calls.push({ url: String(url), opts }); if (String(url).endsWith('trading212-config.json')) return new Response(JSON.stringify({ enabled: true, endpoint, directCredentials: true })); return relay(url, opts); };
   vm.createContext(c); vm.runInContext(readFileSync('lib/t212-orders.js', 'utf8'), c);
   return { O: c.T212Orders, calls };
 }
@@ -80,6 +80,13 @@ test('I-711: trimiterea ordinului are timeout — „nu știm dacă a ajuns”, 
   assert.match(r.mesaj, /nu știm dacă/i); assert.match(r.mesaj, /verifică în (aplicația )?Trading 212/i); assert.doesNotMatch(r.mesaj, /NU a fost trimis/);
   assert.equal(calls.filter((x) => x.opts.method === 'POST').length, 1, 'fără retrimitere automată');
   assert.equal(O.TIMEOUT_MS, 25000);
+});
+test('alt workers.dev nu primește ordinul de stop', async () => {
+  const { O, calls } = relee(async () => { throw Error('nu trebuie apelat'); }, { key: 'k', secret: 's', environment: 'live' }, 'https://evil.workers.dev');
+  const m = new Map();
+  const r = await O.pune({ ticker: 'MU_US_EQ', quantity: 5, stopPrice: 832.2 }, { garda: { poz: MU, acum: 876, pending: [], storage: { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) } } });
+  assert.equal(r.ok, false); assert.equal(r.error, 'config');
+  assert.equal(calls.filter((x) => x.opts.method === 'POST').length, 0);
 });
 
 // 27.10.2026 (I-758): fereastra „Pune ordinul în Trading 212” trece prin controalele pre-ordin — stopul în afara collarului 0,5–25 % cere bifa,

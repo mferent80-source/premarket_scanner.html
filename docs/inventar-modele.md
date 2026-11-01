@@ -38,8 +38,8 @@
 | 15 | CAUTION | DD rolling …% — aproape de prag | `tools/garzi-declansare.test.mjs` · gardă «governor · aproape de prag» — DD rolling 8 % (≥ 75 % din prag) |
 | 16 | HALTED | execuții cu monedă/FX incomplete — bugetul USD nu poate fi verificat | `tools/garzi-declansare.test.mjs` · gardă «governor · monedă/FX incomplete» — o execuție în EUR fără curs |
 | 17 | după contul Trading 212 | motivele contului Trading 212 („Invest: …”) | `lib/trading212-capital.js` · fiecare gardă a contului, mai jos |
-| 18 | HALTED | Limita lunară depășită: … în …, limita … — fără intrări noi până pe … (regula ta, scrisă dinainte) | `tools/garzi-declansare.test.mjs` · gardă «governor · Limita lunară depășită» — −600 € față de limita de 500 € |
-| 19 | CAUTION | Limita lunară: … % consumat (… din … în …) | `tools/garzi-declansare.test.mjs` · gardă «governor · % consumat» — 80 % din limita lunară |
+| 18 | HALTED | Limita lunară depășită: … realizat la broker pe vânzări (taxele nu sunt scăzute) în …, limita … — fără intrări noi până pe … (regula ta, scrisă dinainte) | `tools/garzi-declansare.test.mjs` · gardă «governor · Limita lunară depășită» — −600 € față de limita de 500 € |
+| 19 | CAUTION | Limita lunară: … % consumat (… realizat la broker pe vânzări, taxele nu sunt scăzute, din … în …) | `tools/garzi-declansare.test.mjs` · gardă «governor · % consumat» — 80 % din limita lunară |
 | 20 | CAUTION | Limita lunară e pusă (…), dar rezultatul lunii nu e citit din execuții pe acest aparat — sincronizează contul sau deschide Jurnal → Raport | `tools/garzi-declansare.test.mjs` · gardă «governor · rezultatul lunii nu e citit» — limita pusă, luna necitită |
 | 21 | CAUTION | Limita lunară: rezultatul lunii e din … (mai vechi de 3 zile) — sincronizează contul | `tools/garzi-declansare.test.mjs` · gardă «governor · mai vechi de 3 zile» — rezultatul lunii citit acum 4 zile |
 | 22 | HALTED | Oprire de urgență („Oprește tot”) activă din … pe …: … — … ordine anulate; fără intrări noi până la re-armare din formularul Governor, cu motiv | `tools/garzi-declansare.test.mjs` · gardă «governor · Oprire de urgență» — „Oprește tot” activ |

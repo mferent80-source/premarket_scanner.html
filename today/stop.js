@@ -10,18 +10,37 @@
   const MES = { 'fara-cheie': 'Alarma pe Discord nu știe de stopurile tale: pune cheia de citire în Alerte (pe acest dispozitiv).', 'cheie-gresita': 'Alarma pe Discord: cheia de citire din Alerte nu e bună.', 'cheie-scriere': 'Alarma pe Discord: Paznicul cere acum cheia de SCRIERE - pune-o în Alerte, în caseta 🔑 (pe acest dispozitiv).', retea: 'Alarma pe Discord: lista stopurilor n-a putut fi trimisă acum (rețea); se reîncearcă.' };
   function trimite(fortat) { S.trimiteLista({ fortat }).then((r) => { const m = MES[r.stare] || ''; if (m !== discord) { discord = m; desen(); } }); }
   // stopurile valide = puse DUPĂ deschiderea poziției de acum (revizia 18.10) + cele din Trading 212 / stopul fix din Radar (poza colectorului)
-  let externe = new Set();
+  let externe = new Set(), pozaNota = '', pozaInCurs = false;
+  const POZA_MS = 8000;
   const stops = (scope) => { try { const d = date(), th = JSON.parse(localStorage.getItem('tt_holdings_theses_v1') || '{}'), s = S.stopuriValide(th, scope, d ? d.snapshot.positions : []); for (const t of externe) s.add(t); return s; } catch (_) { return new Set(externe); } };
   async function pozaExterna() {
-    let cheie = '', url = 'https://paznic-radar.mferent80.workers.dev'; try { cheie = String(localStorage.getItem('radar_cheie') || '').trim(); const u = String(localStorage.getItem('radar_url') || '').trim(); if (/^https:\/\/[^\s/?#]+\.[^\s/?#]+/i.test(u)) url = u.replace(/\/+$/, ''); } catch (_) { return; }
-    if (!cheie) return; try { const r = await fetch(url + '/poza', { headers: { authorization: 'Bearer ' + cheie }, cache: 'no-store' }); if (!r.ok) return; const poza = await r.json(), e = S.stopuriExterne(poza), ord = S.ordineExterne ? S.ordineExterne(poza) : new Set(); /* 27.10 (audit): ordinele (stopT212) separat de stopurile documentate (și stopFix din plan) */ if ([...e].sort().join() !== [...externe].sort().join() || [...ord].sort().join() !== [...(window.__ordineExterne || [])].sort().join()) { externe = e; window.__stopuriExterne = e; window.__ordineExterne = ord; desen(); window.dispatchEvent(new Event('tt-stop-salvat')); } } catch (_) { /* fără poză: doar stopurile din aplicație */ }
+    if (pozaInCurs) return;
+    let cheie = '', url = 'https://paznic-radar.mferent80.workers.dev';
+    try { cheie = String(localStorage.getItem('radar_cheie') || '').trim(); const u = String(localStorage.getItem('radar_url') || '').trim(); if (/^https:\/\/[^\s/?#]+\.[^\s/?#]+/i.test(u)) url = u.replace(/\/+$/, ''); } catch (_) { return; }
+    if (!cheie) return;
+    pozaInCurs = true;
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    let expirat = false;
+    const ceas = typeof setTimeout === 'function' ? setTimeout(() => { expirat = true; try { ctl && ctl.abort(); } catch (_) { /* fără anulare */ } }, POZA_MS) : null;
+    try {
+      const r = await fetch(url + '/poza', { headers: { authorization: 'Bearer ' + cheie }, cache: 'no-store', signal: ctl ? ctl.signal : undefined });
+      if (!r.ok) { const t = 'Poza Radar n-a venit. Stopurile din aplicație rămân.'; if (pozaNota !== t) { pozaNota = t; desen(); } return; }
+      const poza = await r.json(), e = S.stopuriExterne(poza), ord = S.ordineExterne ? S.ordineExterne(poza) : new Set(); /* 27.10 (audit): ordinele (stopT212) separat de stopurile documentate (și stopFix din plan) */
+      const avea = pozaNota; pozaNota = '';
+      const schimbat = [...e].sort().join() !== [...externe].sort().join() || [...ord].sort().join() !== [...(window.__ordineExterne || [])].sort().join();
+      if (schimbat) { externe = e; window.__stopuriExterne = e; window.__ordineExterne = ord; window.dispatchEvent(new Event('tt-stop-salvat')); }
+      if (schimbat || avea) desen();
+    } catch (_) {
+      const t = expirat ? 'Poza Radar n-a venit în 8 secunde. Stopurile din aplicație rămân.' : 'Poza Radar n-a venit. Stopurile din aplicație rămân.';
+      if (pozaNota !== t) { pozaNota = t; desen(); }
+    } finally { if (ceas !== null) clearTimeout(ceas); pozaInCurs = false; }
   }
   function date() { const snap = window.T212Snapshot?.read?.('live'); return snap ? { scope: snap[0], snapshot: snap[1] } : null; }
   function desen() {
     const d = date(); if (!d) { host.innerHTML = ''; return; }
     const scris = {}; host.querySelectorAll('[data-stop-ticker]').forEach((a) => { scris[a.dataset.stopTicker] = { alt: a.querySelector('[data-stop-alt]')?.value || '', tinta: a.querySelector('[data-stop-tinta]')?.value || '' }; });
     const activ = document.activeElement && host.contains(document.activeElement) ? { tk: document.activeElement.closest('[data-stop-ticker]')?.dataset.stopTicker, camp: document.activeElement.hasAttribute('data-stop-alt') ? 'data-stop-alt' : document.activeElement.hasAttribute('data-stop-tinta') ? 'data-stop-tinta' : null } : null;
-    const poz = S.faraStop(d.snapshot, stops(d.scope)); host.innerHTML = S.render(poz, { atr, ultim, alese, ordine, confirm, trimite: trimitOrdin, stare: [stare, poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul (luni–vineri, 08:00–22:00; în rest tace).') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
+    const poz = S.faraStop(d.snapshot, stops(d.scope)); host.innerHTML = S.render(poz, { atr, ultim, alese, ordine, confirm, trimite: trimitOrdin, stare: [stare, pozaNota, poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul (luni–vineri, 08:00–22:00; în rest tace).') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
     host.querySelectorAll('[data-stop-ticker]').forEach((a) => { const v = scris[a.dataset.stopTicker]; if (!v) return; const x = a.querySelector('[data-stop-alt]'), y = a.querySelector('[data-stop-tinta]'); if (x) x.value = v.alt; if (y) y.value = v.tinta; });
     if (activ && activ.tk && activ.camp) host.querySelector('[data-stop-ticker="' + CSS.escape(activ.tk) + '"] [' + activ.camp + ']')?.focus();
     const fetchStock = window.D?.fetchStock; if (typeof fetchStock !== 'function') return;

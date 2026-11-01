@@ -98,7 +98,7 @@ async function brokerOn({ reader, otherMinutesAgo }) {
   if (!reader) window.TTT212Reader.setSetting(storage, false);
   window.ViewRefresh = { patchList: (host, items, key, markup) => { host.innerHTML = items.map(markup).join(''); } };
   const fetch = async (u) => {
-    if (String(u).includes('trading212-config')) return { json: async () => ({ enabled: true, endpoint: 'https://owned-private.workers.dev', directCredentials: true }) };
+    if (String(u).includes('trading212-config')) return { json: async () => ({ enabled: true, endpoint: 'https://premarket-scanner-html.mferent80.workers.dev', directCredentials: true }) };
     calls.push(String(u)); const name = new URL(u).pathname.split('/').at(-1);
     return { ok: true, json: async () => ({ source: 'Trading 212', environment: 'live', fetchedAt: new Date(t).toISOString(), data: name === 'summary' ? { currency: 'EUR', available: 5 } : name === 'positions' ? [] : { items: [], nextCursor: null } }) };
   };

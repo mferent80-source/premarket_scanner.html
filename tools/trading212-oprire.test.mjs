@@ -111,3 +111,12 @@ test('releul care confirmă alt mediu decât cheia nu confirmă anularea', async
   assert.equal(r.ok, false); assert.match(r.mesaj, /demo/); assert.equal(r.error, 'alt-mediu');
   assert.equal(J('tt_governor_oprire_v1').complet, false); assert.deepEqual(J('tt_governor_oprire_v1').ordineAnulate, []);
 });
+test('alt workers.dev nu primește cheia și nu pleacă POST', async () => {
+  for (const endpoint of ['https://evil.workers.dev', 'https://paznic-radar.mferent80.workers.dev']) {
+    const s = setup({ config: { enabled: true, endpoint, directCredentials: true }, relay: async () => { throw Error('nu trebuie apelat'); } });
+    const r = await s.O.opreste({ motiv: 'pin' });
+    assert.equal(r.ok, false); assert.equal(r.error, 'config');
+    assert.equal(s.calls.filter((x) => x.opts.method === 'POST').length, 0);
+    assert.match(r.mesaj, /nu e configurat pentru ordine/);
+  }
+});
