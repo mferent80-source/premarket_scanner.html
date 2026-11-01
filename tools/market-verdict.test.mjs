@@ -71,6 +71,25 @@ test('futures doar înainte de deschidere (sâmbăta nu sunt „acum”)', () =>
   assert.equal(MV.compute({ market: piata(true), extra: x, now: Date.parse('2026-10-17T12:00:00Z') }).futures, null); // sâmbătă
   assert.ok(MV.compute({ market: piata(true), extra: x, now: Date.parse('2026-10-19T12:00:00Z') }).futures.es > 0); // luni 08:00 la New York
 });
+test('foaia zilei traduce eticheta deja scrisă și numește sectoarele care conduc', () => {
+  const bun = MV.compute({ market: piata(true), sectors: sect(false), now: Date.parse('2026-10-17T08:00:00Z') });
+  assert.equal(bun.label.id, 'favorabil');
+  assert.equal(bun.foaia.titlu, 'Zi de trade');
+  assert.match(bun.foaia.unde, /rotația citită stă pe tehnologie, industrie și financiar/);
+  assert.match(bun.foaia.spus, /riscul obișnuit/);
+  const rau = MV.compute({ market: piata(false), sectors: sect(true), now: Date.parse('2026-10-17T08:00:00Z') });
+  assert.equal(rau.label.id, 'defensiv');
+  assert.equal(rau.foaia.titlu, 'Stai. Nu e zi de trade');
+  assert.match(rau.foaia.unde, /utilități, consum de bază și sănătate/);
+  assert.match(rau.foaia.unde, /nu deschizi după rotație/);
+  const gol = MV.compute({ market: { items: [], breadth: { state: 'loading' } } });
+  assert.equal(gol.foaia.titlu, 'Zi neconfirmată');
+  assert.match(gol.foaia.unde, /nu sunt citite/);
+  const h = MV.render(bun);
+  assert.match(h, /Foaia zilei/);
+  assert.match(h, /Zi de trade/);
+  assert.match(h, /Nu e un ordin și nu e o probabilitate/);
+});
 test('datele rezultatelor rămân pe ziua lor (nu trec în ziua următoare la ora României)', () => {
   const v = MV.compute({ market: piata(true), robot: { rezultateMari: [{ symbol: 'GE', date: '2026-10-20' }, { symbol: 'AXP', date: '2026-10-23' }] }, now: Date.parse('2026-10-17T08:00:00Z') });
   const h = MV.render(v, Date.parse('2026-10-17T08:00:00Z')); assert.match(h, /mar 20\.10<\/b><\/time><span>Rezultate mari: GE/); assert.match(h, /vin 23\.10<\/b><\/time><span>Rezultate mari: AXP/);

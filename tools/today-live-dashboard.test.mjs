@@ -53,7 +53,7 @@ test('rândul OPRIT din kill switch e primul în „Ce necesită atenție”, tr
  assert.match(html,/<div class="attention-row oprit"><p><strong>Ce necesită atenție<\/strong> ⛔ OPRIT/);assert.match(html,/module=broker%2F">Vezi contul ↗<\/a>/);
  assert.doesNotMatch(html,/#stopPanel">Pune stopul ↓<\/a><\/div><div class="attention-row sever"><p><strong>/,'rândul OPRIT nu trimite la fereastra stopului');
  oprit=null;s.event('tt-oprire',{detail:{activ:false}});await flush();assert.doesNotMatch(s.element('attentionStrip').innerHTML,/OPRIT/,'re-armat (activ=false) ⇒ rândul dispare');
- assert.match(readFileSync('today/view.js','utf8'),/e\.key==='tt_governor_oprire_v1'\)try\{renderAttention\(\);/,'și evenimentul storage pe cheie reface rândul (harness-ul ține un singur ascultător pe tip)');
+ assert.match(readFileSync('today/view.js','utf8'),/e\.key==='tt_governor_oprire_v1'\)\{try\{renderAttention\(\);renderVerdict\(\);/,'și evenimentul storage pe cheie reface rândul și foaia (harness-ul ține un singur ascultător pe tip)');
 });
 test('missing and stale account states preserve known data and do not become fabricated zero balances',async()=>{
  const missing=setup({a:account({state:'missing',scope:null,total:null,positions:[],points:[]})});await flush();assert.match(missing.element('accountSummary').innerHTML,/Conectează contul/);assert.match(missing.element('chartHost').innerHTML,/Nu există încă observații/);assert.doesNotMatch(missing.element('accountSummary').innerHTML,/0,00/);
@@ -196,6 +196,15 @@ test('brief-ul se rescrie când sursele lente mută verdictul',async()=>{
  const h=s.element('briefMarket').innerHTML;
  assert.match(h,/>Prudent</);assert.match(s.element('marketVerdict').innerHTML,/Prudent/);
  assert.doesNotMatch(h,/>Neutru</);assert.match(h,/De urmărit: creditul slăbește/);
+});
+test('oprirea activă bate foaia zilei și pe brief, și pe panou',async()=>{
+ const MV={compute(){return {label:{id:'favorabil',text:'Favorabil',tone:'ok'},indicatori:[{score:1,why:'majoritatea acțiunilor participă',name:'Participarea'},{score:1,why:'conduc sectoarele ciclice',name:'Sectoarele'},{score:0,name:'Volatilitatea'}],foaia:{titlu:'Zi de trade',ton:'ok',spus:'Planuri noi cu riscul obișnuit.',unde:'Dacă cercetezi ceva nou, rotația citită stă pe tehnologie.',randuri:[]}};},render(v){return '<h3 class="mv-day-title">'+v.foaia.titlu+'</h3><p>'+v.foaia.unde+'</p>';},raportBreadth:()=>new Promise(()=>{}),robotFile:()=>new Promise(()=>{}),extraData:()=>new Promise(()=>{}),symbolOf:()=>null};
+ const market={at:NOW,items:[],breadth:{state:'ready',above50:72,above200:60,asOf:'2026-10-14',source:'Market Breadth',coverage:'S&P 500',points:[]}};
+ const s=setup({market,news:{state:'ready',items:[],reason:''},extra:{MarketVerdict:MV,TodayAttention:{oprire:()=>({activ:true,text:'OPRIT'})}}});await flush();
+ assert.match(s.element('briefMarket').innerHTML,/Oprirea e activă/);
+ assert.match(s.element('marketVerdict').innerHTML,/Oprirea e activă/);
+ assert.doesNotMatch(s.element('briefMarket').innerHTML,/Zi de trade/);
+ assert.match(s.element('briefMarket').innerHTML,/>Favorabil</);
 });
 test('ștampila spune dacă sursele au fost recitite sau au venit din cache, la ora payload-ului',async()=>{
  const gata={state:'ready',items:[],reason:''};

@@ -157,9 +157,9 @@
   put('attentionStrip',rows.map((r,i)=>'<div class="attention-row'+(r[4]?' sever':'')+(r[5]?' '+esc(r[5]):'')+'"><p>'+(i===0?'<strong>'+esc(title)+'</strong> ':'')+esc(r[0])+'</p><a href="'+(String(r[1]).charAt(0)==='#'?esc(r[1]):appURL(r[1],r[3]||''))+'">'+esc(r[2])+'</a></div>').join(''));
  }
  /* I-692: limita / rezultatul lunii schimbate în Jurnal, Planuri sau de pagina contului (alt cadru al aplicației) ⇒ rândul de atenție se reface */
- g.addEventListener?.('storage',e=>{if(e.key==='tt_journal_settings_v1'||e.key==='tt_journal_luna_t212_v1'||e.key==='tt_holdings_theses_v1'||e.key==='tt_governor_oprire_v1')try{renderAttention();}catch(_){}});
+ g.addEventListener?.('storage',e=>{if(e.key==='tt_governor_oprire_v1'){try{renderAttention();renderVerdict();}catch(_){}return;}if(e.key==='tt_journal_settings_v1'||e.key==='tt_journal_luna_t212_v1'||e.key==='tt_holdings_theses_v1')try{renderAttention();}catch(_){}});
  g.addEventListener?.('tt-stop-salvat',()=>{try{renderAttention();}catch(_){}});
- g.addEventListener?.('tt-oprire',()=>{try{renderAttention();}catch(_){}}); // 27.10 (lot E emite după „Oprește tot” / re-armare)
+ g.addEventListener?.('tt-oprire',()=>{try{renderAttention();renderVerdict();}catch(_){}}); // 27.10 (lot E emite după „Oprește tot” / re-armare). Foaia se rescrie odată cu rândul OPRIT.
  function scannerReports(){const R=g.ScannerResults;let a=null,b=null;try{a=R?.primary()||null;}catch(_){}try{b=R?.independent()||null;}catch(_){}return [a,b];}
  function pill(text,kind){return '<span class="pill '+kind+'">'+esc(text)+'</span>';}
  function semnaleBrief(v){
@@ -172,6 +172,11 @@
   if(nec.length)s+='<span class="brief-line">Necitite: '+esc(nec.slice(0,4).join(', '))+(nec.length>4?'…':'')+'.</span>';
   return s+'<span class="brief-line">Reguli scrise de context, nu un semnal de cumpărare și nu o probabilitate.</span>';
  }
+ function foaiaBrief(v){
+  const f=v&&v.foaia;if(!f)return '';
+  const cls=f.ton==='ok'?'sig-ok':(f.ton==='bad'||f.ton==='warn')?'sig-bad':'';
+  return '<span class="brief-line'+(cls?' '+cls:'')+'">'+esc(f.titlu)+'. '+esc(f.spus)+'</span>'+(f.unde?'<span class="brief-line">'+esc(f.unde)+'</span>':'');
+ }
  function renderBrief(){
   const items=ui.market?.items||[],q=sym=>items.find(x=>x.symbol===sym),b=ui.market?.breadth||{},hasBreadth=finite(b.above50);
   const breadthLine=b.state==='stale'?'Date breadth de reverificat':hasBreadth?b.above50>=50?'Participare peste jumătate':'Participare sub jumătate':b.state==='loading'?'Verific sursele pieței…':'Context parțial disponibil';
@@ -180,7 +185,7 @@
   const move=sym=>{const m=q(sym);return m&&finite(m.price)&&finite(m.changePct)?'<span>'+esc(sym.replace('^',''))+' <b class="'+(sym==='^VIX'?'':tone(m.changePct))+'">'+esc(pct(m.changePct))+'</b></span>':'';};
   const stale=b.state==='stale'&&hasBreadth?'<span class="brief-line">Ultima valoare '+esc(number(b.above50,1))+'%, nu participarea de azi.</span>':'';
   const lipsa=g.MarketVerdict&&!loading&&!useVerdict?'<span class="brief-line">Verdictul nu poate fi calculat acum.</span>':'';
-  put('briefMarket','<div class="brief-top"><span class="brief-label">Piața</span>'+(hasBreadth?pill('Amploare '+number(b.above50,1)+'%'+(b.state==='stale'?' · veche':''),b.state==='stale'?'idle':b.above50>=50?'ok':'warn'):pill(b.state==='loading'?'Se verifică':'Neconfirmat','idle'))+'</div><h2>'+esc(headline)+'</h2><div class="brief-facts">'+move('SPY')+move('QQQ')+move('^VIX')+(hasBreadth?'<span><b>'+esc(number(b.above50,1))+'%</b> din S&P 500 peste SMA 50</span>':'')+(useVerdict?'<span>'+esc(breadthLine)+'</span>':'')+stale+lipsa+(useVerdict?semnaleBrief(verdictCurent):'')+'</div><a class="brief-go" href="#contextTitle">Pulsul pieței ↓</a>');
+  put('briefMarket','<div class="brief-top"><span class="brief-label">Piața</span>'+(hasBreadth?pill('Amploare '+number(b.above50,1)+'%'+(b.state==='stale'?' · veche':''),b.state==='stale'?'idle':b.above50>=50?'ok':'warn'):pill(b.state==='loading'?'Se verifică':'Neconfirmat','idle'))+'</div><h2>'+esc(headline)+'</h2><div class="brief-facts">'+move('SPY')+move('QQQ')+move('^VIX')+(hasBreadth?'<span><b>'+esc(number(b.above50,1))+'%</b> din S&P 500 peste SMA 50</span>':'')+(useVerdict?'<span>'+esc(breadthLine)+'</span>':'')+stale+lipsa+(useVerdict?foaiaBrief(verdictCurent)+semnaleBrief(verdictCurent):'')+'</div><a class="brief-go" href="#contextTitle">Pulsul pieței ↓</a>');
   const a=ui.account||{},st=accountState(a),cur=/^[A-Z]{3}$/.test(a.currency||''),pos=(a.positions||[]).filter(p=>p);
   if(!a.state||a.state==='missing')put('briefAccount','<div class="brief-top"><span class="brief-label">Contul</span>'+pill('Cont neconectat','bad')+'</div><h2>Conectează contul</h2><div class="brief-facts"><span>Valoarea contului nu este încă disponibilă pe acest dispozitiv.</span></div><a class="brief-go" href="'+appURL('broker/')+'">Verifică contul ↗</a>');
   else{const big=pos.filter(p=>finite(p.weight)).sort((x,y)=>y.weight-x.weight)[0];
@@ -230,15 +235,20 @@
   MV.expunere({positions:pos,total:ui.account?.total,currency:ui.account?.currency,spyPoints:spy.points}).then(e=>{if(verdictExtra.expSig!==sig)return;verdictExtra.expunere=e;renderVerdict();renderAttention();});
  }
  let verdictSig=null, verdictCurent=null;
+ function oprireActiv(){try{const o=g.TodayAttention&&typeof g.TodayAttention.oprire==='function'?g.TodayAttention.oprire(localStorage):null;return !!(o&&o.activ);}catch(_){return false;}}
+ function aplicaOprire(v){
+  if(!v||!v.foaia||!oprireActiv())return v;
+  return {...v,foaia:{...v.foaia,titlu:'Oprirea e activă',ton:'bad',spus:'Nu se deschid planuri noi. Butonul de stop rămâne protecție.',unde:'Piața poate arăta altfel. Oprirea bate foaia zilei.'}};
+ }
  function renderVerdict(){
   const host=$('marketVerdict'),MV=g.MarketVerdict;if(!host||!MV){verdictCurent=null;return;}verdictLoad();verdictEarnings();verdictExpunere();
-  // I-702 (19.10.2026): se reface doar când s-au schimbat intrările (sau minutul: „azi / mâine”, futures înainte de deschidere)
-  let sig=null;try{sig=JSON.stringify([ui.market,ui.news?.items,(ui.account?.positions||[]).map(p=>[p.ticker,p.value]),Math.floor(Date.now()/60000)]);}catch(_){sig=null;}
+  // I-702 (19.10.2026): se reface doar când s-au schimbat intrările (sau minutul: „azi / mâine”, futures înainte de deschidere). Oprirea intră în semnătură ca să rescrie foaia.
+  let sig=null;try{sig=JSON.stringify([ui.market,ui.news?.items,(ui.account?.positions||[]).map(p=>[p.ticker,p.value]),Math.floor(Date.now()/60000),oprireActiv()]);}catch(_){sig=null;}
   const refs=[verdictExtra.raport,verdictExtra.extra,verdictExtra.robot,verdictExtra.earnings,verdictExtra.necunoscute,verdictExtra.expunere];
   if(sig!==null&&verdictSig&&verdictSig.sig===sig&&refs.every((x,i)=>x===verdictSig.refs[i]))return;verdictSig={sig,refs};
   let events=[];try{events=g.MCTX?.hardcodedEvents?.()||[];}catch(_){}
   let regime=null;try{regime=verdictExtra.extra?MV.regimDin(ui.market,verdictExtra.extra):null;if(regime&&regime.partial&&verdictExtra.robot?.regim)regime=verdictExtra.robot.regim;}catch(_){}
-  let html,v=null;try{v=MV.compute({market:ui.market||{},raport:verdictExtra.raport,regime,extra:verdictExtra.extra,events,earnings:verdictExtra.earnings,earningsNecunoscute:verdictExtra.necunoscute,news:ui.news?.items||[],positions:ui.account?.positions||[],expunere:verdictExtra.expunere,robot:verdictExtra.robot,now:Date.now()});html=MV.render(v);}
+  let html,v=null;try{v=aplicaOprire(MV.compute({market:ui.market||{},raport:verdictExtra.raport,regime,extra:verdictExtra.extra,events,earnings:verdictExtra.earnings,earningsNecunoscute:verdictExtra.necunoscute,news:ui.news?.items||[],positions:ui.account?.positions||[],expunere:verdictExtra.expunere,robot:verdictExtra.robot,now:Date.now()}));html=MV.render(v);}
   catch(_){v=null;html='<p class="mv-empty">Verdictul nu poate fi calculat acum; restul paginii rămâne valabil.</p>';}
   verdictCurent=v;put('marketVerdict',html);renderBrief();
  }
