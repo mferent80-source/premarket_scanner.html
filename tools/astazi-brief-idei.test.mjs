@@ -48,6 +48,15 @@ test('I-796: bara deschisă și bara fără oră nu mută ATR-ul; bara închisă
   assert.equal(a.deschisa, true); assert.equal(a.bars.length, 19); assert.equal(a.bars.at(-1).t, list.at(-2).t);
   assert.equal(b.deschisa, false); assert.equal(b.bars.length, 20);
   assert.equal(c.neverificata, true); assert.equal(c.bars.length, 19);
+  assert.equal(a.data, '19.06'); assert.equal(b.data, '20.06'); assert.equal(c.data, '19.06');
+  assert.equal(S.barePentruStop([]).data, '');
+  assert.match(S.notaSesiune(b), /Sugestia pleacă din sesiunea închisă din 20\.06\./);
+  assert.match(S.notaSesiune(a), /Sesiunea de azi e încă deschisă/);
+  assert.match(S.notaSesiune(a), /închiderea precedentă din 19\.06/);
+  assert.match(S.notaSesiune(c), /Ultima bară Yahoo nu are ora de închidere/);
+  assert.match(S.notaSesiune(c), /sesiunea dinainte din 19\.06/);
+  const htmlData = S.render([{ ticker: 'MU_US_EQ', quantity: 1, averagePrice: 10, currentPrice: 11, instrumentCurrency: 'USD' }], { noteBare: { MU_US_EQ: S.notaSesiune(b) } });
+  assert.match(htmlData, /sesiunea închisă din 20\.06/);
   assert.equal(S.atrPct(a.bars) != null, true);
   assert.equal(Object.prototype.hasOwnProperty.call(a.bars, 'meta'), false);
 });

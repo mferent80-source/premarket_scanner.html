@@ -119,7 +119,21 @@ test('brief: contul lipsă cere conectarea, fără sold inventat; graficul porne
 });
 test('brief: contul citit arată soldul, P&L-ul la ban și cea mai mare pondere cu o zecimală',async()=>{
  const s=setup({a:account({positions:[{ticker:'AAA_US_EQ',quantity:1,value:100,currency:'RON',unrealized:5,weight:29.06},{ticker:'BBB_US_EQ',quantity:1,value:50,currency:'RON',unrealized:-1,weight:11}]})});await flush();
- const h=s.element('briefAccount').innerHTML;assert.match(h,/42\.000,00 RON/);assert.match(h,/\+200,00 RON/);assert.match(h,/2 poziții · cea mai mare <b>29,1%<\/b>/);assert.match(h,/Citit /);
+ const h=s.element('briefAccount').innerHTML;assert.match(h,/42\.000,00 RON/);assert.match(h,/\+200,00 RON/);assert.match(h,/2 poziții · cea mai mare <b>29,1%<\/b>/);assert.match(h,/ · AAA/);assert.match(h,/Disponibil <b>1\.000,00 RON<\/b>/);assert.match(h,/Citit /);
+ assert.match(s.element('pageTitle').innerHTML,/Ziua ta de investiții<span>\.<\/span>/);assert.match(s.element('pageLead').textContent,/Contul și piața/);
+});
+test('acasă: titlul ia ziua, iar ideile numesc simbolurile deja scanate',async()=>{
+ const MV={compute(){return {label:{id:'prudent',text:'Prudent',tone:'warn'},indicatori:[{score:-1,why:'participarea e slabă',name:'Participarea'},{score:0,name:'VIX'},{score:0,name:'Dobândă'}],foaia:{titlu:'Mai mult stai',ton:'warn',spus:'Planuri noi cu riscul redus la trei sferturi (×0,75).',unde:'Conduc energie.',randuri:[]}};},render(v){return '<p>'+v.label.text+'</p>';},raportBreadth:()=>new Promise(()=>{}),robotFile:()=>new Promise(()=>{}),extraData:()=>new Promise(()=>{}),symbolOf:()=>null};
+ const R={primary:()=>({items:[{symbol:'MPC',mode:'momentum',passed:4,total:6},{symbol:'PSX',mode:'reversal',passed:3,total:6},{symbol:'<x>',mode:'momentum'}]}),independent:()=>({items:[{symbol:'XOM',passed:5,total:7}]}),reportState:()=>({text:'Citit',tone:'ok'}),label:()=>'trece',emptyResult:()=>({title:'gol',text:'nimic'})};
+ const market={at:NOW,items:[],breadth:{state:'ready',above50:55,above200:50,asOf:'2026-10-14',source:'M',coverage:'S',points:[]}};
+ const s=setup({market,news:{state:'ready',items:[],reason:''},extra:{MarketVerdict:MV,ScannerResults:R}});await flush();
+ assert.match(s.element('pageTitle').innerHTML,/Mai mult stai<span>\.<\/span>/);
+ assert.match(s.element('pageLead').textContent,/riscul redus/);
+ assert.match(s.element('briefMarket').innerHTML,/>Prudent</);
+ assert.doesNotMatch(s.element('pageTitle').innerHTML,/>Prudent</);
+ assert.match(s.element('briefIdeas').innerHTML,/În Premarket: <b>MPC, PSX<\/b>/);
+ assert.match(s.element('briefIdeas').innerHTML,/În V1: <b>XOM<\/b>/);
+ assert.doesNotMatch(s.element('briefIdeas').innerHTML,/&lt;x&gt;|<x>/);
 });
 test('reperele: procentele zilei au o zecimală, prețurile rămân la două, sursa comună apare o singură dată',async()=>{
  const item=(symbol,label,unit,price,changePct)=>({symbol,label,unit,price,changePct,state:'ready',source:'Yahoo Finance · sesiuni încheiate',asOf:'2026-10-14',points:[],indicators:{}});
@@ -188,6 +202,10 @@ test('brief-ul pune verdictul deasupra și desparte semnalele deja scrise; lăț
  const hs=stale.element('briefMarket').innerHTML;
  assert.match(hs,/Date breadth de reverificat/);assert.match(hs,/nu participarea de azi/);assert.match(hs,/· veche · 14\.10/);
  assert.doesNotMatch(hs,/Participare peste jumătate/);assert.doesNotMatch(hs,/majoritatea acțiunilor participă/);
+ assert.match(stale.element('marketContext').innerHTML,/Peste SMA 50 · ultima valoare, nu contextul de azi · 14\.10/);
+ assert.match(stale.element('marketContext').innerHTML,/Peste SMA 200 · ultima valoare, nu contextul de azi · 14\.10/);
+ assert.doesNotMatch(s.element('marketContext').innerHTML,/ultima valoare, nu contextul de azi/);
+ if(v.foaia){assert.match(s.element('pageTitle').innerHTML,new RegExp('^'+v.foaia.titlu.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'<span>\\.</span>$'));assert.equal(s.element('pageLead').textContent,v.foaia.spus);}
 });
 test('brief-ul se rescrie când sursele lente mută verdictul',async()=>{
  const MV={compute(input){return input.extra?{label:{id:'prudent',text:'Prudent'},indicatori:[{score:1,why:'majoritatea acțiunilor participă',name:'Participarea'},{score:-1,why:'creditul slăbește',name:'Dobânzi și credit'},{score:-1,why:'regimul macro e prudent',name:'Regimul macro'}]}:{label:{id:'neutru',text:'Neutru'},indicatori:[{score:1,why:'majoritatea acțiunilor participă',name:'Participarea'},{score:0,name:'Volatilitatea'},{score:0,name:'Dobânzi'}]};},render(v){return '<p>'+v.label.text+'</p>';},raportBreadth:()=>Promise.resolve(null),robotFile:()=>Promise.resolve(null),extraData:()=>Promise.resolve({hy:1}),symbolOf:()=>null};
@@ -205,6 +223,9 @@ test('oprirea activă bate foaia zilei și pe brief, și pe panou',async()=>{
  assert.match(s.element('marketVerdict').innerHTML,/Oprirea e activă/);
  assert.doesNotMatch(s.element('briefMarket').innerHTML,/Zi de trade/);
  assert.match(s.element('briefMarket').innerHTML,/>Favorabil</);
+ assert.match(s.element('pageTitle').innerHTML,/Oprirea e activă<span>\.<\/span>/);
+ assert.match(s.element('pageLead').textContent,/Nu se deschid planuri noi/);
+ assert.doesNotMatch(s.element('pageTitle').innerHTML,/Zi de trade/);
 });
 test('ștampila spune dacă sursele au fost recitite sau au venit din cache, la ora payload-ului',async()=>{
  const gata={state:'ready',items:[],reason:''};
@@ -212,9 +233,13 @@ test('ștampila spune dacă sursele au fost recitite sau au venit din cache, la 
  assert.match(cache.element('refreshStatus').textContent,/Actualizare parțială/);
  assert.match(cache.element('refreshStatus').textContent,/încercare încheiată/);
  assert.match(cache.element('refreshStatus').textContent,/din cache-ul de 10 minute/);
- assert.match(cache.element('refreshStatus').textContent,/13:00/);
+ assert.match(cache.element('refreshStatus').textContent,/06:00/);
+ assert.match(cache.element('refreshStatus').textContent,/ora New York/);
+ assert.doesNotMatch(cache.element('refreshStatus').textContent,/13:00/);
  const proaspat=setup({market:{items:[{symbol:'SPY',label:'S&P',unit:'USD',price:1,changePct:0.1,state:'ready',source:'Yahoo',asOf:'2026-10-14',points:[],indicators:{}}],breadth:{state:'ready',above50:50,above200:50,asOf:'2026-10-14',source:'M',coverage:'S',points:[]},at:NOW},news:gata});await flush();
  assert.match(proaspat.element('refreshStatus').textContent,/Surse publice citite la /);
+ assert.match(proaspat.element('refreshStatus').textContent,/08:00/);
+ assert.match(proaspat.element('refreshStatus').textContent,/ora New York/);
  assert.match(proaspat.element('refreshStatus').textContent,/recitite acum/);
  assert.doesNotMatch(proaspat.element('refreshStatus').textContent,/din cache/);
  assert.doesNotMatch(proaspat.element('refreshStatus').textContent,/^Citesc/);

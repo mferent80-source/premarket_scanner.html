@@ -79,8 +79,8 @@
       fetchStock(s, { range: '3mo', interval: '1d', ttl: 21600 }).then((b) => {
         const t = typeof S.barePentruStop === 'function' ? S.barePentruStop(b) : { bars: Array.isArray(b) ? b : [], deschisa: false, neverificata: false };
         atr[s] = S.atrPct(t.bars); const c = Array.isArray(t.bars) ? t.bars.filter((x) => Number.isFinite(x?.c) && x.c > 0).at(-1)?.c : null; ultim[s] = c ?? null;
-        noteBara[s] = t.deschisa ? 'Sesiunea de azi e încă deschisă. Sugestia folosește închiderea precedentă.' : t.neverificata ? 'Ultima bară Yahoo nu are ora de închidere. Sugestia folosește sesiunea dinainte.' : '';
-      }, () => { atr[s] = null; ultim[s] = null; noteBara[s] = ''; }).then(desen); }
+        noteBara[p.ticker] = typeof S.notaSesiune === 'function' ? S.notaSesiune(t) : '';
+      }, () => { atr[s] = null; ultim[s] = null; noteBara[p.ticker] = ''; }).then(desen); }
   }
   host.addEventListener('click', (ev) => {
     const art = ev.target.closest('[data-stop-ticker]'); if (!art) return; const tk = art.dataset.stopTicker, v = ev.target.closest('[data-stop-var]');

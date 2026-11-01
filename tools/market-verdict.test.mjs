@@ -100,6 +100,18 @@ test('foaia zilei traduce eticheta deja scrisă și numește sectoarele care con
   const golLista = MV.compute({ market: piata(false), sectors: sect(true), raport: { idei: [{ ticker: 'AAPL', sector: 'Information Technology' }] }, now: Date.parse('2026-10-17T08:00:00Z') });
   assert.match(golLista.foaia.unde, /nu deschizi după rotație/);
   assert.doesNotMatch(golLista.foaia.unde, /AAPL|În lista deja citită/);
+  const tinuta = MV.compute({ market: piata(true), sectors: sect(false), positions: [{ ticker: 'AAPL_US_EQ' }, { ticker: 'XOM_US_EQ' }], raport: { idei: [{ ticker: 'AAPL', sector: 'Information Technology' }, { ticker: 'MSFT', sector: 'Information Technology' }, { ticker: 'NVDA', sector: 'Information Technology' }, { ticker: 'XOM', sector: 'Energy' }] }, now: Date.parse('2026-10-17T08:00:00Z') });
+  assert.match(tinuta.foaia.unde, /În pozițiile tale: AAPL\. În lista deja citită: MSFT și NVDA\./);
+  assert.doesNotMatch(tinuta.foaia.unde, /XOM/);
+  const alta = MV.compute({ market: piata(true), sectors: sect(false), positions: [{ ticker: 'XOM_US_EQ' }], raport: { idei: [{ ticker: 'AAPL', sector: 'Information Technology' }, { ticker: 'MSFT', sector: 'Information Technology' }] }, now: Date.parse('2026-10-17T08:00:00Z') });
+  assert.match(alta.foaia.unde, /În lista deja citită: AAPL și MSFT/);
+  assert.doesNotMatch(alta.foaia.unde, /În pozițiile tale/);
+  const doar = MV.compute({ market: piata(true), sectors: sect(false), positions: [{ ticker: 'NVDA_US_EQ' }], raport: { idei: [{ ticker: 'NVDA', sector: 'Information Technology' }] }, now: Date.parse('2026-10-17T08:00:00Z') });
+  assert.match(doar.foaia.unde, /În pozițiile tale: NVDA\./);
+  assert.doesNotMatch(doar.foaia.unde, /În lista deja citită/);
+  const ambele = MV.compute({ market: piata(true), sectors: sect(false), positions: [{ ticker: 'MSFT_US_EQ' }, { ticker: 'AAPL_US_EQ' }], raport: { idei: [{ ticker: 'AAPL', sector: 'Information Technology' }, { ticker: 'MSFT', sector: 'Information Technology' }] }, now: Date.parse('2026-10-17T08:00:00Z') });
+  assert.match(ambele.foaia.unde, /În pozițiile tale: MSFT și AAPL\./);
+  assert.doesNotMatch(ambele.foaia.unde, /În lista deja citită/);
 });
 test('raportul deja citit aduce simbolurile sectorului, în ordinea lor, fără scor', async () => {
   const fetchImpl = async () => ({ ok: true, json: async () => ({ sources: { uptrend: { sectors: [{ name: 'Energy', ratio: 0.4 }] } }, full: { ideas: { sectors: [{ sector: 'Energy', ideas: [{ ticker: 'MPC', rs_score: 60 }, { ticker: 'nu e ticker' }, { ticker: 'PSX' }] }] } } }) });
