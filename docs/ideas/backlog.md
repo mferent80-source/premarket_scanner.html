@@ -3470,6 +3470,12 @@ pe un singur chart.
 | I-762 | MAE / MFE și „cea mai bună ieșire” din barele de 1 minut pentru fiecare execuție închisă | journal/, lib/journal-report.js | M | P2 | făcut 2026-10-28 (740dcf92) | ideation | 2026-10-27 |
 | I-763 | Checklist bifat per plan („n/m reguli respectate”) + etichete de zi (regim, stare, emoție) + „tranzacții ratate” + calendar P&L cu heatmap oră × zi | desk/, journal/ | S | P2 | făcut 2026-10-28 (740dcf92) | ideation | 2026-10-27 |
 | I-764 | Buget izolat pentru orice automatizare + cheie Trading 212 doar-citire cu IP fix pentru cititori + eticheta „neverificat de om” pe orice text generat | broker/, app/settings | S | P2 | făcut 2026-10-28 (740dcf92) | ideation | 2026-10-27 |
+| I-793 | Piața azi: panoul de stop rămâne când stopul e doar în teză sau în planul Radar, ca să poți trimite ordinul la broker | today/stop.js, lib/stop-setter.js | S | P1 | propus | ideation | 2026-11-01 |
+| I-794 | Piața azi: participarea veche nu mai punctează verdictul; scorul lipsește cât breadth e stale | lib/market-verdict.js, today/view.js | S | P1 | propus | ideation | 2026-11-01 |
+| I-795 | Piața azi: „azi / mâine” pe ziua New York, la rezultate și la „Ce vine” | lib/today-attention.js, lib/market-verdict.js | S | P2 | propus | ideation | 2026-11-01 |
+| I-796 | Piața azi: stopul sugerat folosește ultima sesiune închisă, nu bara deschisă de la Yahoo | today/stop.js, lib/stop-setter.js | S | P2 | propus | ideation | 2026-11-01 |
+| I-797 | Piața azi: oprirea spune că butonul de stop rămâne protecție și tot trimite; cumpărările noi stau blocate | today/stop.js, today/view.js | S | P2 | propus | ideation | 2026-11-01 |
+| I-798 | Piața azi: ștampila surselor spune vârsta cache-ului de 10 minute, nu ora revenirii funcției | today/view.js, lib/today-dashboard.js | S | P3 | propus | ideation | 2026-11-01 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -7648,3 +7654,45 @@ Context: cerut de Marius („audit sever din toate direcțiile pe radar”). Aco
 - **Problema/golul:** I-791 ține `radar_cheie_scriere` doar pe dispozitiv; pe un telefon nou se pune din nou (din link sau din casetă). Cheia de citire și parola urcă deja în cont.
 - **Soluția:** câmpul `scriere` în `tt_radar_access_v1` (lib/cloud-sync-model.mjs: validare, îmbinare; tools/cloud-sync-worker.bundle.mjs regenerat; app/cloud-sync.js: radarLocal + aplicare), urcat doar după o scriere reușită cu ea (ca `radar_cheie_ok`).
 - **Fișiere:** lib/cloud-sync-model.mjs, tools/cloud-sync-worker.bundle.mjs, app/cloud-sync.js, lib/radar-poza.js, tools/cloud-sync-devices.test.mjs
+
+#### I-793 · Panoul de stop rămâne când stopul e doar pe hârtie · [S] · P1 · propus
+- **Problema/golul:** Pe Piața azi, panoul „Pune stopul” se ascunde când nu mai rămâne nicio poziție fără stop. Stopul din teză și stopul fix din planul Radar intră în aceeași listă cu ordinul real. Poziția cu stop doar notat dispare din panou, iar rândul de atenție tot spune să pui ordinul mai jos. Butonul stă doar în panoul ăla.
+- **Soluția:** Panoul rămâne pentru poziția al cărei stop e în teză sau doar nivel în planul Radar, și care nu are ordin STOP la broker. Butonul de trimitere rămâne la îndemână. Poziția cu ordin real la broker iese din panou, ca acum. Nota când poza Radar întârzie rămâne.
+- **Impact:** Poți pune ordinul de protecție exact când pagina ți-a spus că stopul e doar pe hârtie.
+- **Riscuri/dependențe:** Nivelul din plan nu e ordin. Nu-l trata ca atare. Nu redeschide panoul pentru o poziție care are deja ordinul la broker.
+- **Fișiere atinse:** today/stop.js, lib/stop-setter.js, lib/today-attention.js
+
+#### I-794 · Participarea veche nu mai punctează verdictul · [S] · P1 · propus
+- **Problema/golul:** Lățimea S&P primește procentul, apoi starea „veche” când data nu e sesiunea așteptată la New York. Titlul de pe bandă spune „de reverificat”. Scorul verdictului adună totuși punctul, iar metrul arată cifra. Treapta aia intră în planurile noi.
+- **Soluția:** Cât lățimea e veche sau data nu se potrivește, participarea nu dă punct. Textul păstrează ultimul procent și data lui și spune că nu e contextul de azi. Niciun prag nou. Treapta se mută doar din indicatorii citiți de sesiunea asta.
+- **Impact:** O lățime de ieri nu mai împinge verdictul care schimbă mărimea planurilor noi.
+- **Riscuri/dependențe:** Verdictul rămâne o regulă scrisă dinainte, neprobată pe zile noi. Asta e onestitatea intrării, nu un semnal. Dacă rămân prea puțini indicatori, treapta stă neconfirmată, ca la o sursă lipsă.
+- **Fișiere atinse:** lib/market-verdict.js, today/view.js
+
+#### I-795 · Azi și mâine pe ziua New York · [S] · P2 · propus
+- **Problema/golul:** Pe aceeași pagină, „azi / mâine” la rezultate se întoarce la amiaza UTC, iar „Ce vine” la miezul nopții din telefon. Orele afișate sunt pe București. Sesiunea și fereastra de cerere a calendarului sunt pe New York. Eticheta poate spune „azi” dimineața la New York pentru rezultatul de a doua zi, sau să nu mai spună „azi” după amiaza UTC.
+- **Soluția:** „Azi”, „mâine” și „peste N zile” pentru rezultate și pentru evenimentele din verdict folosesc data calendaristică de la New York, același ceas ca Governor. București rămâne ceasul tipărit lângă o oră, spus pe nume. Fereastra de cerere a calendarului, deja pusă pe New York, nu se mai atinge.
+- **Impact:** Nu te pregătești cu o zi prea devreme și nu pierzi „azi” după amiaza UTC.
+- **Riscuri/dependențe:** Simbolurile din Europa rămân fără zi verificată de rezultate. Nu pretinde că New York e sesiunea lor.
+- **Fișiere atinse:** lib/today-attention.js, lib/market-verdict.js, today/view.js
+
+#### I-796 · Stopul sugerat nu pornește din bara deschisă · [S] · P2 · propus
+- **Problema/golul:** Sugestia de stop de pe Piața azi ia ultima bară Yahoo la 3 luni, o zi, pentru ATR și pentru prețul de acum când copia contului nu are preț. Bara poate fi sesiunea încă deschisă. Comparația de preț din rândul de atenție refuză deja bara neînchisă. Sugestia nu o refuză. Minus cinci la sută și de două ori ATR se pot muta după o închidere care nu e încă închiderea zilei.
+- **Soluția:** Sugestia folosește ultima sesiune închisă, aceeași regulă ca comparația de preț. Dacă ultima bară e încă deschisă, panoul o spune și nu mută sugestia după ea. Prețul din copia brokerului, când există, rămâne „acum”.
+- **Impact:** Nivelul de protecție nu e tras de o sesiune neterminată.
+- **Riscuri/dependențe:** Alerta de abatere între Trading 212 și Yahoo e deja făcută. Asta e sugestia, nu o a doua sursă. Formula ATR rămâne; se schimbă doar care bară e ultima.
+- **Fișiere atinse:** today/stop.js, lib/stop-setter.js
+
+#### I-797 · Oprirea lasă butonul de stop ca protecție · [S] · P2 · propus
+- **Problema/golul:** Rândul de atenție citește oprirea și spune că nu mai sunt planuri și ordine noi până la re-armare. Butonul care trimite ordinul STOP nu citește oprirea. Poți crede că oprirea blochează și protecția, sau că butonul ignoră oprirea fără să spună.
+- **Soluția:** Cât oprirea e activă, panoul spune în română că cumpărările noi stau blocate în Governor și că butonul ăsta rămâne protecție și tot trimite un STOP de vânzare. Butonul nu se stinge. Nu apare o cale de cumpărare.
+- **Impact:** Nu stai pe gânduri când trebuie să protejezi o poziție deschisă, și nu confunzi click-ul de stop cu o intrare nouă.
+- **Riscuri/dependențe:** Textul nu spune că stopul a fost blocat. Cumpărările noi sunt deja în afara butonului ăstuia.
+- **Fișiere atinse:** today/stop.js, today/view.js, lib/today-attention.js
+
+#### I-798 · Ștampila spune vârsta cache-ului · [S] · P3 · propus
+- **Problema/golul:** După fiecare încărcare, antetul scrie „Surse publice citite la” plus ora de acum. Reîmprospătarea liniștită poate primi din nou piața ținută 10 minute, iar adresa raportului de lățime se schimbă doar la 5 minute. Ștampila arată ca o citire proaspătă.
+- **Soluția:** Ștampila spune dacă încercarea asta a recitit sau a servit memoria, și ora payload-ului, nu doar ora la care funcția s-a întors. Actualizarea parțială rămâne parțială. „Actualizează” tot forțează o recitire.
+- **Impact:** Nu tratezi o citire de zece minute ca pe „chiar acum”.
+- **Riscuri/dependențe:** Ora contului rămâne ceasul ei. Nu le amesteca.
+- **Fișiere atinse:** today/view.js, lib/today-dashboard.js
