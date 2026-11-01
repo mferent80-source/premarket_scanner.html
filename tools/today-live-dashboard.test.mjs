@@ -137,7 +137,7 @@ test('acasă: titlul ia ziua, iar ideile numesc simbolurile deja scanate',async(
  assert.doesNotMatch(s.element('pageTitle').innerHTML,/>Prudent</);
  assert.match(s.element('briefIdeas').innerHTML,/În Premarket: <b>MPC, PSX<\/b>/);
  assert.match(s.element('briefIdeas').innerHTML,/În V1: <b>XOM<\/b>/);
- assert.match(s.element('briefIdeas').innerHTML,/Deja în cont: <b>MPC<\/b>/);
+ assert.match(s.element('briefIdeas').innerHTML,/Deja în cont: <b>MPC 12,0%<\/b>/);
  assert.doesNotMatch(s.element('briefIdeas').innerHTML,/Deja în cont:.*(?:XOM|ZZZ)/);
  assert.doesNotMatch(s.element('briefIdeas').innerHTML,/&lt;x&gt;|<x>/);
 });
@@ -221,7 +221,7 @@ test('brief-ul pune verdictul deasupra și desparte semnalele deja scrise; lăț
  assert.match(stale.element('marketContext').innerHTML,/Peste SMA 50 · ultima valoare, nu contextul de azi · 14\.10/);
  assert.match(stale.element('marketContext').innerHTML,/Peste SMA 200 · ultima valoare, nu contextul de azi · 14\.10/);
  assert.doesNotMatch(s.element('marketContext').innerHTML,/ultima valoare, nu contextul de azi/);
- if(v.foaia){assert.match(s.element('pageTitle').innerHTML,new RegExp('^'+v.foaia.titlu.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'<span>\\.</span>$'));assert.equal(s.element('pageLead').textContent,v.foaia.deCe);assert.match(v.foaia.deCe,/Da\. E zi bună de trading/);assert.match(s.element('briefMarket').innerHTML,/riscul obișnuit/);assert.match(s.element('marketVerdict').innerHTML,/mv-day-why/);}
+ if(v.foaia){assert.match(s.element('pageTitle').innerHTML,new RegExp('^'+v.foaia.titlu.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'<span>\\.</span>$'));assert.equal(s.element('pageLead').textContent,v.foaia.deCe);assert.match(v.foaia.deCe,/Da\. E zi bună de trading/);assert.match(v.foaia.deCe,/După sesiunea din miercuri, 14\.10\./);assert.doesNotMatch(s.element('pageTitle').innerHTML,/din 6/);assert.match(s.element('briefMarket').innerHTML,/riscul obișnuit/);assert.match(s.element('marketVerdict').innerHTML,/mv-day-why/);assert.match(s.element('marketVerdict').innerHTML,/class="mv-score">Scor [^<]* din 6 indicatori citiți/);}
  assert.match(stale.element('pageLead').textContent,/Lățimea nu e de azi/);
  assert.doesNotMatch(stale.element('pageLead').textContent,/majoritatea acțiunilor participă/);
 });

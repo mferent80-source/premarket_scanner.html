@@ -189,7 +189,7 @@
  }
  function numeMotor(items){const out=[];for(const i of items||[]){const s=typeof i?.symbol==='string'?i.symbol:'';if(!/^[A-Z0-9][A-Z0-9.^-]{0,14}$/.test(s)||out.includes(s))continue;out.push(s);if(out.length===3)break;}return out;}
  function simbolCont(p){const s=typeof p?.symbol==='string'?p.symbol:String(p?.ticker||'').replace(/_[A-Z]{2}_EQ$/,'');return /^[A-Z0-9][A-Z0-9.^-]{0,14}$/.test(s)?s:'';}
- function dejaInCont(lista){const det=new Set((ui.account?.positions||[]).map(simbolCont).filter(Boolean)),out=[];for(const s of lista||[]){if(!det.has(s)||out.includes(s))continue;out.push(s);if(out.length===3)break;}return out;}
+ function dejaInCont(lista){const det=new Map();for(const p of ui.account?.positions||[]){const s=simbolCont(p);if(!s||det.has(s))continue;const w=p.weight;det.set(s,finite(w)?Math.max(0,Math.min(100,w)):null);}const out=[],vazut=new Set();for(const s of lista||[]){if(!det.has(s)||vazut.has(s))continue;vazut.add(s);const w=det.get(s);out.push(w==null?s:s+' '+number(w,1)+'%');if(out.length===3)break;}return out;}
  function renderBrief(){
   scrieTitlu();
   const items=ui.market?.items||[],q=sym=>items.find(x=>x.symbol===sym),b=ui.market?.breadth||{},hasBreadth=finite(b.above50);
