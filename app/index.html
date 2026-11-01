@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ro" data-app-version="26.11.01.1727">
+<html lang="ro" data-app-version="26.11.01.1827">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://mferent80-source.github.io https://*.mferent80.workers.dev https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://finnhub.io https://api.binance.com https://fapi.binance.com https://api.coingecko.com https://api.alternative.me https://api.twelvedata.com https://api.frankfurter.dev https://raw.githubusercontent.com https://api.github.com https://api.anthropic.com https://discord.com https://discordapp.com https://accounts.google.com/gsi/ https://*.tail9144fe.ts.net:*; frame-src 'self' https://accounts.google.com/gsi/; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
@@ -23,7 +23,7 @@
   </aside>
   <section class="workspace">
     <header class="topbar">
-      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.11.01.1727</span></small><b id="pageName">Astăzi</b></div>
+      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.11.01.1827</span></small><b id="pageName">Astăzi</b></div>
       <div class="account-state"><button class="google-account" id="googleAccount" data-state="checking" title="Deschide Cont & sincronizare"><i aria-hidden="true"></i><span id="googleAccountLabel">Verific Google…</span></button><button class="sync-state" id="syncStatus" data-state="checking">Verific sincronizarea</button><span class="sr-only" id="syncAnnounce" role="status"></span><small class="sync-error-detail" id="syncErrorDetail" role="status" hidden></small></div>
       <div class="spacer"></div><button class="app-update" data-update hidden>Actualizează</button>
       <input class="search" id="search" role="combobox" aria-autocomplete="list" aria-label="Caută module, tickere, dețineri și jurnal" aria-controls="palette" aria-expanded="false" placeholder="Caută · Ctrl K" autocomplete="off">
@@ -128,7 +128,7 @@
     try{var pageURL=new URL(location.href);pageURL.searchParams.set('module',active);var state=Object.assign({},history.state||{},{ttApp:{module:active,query:currentQuery}});if(mode==='push'&&history.pushState)history.pushState(state,'',pageURL.href);else if(mode!=='none')history.replaceState(state,'',pageURL.href);}catch(_){}
     try{localStorage.setItem('tt_app_active_v1',active);}catch(_){}
   }
-  function titleRoute(){var x=all.find(function(a){return a.u===active;});pageName.textContent=x.n;document.title=x.n+' · Trading Tools';frame.title=x.n;}
+  function titleRoute(){var x=all.find(function(a){return a.u===active;});pageName.textContent=x.n;frame.title=x.n;var zi=active==='today/'&&typeof window.__ttDayTitle==='string'?window.__ttDayTitle.replace(/[\u0000-\u001f]/g,'').trim().slice(0,80):'';document.title=(zi||x.n)+' · Trading Tools';}
   function moduleTarget(u,query){var parts=u.split('#');return '../'+parts[0]+'?app=decision-mobile-v2&v='+encodeURIComponent(document.documentElement.dataset.appVersion)+(query?'&'+String(query).replace(/^\?+/,''):'')+(parts[1]?'#'+parts[1]:'');}
   function replaceFrame(target,sameDocument,canReplace){
     var absolute=new URL(target,location.href).href;
@@ -281,7 +281,7 @@
 <script src="../lib/breadth-daily.js?v=26.10.18.1500"></script>
 <script>document.addEventListener('tt-breadth-daily',function(e){var s=e.detail,n=document.getElementById('breadthDailyState');n.hidden=s.status==='disabled';n.textContent=TTBreadthDaily.message(s);});TTBreadthDaily.start();</script>
 <script src="install.js?v=phone-20261003"></script>
-<script src="version.js?v=26.11.01.1727"></script>
+<script src="version.js?v=26.11.01.1827"></script>
 <script defer src="../lib/trading212-vault.js?v=26.10.27.2240"></script><script defer src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=26.10.27.2240"></script>
 </body>
 </html>

@@ -14,7 +14,7 @@ function setup({a=account(),embedded=true,search='',market={items:[],breadth:{st
  const element=id=>{if(!nodes.has(id))nodes.set(id,{id,textContent:'',innerHTML:'',className:'',disabled:false,hidden:false,dataset:{},attrs:{},setAttribute(k,v){this.attrs[k]=v;},addEventListener(type,fn){listeners.set(id+':'+type,fn);}});return nodes.get(id);};
  const controls=new Map([['[data-chart-tab]',['account','SPY','breadth'].map(value=>({dataset:{chartTab:value},setAttribute(){}}))],['[data-period]',[30,90,365].map(value=>({dataset:{period:String(value)},setAttribute(){}}))]]);
  const doc={hidden:false,getElementById:element,querySelectorAll:q=>controls.get(q)||[],addEventListener:(type,fn)=>listeners.set('document:'+type,fn),documentElement:{dataset:{theme:'dark'}}};
- const parent={postMessage:(data,origin)=>sent.push({data,origin})},model={account(options){calls.account++;calls.accountOptions=options;return structuredClone(current);},market(options){calls.market++;calls.marketOptions=options;return typeof market==='function'?market():Promise.resolve(market);},news(options){calls.news++;calls.newsOptions=options;return typeof news==='function'?news():Promise.resolve(news);},activity(options){calls.activity++;calls.activityOptions=options;return typeof activity==='function'?activity(options):Promise.resolve(activity);}};
+ const parent={postMessage:(data,origin)=>sent.push({data,origin}),document:{title:''}},model={account(options){calls.account++;calls.accountOptions=options;return structuredClone(current);},market(options){calls.market++;calls.marketOptions=options;return typeof market==='function'?market():Promise.resolve(market);},news(options){calls.news++;calls.newsOptions=options;return typeof news==='function'?news():Promise.resolve(news);},activity(options){calls.activity++;calls.activityOptions=options;return typeof activity==='function'?activity(options):Promise.resolve(activity);}};
  class Clock extends Date{constructor(...args){super(...(args.length?args:[NOW]));}static now(){return NOW;}}
  const c={document:doc,Date:Clock,Intl,URL,URLSearchParams,Map,Set,Number,Promise,location:{origin:'https://example.test',href:'https://example.test/project/today/'+(embedded?'?app=decision-mobile-v2&':'?')+search,search:(embedded?'?app=decision-mobile-v2&':'?')+search},crypto:{randomUUID:()=> 'nonce-live-123456'},sessionStorage:{getItem:key=>session.get(key)??null,setItem:(key,value)=>{calls.navigationWrites=(calls.navigationWrites||0)+1;session.set(key,value);}},localStorage:{getItem(){throw Error('UI must use the shared model');},setItem(){calls.writes++;}},addEventListener:(type,fn)=>listeners.set('window:'+type,fn),setTimeout:(fn,ms)=>{timers.set(++timer,{fn,ms});return timer;},clearTimeout:id=>timers.delete(id),setInterval:(fn,ms)=>{calls.interval={fn,ms};return 1;},BroadcastChannel:class{constructor(name){this.name=name;channels.push(this);}postMessage(){throw Error('The dashboard channel must be read-only');}close(){this.closed=true;}},TodayDashboardModel:{create:()=>model},ExchangeCalendar:{date:()=> '2026-10-15',session:()=>({state:'open',open:570,close:960})},T212Snapshot:{read:()=>currentSnapshot,fresh:s=>s?.fetchedAt===new Date(NOW).toISOString()},TTTheme:{set:value=>{calls.theme++;doc.documentElement.dataset.theme=value;}}};
  Object.assign(c,extra);c.window=c;c.parent=embedded?parent:c;vm.createContext(c);vm.runInContext(readFileSync('lib/holding-handoff.js','utf8'),c);vm.runInContext(source,c);
@@ -120,20 +120,36 @@ test('brief: contul lipsă cere conectarea, fără sold inventat; graficul porne
 test('brief: contul citit arată soldul, P&L-ul la ban și cea mai mare pondere cu o zecimală',async()=>{
  const s=setup({a:account({positions:[{ticker:'AAA_US_EQ',quantity:1,value:100,currency:'RON',unrealized:5,weight:29.06},{ticker:'BBB_US_EQ',quantity:1,value:50,currency:'RON',unrealized:-1,weight:11}]})});await flush();
  const h=s.element('briefAccount').innerHTML;assert.match(h,/42\.000,00 RON/);assert.match(h,/\+200,00 RON/);assert.match(h,/2 poziții · cea mai mare <b>29,1%<\/b>/);assert.match(h,/ · AAA/);assert.match(h,/Disponibil <b>1\.000,00 RON<\/b>/);assert.match(h,/Citit /);
- assert.match(s.element('pageTitle').innerHTML,/Ziua ta de investiții<span>\.<\/span>/);assert.match(s.element('pageLead').textContent,/Contul și piața/);
+ assert.match(s.element('pageTitle').innerHTML,/Ziua ta de investiții<span>\.<\/span>/);assert.match(s.element('pageLead').textContent,/Contul și piața/);assert.equal(s.doc.title,'Astăzi — Trading Tools');
 });
 test('acasă: titlul ia ziua, iar ideile numesc simbolurile deja scanate',async()=>{
- const MV={compute(){return {label:{id:'prudent',text:'Prudent',tone:'warn'},indicatori:[{score:-1,why:'participarea e slabă',name:'Participarea'},{score:0,name:'VIX'},{score:0,name:'Dobândă'}],foaia:{titlu:'Mai mult stai',ton:'warn',spus:'Planuri noi cu riscul redus la trei sferturi (×0,75).',unde:'Conduc energie.',randuri:[]}};},render(v){return '<p>'+v.label.text+'</p>';},raportBreadth:()=>new Promise(()=>{}),robotFile:()=>new Promise(()=>{}),extraData:()=>new Promise(()=>{}),symbolOf:()=>null};
+ const MV={compute(){return {label:{id:'prudent',text:'Prudent',tone:'warn'},indicatori:[{score:-1,why:'participarea e slabă',name:'Participarea'},{score:0,name:'VIX'},{score:0,name:'Dobândă'}],foaia:{titlu:'Mai mult stai',ton:'warn',spus:'Planuri noi cu riscul redus la trei sferturi (×0,75).',deCe:'Nu e zi bună de trading, pentru că participarea e slabă.',unde:'Conduc energie.',randuri:[]}};},render(v){return '<p>'+v.label.text+'</p>';},raportBreadth:()=>new Promise(()=>{}),robotFile:()=>new Promise(()=>{}),extraData:()=>new Promise(()=>{}),symbolOf:()=>null};
  const R={primary:()=>({items:[{symbol:'MPC',mode:'momentum',passed:4,total:6},{symbol:'PSX',mode:'reversal',passed:3,total:6},{symbol:'<x>',mode:'momentum'}]}),independent:()=>({items:[{symbol:'XOM',passed:5,total:7}]}),reportState:()=>({text:'Citit',tone:'ok'}),label:()=>'trece',emptyResult:()=>({title:'gol',text:'nimic'})};
  const market={at:NOW,items:[],breadth:{state:'ready',above50:55,above200:50,asOf:'2026-10-14',source:'M',coverage:'S',points:[]}};
- const s=setup({market,news:{state:'ready',items:[],reason:''},extra:{MarketVerdict:MV,ScannerResults:R}});await flush();
+ const s=setup({a:account({positions:[{ticker:'MPC_US_EQ',quantity:1,value:500,currency:'RON',weight:12},{ticker:'ZZZ_US_EQ',quantity:1,value:10,weight:1}]}),market,news:{state:'ready',items:[],reason:''},extra:{MarketVerdict:MV,ScannerResults:R}});await flush();
  assert.match(s.element('pageTitle').innerHTML,/Mai mult stai<span>\.<\/span>/);
- assert.match(s.element('pageLead').textContent,/riscul redus/);
+ assert.equal(s.element('pageLead').textContent,'Nu e zi bună de trading, pentru că participarea e slabă.');
+ assert.equal(s.doc.title,'Mai mult stai — Trading Tools');
+ assert.equal(s.parent.document.title,'Mai mult stai · Trading Tools');
+ assert.equal(s.parent.__ttDayTitle,'Mai mult stai');
  assert.match(s.element('briefMarket').innerHTML,/>Prudent</);
+ assert.match(s.element('briefMarket').innerHTML,/riscul redus/);
  assert.doesNotMatch(s.element('pageTitle').innerHTML,/>Prudent</);
  assert.match(s.element('briefIdeas').innerHTML,/În Premarket: <b>MPC, PSX<\/b>/);
  assert.match(s.element('briefIdeas').innerHTML,/În V1: <b>XOM<\/b>/);
+ assert.match(s.element('briefIdeas').innerHTML,/Deja în cont: <b>MPC<\/b>/);
+ assert.doesNotMatch(s.element('briefIdeas').innerHTML,/Deja în cont:.*(?:XOM|ZZZ)/);
  assert.doesNotMatch(s.element('briefIdeas').innerHTML,/&lt;x&gt;|<x>/);
+});
+test('fără cont, foaia spune că nu știe pozițiile; contul gol nu inventează fraza',async()=>{
+ const ctx={URL,Intl};vm.createContext(ctx);vm.runInContext(readFileSync('lib/market-verdict.js','utf8'),ctx);
+ const market={at:NOW,items:[],breadth:{state:'ready',above50:55,above200:50,asOf:'2026-10-14',source:'M',coverage:'S',points:[]}};
+ const news={state:'ready',items:[],reason:''};
+ const lipsa=setup({a:account({state:'missing',scope:null,total:null,available:null,positions:[],points:[]}),market,news,extra:{MarketVerdict:ctx.MarketVerdict}});await flush();
+ assert.match(lipsa.element('marketVerdict').innerHTML,/Fără cont conectat, foaia nu știe pozițiile tale/);
+ assert.match(lipsa.element('briefMarket').innerHTML,/nu știe pozițiile/);
+ const cu=setup({a:account({positions:[]}),market,news,extra:{MarketVerdict:ctx.MarketVerdict}});await flush();
+ assert.doesNotMatch(cu.element('marketVerdict').innerHTML,/nu știe pozițiile/);
 });
 test('reperele: procentele zilei au o zecimală, prețurile rămân la două, sursa comună apare o singură dată',async()=>{
  const item=(symbol,label,unit,price,changePct)=>({symbol,label,unit,price,changePct,state:'ready',source:'Yahoo Finance · sesiuni încheiate',asOf:'2026-10-14',points:[],indicators:{}});
@@ -145,7 +161,7 @@ test('reperele: procentele zilei au o zecimală, prețurile rămân la două, su
 });
 test('ceasul sesiunii folosește programul calendarului și arată ora României',async()=>{
  const s=setup();await flush();
- assert.match(s.element('clockReg').textContent,/^Sesiunea 16:30–23:00$/);assert.match(s.element('sessionWhen').textContent,/^Deschide în 1 h 30 min, la 16:30$/);assert.equal(s.element('clockNow').hidden,false);assert.match(s.element('clockNow').dataset.t,/acum 15:00/);
+ assert.match(s.element('clockReg').textContent,/^Sesiunea 16:30–23:00$/);assert.match(s.element('clockPost').textContent,/^After-hours până la /);assert.match(s.element('sessionWhen').textContent,/^Deschide în 1 h 30 min, la 16:30$/);assert.equal(s.element('clockNow').hidden,false);assert.match(s.element('clockNow').dataset.t,/acum 15:00/);assert.match(css,/\.clock-track>div\{font-size:10\.5px;padding:4px 6px;white-space:normal/);
  assert.doesNotMatch(s.element('todayDate').textContent,/^[A-ZĂÂÎȘȚ ,0-9]+$/);
 });
 
@@ -205,7 +221,9 @@ test('brief-ul pune verdictul deasupra și desparte semnalele deja scrise; lăț
  assert.match(stale.element('marketContext').innerHTML,/Peste SMA 50 · ultima valoare, nu contextul de azi · 14\.10/);
  assert.match(stale.element('marketContext').innerHTML,/Peste SMA 200 · ultima valoare, nu contextul de azi · 14\.10/);
  assert.doesNotMatch(s.element('marketContext').innerHTML,/ultima valoare, nu contextul de azi/);
- if(v.foaia){assert.match(s.element('pageTitle').innerHTML,new RegExp('^'+v.foaia.titlu.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'<span>\\.</span>$'));assert.equal(s.element('pageLead').textContent,v.foaia.spus);}
+ if(v.foaia){assert.match(s.element('pageTitle').innerHTML,new RegExp('^'+v.foaia.titlu.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'<span>\\.</span>$'));assert.equal(s.element('pageLead').textContent,v.foaia.deCe);assert.match(v.foaia.deCe,/Da\. E zi bună de trading/);assert.match(s.element('briefMarket').innerHTML,/riscul obișnuit/);assert.match(s.element('marketVerdict').innerHTML,/mv-day-why/);}
+ assert.match(stale.element('pageLead').textContent,/Lățimea nu e de azi/);
+ assert.doesNotMatch(stale.element('pageLead').textContent,/majoritatea acțiunilor participă/);
 });
 test('brief-ul se rescrie când sursele lente mută verdictul',async()=>{
  const MV={compute(input){return input.extra?{label:{id:'prudent',text:'Prudent'},indicatori:[{score:1,why:'majoritatea acțiunilor participă',name:'Participarea'},{score:-1,why:'creditul slăbește',name:'Dobânzi și credit'},{score:-1,why:'regimul macro e prudent',name:'Regimul macro'}]}:{label:{id:'neutru',text:'Neutru'},indicatori:[{score:1,why:'majoritatea acțiunilor participă',name:'Participarea'},{score:0,name:'Volatilitatea'},{score:0,name:'Dobânzi'}]};},render(v){return '<p>'+v.label.text+'</p>';},raportBreadth:()=>Promise.resolve(null),robotFile:()=>Promise.resolve(null),extraData:()=>Promise.resolve({hy:1}),symbolOf:()=>null};
@@ -225,6 +243,8 @@ test('oprirea activă bate foaia zilei și pe brief, și pe panou',async()=>{
  assert.match(s.element('briefMarket').innerHTML,/>Favorabil</);
  assert.match(s.element('pageTitle').innerHTML,/Oprirea e activă<span>\.<\/span>/);
  assert.match(s.element('pageLead').textContent,/Nu se deschid planuri noi/);
+ assert.doesNotMatch(s.element('pageLead').textContent,/zi bună de trading/);
+ assert.equal(s.doc.title,'Oprirea e activă — Trading Tools');
  assert.doesNotMatch(s.element('pageTitle').innerHTML,/Zi de trade/);
 });
 test('ștampila spune dacă sursele au fost recitite sau au venit din cache, la ora payload-ului',async()=>{
