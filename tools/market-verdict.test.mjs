@@ -75,9 +75,9 @@ test('foaia zilei traduce eticheta deja scrisă și numește sectoarele care con
   const bun = MV.compute({ market: piata(true), sectors: sect(false), now: Date.parse('2026-10-17T08:00:00Z') });
   assert.equal(bun.label.id, 'favorabil');
   assert.equal(bun.foaia.titlu, 'Zi de trade');
-  assert.match(bun.foaia.deCe, /^Da\. E zi bună de trading, pentru că /);
+  assert.match(bun.foaia.deCe, /^După vineri, 16\.10: da\. E zi bună de trading, pentru că /);
   assert.match(bun.foaia.deCe, /indicii sunt în trend/);
-  assert.match(bun.foaia.deCe, /După sesiunea din vineri, 16\.10\.$/);
+  assert.doesNotMatch(bun.foaia.deCe, /După sesiunea/);
   assert.doesNotMatch(bun.foaia.deCe, /ordin|probabilitate|din 6/);
   assert.match(bun.foaia.unde, /rotația citită stă pe tehnologie, industrie și financiar/);
   assert.doesNotMatch(bun.foaia.unde, /În lista deja citită/);
@@ -85,8 +85,8 @@ test('foaia zilei traduce eticheta deja scrisă și numește sectoarele care con
   const rau = MV.compute({ market: piata(false), sectors: sect(true), now: Date.parse('2026-10-17T08:00:00Z') });
   assert.equal(rau.label.id, 'defensiv');
   assert.equal(rau.foaia.titlu, 'Stai. Nu e zi de trade');
-  assert.match(rau.foaia.deCe, /^Nu\. Nu e zi de trading, pentru că /);
-  assert.match(rau.foaia.deCe, /După sesiunea din vineri, 16\.10\.$/);
+  assert.match(rau.foaia.deCe, /^După vineri, 16\.10: nu\. Nu e zi de trading, pentru că /);
+  assert.doesNotMatch(rau.foaia.deCe, /După sesiunea/);
   assert.doesNotMatch(rau.foaia.deCe, /^Da\./);
   assert.match(rau.foaia.unde, /utilități, consum de bază și sănătate/);
   assert.match(rau.foaia.unde, /nu deschizi după rotație/);
@@ -100,7 +100,7 @@ test('foaia zilei traduce eticheta deja scrisă și numește sectoarele care con
   const h = MV.render(bun);
   assert.match(h, /Foaia zilei/);
   assert.match(h, /class="mv-day-why"/);
-  assert.match(h, /Da\. E zi bună de trading/);
+  assert.match(h, /După vineri, 16\.10: da\. E zi bună de trading/);
   assert.match(h, /Zi de trade/);
   assert.match(h, /Nu e un ordin și nu e o probabilitate/);
   assert.match(h, /<p class="mv-score">Scor [^<]* din 6 indicatori citiți<\/p>/);

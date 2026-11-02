@@ -183,7 +183,14 @@
   if(!sug.length)return cap+(f.unde?'<span class="brief-line">'+esc(f.unde)+'</span>':'');
   const linii=sug.map(s=>{const i=s.indexOf(': ');return i<0?'<span class="brief-line">'+esc(s)+'</span>':'<span class="brief-line">'+esc(s.slice(0,i+2))+'<b>'+esc(s.slice(i+2))+'</b></span>';}).join('');
   const u=String(f.unde||''),k=u.indexOf('Fără cont conectat');
-  return cap+'<span class="brief-line"><b>Sugestii</b></span>'+linii+(k<0?'':'<span class="brief-line">'+esc(u.slice(k).trim())+'</span>');
+  const foaie='<span class="brief-line"><a class="brief-go" href="#marketVerdict">Foaia zilei ↓</a></span>';
+  return cap+'<span class="brief-line"><b>Sugestii</b></span>'+linii+foaie+(k<0?'':'<span class="brief-line">'+esc(u.slice(k).trim())+'</span>');
+ }
+ function pondereSector(v){
+  const f=v&&v.foaia;if(!f)return '';
+  const linii=[].concat(Array.isArray(f.sugestii)?f.sugestii:[],f.unde?[f.unde]:[]);
+  for(const s of linii){const m=/În pozițiile tale: ([^.]+)\./.exec(String(s));if(m&&m[1])return m[1];}
+  return '';
  }
  function scrieTitlu(){
   const h=$('pageTitle'),p=$('pageLead');if(!h||!p)return;
@@ -209,7 +216,8 @@
   const a=ui.account||{},st=accountState(a),cur=/^[A-Z]{3}$/.test(a.currency||''),pos=(a.positions||[]).filter(p=>p);
   if(!a.state||a.state==='missing')put('briefAccount','<div class="brief-top"><span class="brief-label">Contul</span>'+pill('Cont neconectat','bad')+'</div><h2>Conectează contul</h2><div class="brief-facts"><span>Valoarea contului nu este încă disponibilă pe acest dispozitiv.</span></div><a class="brief-go" href="'+appURL('broker/')+'">Verifică contul ↗</a>');
   else{const big=pos.filter(p=>finite(p.weight)).sort((x,y)=>y.weight-x.weight)[0],bigName=big?String(big.ticker||big.symbol||'').replace(/_[A-Z]{2}_EQ$/,''):'';
-   put('briefAccount','<div class="brief-top"><span class="brief-label">Contul</span>'+pill(a.at&&a.state==='ready'?(a.fresh?'Citit ':'De actualizat · ')+when(a.at):st.text,a.state==='ready'&&a.fresh?'ok':a.state==='error'?'bad':'warn')+'</div><h2 class="'+(finite(a.total)?'num':'')+'">'+esc(finite(a.total)&&cur?number(a.total)+' '+a.currency:st.text)+'</h2><div class="brief-facts">'+(finite(a.unrealized)&&cur?'<span>P&L nerealizat <b class="'+tone(a.unrealized)+'">'+esc(signed(a.unrealized,' '+a.currency))+'</b></span>':'')+(finite(a.available)&&cur?'<span>Disponibil <b>'+esc(number(a.available)+' '+a.currency)+'</b></span>':'')+(pos.length?'<span>'+pos.length+(pos.length===1?' poziție':' poziții')+(big?' · cea mai mare <b>'+esc(number(big.weight,1))+'%</b>'+(bigName&&/^[A-Z0-9][A-Z0-9.^-]{0,14}$/.test(bigName)?' · '+esc(bigName):''):'')+'</span>':'')+(a.issues?.length?'<span>'+esc(a.issues[0])+'</span>':'')+'</div><a class="brief-go" href="#accountTitle">Privire asupra contului ↓</a>');}
+   const dinSector=pondereSector(verdictCurent);
+   put('briefAccount','<div class="brief-top"><span class="brief-label">Contul</span>'+pill(a.at&&a.state==='ready'?(a.fresh?'Citit ':'De actualizat · ')+when(a.at):st.text,a.state==='ready'&&a.fresh?'ok':a.state==='error'?'bad':'warn')+'</div><h2 class="'+(finite(a.total)?'num':'')+'">'+esc(finite(a.total)&&cur?number(a.total)+' '+a.currency:st.text)+'</h2><div class="brief-facts">'+(finite(a.unrealized)&&cur?'<span>P&L nerealizat <b class="'+tone(a.unrealized)+'">'+esc(signed(a.unrealized,' '+a.currency))+'</b></span>':'')+(finite(a.available)&&cur?'<span>Disponibil <b>'+esc(number(a.available)+' '+a.currency)+'</b></span>':'')+(pos.length?'<span>'+pos.length+(pos.length===1?' poziție':' poziții')+(big?' · cea mai mare <b>'+esc(number(big.weight,1))+'%</b>'+(bigName&&/^[A-Z0-9][A-Z0-9.^-]{0,14}$/.test(bigName)?' · '+esc(bigName):''):'')+'</span>':'')+(dinSector?'<span>În sectorul care conduce: <b>'+esc(dinSector)+'</b></span>':'')+(a.issues?.length?'<span>'+esc(a.issues[0])+'</span>':'')+'</div><a class="brief-go" href="#accountTitle">Privire asupra contului ↓</a>');}
   const [p,v]=scannerReports(),np=p?.items?.length||0,nv=v?.items?.length||0;
   if(!np&&!nv)put('briefIdeas','<div class="brief-top"><span class="brief-label">Idei</span>'+pill('Nescanat','idle')+'</div><h2>Nicio scanare salvată</h2><div class="brief-facts"><span>Niciun motor nu a salvat rezultate pe acest dispozitiv.</span></div><a class="brief-go" href="'+appURL('candidate-engine/',selectedQuery())+'">Deschide scanner ↗</a>');
   else{const modes=[...new Set((p?.items||[]).map(i=>i.mode==='reversal'?'Early Reversal':'Top Long'))].join(', '),best=(v?.items||[]).filter(i=>Number.isFinite(i.passed)&&Number.isFinite(i.total)).sort((x,y)=>y.passed-x.passed)[0],pp=numeMotor(p?.items),vv=numeMotor(v?.items),deja=dejaInCont(pp.concat(vv));
