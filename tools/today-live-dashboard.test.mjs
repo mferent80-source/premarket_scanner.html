@@ -107,7 +107,7 @@ test('charts and failed data remain accessible, source-labelled and explicit abo
 });
 test('the single standalone theme control uses the suite API and all local assets resolve',()=>{
  const s=setup({embedded:false});s.element('themeToggle');s.event('unused');assert.match(source,/TTTheme\?\.set/);assert.match(css,/#ttThemeBtn\{display:none!important\}/);
- for(const m of html.matchAll(/<(?:script|link)\b[^>]*?(?:src|href)="([^"]+)"/gi)){const value=m[1];if(/^(https?:|data:)/.test(value))continue;assert.ok(existsSync(resolve(dirname('today/index.html'),value.split(/[?#]/,1)[0])),value);}assert.doesNotMatch(html,/trading212-fills-store\.js|trading212-journal\.js|broker\.js/);assert.match(html,/holding-handoff\.js/);assert.match(css,/grid-template-areas:"account" "market" "context"/);assert.match(css,/min-height:44px/);assert.doesNotMatch(source,/localStorage\.setItem|indexedDB\.open|fetch\(/);
+ for(const m of html.matchAll(/<(?:script|link)\b[^>]*?(?:src|href)="([^"]+)"/gi)){const value=m[1];if(/^(https?:|data:)/.test(value))continue;assert.ok(existsSync(resolve(dirname('today/index.html'),value.split(/[?#]/,1)[0])),value);}assert.doesNotMatch(html,/trading212-fills-store\.js|trading212-journal\.js|broker\.js/);assert.match(html,/holding-handoff\.js/);assert.match(css,/grid-template-areas:"account" "market" "context"/);assert.match(css,/min-height:44px/);assert.doesNotMatch(source,/localStorage\.setItem|indexedDB\.open|fetch\(/);assert.ok(html.indexOf('id="pageTitle"')<html.indexOf('id="briefStrip"')&&html.indexOf('id="briefStrip"')<html.indexOf('class="session-clock"')&&html.indexOf('class="session-clock"')<html.indexOf('id="marketVerdict"'));
 });
 
 // 15.10.2026 — reproiectarea din demo: „Azi, pe scurt”, ceasul sesiunii, procente cu o zecimală, graficul pe SPY când contul lipsește.
@@ -150,6 +150,16 @@ test('fără cont, foaia spune că nu știe pozițiile; contul gol nu inventeaz�
  assert.match(lipsa.element('briefMarket').innerHTML,/nu știe pozițiile/);
  const cu=setup({a:account({positions:[]}),market,news,extra:{MarketVerdict:ctx.MarketVerdict}});await flush();
  assert.doesNotMatch(cu.element('marketVerdict').innerHTML,/nu știe pozițiile/);
+});
+test('brief-ul de sus arată sugestiile pe rânduri și păstrează fraza când contul lipsește',async()=>{
+ const MV={compute(){return {label:{id:'prudent',text:'Prudent',tone:'warn'},indicatori:[{score:-1,why:'creditul slăbește',name:'Dobânzi'}],foaia:{titlu:'Mai mult stai',ton:'warn',spus:'Planuri noi cu riscul redus la trei sferturi (×0,75).',deCe:'Nu e zi bună de trading.',unde:'Conduc energie, sănătate și tehnologie. Dacă tot lucrezi, stai pe riscul redus. În lista deja citită: MPC și PSX.',sugestii:['Energie: MPC și PSX.','Sănătate: MRNA, deja în cont.']}};},render(v){return '<p class="mv-day-where">'+v.foaia.unde+'</p>';},raportBreadth:()=>new Promise(()=>{}),robotFile:()=>new Promise(()=>{}),extraData:()=>new Promise(()=>{}),symbolOf:()=>null};
+ const market={at:NOW,items:[],breadth:{state:'ready',above50:55,above200:50,asOf:'2026-10-14',source:'M',coverage:'S',points:[]}};
+ const news={state:'ready',items:[],reason:''};
+ const s=setup({a:account({state:'missing',scope:null,total:null,available:null,positions:[],points:[]}),market,news,extra:{MarketVerdict:MV}});await flush();
+ const h=s.element('briefMarket').innerHTML;
+ assert.match(h,/<b>Sugestii<\/b>/);assert.match(h,/Energie: <b>MPC și PSX\.<\/b>/);assert.match(h,/Sănătate: <b>MRNA, deja în cont\.<\/b>/);
+ assert.match(h,/nu știe pozițiile/);assert.match(h,/riscul redus/);assert.doesNotMatch(h,/În lista deja citită/);
+ assert.match(s.element('marketVerdict').innerHTML,/nu știe pozițiile/);
 });
 test('reperele: procentele zilei au o zecimală, prețurile rămân la două, sursa comună apare o singură dată',async()=>{
  const item=(symbol,label,unit,price,changePct)=>({symbol,label,unit,price,changePct,state:'ready',source:'Yahoo Finance · sesiuni încheiate',asOf:'2026-10-14',points:[],indicators:{}});
@@ -234,12 +244,12 @@ test('brief-ul se rescrie când sursele lente mută verdictul',async()=>{
  assert.doesNotMatch(h,/>Neutru</);assert.match(h,/De urmărit: creditul slăbește/);
 });
 test('oprirea activă bate foaia zilei și pe brief, și pe panou',async()=>{
- const MV={compute(){return {label:{id:'favorabil',text:'Favorabil',tone:'ok'},indicatori:[{score:1,why:'majoritatea acțiunilor participă',name:'Participarea'},{score:1,why:'conduc sectoarele ciclice',name:'Sectoarele'},{score:0,name:'Volatilitatea'}],foaia:{titlu:'Zi de trade',ton:'ok',spus:'Planuri noi cu riscul obișnuit.',unde:'Dacă cercetezi ceva nou, rotația citită stă pe tehnologie.',randuri:[]}};},render(v){return '<h3 class="mv-day-title">'+v.foaia.titlu+'</h3><p>'+v.foaia.unde+'</p>';},raportBreadth:()=>new Promise(()=>{}),robotFile:()=>new Promise(()=>{}),extraData:()=>new Promise(()=>{}),symbolOf:()=>null};
+ const MV={compute(){return {label:{id:'favorabil',text:'Favorabil',tone:'ok'},indicatori:[{score:1,why:'majoritatea acțiunilor participă',name:'Participarea'},{score:1,why:'conduc sectoarele ciclice',name:'Sectoarele'},{score:0,name:'Volatilitatea'}],foaia:{titlu:'Zi de trade',ton:'ok',spus:'Planuri noi cu riscul obișnuit.',unde:'Dacă cercetezi ceva nou, rotația citită stă pe tehnologie.',sugestii:['Tehnologie: AAPL și MSFT.'],randuri:[]}};},render(v){return '<h3 class="mv-day-title">'+v.foaia.titlu+'</h3><p>'+v.foaia.unde+'</p>';},raportBreadth:()=>new Promise(()=>{}),robotFile:()=>new Promise(()=>{}),extraData:()=>new Promise(()=>{}),symbolOf:()=>null};
  const market={at:NOW,items:[],breadth:{state:'ready',above50:72,above200:60,asOf:'2026-10-14',source:'Market Breadth',coverage:'S&P 500',points:[]}};
  const s=setup({market,news:{state:'ready',items:[],reason:''},extra:{MarketVerdict:MV,TodayAttention:{oprire:()=>({activ:true,text:'OPRIT'})}}});await flush();
  assert.match(s.element('briefMarket').innerHTML,/Oprirea e activă/);
  assert.match(s.element('marketVerdict').innerHTML,/Oprirea e activă/);
- assert.doesNotMatch(s.element('briefMarket').innerHTML,/Zi de trade/);
+ assert.doesNotMatch(s.element('briefMarket').innerHTML,/Zi de trade|Sugestii|AAPL/);
  assert.match(s.element('briefMarket').innerHTML,/>Favorabil</);
  assert.match(s.element('pageTitle').innerHTML,/Oprirea e activă<span>\.<\/span>/);
  assert.match(s.element('pageLead').textContent,/Nu se deschid planuri noi/);

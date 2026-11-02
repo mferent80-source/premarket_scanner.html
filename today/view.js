@@ -178,7 +178,12 @@
  function foaiaBrief(v){
   const f=v&&v.foaia;if(!f)return '';
   const cls=f.ton==='ok'?'sig-ok':(f.ton==='bad'||f.ton==='warn')?'sig-bad':'';
-  return '<span class="brief-line'+(cls?' '+cls:'')+'">'+esc(f.titlu)+'. '+esc(f.spus)+'</span>'+(f.unde?'<span class="brief-line">'+esc(f.unde)+'</span>':'');
+  const cap='<span class="brief-line'+(cls?' '+cls:'')+'">'+esc(f.titlu)+'. '+esc(f.spus)+'</span>';
+  const sug=(Array.isArray(f.sugestii)?f.sugestii:[]).filter(s=>typeof s==='string'&&s);
+  if(!sug.length)return cap+(f.unde?'<span class="brief-line">'+esc(f.unde)+'</span>':'');
+  const linii=sug.map(s=>{const i=s.indexOf(': ');return i<0?'<span class="brief-line">'+esc(s)+'</span>':'<span class="brief-line">'+esc(s.slice(0,i+2))+'<b>'+esc(s.slice(i+2))+'</b></span>';}).join('');
+  const u=String(f.unde||''),k=u.indexOf('Fără cont conectat');
+  return cap+'<span class="brief-line"><b>Sugestii</b></span>'+linii+(k<0?'':'<span class="brief-line">'+esc(u.slice(k).trim())+'</span>');
  }
  function scrieTitlu(){
   const h=$('pageTitle'),p=$('pageLead');if(!h||!p)return;
@@ -253,7 +258,7 @@
  function oprireActiv(){try{const o=g.TodayAttention&&typeof g.TodayAttention.oprire==='function'?g.TodayAttention.oprire(localStorage):null;return !!(o&&o.activ);}catch(_){return false;}}
  function aplicaOprire(v){
   if(!v||!v.foaia||!oprireActiv())return v;
-  return {...v,foaia:{...v.foaia,titlu:'Oprirea e activă',ton:'bad',spus:'Nu se deschid planuri noi. Butonul de stop rămâne protecție.',deCe:'Nu se deschid planuri noi. Butonul de stop rămâne protecție.',unde:'Piața poate arăta altfel. Oprirea bate foaia zilei.'}};
+  return {...v,foaia:{...v.foaia,titlu:'Oprirea e activă',ton:'bad',spus:'Nu se deschid planuri noi. Butonul de stop rămâne protecție.',deCe:'Nu se deschid planuri noi. Butonul de stop rămâne protecție.',unde:'Piața poate arăta altfel. Oprirea bate foaia zilei.',sugestii:[]}};
  }
  function faraCont(v){
   if(!v||!v.foaia||(ui.account?.state&&ui.account.state!=='missing'))return v;
