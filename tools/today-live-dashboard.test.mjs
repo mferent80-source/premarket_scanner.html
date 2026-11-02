@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import {readFileSync,existsSync} from 'node:fs';
-import {resolve,dirname} from 'node:path';
+import {readFileSync,existsSync,readdirSync,statSync} from 'node:fs';
+import {resolve,dirname,join} from 'node:path';
 
 const source=readFileSync('today/view.js','utf8'),html=readFileSync('today/index.html','utf8'),css=readFileSync('today/style.css','utf8');
 const NOW=Date.parse('2026-10-15T12:00:00Z'),DAY=86400000;
@@ -108,7 +108,14 @@ test('charts and failed data remain accessible, source-labelled and explicit abo
 test('the single standalone theme control uses the suite API and all local assets resolve',()=>{
  const s=setup({embedded:false});s.element('themeToggle');s.event('unused');assert.match(source,/TTTheme\?\.set/);assert.match(css,/#ttThemeBtn\{display:none!important\}/);
  for(const m of html.matchAll(/<(?:script|link)\b[^>]*?(?:src|href)="([^"]+)"/gi)){const value=m[1];if(/^(https?:|data:)/.test(value))continue;assert.ok(existsSync(resolve(dirname('today/index.html'),value.split(/[?#]/,1)[0])),value);}assert.doesNotMatch(html,/trading212-fills-store\.js|trading212-journal\.js|broker\.js/);assert.match(html,/holding-handoff\.js/);assert.match(css,/grid-template-areas:"account" "market" "context"/);assert.match(css,/min-height:44px/);assert.doesNotMatch(source,/localStorage\.setItem|indexedDB\.open|fetch\(/);assert.ok(html.indexOf('id="pageTitle"')<html.indexOf('id="briefStrip"')&&html.indexOf('id="briefStrip"')<html.indexOf('class="session-clock"')&&html.indexOf('class="session-clock"')<html.indexOf('id="marketVerdict"'));assert.ok(html.indexOf('id="briefMarket"')<html.indexOf('class="brief-more"')&&html.indexOf('<summary>Cont și idei</summary>')<html.indexOf('id="briefAccount"')&&html.indexOf('id="briefAccount"')<html.indexOf('id="briefIdeas"'));assert.match(css,/\.brief-more:not\(\[open\]\)>article\{display:grid\}/);assert.match(css,/\.brief-more>summary\{display:flex;align-items:center;min-height:44px/);
- const version=JSON.parse(readFileSync('app/version.json','utf8')).version;for(const name of ['style.css?v='+version,'view.js?v='+version,'market-verdict.js?v='+version])assert.ok(html.includes(name),name);for(const page of ['desk/index.html','journal/index.html'])assert.ok(readFileSync(page,'utf8').includes('market-verdict.js?v='+version),page);
+ const version=JSON.parse(readFileSync('app/version.json','utf8')).version;for(const name of ['style.css?v='+version,'view.js?v='+version,'market-verdict.js?v='+version])assert.ok(html.includes(name),name);
+ const deLa=css.lastIndexOf('@media(max-width:760px)');const telefon=css.slice(deLa,css.indexOf('@media',deLa+8));
+ assert.match(telefon,/\.brief-more:not\(\[open\]\)::details-content,\.brief-more:not\(\[open\]\)>article\{display:none\}/);
+ assert.match(css,/@media\(min-width:761px\)\{\.brief-more::details-content\{display:contents\}/);
+ const pagini=[];(function walk(dir){for(const name of readdirSync(dir)){if(name==='node_modules'||name==='.git'||name==='.claude')continue;const p=join(dir,name);if(statSync(p).isDirectory())walk(p);else if(name.endsWith('.html'))pagini.push(p);}})('.');
+ const cerute=pagini.filter(p=>/<script\b[^>]*\bsrc="[^"]*market-verdict\.js/.test(readFileSync(p,'utf8')));
+ assert.ok(cerute.some(p=>p.replace(/\\/g,'/').endsWith('today/index.html'))&&cerute.some(p=>p.replace(/\\/g,'/').endsWith('desk/index.html'))&&cerute.some(p=>p.replace(/\\/g,'/').endsWith('journal/index.html')));
+ for(const page of cerute){for(const m of readFileSync(page,'utf8').matchAll(/<script\b[^>]*\bsrc="([^"]*market-verdict\.js(?:\?[^"]*)?)"/gi))assert.equal(m[1].split('?')[1],'v='+version,page);}
 });
 
 // 15.10.2026 — reproiectarea din demo: „Azi, pe scurt”, ceasul sesiunii, procente cu o zecimală, graficul pe SPY când contul lipsește.

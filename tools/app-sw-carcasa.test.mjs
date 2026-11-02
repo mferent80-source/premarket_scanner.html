@@ -97,15 +97,26 @@ test('[4] navigarea cu `?v=` egal cu al SW-ului păstrează pragul de 3,5 s (I-7
   assert.equal(await (await within(pending, 1000)).text(), 'CARCASA DIN CACHE');
 });
 
-test('[4] butonul „Actualizează” șterge cache-urile carcasei înainte să reîncarce cu `?v=` nou', async () => {
-  const label = {}, button = { hidden: true, addEventListener: (n, f) => { button.click = f; } }; let replaced = null; const deleted = []; let updated = 0;
+test('[4] butonul „Actualizează” șterge cache-urile carcasei și copiile Astăzi din suita, înainte să reîncarce cu `?v=` nou', async () => {
+  const label = {}, button = { hidden: true, addEventListener: (n, f) => { button.click = f; } }; let replaced = null; const deleted = []; const scoase = []; let updated = 0;
+  const intrari = [
+    { url: 'https://example.test/premarket_scanner.html/today/view.js?v=26.10.27.2240' },
+    { url: 'https://example.test/premarket_scanner.html/today/style.css?v=26.10.27.2240' },
+    { url: 'https://example.test/premarket_scanner.html/today/index.html?v=26.11.02.0644' },
+    { url: 'https://example.test/premarket_scanner.html/today/?v=26.11.02.0644' },
+    { url: 'https://example.test/premarket_scanner.html/lib/market-verdict.js?v=26.10.27.1759' },
+    { url: 'https://example.test/premarket_scanner.html/journal/review.js?v=26.10.27.2240' },
+  ];
   const c = { URL, Date, document: { documentElement: { dataset: { appVersion: '26.10.03.1400' } }, querySelectorAll: (q) => (q === '[data-version]' ? [label] : [button]), addEventListener: () => {} }, window: { addEventListener: () => {} }, location: { href: 'https://example.test/app/', replace: (u) => { replaced = u; } },
-    navigator: { serviceWorker: { getRegistration: async () => ({ update: async () => { updated++; } }) } }, caches: { keys: async () => ['tt-decision-phone-design-26.10.03.1400', 'trading-tools-tt-v985'], delete: async (k) => { deleted.push(k); return true; } },
+    navigator: { serviceWorker: { getRegistration: async () => ({ update: async () => { updated++; } }) } },
+    caches: { keys: async () => ['tt-decision-phone-design-26.10.03.1400', 'tt-decision-phone-design-26.10.03.1500', 'trading-tools-tt-v985'], delete: async (k) => { deleted.push(k); return true; }, open: async (k) => ({ keys: async () => intrari, delete: async (r) => { scoase.push(k + ' ' + r.url); return true; } }) },
     fetch: async () => ({ ok: true, json: async () => ({ version: '26.10.03.1500' }) }), setInterval: () => {} };
   vm.createContext(c); vm.runInContext(read('app/version.js'), c); await new Promise((r) => setImmediate(r));
   assert.equal(button.hidden, false);
   await button.click();
   assert.equal(updated, 1);
-  assert.deepEqual(deleted, ['tt-decision-phone-design-26.10.03.1400'], 'doar cache-urile carcasei, nu ale suitei');
+  assert.deepEqual(deleted, ['tt-decision-phone-design-26.10.03.1400'], 'cache-ul suitei și carcasa nouă rămân');
+  for (const nume of ['view.js', 'style.css', 'today/index.html', 'today/?v=', 'market-verdict.js']) assert.ok(scoase.some((s) => s.includes(nume)), nume);
+  assert.equal(scoase.some((s) => s.includes('journal/review.js')), false, 'jurnalul rămâne în cache-ul suitei');
   assert.match(replaced, /v=26\.10\.03\.1500/);
 });
