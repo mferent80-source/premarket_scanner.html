@@ -24,38 +24,38 @@
       "data_date": "2026-11-03"
     },
     "ndx": {
-      "score": 59.1,
+      "score": 57.5,
       "zone": "Healthy",
       "exposure": "75-90%",
-      "weakest": "momentum MM50 (55.3%)",
-      "trend": "stabil",
-      "extra": ">MM200 61.7% | >MM50 55.3%",
+      "weakest": "momentum MM50 (54.3%)",
+      "trend": "in scadere (-1.6)",
+      "extra": ">MM200 59.6% | >MM50 54.3%",
       "_file_age": 0.0,
-      "data_date": "2026-11-02"
+      "data_date": "2026-11-03"
     },
     "r2k": {
-      "score": 50.8,
+      "score": 49.8,
       "zone": "Neutral",
       "exposure": "60-75%",
-      "weakest": "trend MM200 (47.9%)",
-      "trend": "stabil",
-      "extra": ">MM200 47.9% | >MM50 55.2%",
+      "weakest": "trend MM200 (46.9%)",
+      "trend": "stabil (-1.0)",
+      "extra": ">MM200 46.9% | >MM50 54.2%",
       "_file_age": 0.0,
-      "data_date": "2026-11-02"
+      "data_date": "2026-11-03"
     }
   },
   "master": {
-    "score": 0,
+    "score": -1,
     "stance": "MIXT / PRUDENTA SELECTIVA",
     "action": "Selectiv, pozitii noi mai mici, stopuri stranse. Nu supra-dimensiona.",
-    "confidence": "SCAZUTA - semnale in conflict (2 pozitive / 1 negative)",
+    "confidence": "SCAZUTA - semnale in conflict (2 pozitive / 2 negative)",
     "conflict": true,
-    "net_ceiling": 75,
+    "net_ceiling": 60,
     "scorecard": [
       [
         "Breadth participare (4/4 surse valide)",
         1,
-        "Constructiv, selectiv (idx 54.2, min 49.4)"
+        "Constructiv, selectiv (idx 53.5, min 49.4)"
       ],
       [
         "Market timing (distribution days)",
@@ -63,31 +63,41 @@
         "max 8 dist.days, 3/3 sub MM50"
       ],
       [
+        "Confirmare risc (VIX/credit/breadth pret)",
+        -1,
+        "Mixt / neconcludent (VIX 20.8)"
+      ],
+      [
         "New Highs - New Lows",
         1,
-        "74\u25b2/6\u25bc (net +68), sanatos (NH domina)"
+        "63\u25b2/2\u25bc (net +61), sanatos (NH domina)"
+      ],
+      [
+        "Intermarket / macro",
+        0,
+        "Macro neutru/mixt (VIX term 0.979)"
       ]
     ],
     "reconciliation": [
       "Semnale POZITIVE: Breadth participare (4/4 surse valide), New Highs - New Lows.",
-      "Semnale NEGATIVE: Market timing (distribution days).",
+      "Semnale NEGATIVE: Market timing (distribution days), Confirmare risc (VIX/credit/breadth pret).",
       "Market timing foloseste sesiuni EOD incheiate (mai proaspete ca breadth-ul) - cand semnaleaza vanzare, are prioritate ca avertisment timpuriu.",
       "Conflictul in sine = incertitudine: redu marimea, nu paria puternic intr-o directie."
     ],
     "pos": 2,
-    "neg": 1
+    "neg": 2
   },
   "analysis": {
     "verdict": "Constructiv, selectiv",
     "action": "Regim OK dar nu euforic. Adauga risc selectiv, in nume cu forta relativa.",
     "flags": [],
     "regime": "constructive",
-    "idx_avg": 54.2,
+    "idx_avg": 53.5,
     "min": 49.4,
-    "max": 59.1
+    "max": 58.1
   },
   "detail": {
-    "net_ceiling": 75,
+    "net_ceiling": 60,
     "binder": "S&P500",
     "ceilings": [
       [
@@ -108,21 +118,22 @@
       ]
     ],
     "diagnosis": [
-      "Large-cap: S&P 49.4 (Neutral), Nasdaq 59.1 \u2014 sustin indicii. Momentum S&P (8/200MA): 50.",
+      "Large-cap: S&P 49.4 (Neutral), Nasdaq 57.5 \u2014 sustin indicii. Momentum S&P (8/200MA): 50.",
       "Piata larga (~2800 actiuni): 58.1 (Neutral). Veriga slaba: Market Breadth (Overall) (41).",
-      "Small-caps (R2K* 50.8): in linie cu large-cap. Veriga slaba: trend MM200 (47.9%)."
+      "Small-caps (R2K* 49.8): in linie cu large-cap. Veriga slaba: trend MM200 (46.9%).",
+      "Dinamica: Nasdaq* in scadere (-1.6)."
     ],
     "playbook": [
-      "Plafonul combinat de context este 75%; riscul personal se verifica separat in Guardrail.",
+      "Plafonul combinat de context este 60%; riscul personal se verifica separat in Guardrail.",
       "Prioritizeaza calitate + forta relativa; intra la retrageri, nu in extensie.",
       "Stopuri normale-spre-stranse."
     ],
     "watch": [
       "Broad2800: peste 45 \u2192 iese din 'ingust'; sub 30 \u2192 risk-off.",
-      "R2K*: sub 46.2 \u2192 small-caps lag (risk-off incipient); peste 62.2 \u2192 conduc.",
+      "R2K*: sub 45.5 \u2192 small-caps lag (risk-off incipient); peste 61.5 \u2192 conduc.",
       "S&P: peste 60 \u2192 Healthy (upgrade); sub 40 \u2192 Weakening (alerta)."
     ],
-    "confidence": "MEDIE (spread 9.7 \u2014 divergenta moderata)",
-    "spread": 9.7
+    "confidence": "MEDIE (spread 8.7 \u2014 divergenta moderata)",
+    "spread": 8.7
   }
 }
