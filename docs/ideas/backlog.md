@@ -3476,6 +3476,12 @@ pe un singur chart.
 | I-796 | Piața azi: stopul sugerat folosește ultima sesiune închisă, nu bara deschisă de la Yahoo | today/stop.js, lib/stop-setter.js | S | P2 | propus | ideation | 2026-11-01 |
 | I-797 | Piața azi: oprirea spune că butonul de stop rămâne protecție și tot trimite; cumpărările noi stau blocate | today/stop.js, today/view.js | S | P2 | propus | ideation | 2026-11-01 |
 | I-798 | Piața azi: ștampila surselor spune vârsta cache-ului de 10 minute, nu ora revenirii funcției | today/view.js, lib/today-dashboard.js | S | P3 | propus | ideation | 2026-11-01 |
+| I-799 | RF ca lentilă în Meta-Confluence (connector RF Dir Code, etichetă, nu vot) | pine-scripts/META-CONFLUENCE-SUITE/, RANGE-FILTER/Range_Filter_BS_v2_1.pine | M | P2 | propus | ideation | 2026-11-04 |
+| I-800 | Proba RF pe 15m cu presetul Intraday (100 / 3,0) | pine-scripts/RANGE-FILTER/_proba-rf-2026-11-04/masoara_rf.py | S | P2 | propus | ideation | 2026-11-04 |
+| I-801 | Poarta de compilare Pine deblocată o dată (logare) + în garda_pine | pine-scripts/_unelte/compileaza_in_tv.py, SETUPS/garda_pine.py | S | P1 | propus | ideation | 2026-11-04 |
+| I-802 | Poarta „fără semnale RF în consolidare”: proba prospectivă + toggle | pine-scripts/RANGE-FILTER/_JURNAL_TRENDER.md, Range_Filter_BS_v2_1.pine | M | P3 | propus | ideation | 2026-11-04 |
+| I-803 | Direcția RF ca filtru de trend în Crypto Radar (coloană + poartă pe bot) | crypto/lib/, scanner, tablou | M | P3 | propus | ideation | 2026-11-04 |
+| I-804 | Jurnalul semnalelor RF pe chart (R la cost pe fiecare BUY / SELL) | pine-scripts/RANGE-FILTER/Range_Filter_BS_v2_1.pine | M | P3 | propus | ideation | 2026-11-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -7696,3 +7702,51 @@ Context: cerut de Marius („audit sever din toate direcțiile pe radar”). Aco
 - **Impact:** Nu tratezi o citire de zece minute ca pe „chiar acum”.
 - **Riscuri/dependențe:** Ora contului rămâne ceasul ei. Nu le amesteca.
 - **Fișiere atinse:** today/view.js, lib/today-dashboard.js
+
+
+## 04.11.2026 — Range Filter B&S v2.1 (ideation: Tool, Pine `pine-scripts\RANGE-FILTER\`)
+
+Lentile — Trader: RF și Trender n-au avantaj dovedit (18 teste, nimic), deci valoarea e de context (direcție + regim), nu de intrare; ce lipsește e legătura cu restul suitei. Designer: dash-ul are 14 rânduri cu detalii — mult pentru un colorant de trend; compactul ține. Inginer: motorul Python (`rf_motor.py`, `trender_motor.py`) e deja portat, reutilizabil în Radar fără Pine. Automator: nimic manual azi; JSON-ul `RFBS` poate intra în releu.
+Verificat pe disc: niciun Range Filter în `crypto` (grep „range filter / rangeFilter / rng_filt” = 0), nici în `premarket_scanner`.
+
+#### I-799 · RF ca lentilă în Meta-Confluence · [M] · P2 · propus
+- **Problema/golul:** RF e un filtru de direcție curat (2,45 semnale / 100 bare, whipsaw 1 %), dar trăiește singur pe chart; Meta-Confluence votează fără el.
+- **Soluția:** Varianta „lentilă” a scriptului în `META-CONFLUENCE-SUITE\`: connector `RF Dir Code` (−1 / 0 / +1) cu `display.none` (excepția META din pine.md §9), citit prin `input.source` în Meta ca etichetă [RF↑] / [RF↓], nu în vot, până nu există dovadă.
+- **Impact:** Direcția RF apare în citirea Meta fără încă un chart; se poate proba apoi dacă ajută votul.
+- **Riscuri/dependențe:** Ordinea plot-urilor Meta; proba R3 a arătat 48 % la 10 bare — etichetă, nu vot.
+- **Fișiere atinse:** pine-scripts/META-CONFLUENCE-SUITE/ (fișier nou), pine-scripts/RANGE-FILTER/Range_Filter_BS_v2_1.pine
+
+#### I-800 · Proba RF pe 15m cu presetul Intraday (100 / 3,0) · [S] · P2 · propus
+- **Problema/golul:** Presetul Intraday vine din varianta „5 min” a autorului, dar proba a fost doar pe 1h și 4h; pe scalp e neprobat.
+- **Soluția:** `masoara_rf.py` cu 15m (90 de zile, 21 de perechi), aceleași reguli R1–R6 din `_JURNAL_RF.md`, verdict pe zile; cifrele intră în tooltip-ul presetului.
+- **Impact:** Știi dacă presetul Intraday e de folosit sau de scos înainte să-l folosești pe 5m / 15m.
+- **Riscuri/dependențe:** Cost 0,13 % pe 15m mănâncă aproape sigur semnalul; rezultatul probabil „nu plătește” — tot e de știut.
+- **Fișiere atinse:** pine-scripts/RANGE-FILTER/_proba-rf-2026-11-04/masoara_rf.py, date_binance.py
+
+#### I-801 · Poarta de compilare Pine, deblocată o dată · [S] · P1 · propus
+- **Problema/golul:** `compileaza_in_tv.py` cere sesiune TradingView logată; de la IronRod v6.4 încoace fiecare .pine pleacă NECOMPILAT (RF v2.0, v2.1, Confluence 2.0, SLEV 2.1 ...).
+- **Soluția:** EL rulează o dată `--pastreaza`, se loghează în profilul uneltei (`AppData\Local\pine-compilare-chrome`), închide; apoi `garda_pine.py` cheamă poarta înainte de orice „gata” și scrie COMPILAT / EROARE în README.
+- **Impact:** Dispare cel mai des „⏳ EL: lipește și vezi dacă compilează”.
+- **Riscuri/dependențe:** Selectorii TV se pot schimba; unealta spune NU GASESC, nu minte.
+- **Fișiere atinse:** pine-scripts/_unelte/compileaza_in_tv.py, pine-scripts/SETUPS/garda_pine.py
+
+#### I-802 · Poarta „fără semnale RF în consolidare” — proba prospectivă + toggle · [M] · P3 · propus
+- **Problema/golul:** Pe 4h, semnalele RF date în consolidarea Trender au fost −2,28 % față de +0,07 % afară (nedovedit, 258 vs 1.205 de semnale). E singura observație din probă care ar putea deveni un filtru.
+- **Soluția:** Regula scrisă acum în jurnal, probată pe date NOI (după 04.11, în `PROBA-SAPTAMANALA-CRYPTO`); dacă trece, toggle „Fără GO în consolidare” (implicit OFF) care mută TRIGGER pe ASTEAPTA, fără să atingă semnalul / alertele.
+- **Impact:** Un filtru de regim probat prospectiv, nu post-hoc.
+- **Riscuri/dependențe:** Observație post-hoc (regula „nu se întoarce”); consolidarea = 57 % din bare ⇒ filtrul ar tăia peste jumătate din semnale.
+- **Fișiere atinse:** pine-scripts/RANGE-FILTER/_proba-rf-2026-11-04/_JURNAL_TRENDER.md, Range_Filter_BS_v2_1.pine
+
+#### I-803 · Direcția RF ca filtru de trend în Crypto Radar (coloană + poartă pe bot) · [M] · P3 · propus
+- **Problema/golul:** Botul grid pornește după fișă și Busolă; nu există un filtru de direcție simplu, cu puține flip-uri, pe lista de monede. Niciun Range Filter în `crypto` (verificat).
+- **Soluția:** `rf_motor.py` portat în JS (`lib/`), direcția + barele de la flip ca o coloană în scanner și ca etichetă în Tabloul botului; fără permisiune nouă până la probă.
+- **Impact:** Aceeași direcție pe telefon și pe chart, fără TradingView.
+- **Riscuri/dependențe:** Regula „o singură aplicație”: intră în Crypto Radar, nu unealtă separată; copia de lucru pe sesiune.
+- **Fișiere atinse:** crypto/lib/ (fișier nou), crypto/scanner (coloană), crypto/tablou
+
+#### I-804 · Jurnalul semnalelor RF pe chart (rezultatul fiecărui BUY / SELL la 10 bare, în R la cost) · [M] · P3 · propus
+- **Problema/golul:** DOVADA dă un procent agregat; nu vezi care semnale au mers și care nu, nici câștigul în R față de cost.
+- **Soluția:** Ca la TTM v2.4: fiecare semnal închis la 10 bare primește o etichetă mică (+0,8R / −0,4R) și un rând „ultimele 5” în detalii; costul din preset.
+- **Impact:** Citești pe chart de ce DOVADA e 48 %, nu doar că e.
+- **Riscuri/dependențe:** Limita de etichete; nu schimbă semnalul.
+- **Fișiere atinse:** pine-scripts/RANGE-FILTER/Range_Filter_BS_v2_1.pine
