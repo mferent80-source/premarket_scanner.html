@@ -3478,7 +3478,7 @@ pe un singur chart.
 | I-798 | Piața azi: ștampila surselor spune vârsta cache-ului de 10 minute, nu ora revenirii funcției | today/view.js, lib/today-dashboard.js | S | P3 | propus | ideation | 2026-11-01 |
 | I-799 | RF ca lentilă în Meta-Confluence (connector RF Dir Code, etichetă, nu vot) | pine-scripts/META-CONFLUENCE-SUITE/, RANGE-FILTER/Range_Filter_BS_v2_1.pine | M | P2 | făcut | ideation | 2026-11-04 → 2026-11-04 |
 | I-800 | Proba RF pe 15m cu presetul Intraday (100 / 3,0) | pine-scripts/RANGE-FILTER/_proba-rf-2026-11-04/masoara_rf.py | S | P2 | făcut | ideation | 2026-11-04 → 2026-11-04 |
-| I-801 | Poarta de compilare Pine deblocată o dată (logare) + în garda_pine | pine-scripts/_unelte/compileaza_in_tv.py, SETUPS/garda_pine.py | S | P1 | în lucru | ideation | 2026-11-04 → 2026-11-04 |
+| I-801 | Poarta de compilare Pine deblocată o dată (logare) + în garda_pine | pine-scripts/_unelte/compileaza_in_tv.py, SETUPS/garda_pine.py | S | P1 | făcut | ideation | 2026-11-04 → 2026-11-04 |
 | I-802 | Poarta „fără semnale RF în consolidare”: proba prospectivă + toggle | pine-scripts/RANGE-FILTER/_JURNAL_TRENDER.md, Range_Filter_BS_v2_1.pine | M | P3 | făcut | ideation | 2026-11-04 → 2026-11-04 |
 | I-803 | Direcția RF ca filtru de trend în Crypto Radar (coloană + poartă pe bot) | crypto/lib/, scanner, tablou | M | P3 | făcut | ideation | 2026-11-04 → 2026-11-04 |
 | I-804 | Jurnalul semnalelor RF pe chart (R la cost pe fiecare BUY / SELL) | pine-scripts/RANGE-FILTER/Range_Filter_BS_v2_1.pine | M | P3 | făcut | ideation | 2026-11-04 → 2026-11-04 |
@@ -7725,13 +7725,13 @@ Verificat pe disc: niciun Range Filter în `crypto` (grep „range filter / rang
 - **Fișiere atinse:** pine-scripts/RANGE-FILTER/_proba-rf-2026-11-04/masoara_rf.py, date_binance.py
 - **Stare 04.11.2026:** făcut — MASURATOARE-RF-2026-11-04-15m.md: nimic dovedit, Intraday −0,10 % net
 
-#### I-801 · Poarta de compilare Pine, deblocată o dată · [S] · P1 · în lucru
+#### I-801 · Poarta de compilare Pine, deblocată o dată · [S] · P1 · făcut
 - **Problema/golul:** `compileaza_in_tv.py` cere sesiune TradingView logată; de la IronRod v6.4 încoace fiecare .pine pleacă NECOMPILAT (RF v2.0, v2.1, Confluence 2.0, SLEV 2.1 ...).
 - **Soluția:** EL rulează o dată `--pastreaza`, se loghează în profilul uneltei (`AppData\Local\pine-compilare-chrome`), închide; apoi `garda_pine.py` cheamă poarta înainte de orice „gata” și scrie COMPILAT / EROARE în README.
 - **Impact:** Dispare cel mai des „⏳ EL: lipește și vezi dacă compilează”.
 - **Riscuri/dependențe:** Selectorii TV se pot schimba; unealta spune NU GASESC, nu minte.
 - **Fișiere atinse:** pine-scripts/_unelte/compileaza_in_tv.py, pine-scripts/SETUPS/garda_pine.py
-- **Stare 04.11.2026:** în lucru — poarta pornită cu --pastreaza pentru logarea LUI; garda_pine o cheamă după logare
+- **Stare 04.11.2026 21:28:** făcut — el s-a logat în Chrome-ul porții; v2.4 și RF Lens compilate prin poartă („Compiled. Added to chart.”); de reparat în unealtă: consola = dovadă când legenda nu se găsește
 
 #### I-802 · Poarta „fără semnale RF în consolidare” — proba prospectivă + toggle · [M] · P3 · făcut
 - **Problema/golul:** Pe 4h, semnalele RF date în consolidarea Trender au fost −2,28 % față de +0,07 % afară (nedovedit, 258 vs 1.205 de semnale). E singura observație din probă care ar putea deveni un filtru.
