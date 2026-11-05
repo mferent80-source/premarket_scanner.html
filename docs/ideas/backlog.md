@@ -3482,12 +3482,12 @@ pe un singur chart.
 | I-802 | Poarta „fără semnale RF în consolidare”: proba prospectivă + toggle | pine-scripts/RANGE-FILTER/_JURNAL_TRENDER.md, Range_Filter_BS_v2_1.pine | M | P3 | făcut | ideation | 2026-11-04 → 2026-11-04 |
 | I-803 | Direcția RF ca filtru de trend în Crypto Radar (coloană + poartă pe bot) | crypto/lib/, scanner, tablou | M | P3 | făcut | ideation | 2026-11-04 → 2026-11-04 |
 | I-804 | Jurnalul semnalelor RF pe chart (R la cost pe fiecare BUY / SELL) | pine-scripts/RANGE-FILTER/Range_Filter_BS_v2_1.pine | M | P3 | făcut | ideation | 2026-11-04 → 2026-11-04 |
-| I-805 | Triajul capcanei „ta.* după and/or/?” (Pine v6 leneș) pe toată suita + garda în garda_pine | pine-scripts/_unelte/scan_and_lenes.py, SETUPS/garda_pine.py, scripturile semnalate | M | P1 | propus | ideation | 2026-11-05 |
-| I-806 | R la cost în cartela Radarului (jurnalul I-804 și în Crypto Radar: mediana R, ultimele 5, după cost) | crypto/public/lib/range-filter.js, range-filter-ecran.js | S | P2 | propus | ideation | 2026-11-05 |
-| I-807 | Căsuța „Analizează o monedă”: simbolurile Pionex ca sugestii + „nu există” fără cereri + ultimele 5 căutări | crypto/public/lib/range-filter-ecran.js, app.js (pionex_symbols) | S | P3 | propus | ideation | 2026-11-05 |
-| I-808 | Un singur cache de lumânări pe (monedă, interval) pentru Range Filter, Tablou și Trade-ul zilei, în lib/ | crypto/public/lib/ (nou), range-filter-ecran.js, trade-zilei-ecran.js, app.js | S | P3 | propus | ideation | 2026-11-05 |
-| I-809 | DOVADA pe fereastră în Pine (ultimele 50 de cazuri lângă toată istoria) ca semn de drift | pine-scripts/RANGE-FILTER/Range_Filter_BS_v2_5.pine | S | P3 | propus | ideation | 2026-11-05 |
-| I-810 | Flip-ul RF contra botului: o linie în rezumatul de dimineață al colectorului (info, „nedovedit”, fără alertă separată) | crypto/scripts/colector.mjs, public/lib/range-filter.js | M | P4 | propus | ideation | 2026-11-05 |
+| I-805 | Triajul capcanei „ta.* după and/or/?” (Pine v6 leneș) pe toată suita + garda în garda_pine | pine-scripts/_unelte/scan_and_lenes.py, SETUPS/garda_pine.py, scripturile semnalate | M | P1 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-806 | R la cost în cartela Radarului (jurnalul I-804 și în Crypto Radar: mediana R, ultimele 5, după cost) | crypto/public/lib/range-filter.js, range-filter-ecran.js | S | P2 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-807 | Căsuța „Analizează o monedă”: simbolurile Pionex ca sugestii + „nu există” fără cereri + ultimele 5 căutări | crypto/public/lib/range-filter-ecran.js, app.js (pionex_symbols) | S | P3 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-808 | Un singur cache de lumânări pe (monedă, interval) pentru Range Filter, Tablou și Trade-ul zilei, în lib/ | crypto/public/lib/ (nou), range-filter-ecran.js, trade-zilei-ecran.js, app.js | S | P3 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-809 | DOVADA pe fereastră în Pine (ultimele 50 de cazuri lângă toată istoria) ca semn de drift | pine-scripts/RANGE-FILTER/Range_Filter_BS_v2_5.pine | S | P3 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-810 | Flip-ul RF contra botului: o linie în rezumatul de dimineață al colectorului (info, „nedovedit”, fără alertă separată) | crypto/scripts/colector.mjs, public/lib/range-filter.js | M | P4 | făcut | ideation | 2026-11-05 → 2026-11-05 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -7766,42 +7766,48 @@ Verificat pe disc: niciun Range Filter în `crypto` (grep „range filter / rang
 ## 05.11.2026 — Range Filter re-auditat (ideation: Tool — Pine `RANGE-FILTER\Range_Filter_BS_v2_5.pine` + Crypto Radar v100.302)
 Lentile — Trader: pagina și dash-ul spun acum cinstit „direcția, fără cost”, dar după cost nu vezi nimic pe Radar; DOVADA din TV (toată istoria) și din Radar (10–20 de cazuri) au aceeași etichetă, altă putere. Designer: căsuța nouă cere simbolul „pe ghicite” (două cereri ca să afli că nu există). Inginer: bug-ul aprinderii (ta.crossover în `and` leneș) a trecut de 3 versiuni, de compilator (fără avertisment, probat) și de un audit — aceeași formă apare în 88 de scripturi v6; lumânările 1h × 500 se cer separat de trei pagini. Automator: flip-ul RF contra unui bot îl vezi doar dacă deschizi pagina. Excluse: I-799…I-804 (făcute 04.11). Ideile de semnal sunt ipoteze: se judecă prospectiv, pe zile, nu pe datele care le-au sugerat.
 
-#### I-805 · Triajul capcanei „ta.* după and/or/?” pe toată suita Pine + garda în garda_pine · [M] · P1 · propus
+#### I-805 · Triajul capcanei „ta.* după and/or/?” pe toată suita Pine + garda în garda_pine · [M] · P1 · făcut
+- **Făcut 05.11.2026:** triaj pe 43 de familii (137 de apariții: 58 BUG, 79 inofensive) — `_unelte\TRIAJ-AND-LENES-2026-11-05.md`; 22 de familii reparate în 24 de fișiere noi, toate compilate (exit 0 + titlul confirmat pe chart); regula 4b în `SETUPS\garda_pine.py` (+ continuări și funcții proprii, 50 de excepții pe textul liniei, căi ca argument; roșie la stricare); retenția: 13 versiuni vechi scoase după copie identică pe E:.
 - **Problema/golul:** În Pine v6 `and` / `or` / ternarul sunt leneșe: o funcție cu istorie (crossover, lowest, ema, change…) pusă după un termen fals nu rulează pe bara aia, iar „bara de dinainte” din ea devine ultima bară evaluată. Așa a fost greșită aprinderea din Range Filter v2.2–v2.4; TradingView NU dă avertisment (v2.4 compilat „fără avertismente”, 05.11). `scan_and_lenes.py` găsește aceeași formă în 88 de scripturi v6 (`RANGE-FILTER\_proba-rf-2026-11-04\SCAN-AND-LENES-SUITA-2026-11-05.txt`: whale_detector v4.x crossover/crossunder, PumpDump_v2, market-health ta.rising/falling, ZLHMA ta.hma, Smart_Money_Toolkit…).
 - **Soluția:** Triaj pe fiecare rând semnalat: selector pe un INPUT constant (aceeași ramură pe toate barele ⇒ inofensiv, se notează excepția) sau condiție pe serie (bug ⇒ funcția scoasă globală, versiune nouă, poarta de compilare). Regula 4b din `verifica_static.py` intră în `garda_pine.py`, ca orice .pine nou să pice înainte de „gata”.
 - **Impact:** Semnale / alerte care azi pot fi greșite în tăcere pe scripturi pe care le folosești (mai ales cele cu crossover în condiții).
 - **Riscuri/dependențe:** Fals-pozitive multe (selectoarele pe input); triajul cere citire rând cu rând, nu înlocuire în masă. Retenția de 3 versiuni / familie: se repară doar ultima.
 - **Fișiere atinse:** pine-scripts/_unelte/scan_and_lenes.py, pine-scripts/SETUPS/garda_pine.py, scripturile din lista de scanare
 
-#### I-806 · R la cost în cartela Radarului (jurnalul I-804 și în Crypto Radar) · [S] · P2 · propus
+#### I-806 · R la cost în cartela Radarului (jurnalul I-804 și în Crypto Radar) · [S] · P2 · făcut
+- **Făcut 05.11.2026:** Crypto Radar v100.304 `d1b95dc` — `RangeFilter.citire().dupaCost` (regula Pine v2.5, paritate cu rf_motor.py) + rândul „DUPĂ COST” pe cartelă (ton neutru, „puține cazuri” sub 20).
 - **Problema/golul:** Pine v2.5 arată rezultatul fiecărui semnal la 10 bare în R după cost (mediana, ultimele 5, fără semnalele cu stopul sub 2× cost); cartela din Radar arată doar DOVADA pe direcție, fără cost. Exact întrebarea „merită după comision pe moneda asta?” nu are răspuns pe pagina pe care o folosești lângă boți.
 - **Soluția:** `RangeFilter.citire` întoarce și jurnalul R (aceeași regulă ca Pine v2.5: R = distanța close → filtru la semnal, cost 0,13 % scăzut, ținut 10 bare, fără stop, în doar-long doar BUY); cartela primește un rând „DUPĂ COST” (mediana R + ultimele 5), cu „puține cazuri” sub 20. Paritate JS = Python în probă.
 - **Impact:** Vezi pe moneda ta dacă semnalul acoperă costul, nu doar dacă ghicește direcția.
 - **Riscuri/dependențe:** 10–20 de cazuri pe monedă ⇒ cifra e zgomot fără „puține cazuri” la vedere; nu devine poartă de intrare (nimic dovedit).
 - **Fișiere atinse:** crypto/public/lib/range-filter.js, crypto/public/lib/range-filter-ecran.js, scripts/proba-v100302+
 
-#### I-807 · Căsuța „Analizează o monedă”: simbolurile Pionex ca sugestii + ultimele 5 căutări · [S] · P3 · propus
+#### I-807 · Căsuța „Analizează o monedă”: simbolurile Pionex ca sugestii + ultimele 5 căutări · [S] · P3 · făcut
+- **Făcut 05.11.2026:** v100.304 — `<datalist>` din listele Pionex (perp TRADING + spot activ, cerute la prima tastare, expiră după o oră), „n-are” fără cereri, baseCurrency → simbol, ultimele 5 căutări ca butoane în zona lor.
 - **Problema/golul:** Căsuța din v100.302 află că o monedă nu există abia după două cereri spre Pionex (perp, apoi spot); pe telefon tastezi simbolul întreg, fără sugestii.
 - **Soluția:** Lista `pionex_symbols` (aplicația o cere deja la pornire) devine `<datalist>` cu sugestii și verificare locală („Pionex n-are XYZ” fără nicio cerere); ultimele 5 monede căutate ca butoane mici sub căsuță (doar în browserul tău).
 - **Impact:** Mai puține cereri spre Pionex (care blochează IP-ul la prea multe), mai puține greșeli de tastare.
 - **Riscuri/dependențe:** Lista de simboluri poate lipsi la pornire ⇒ căsuța merge ca acum (cererile), fără să blocheze.
 - **Fișiere atinse:** crypto/public/lib/range-filter-ecran.js, crypto/public/app.js (unde se citește pionex_symbols)
 
-#### I-808 · Un singur cache de lumânări pe (monedă, interval) în lib/ · [S] · P3 · propus
+#### I-808 · Un singur cache de lumânări pe (monedă, interval) în lib/ · [S] · P3 · făcut
+- **Făcut 05.11.2026:** v100.304 — `public/lib/lumanari.js` (cache comun până la închiderea barei, cererile deja plecate împărțite) pentru Range Filter, Tablou și Trade-ul zilei; pe VPS: Trade-ul zilei după Range Filter = 0 cereri noi pe 20 de monede.
 - **Problema/golul:** Range Filter, rândul din Tablou și Trade-ul zilei cer aceleași lumânări 1h × 500 de la Pionex, fiecare cu cache-ul lui; v100.302 a legat doar pagina RF de Tablou (`rfCacheIa` / `rfCachePune`).
 - **Soluția:** Un modul mic în `public/lib/` care ține lumânările pe (simbol, interval) până la închiderea barei următoare (`time` = ora de deschidere, probat 05.11), folosit de toate trei.
 - **Impact:** Până la 30 de cereri mai puțin la o deschidere de pagini în șir; un singur loc de corectat când se schimbă contractul Pionex.
 - **Riscuri/dependențe:** Atinge Trade-ul zilei (proba v100.297–299) ⇒ probele lui rulate; memorie în browser (30 × 1.000 de bare, mic).
 - **Fișiere atinse:** crypto/public/lib/ (nou), range-filter-ecran.js, trade-zilei-ecran.js, app.js (tbRf*)
 
-#### I-809 · DOVADA pe fereastră în Pine (ultimele 50 de cazuri lângă toată istoria) · [S] · P3 · propus
+#### I-809 · DOVADA pe fereastră în Pine (ultimele 50 de cazuri lângă toată istoria) · [S] · P3 · făcut
+- **Făcut 05.11.2026:** `RANGE-FILTER\Range_Filter_BS_v2_6.pine` — DOVADA și pe ultimele N cazuri (implicit 50, input), „mai slab / mai bun în ultima vreme” pe marginile Wilson; compilat prin poarta CDP cu titlul confirmat pe chart.
 - **Problema/golul:** În TradingView DOVADA se calculează pe toată istoria chartului (sute de cazuri), în Radar pe 10–20; o direcție care a mers acum doi ani și nu mai merge azi arată tot bine pe chart.
 - **Soluția:** Al doilea număr în rândul DOVADA: ultimele 50 de cazuri, cu marginea Wilson proprie și „puține cazuri” sub 20; diferența mare dintre cele două se spune („mai slab în ultima vreme”).
 - **Impact:** Semn de drift pe chart, fără o probă separată; aceeași putere ca fereastra din Radar.
 - **Riscuri/dependențe:** Două cifre pe un rând în Dash îngust ⇒ una în tooltip; fereastra de 50 e ipoteză, nu prag dovedit.
 - **Fișiere atinse:** pine-scripts/RANGE-FILTER/Range_Filter_BS_v2_5.pine (+ README)
 
-#### I-810 · Flip-ul RF contra botului: o linie în rezumatul de dimineață al colectorului · [M] · P4 · propus
+#### I-810 · Flip-ul RF contra botului: o linie în rezumatul de dimineață al colectorului · [M] · P4 · făcut
+- **Făcut 05.11.2026:** colector v101.164 — linia „📏 Range Filter 1h, nedovedit, doar de privit (nu de închis botul): …” în rezumatul de dimineață (`scripts/lib/rf-dimineata.mjs`; grupare pe monedă, oprire la refuzul Pionex, necititele spuse).
 - **Problema/golul:** „Contra boților tăi” se vede doar dacă deschizi pagina Range Filter sau Tabloul botului.
 - **Soluția:** Colectorul (VPS) adaugă în rezumatul de dimineață o singură linie: boții al căror RF 1h s-a întors contra direcției lor de ieri, cu „RF nedovedit: de privit, nu de închis botul”; fără alertă separată, fără ton de alarmă.
 - **Impact:** Afli fără să deschizi aplicația; contextul rămâne cinstit.
