@@ -3201,8 +3201,8 @@ pe un singur chart.
 | I-493 | Busola: miscarea din 3 surse intr-o probabilitate (galeata + spread DVOL + bugetul zilei ADR), intra doar daca bate fiecare sursa singura pe date noi | busola/probe/, motor/optiuni.ts, rangeBudget.ts | L | P2 | facut 2026-10-02 (masurat: NU intra - DVOL singur e mai bun) | ideation | 2026-10-02 |
 | I-494 | Busola: rezumatul de dimineata pe Discord - ce a zis ieri, ce s-a adeverit, fata de martor | busola/cron/masoara.ts, cron/discord.ts | S | P3 | facut 2026-10-02 | ideation | 2026-10-02 |
 | I-495 | Busola: pe BTC/ETH, piata de optiuni INTAI - DVOL singur a batut galeata si combinatia (I-493); de probat la nivel de verdict, pe date noi | busola/src/motor/optiuni.ts, probe/ | M | P1 | propus | ideation | 2026-10-02 |
-| I-496 | Busola masoara si monedele BOTILOR (futures PERP Pionex), nu doar topul spot - JTO & co. lipsesc azi din rezumatul pentru Radar | busola/cron/pionex.ts, cron/masoara.ts, motor/rezumatRadar.ts | M | P2 | propus | ideation | 2026-10-02 |
-| I-497 | Discord: moneda unui BOT DESCHIS trece in „mai agitata ca de obicei” pe 4h - GATA LINISTEA tintit pe botii care chiar ruleaza | crypto/scripts/colector.mjs, public/lib/busola.js | S | P1 | propus | ideation | 2026-10-02 |
+| I-496 | Busola masoara si monedele BOTILOR (futures PERP Pionex), nu doar topul spot - JTO & co. lipsesc azi din rezumatul pentru Radar | busola/cron/pionex.ts, cron/masoara.ts, motor/rezumatRadar.ts | M | P2 | făcut (verificat pe disc 05.11.2026: blocul `perp` din rezumat, 143 de futures Pionex, Busola 1.36+) | ideation | 2026-10-02 |
+| I-497 | Discord: moneda unui BOT DESCHIS trece in „mai agitata ca de obicei” pe 4h - GATA LINISTEA tintit pe botii care chiar ruleaza | crypto/scripts/colector.mjs, public/lib/busola.js | S | P1 | făcut (verificat pe disc 05.11.2026: paza boților, `mesaje-colector` „mai agitată”, v101.59) | ideation | 2026-10-02 |
 | I-498 | Testul tau personal: botii tai, dupa starea Busolei la pornire - pe „mai agitat” vs „mai calm”, cat ai castigat/pierdut de fapt | crypto/public/lib/obiceiuri.js, busola/cron/stare/jurnal.json | M | P1 | propus | ideation | 2026-10-02 |
 | I-499 | Harta Busolei cu pozitionarea: unde e multimea ingramadita / captiva acum, pe toate monedele (Crowding + POSIT pe un rand) | busola/src/ui/Harta.tsx, motor/crowding.ts, motor/posit.ts | M | P3 | propus | ideation | 2026-10-02 |
 | I-500 | Retea neuronala (TensorFlow.js) pe miscare — MASURAT 02.10 de doua ori: NU intra (1h nu trece; 4h fara galeata nu trece in bani; pe 22 de monede nevazute gridul la „calm” al retelei pierde MAI MULT decat la LINISTE) | busola/probe (proba in scratchpad\retea) | M | P2 | masurat-nu | user | 2026-10-02 |
@@ -3214,14 +3214,14 @@ pe un singur chart.
 | I-506 | „NU PORNI” dovedit sau doar media? Diferenta miscare − oricand cu IC, pe fiecare interval (azi s-a testat doar liniste − oricand) | busola/probe/grid-pe-date-noi.ts, probe/scrie-grid-masurat.ts, src/motor/filtruGrid.ts, src/motor/gridSpus.ts | S | P1 | propus | ideation | 2026-10-03 |
 | I-507 | „Ce scrii in Pionex”: fisa de grid tradusa in campurile aplicatiei (jos, sus, grile = N+1, aritmetic), cu buton de copiat | busola/src/motor/grid.ts, src/motor/pePamant.ts, src/ui/FiltruGrid.tsx, src/ui/FereastraMiscare.tsx | S | P2 | propus | ideation | 2026-10-03 |
 | I-508 | Test „inainte” lunar al latimii (I-505) pe barele de dupa 02.10.2026 + data masurarii pe fila Grid | busola/probe/latime-grid.ts, src/motor/masurat.ts, src/ui/FiltruGrid.tsx | M | P2 | propus | ideation | 2026-10-03 |
-| I-509 | Paznicul Busolei: mesaj pe Discord cand cron-ul de pe PC tace (rezumat mai vechi de 5 h — PC oprit la pana de curent) | busola/cron/worker.ts, wrangler.jsonc | M | P3 | propus | ideation | 2026-10-03 |
+| I-509 | Paznicul Busolei: mesaj pe Discord cand cron-ul de pe PC tace (rezumat mai vechi de 5 h — PC oprit la pana de curent) | busola/cron/worker.ts, wrangler.jsonc | M | P3 | făcut (verificat pe disc 05.11.2026: `notaVeche` v100.207 / v101.123; din 1.88 + paznicul din Worker) | ideation | 2026-10-03 |
 | I-510 | Latimea gridului si pe 1z, cu aceeasi regula ca pe 15m/1h/4h | busola/probe/latime-grid.ts, src/motor/grid.ts | S | P4 | propus | ideation | 2026-10-03 |
 | I-511 | Gridul Busolei masurat si cu comisionul de FUTURES masurat de Radar pe umplerile tale (0,02% maker), nu doar cu 0,05% de spot | busola/probe/grid-pe-date-noi.ts, src/motor/grid.ts, src/motor/gridMasurat.ts, src/motor/rezumatRadar.ts; crypto/public/lib/grid-calcul.js (sursa) | M | P1 | propus | ideation | 2026-10-03 |
 | I-512 | Bilantul pazei pe date noi: dupa fiecare „mai agitat” pe futures, gridul chiar a pierdut mai mult? (toate monedele, nu doar botii) | busola/cron/masoara.ts, src/motor/perpPionex.ts, src/motor/rezumatRadar.ts, src/ui | M | P1 | propus | ideation | 2026-10-03 |
-| I-513 | Starea Busolei pe fiecare bot deschis: in tabloul botului din Radar si in rezumatul de dimineata al colectorului | crypto/public/lib/tablou-bot.js, public/lib/busola.js, scripts/colector.mjs | S | P2 | propus | ideation | 2026-10-03 |
-| I-514 | Latimea masurata de Busola (+4,2/−3,9 ATR pe 4h) si „Ce scrii in Pionex” langa propunerea Radarului in fisa de grid | busola/src/motor/rezumatRadar.ts, src/motor/grid.ts; crypto/public/lib/busola.js, public/app.js | M | P2 | propus | ideation | 2026-10-03 |
+| I-513 | Starea Busolei pe fiecare bot deschis: in tabloul botului din Radar si in rezumatul de dimineata al colectorului | crypto/public/lib/tablou-bot.js, public/lib/busola.js, scripts/colector.mjs | S | P2 | făcut (verificat pe disc 05.11.2026: eticheta în Tablou + `liniaBoti` dimineața, v100.90) | ideation | 2026-10-03 |
+| I-514 | Latimea masurata de Busola (+4,2/−3,9 ATR pe 4h) si „Ce scrii in Pionex” langa propunerea Radarului in fisa de grid | busola/src/motor/rezumatRadar.ts, src/motor/grid.ts; crypto/public/lib/busola.js, public/app.js | M | P2 | făcut (verificat pe disc 05.11.2026: „Intervalul Busolei (4h)” în fișă, v100.90) | ideation | 2026-10-03 |
 | I-515 | Reteaua Radarului sub arbitrul Busolei: predictiile ei (atinge-24, liniste) notate in jurnalul Busolei si judecate fata de martor | crypto/public/lib/retea.js, scripts/colector.mjs; busola/cron/masoara.ts, src/motor/bilantVerdict.ts | M | P3 | propus | ideation | 2026-10-03 |
-| I-516 | Contractul rezumatului cu versiune si un exemplu comun, verificat in ambele aplicatii | busola/src/motor/rezumatRadar.ts, probe/; crypto/public/lib/busola.js, scripts/proba-busola.mjs | S | P3 | propus | ideation | 2026-10-03 |
+| I-516 | Contractul rezumatului cu versiune si un exemplu comun, verificat in ambele aplicatii | busola/src/motor/rezumatRadar.ts, probe/; crypto/public/lib/busola.js, scripts/proba-busola.mjs | S | P3 | făcut (verificat pe disc 05.11.2026: `probe/contract-radar.ts` în poartă, Busola 1.86.0) | ideation | 2026-10-03 |
 | I-517 | Tablou: blocul „Pe zi, la inchidere, ce stim” (14 randuri) spart in 3 cartele - Azi / Daca inchizi / Contextul (Busola, laboratorul, jurnalul) | crypto/public/app.js (tbDeseneazaExtra), public/app.css | M | P2 | propus | ideation | 2026-10-04 |
 | I-518 | O singura cartela „Busola” pe toate paginile (fisa, Tablou, Acasa, dimineata): starea, intervalul masurat, bilantul - un singur producator, nu 4 formate | crypto/public/lib/busola.js, public/app.js, public/lib/acasa-ecran.js, scripts/colector.mjs | M | P2 | propus | ideation | 2026-10-04 |
 | I-519 | Fisa de grid: antet lipicios cu verdictul + 3 motive, cele 8 sectiuni pliate implicit pe telefon (azi 2 ecrane pana la setari) | crypto/public/app.js (renderGrid), public/app.css | M | P2 | propus | ideation | 2026-10-04 |
@@ -3488,19 +3488,19 @@ pe un singur chart.
 | I-808 | Un singur cache de lumânări pe (monedă, interval) pentru Range Filter, Tablou și Trade-ul zilei, în lib/ | crypto/public/lib/ (nou), range-filter-ecran.js, trade-zilei-ecran.js, app.js | S | P3 | făcut | ideation | 2026-11-05 → 2026-11-05 |
 | I-809 | DOVADA pe fereastră în Pine (ultimele 50 de cazuri lângă toată istoria) ca semn de drift | pine-scripts/RANGE-FILTER/Range_Filter_BS_v2_5.pine | S | P3 | făcut | ideation | 2026-11-05 → 2026-11-05 |
 | I-810 | Flip-ul RF contra botului: o linie în rezumatul de dimineață al colectorului (info, „nedovedit”, fără alertă separată) | crypto/scripts/colector.mjs, public/lib/range-filter.js | M | P4 | făcut | ideation | 2026-11-05 → 2026-11-05 |
-| I-811 | Dovada live pe ciorchini: „ține/greșește” doar când testul ține cont că o monedă își păstrează verdictul ore în șir | busola/src/motor/dovadaLive.ts, bilantVerdict.ts, jurnalAcum.ts, probe/dovada-live.ts | M | P1 | propus | ideation | 2026-11-05 |
-| I-812 | Paznicul măsurării în Worker-ul Busolei (independent de VPS): programul real, mesaje care urcă la critic, titluri diferite pe cauză | busola/cron/worker.ts, wrangler.jsonc, src/motor/vechime.ts, crypto/public/lib/busola.js, crypto/scripts/lib/paza-boti.mjs | M | P1 | propus | ideation | 2026-11-05 |
-| I-813 | „LIVE” cinstit pe fila Acum: prețul înghețat la căderea netului se spune, iar banda de sus se aprinde | busola/src/App.tsx, src/ui/Acum.tsx | S | P1 | propus | ideation | 2026-11-05 |
-| I-814 | O singură „stare a monedei” cu opțiunile incluse: aceeași pe Acum, pe capul filelor, în hartă, în rezumat și în Radar (Tablou + pază) | busola/src/motor/rezumatRadar.ts, optiuni.ts, src/ui/Acum.tsx, crypto/public/lib/busola.js, crypto/public/app.js | M | P1 | propus | ideation | 2026-11-05 |
-| I-815 | Costul pe orizont, o singură funcție (comision + funding × ore/8) pentru verdictul principal, bilanțul live, „Acum” și D3; σ realizat în fraza opțiunilor | busola/src/motor/bilantVerdict.ts, jurnalAcum.ts, analiza.ts, optiuni.ts, directie24h.ts | S | P2 | propus | ideation | 2026-11-05 |
-| I-816 | Jurnalul scos din masurat.json: pagina ia ~100 KB pe oră, jurnalul rărit pe 60+ zile la cerere, calibrarea socotită pe PC | busola/cron/masoara.ts, cron/worker.ts, src/ui/Jurnal.tsx, src/motor/calibrareLive.ts | M | P2 | propus | ideation | 2026-11-05 |
-| I-817 | Rularea orară mai scurtă și mai blândă cu Pionex: bilanțul indexat, tabloul 4h în paralel, istoric futures incremental | busola/src/motor/bilantVerdict.ts, jurnalPur.ts, cron/masoara.ts, cron/pionex.ts, cron/istoricPeDisc.ts | M | P2 | propus | ideation | 2026-11-05 |
-| I-818 | Pagina mai ușoară pe telefon: recharts și Factor Lab la cerere, fonturi locale, descărcarea Factor Lab cu întrebare | busola/src/App.tsx, src/ui/Jurnal.tsx, src/ui/FactorLab.tsx, src/index.css, sw/ | S | P3 | propus | ideation | 2026-11-05 |
-| I-819 | Pe telefon, un cap de un singur rând (decizia, prețul, LIVE/vârsta) în locul verdictului întreg: conținutul filei urcă ~700 px | busola/src/ui/LinieVerdict.tsx, src/App.tsx, src/index.css | S | P2 | propus | ideation | 2026-11-05 |
-| I-820 | Cifre și culori cinstite: o zecimală peste tot, gri lizibil, scripturile nedovedite fără săgeți colorate, Grid cu netul pe episod ca cifră mare | busola/src/motor/cifraVerdict.ts, filtruGrid.ts, capUnealta.ts, scor.ts, factorLab.ts, src/ui/Crowding.tsx, src/ui/Acum.tsx, src/ui/FiltruGrid.tsx, src/index.css, probe/o-zecimala.ts | S | P2 | propus | ideation | 2026-11-05 |
-| I-821 | `livreaza-vps.ps1`: Busola adusă pe VPS fără GitHub (bundle + scp), doar când măsurarea nu rulează, cu verificarea HEAD după | busola/scripts/livreaza-vps.ps1 (nou) | S | P2 | propus | ideation | 2026-11-05 |
-| I-822 | `npm run sanatate` și `probe/toate.mjs`: starea Busolei într-o comandă; probele rulate toate, cu „sărit: date vechi” | busola/package.json, probe/toate.mjs (nou), scripts/sanatate.mjs (nou), probe/rezumat-radar-live.ts, probe/contract-radar.ts | S | P2 | propus | ideation | 2026-11-05 |
-| I-823 | Lansatoarele și textele aduse la VPS: nimic nu te mai trimite la `wrangler login` pe MAU; `INSTALEAZA-MASURAREA.bat` rescris din programul real | busola/cron/masoara.ts, cron/botiRapid.ts, PUBLICA-BUSOLA.bat, INSTALEAZA-MASURAREA.bat, MASOARA-SI-URCA.bat, crypto/scripts/lib/mesaje-colector.mjs | S | P2 | propus | ideation | 2026-11-05 |
+| I-811 | Dovada live pe ciorchini: „ține/greșește” doar când testul ține cont că o monedă își păstrează verdictul ore în șir | busola/src/motor/dovadaLive.ts, bilantVerdict.ts, jurnalAcum.ts, probe/dovada-live.ts | M | P1 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-812 | Paznicul măsurării în Worker-ul Busolei (independent de VPS): programul real, mesaje care urcă la critic, titluri diferite pe cauză | busola/cron/worker.ts, wrangler.jsonc, src/motor/vechime.ts, crypto/public/lib/busola.js, crypto/scripts/lib/paza-boti.mjs | M | P1 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-813 | „LIVE” cinstit pe fila Acum: prețul înghețat la căderea netului se spune, iar banda de sus se aprinde | busola/src/App.tsx, src/ui/Acum.tsx | S | P1 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-814 | O singură „stare a monedei” cu opțiunile incluse: aceeași pe Acum, pe capul filelor, în hartă, în rezumat și în Radar (Tablou + pază) | busola/src/motor/rezumatRadar.ts, optiuni.ts, src/ui/Acum.tsx, crypto/public/lib/busola.js, crypto/public/app.js | M | P1 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-815 | Costul pe orizont, o singură funcție (comision + funding × ore/8) pentru verdictul principal, bilanțul live, „Acum” și D3; σ realizat în fraza opțiunilor | busola/src/motor/bilantVerdict.ts, jurnalAcum.ts, analiza.ts, optiuni.ts, directie24h.ts | S | P2 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-816 | Jurnalul scos din masurat.json: pagina ia ~100 KB pe oră, jurnalul rărit pe 60+ zile la cerere, calibrarea socotită pe PC | busola/cron/masoara.ts, cron/worker.ts, src/ui/Jurnal.tsx, src/motor/calibrareLive.ts | M | P2 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-817 | Rularea orară mai scurtă și mai blândă cu Pionex: bilanțul indexat, tabloul 4h în paralel, istoric futures incremental | busola/src/motor/bilantVerdict.ts, jurnalPur.ts, cron/masoara.ts, cron/pionex.ts, cron/istoricPeDisc.ts | M | P2 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-818 | Pagina mai ușoară pe telefon: recharts și Factor Lab la cerere, fonturi locale, descărcarea Factor Lab cu întrebare | busola/src/App.tsx, src/ui/Jurnal.tsx, src/ui/FactorLab.tsx, src/index.css, sw/ | S | P3 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-819 | Pe telefon, un cap de un singur rând (decizia, prețul, LIVE/vârsta) în locul verdictului întreg: conținutul filei urcă ~700 px | busola/src/ui/LinieVerdict.tsx, src/App.tsx, src/index.css | S | P2 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-820 | Cifre și culori cinstite: o zecimală peste tot, gri lizibil, scripturile nedovedite fără săgeți colorate, Grid cu netul pe episod ca cifră mare | busola/src/motor/cifraVerdict.ts, filtruGrid.ts, capUnealta.ts, scor.ts, factorLab.ts, src/ui/Crowding.tsx, src/ui/Acum.tsx, src/ui/FiltruGrid.tsx, src/index.css, probe/o-zecimala.ts | S | P2 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-821 | `livreaza-vps.ps1`: Busola adusă pe VPS fără GitHub (bundle + scp), doar când măsurarea nu rulează, cu verificarea HEAD după | busola/scripts/livreaza-vps.ps1 (nou) | S | P2 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-822 | `npm run sanatate` și `probe/toate.mjs`: starea Busolei într-o comandă; probele rulate toate, cu „sărit: date vechi” | busola/package.json, probe/toate.mjs (nou), scripts/sanatate.mjs (nou), probe/rezumat-radar-live.ts, probe/contract-radar.ts | S | P2 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-823 | Lansatoarele și textele aduse la VPS: nimic nu te mai trimite la `wrangler login` pe MAU; `INSTALEAZA-MASURAREA.bat` rescris din programul real | busola/cron/masoara.ts, cron/botiRapid.ts, PUBLICA-BUSOLA.bat, INSTALEAZA-MASURAREA.bat, MASOARA-SI-URCA.bat, crypto/scripts/lib/mesaje-colector.mjs | S | P2 | făcut | ideation | 2026-11-05 → 2026-11-05 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -7829,91 +7829,104 @@ Lentile — Trader: pagina și dash-ul spun acum cinstit „direcția, fără co
 
 ## 05.11.2026 — Busola: auditul sever + idei (ideation: Tool — Busola 1.87.3; raportul: busola/AUDIT-SEVER-2026-11-05.md)
 
-#### I-811 · Dovada live pe ciorchini: „ține/greșește” doar când testul ține cont că o monedă își păstrează verdictul ore în șir · [M] · P1 · propus
+#### I-811 · Dovada live pe ciorchini: „ține/greșește” doar când testul ține cont că o monedă își păstrează verdictul ore în șir · [M] · P1 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — testul pe momentele rărite (permutare doar între monedele aceluiași moment), aceeași cifră pentru ecran și stare; fals 29–33% ⇒ 2–6% (pe bare reale 3–5,5%); „Acum” pe blocuri de 5 zile.
 - **Problema/golul:** Testul de permutare în aceeași zi tratează orele aceleiași monede ca independente; pe lumi FĂRĂ efect dă „ține/greșește” fals în 20–55% (două simulări, testul real). În plus p-ul vine din toate momentele, iar cifra și IC-ul afișate din momentele rărite ⇒ azi „liniște 1h: greșește, −0,1 pp” cu IC [−5,7; +5,5] (🔴 1 din AUDIT-SEVER-2026-11-05).
 - **Soluția:** Testul pe ciorchini (monedă × zi, sau rotirea circulară a șirului ales/neales pe fiecare monedă); aceeași statistică pentru cifră, IC și stare; garda de mărime cu alegere persistentă (≤ 5% fals). Până la reparație: „ține/greșește” doar când IC-ul de pe ecran exclude zero.
 - **Impact:** Etichetele de dovadă de pe ecran nu mai spun „s-a dovedit (că nu)” când nu s-a dovedit nimic; prima judecată a cuvintelor din „Acum” (14.12.2026) iese cinstită.
 - **Riscuri/dependențe:** Testul mai sever ⇒ mai multe „n-am aflat” (corect). Schimbă regula de judecată ⇒ spus pe față în jurnalul încercărilor.
 - **Fișiere atinse:** busola/src/motor/dovadaLive.ts, bilantVerdict.ts, jurnalAcum.ts, probe/dovada-live.ts
 
-#### I-812 · Paznicul măsurării în Worker-ul Busolei (independent de VPS): programul real, mesaje care urcă la critic, titluri diferite pe cauză · [M] · P1 · propus
+#### I-812 · Paznicul măsurării în Worker-ul Busolei (independent de VPS): programul real, mesaje care urcă la critic, titluri diferite pe cauză · [M] · P1 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — programul real în `vechime.ts` (fără alarma de 23:02), `POST /api/puls` + `scheduled()` la 30 min + `cron/paznic.ts` (atenție ⇒ +4 h / +8 h ⇒ dimineața ⇒ „a revenit”), `paznic.discord` în rezumatul servit; Radarul tace pe Discord doar cu paznicul dovedit; `pasEsec` la verificarea rezumatului.
 - **Problema/golul:** `vechime.ts` presupune 08–23 orar; programul real de pe VPS e 07:05–21:05 + 23:05 + 03:05 ⇒ alarma „n-a mai măsurat” e falsă în fiecare seară (23:02), iar pe 04.11 cea adevărată a arătat la fel și n-a urcat niciodată la critic (~21 h de cădere). Toate alarmele stau pe VPS; Telegram e mort (🔴 2).
 - **Soluția:** Un fișier de program unic (din `Get-ScheduledTask`), citit de Busola și de Radar; `scheduled()` în Worker la 30 min citește vârsta rezumatului și a boților din KV și anunță pe Discord la 2 h / 4 h / 8 h / dimineața, cu titlu „urcarea a picat” față de „n-a rulat deloc”; `verificaRezumat` cu `pasEsec` (nu același mesaj la fiecare oră). Diferă de I-509 (făcut în Radar): paznicul nu mai moare odată cu VPS-ul.
 - **Impact:** Afli de o pană în ≤ 2 h, iar mesajul de seară care te-a învățat să ignori canalul dispare.
 - **Riscuri/dependențe:** Webhook-ul ca secret în Worker; contractul (B4) trebuie să compare programul oră cu oră, altfel se reabate.
 - **Fișiere atinse:** busola/cron/worker.ts, wrangler.jsonc, src/motor/vechime.ts, crypto/public/lib/busola.js, crypto/scripts/lib/paza-boti.mjs
 
-#### I-813 · „LIVE” cinstit pe fila Acum: prețul înghețat la căderea netului se spune, iar banda de sus se aprinde · [S] · P1 · propus
+#### I-813 · „LIVE” cinstit pe fila Acum: prețul înghețat la căderea netului se spune, iar banda de sus se aprinde · [S] · P1 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — „LIVE” doar cu legătura vie pe Acum, altfel „fără legătură — preț de acum N min”; banda pe `live.mort`; proba `ecran-offline.mjs`.
 - **Problema/golul:** Fila implicită arată „79582,01 • LIVE” după 100 s fără net; banda ascultă de `live.eroare`, dar react-query pune cererile pe pauză offline fără eroare (🔴 3). „Dacă intri oricum” socotește pe prețul înghețat.
 - **Soluția:** `liveMort` dat și lui `<Acum>`; „LIVE” doar cu legătura vie, altfel „preț de acum N min”; banda pe `live.mort || faraLegatura`. Proba: netul tăiat prin CDP pe pagina publicată.
 - **Impact:** Nu mai iei o decizie pe un preț vechi crezând că e de acum.
 - **Riscuri/dependențe:** Reparația din 17.09 exista doar în `LinieVerdict` ⇒ garda pe ecran, nu pe o componentă.
 - **Fișiere atinse:** busola/src/App.tsx, src/ui/Acum.tsx
 
-#### I-814 · O singură „stare a monedei” cu opțiunile incluse: aceeași pe Acum, pe capul filelor, în hartă, în rezumat și în Radar (Tablou + pază) · [M] · P1 · propus
+#### I-814 · O singură „stare a monedei” cu opțiunile incluse: aceeași pe Acum, pe capul filelor, în hartă, în rezumat și în Radar (Tablou + pază) · [M] · P1 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — `miscare4h` + `program` în rezumat; Tabloul Radarului spune „după piața de opțiuni”, „cifra tace” spus; paza rămâne pe celulă (alertele pe opțiuni = hotărârea LUI).
 - **Problema/golul:** Din 17.10 opțiunile vorbesc unde Busola tace, dar doar pagina știe: capul zice „MAI CALM · din opțiuni”, cardul din Acum „Obișnuită”, Tabloul botului din Radar „nimic neobișnuit” (24 din 30 de monede azi), iar paza boților n-ar anunța la un Q4 „pleacă”.
 - **Soluția:** `miscareCuOptiuni` socotită o dată, publicată în rezumat ca stare + sursă; Radarul o citește în `stare4h` și scrie „(din opțiunile pe BTC)”; rândul „cifra tace — vorbesc opțiunile”; o verificare nouă în contractul Radar.
 - **Impact:** Aceeași stare oriunde te uiți; paza vede ce vede pagina.
 - **Riscuri/dependențe:** Opțiunile pe altcoin-uri sunt „probate când Busola tace” — paza pe ele e o hotărâre a LUI (prag de alertă), nu automată.
 - **Fișiere atinse:** busola/src/motor/rezumatRadar.ts, optiuni.ts, src/ui/Acum.tsx, crypto/public/lib/busola.js, crypto/public/app.js
 
-#### I-815 · Costul pe orizont, o singură funcție (comision + funding × ore/8) pentru verdictul principal, bilanțul live, „Acum” și D3; σ realizat în fraza opțiunilor · [S] · P2 · propus
+#### I-815 · Costul pe orizont, o singură funcție (comision + funding × ore/8) pentru verdictul principal, bilanțul live, „Acum” și D3; σ realizat în fraza opțiunilor · [S] · P2 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — `src/motor/cost.ts` (comision + funding pe orizont; pentru PRAGURI fără credit la short — revizia), opțiunile cu σ în frază, D3 v2 (proba repornită, jurnal nou).
 - **Problema/golul:** `FUNDING_ACUM` (4 zile) e pus pe orice interval în bilanț; verdictul principal de direcție n-are funding deloc; fraza opțiunilor compară DVOL cu ATR anualizat (~1,6 × σ) ⇒ „cer mai puțină mișcare” des invers; D3 are fereastra de 66 de zile, nu 90.
 - **Soluția:** `costDusIntors(interval, orizont, parte)` folosit peste tot; în textul opțiunilor σ din randamente (sferturile rămân); D3 cu funding normalizat pe oră și istoric paginat (proba D3 repornită, anunțat).
 - **Impact:** Pragurile de rentabilitate și frazele spun același cost; nicio etichetă „ține” pe short 15m/1h din funding pus greșit.
 - **Riscuri/dependențe:** Schimbă praguri ⇒ ipoteze noi; D3 își pierde zilele strânse (repornire).
 - **Fișiere atinse:** busola/src/motor/bilantVerdict.ts, jurnalAcum.ts, analiza.ts, optiuni.ts, directie24h.ts
 
-#### I-816 · Jurnalul scos din masurat.json: pagina ia ~100 KB pe oră, jurnalul rărit pe 60+ zile la cerere, calibrarea socotită pe PC · [M] · P2 · propus
+#### I-816 · Jurnalul scos din masurat.json: pagina ia ~100 KB pe oră, jurnalul rărit pe 60+ zile la cerere, calibrarea socotită pe PC · [M] · P2 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — `masurat.json` 1.249 ⇒ 114 KB; jurnalul rărit în KV `jurnal` / `/api/jurnal.json`, cerut doar în fila Jurnal; calibrarea socotită de PC.
 - **Problema/golul:** `/api/masurat.json` = 1,25 MB, din care jurnalul 1,15 MB (3.000 de linii ≈ 12 zile) ⇒ telefonul descarcă ~1,2 MB la fiecare oră nouă, iar alarma de calibrare cere 60 de zile ⇒ nu poate suna niciodată.
 - **Soluția:** `/api/jurnal.json` separat (rărit pe toată perioada, cerut doar în fila Jurnal); calibrarea și bilanțul socotite pe VPS pe cele 40.000 de linii și trimise ca cifre.
 - **Impact:** Mai puține date mobile, pagina mai repede, iar alarma de calibrare chiar poate suna.
 - **Riscuri/dependențe:** Contractul cu Radarul nu se atinge (rezumatul rămâne); vechile cache-uri ale SW-ului.
 - **Fișiere atinse:** busola/cron/masoara.ts, cron/worker.ts, src/ui/Jurnal.tsx, src/motor/calibrareLive.ts
 
-#### I-817 · Rularea orară mai scurtă și mai blândă cu Pionex: bilanțul indexat, tabloul 4h în paralel, istoric futures incremental · [M] · P2 · propus
+#### I-817 · Rularea orară mai scurtă și mai blândă cu Pionex: bilanțul indexat, tabloul 4h în paralel, istoric futures incremental · [M] · P2 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — bilanțul indexat (23 s ⇒ ~1 s), tabloul 4h pe fire, istoricul Pionex pe disc (~690 ⇒ 56 de cereri pe rulare; coada goală ⇒ istoricul întreg).
 - **Problema/golul:** O rulare ține 6–19 min: tabloul 4h 301–432 s monedă cu monedă, `bilantVerdict` 23,7 s pe 47 de zile (minute la 365), ~690 de cereri Pionex pe rulare de pe același IP cu colectorul (o blocare ca pe 16.10 orbește ambele).
 - **Soluția:** Index pe (monedă, oră) în bilanț; 6–8 monede deodată în tablou (ca la C4); istoricul Pionex pe disc, adus doar coada (~150 de cereri).
 - **Impact:** Rularea sub ~5 min, mai puțin risc de blocare a IP-ului, loc pentru mai multe monede.
 - **Riscuri/dependențe:** Cache-ul pe disc trebuie păzit de goluri (garda `esteLaZi`).
 - **Fișiere atinse:** busola/src/motor/bilantVerdict.ts, jurnalPur.ts, cron/masoara.ts, cron/pionex.ts, cron/istoricPeDisc.ts
 
-#### I-818 · Pagina mai ușoară pe telefon: recharts și Factor Lab la cerere, fonturi locale, descărcarea Factor Lab cu întrebare · [S] · P3 · propus
+#### I-818 · Pagina mai ușoară pe telefon: recharts și Factor Lab la cerere, fonturi locale, descărcarea Factor Lab cu întrebare · [S] · P3 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — Jurnal / Osciloscoape / Factor Lab la cerere, fonturi locale, Factor Lab întreabă înainte; pachetul de pornire 1.377 ⇒ 943 kB.
 - **Problema/golul:** Un singur pachet de 1,37 MB (recharts ~413 KB încărcat de la pornire, folosit doar în Jurnal și Osciloscoape), fonturi prin `@import`; pe telefon simulat verdictul apare la 18,8 s; Factor Lab descarcă singur 100 de monede.
 - **Soluția:** `React.lazy` pe Jurnal / Osciloscoape / Factor Lab, fonturile găzduite local și ținute de SW, „Aduc istoria a 100 de monede? (~N MB)” înainte.
 - **Impact:** Verdictul pe telefon în câteva secunde, nu în 19.
 - **Riscuri/dependențe:** Prima deschidere a filelor leneșe are o clipă de încărcare (stare de încărcare obligatorie).
 - **Fișiere atinse:** busola/src/App.tsx, src/ui/Jurnal.tsx, src/ui/FactorLab.tsx, src/index.css, sw/
 
-#### I-819 · Pe telefon, un cap de un singur rând (decizia, prețul, LIVE/vârsta) în locul verdictului întreg: conținutul filei urcă ~700 px · [S] · P2 · propus
+#### I-819 · Pe telefon, un cap de un singur rând (decizia, prețul, LIVE/vârsta) în locul verdictului întreg: conținutul filei urcă ~700 px · [S] · P2 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — pe telefon capul de un rând; Grid la 412 px începe la 436 px (era 893).
 - **Problema/golul:** La 412 px antetul, banda și `LinieVerdict` ocupă ~840 din 915 px; „Pornesc grid acum?” și „Banii mei” încep sub primul ecran pe 6 din 8 file.
 - **Soluția:** Sub 550 px `LinieVerdict` pliat la un rând lipit sus (decizia + prețul + LIVE), restul la o atingere; nimic șters, doar pliat (inventarul numără ce EXISTĂ).
 - **Impact:** Răspunsul filei vine în primul ecran, fără derulare.
 - **Riscuri/dependențe:** „Judecă după POZĂ la toate lățimile” — poze 412/768/1440/2560 înainte de livrare.
 - **Fișiere atinse:** busola/src/ui/LinieVerdict.tsx, src/App.tsx, src/index.css
 
-#### I-820 · Cifre și culori cinstite: o zecimală peste tot, gri lizibil, scripturile nedovedite fără săgeți colorate, Grid cu netul pe episod ca cifră mare · [S] · P2 · propus
+#### I-820 · Cifre și culori cinstite: o zecimală peste tot, gri lizibil, scripturile nedovedite fără săgeți colorate, Grid cu netul pe episod ca cifră mare · [S] · P2 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — o zecimală peste tot (garda citește pagina), `os-slab` 4,6:1, scripturile nedovedite pe ton neutru, netul pe episod ca cifră mare, „dar intervalul coboară la X%”, Crowding în pb.
 - **Problema/golul:** „−0,257% pe episod” pe 8 file, „-0,000%”, „+3.58%”, minus ASCII; `os-slab` are 2,99:1 pe carduri (322 de folosiri, inclusiv avertismentele cinstite); săgeți verzi „BUY STRONG” sub „FĂRĂ VERDICT”; fila Grid pune cifra pozitivă „net pe grilă” sub „pierde mai mult” (pagina o numește „înșelătoare”); „îți trebuie 43,5%” lângă 43,9% fără motivul real (IC-ul).
 - **Soluția:** `procent1` + „−” + virgulă peste tot, garda citește textul paginii (nu funcția); `os-slab` la ~#7d8b97 (≥ 4,5:1); rândurile scripturilor pe ton neutru + „nedovedit”; netul pe episod cifra mare, cel pe grilă mic și gri; „dar intervalul coboară la X%”.
 - **Impact:** Ce citești dintr-o privire spune același lucru ca dovada.
 - **Riscuri/dependențe:** Gărzile vechi pe text (ex. lungimi de rând) trebuie aduse la zi.
 - **Fișiere atinse:** busola/src/motor/cifraVerdict.ts, filtruGrid.ts, capUnealta.ts, scor.ts, factorLab.ts, src/ui/Crowding.tsx, src/ui/Acum.tsx, src/ui/FiltruGrid.tsx, src/index.css, probe/o-zecimala.ts
 
-#### I-821 · `livreaza-vps.ps1`: Busola adusă pe VPS fără GitHub (bundle + scp), doar când măsurarea nu rulează, cu verificarea HEAD după · [S] · P2 · propus
+#### I-821 · `livreaza-vps.ps1`: Busola adusă pe VPS fără GitHub (bundle + scp), doar când măsurarea nu rulează, cu verificarea HEAD după · [S] · P2 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — `scripts/livreaza-vps.ps1` — folosit chiar la livrarea asta (10 commit-uri, f9c8284 ⇒ e8f007f).
 - **Problema/golul:** Pe VPS `git pull` din ssh pică (depozit privat, fără credențiale) ⇒ pe 05.11 1.87.3 a mers de mână: `git bundle` + scp + `pull --ff-only`, cu grija ferestrei :05–:20.
 - **Soluția:** Script pe MAU: citește HEAD-ul de pe VPS, face bundle doar cu commit-urile noi, scp, așteaptă lacătul `masoara.lock` liber, `merge --ff-only`, verifică HEAD-ul și `package.json`, șterge bundle-ul.
 - **Impact:** O livrare de un minut, fără greșeli de mână și fără să calce o rulare.
 - **Riscuri/dependențe:** Alternativa e o cheie GitHub doar-citire pe VPS (decizia LUI).
 - **Fișiere atinse:** busola/scripts/livreaza-vps.ps1 (nou)
 
-#### I-822 · `npm run sanatate` și `probe/toate.mjs`: starea Busolei într-o comandă; probele rulate toate, cu „sărit: date vechi” · [S] · P2 · propus
+#### I-822 · `npm run sanatate` și `probe/toate.mjs`: starea Busolei într-o comandă; probele rulate toate, cu „sărit: date vechi” · [S] · P2 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — `probe/toate.mjs` (sumar verde/roșu/SĂRIT), `npm run sanatate`, contractul B pe rezumatul public, B4 oră cu oră, B7.
 - **Problema/golul:** `npm run probe` (74 de probe cu `&&`) se oprește la prima roșie — `motor-miscare` pică pe MAU din datele vechi și ascunde ~40 de probe; `rezumat-radar-live` dă JTO roșu fals, `contract-radar` iese verde pe un rezumat din 03.11; diagnosticul de azi a cerut ~10 comenzi ssh.
 - **Soluția:** `probe/toate.mjs` le rulează pe toate și dă sumarul verde / roșu / sărit (datele de pe disc mai vechi de 6 h ⇒ sărit); contractul citește rezumatul public; `sanatate` arată ultimele 5 rulări cu durata, vârstele, eșecurile, mărimile și spațiul liber de pe VPS.
 - **Impact:** O roșie de mediu nu mai ascunde roșiile adevărate.
 - **Riscuri/dependențe:** Poarta (`in-poarta.ts`) trebuie să știe de lista nouă.
 - **Fișiere atinse:** busola/package.json, probe/toate.mjs (nou), scripts/sanatate.mjs (nou), probe/rezumat-radar-live.ts, probe/contract-radar.ts
 
-#### I-823 · Lansatoarele și textele aduse la VPS: nimic nu te mai trimite la `wrangler login` pe MAU; `INSTALEAZA-MASURAREA.bat` rescris din programul real · [S] · P2 · propus
+#### I-823 · Lansatoarele și textele aduse la VPS: nimic nu te mai trimite la `wrangler login` pe MAU; `INSTALEAZA-MASURAREA.bat` rescris din programul real · [S] · P2 · făcut
+- **Făcut 05.11.2026:** Busola 1.88.0 (`e8f007f`, pe VPS + Worker publicat) / Radar v100.305 (`2a42990`) — fără `wrangler login` în texte; `PUBLICA-BUSOLA.bat` / `INSTALEAZA-MASURAREA.bat` doar pe VPS (`VMI3720257`), sarcinile din XML-ul exportat.
 - **Problema/golul:** Regula din 05.11: OAuth-ul Cloudflare stă DOAR pe VPS. Totuși mesajele de eroare și `PUBLICA-BUSOLA.bat` cer `wrangler login` (pe MAU ar strica VPS-ul); `INSTALEAZA-MASURAREA.bat` rulat din nou ar pune programul la 4 h; textele zic „la 4 ore” / „~7 minute”.
 - **Soluția:** Mesajele spun „pe VPS (ssh gestiune-vps)”; `PUBLICA-BUSOLA.bat` refuză pe altă mașină și publică prin ssh; instalarea scrisă după XML-ul exportat de pe VPS; textele cu programul real.
 - **Impact:** Nicio unealtă nu mai poate rupe autentificarea VPS-ului din greșeală.
