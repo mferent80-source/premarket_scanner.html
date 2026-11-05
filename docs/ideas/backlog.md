@@ -3501,6 +3501,22 @@ pe un singur chart.
 | I-821 | `livreaza-vps.ps1`: Busola adusă pe VPS fără GitHub (bundle + scp), doar când măsurarea nu rulează, cu verificarea HEAD după | busola/scripts/livreaza-vps.ps1 (nou) | S | P2 | făcut | ideation | 2026-11-05 → 2026-11-05 |
 | I-822 | `npm run sanatate` și `probe/toate.mjs`: starea Busolei într-o comandă; probele rulate toate, cu „sărit: date vechi” | busola/package.json, probe/toate.mjs (nou), scripts/sanatate.mjs (nou), probe/rezumat-radar-live.ts, probe/contract-radar.ts | S | P2 | făcut | ideation | 2026-11-05 → 2026-11-05 |
 | I-823 | Lansatoarele și textele aduse la VPS: nimic nu te mai trimite la `wrangler login` pe MAU; `INSTALEAZA-MASURAREA.bat` rescris din programul real | busola/cron/masoara.ts, cron/botiRapid.ts, PUBLICA-BUSOLA.bat, INSTALEAZA-MASURAREA.bat, MASOARA-SI-URCA.bat, crypto/scripts/lib/mesaje-colector.mjs | S | P2 | făcut | ideation | 2026-11-05 → 2026-11-05 |
+| I-824 | Radar: o singură regulă „azi nu” pentru tot ce propune pornire sau cumpărare (Acasă, Sugestii, Trade-ul zilei, fișa) | crypto/public/lib/acasa-ecran.js, asezare-paznic.js, sugestii-ecran.js, trade-zilei-ecran.js | S | P1 | propus | ideation | 2026-11-05 |
+| I-825 | Radar: Trade-ul zilei cinstit — P3 cu ziua deja făcută, gridul măsurat pe ora UTC, „5 grile pe parte”, prețuri pe cifre semnificative | crypto/public/lib/trade-zilei.js, trade-zilei-ecran.js, scripts/lib/tura-trade-zilei.mjs, scripts/proba-v100298.mjs | M | P1 | propus | ideation | 2026-11-05 |
+| I-826 | Radar: scorul sezonului — „o pierdere = 3,0 câștiguri” (raportul era inversat) | crypto/public/lib/scor-sezon.js | S | P1 | propus | ideation | 2026-11-05 |
+| I-827 | Radar colector: evaluarea botului închis, seara, oglinda și profitul nu mai depind de lista boților PORNIȚI (zero boți = gol, nu citire proastă) | crypto/scripts/colector.mjs (turaComportament ~2012), functions/api/bot-orders.js (listaNula), scripts/lib/comportament.mjs | S | P1 | propus | ideation | 2026-11-05 |
+| I-828 | Busola: bilanțul pazei pe ZILE / momente rărite, nu pe monede; Radarul arată „dovedit” doar de la versiunea reparată | busola/src/motor/jurnalPaza.ts (bilantPaza), crypto/public/lib/busola.js (bilantText), scripts/lib/dimineata-titlu.mjs | S | P1 | propus | ideation | 2026-11-05 |
+| I-829 | Busola „Acum”: Intrarea ta și botul deschis cu starea CU opțiuni (I-814 dus la capăt) + probă „o singură stare a pieței pe pagină” | busola/src/ui/Acum.tsx (~157, ~178), src/motor/verificaIntrare.ts | S | P1 | propus | ideation | 2026-11-05 |
+| I-830 | Paznicul din Worker își dă semn de viață; Radarul și `sanatate` își iau vocea înapoi după 90 de minute fără semn | busola/cron/worker.ts, cron/paznic.ts, scripts/sanatate.mjs, crypto/scripts/lib/paza-boti.mjs | S | P2 | propus | ideation | 2026-11-05 |
+| I-831 | Radar: alerte mai puține și mai utile — 1% doar la un extrem nou, T212 fără dubluri și fără noapte, critic doar ce cere acțiune în minute, bandă de prag la etichete | crypto/scripts/lib/poza.mjs, public/lib/actiuni-semnale.js, public/lib/alerte.js, public/lib/acasa.js, scripts/lib/tura-piata.mjs | M | P2 | propus | ideation | 2026-11-05 |
+| I-832 | Radar: textele (paznicul de pe Cloudflare, serverul oprit, subsolul) trimit la VPS — un singur loc „unde rulează colectorul”, cu gardă pe text | crypto/paznic/worker.mjs, scripts/lib/mesaje-colector.mjs, scripts/lib/canal-discord.mjs | S | P2 | propus | ideation | 2026-11-05 |
+| I-833 | Radar: sănătatea colectorului — erori 5xx pe rută, ture fără reușită în 24 h, lansatorul reface Functions la pull, rotația `wrangler.log` | crypto/scripts/colector.mjs, radar-server/porneste-radar.ps1 (VPS) | M | P2 | propus | ideation | 2026-11-05 |
+| I-834 | Un singur motor de dovezi (momente rărite / zile) pentru Busola și Radar + garda care interzice bootstrap pe monede + martorul pe monedă la 15m | busola/src/motor/dovadaLive.ts, jurnalPaza.ts, trendLung, C4, D24; crypto/public/lib/reveniri.js, verdicte.js | M | P2 | propus | ideation | 2026-11-05 |
+| I-835 | Proba în umbră la schimbarea regulilor + decizia pentru „Acum” (pragul long a urcat la mijlocul probei) | busola/src/motor/jurnalAcum.ts, verificaIntrare.ts, reguli.ts | M | P2 | propus | ideation | 2026-11-05 |
+| I-836 | Radar pe telefon: fișa Grid sare la verdict, Futures pe pagina nouă, Alerte pe zile, Range Filter cu ton mut, „nicio variantă nu câștigă” când ambele medii sunt negative | crypto/public/app.js (pePaginaNoua ~3332, fișa), public/lib/range-filter-ecran.js, app.css (Alerte, info) | M | P3 | propus | ideation | 2026-11-05 |
+| I-837 | Convențiile LUI cu gardă pe ambele aplicații: o zecimală, virgulă, minus „−”, separator de mii, fără engleză | crypto/scripts/proba-ecran-telefon (garda de text), busola/src/ui/cifrePeEcran.ts (scor.ts pe ecran) | S | P3 | propus | ideation | 2026-11-05 |
+| I-838 | Pionex: cache comun în colector (lista boților la 30 s, lumânări incrementale) — ~10.000 de cereri pe zi ⇒ ~4.000 | crypto/scripts/colector.mjs, scripts/lib/rf-dimineata.mjs, tura-trade-zilei.mjs | M | P3 | propus | ideation | 2026-11-05 |
+| I-839 | Busola: banda „Atenție la procentele direcției” doar când pe ecran e un verdict de direcție, pliată pe un rând | busola/src/App.tsx (~252, ~417) | S | P3 | propus | ideation | 2026-11-05 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -7932,3 +7948,117 @@ Lentile — Trader: pagina și dash-ul spun acum cinstit „direcția, fără co
 - **Impact:** Nicio unealtă nu mai poate rupe autentificarea VPS-ului din greșeală.
 - **Riscuri/dependențe:** Probat doar cu `--dry-run` / pe o sarcină de probă, nu pe sarcina vie.
 - **Fișiere atinse:** busola/cron/masoara.ts, cron/botiRapid.ts, PUBLICA-BUSOLA.bat, INSTALEAZA-MASURAREA.bat, MASOARA-SI-URCA.bat, crypto/scripts/lib/mesaje-colector.mjs
+
+## 05.11.2026 — Auditul final Radar v100.305 + Busola 1.88.1 (ideation; raportul: docs/AUDIT-FINAL-RADAR-BUSOLA-2026-11-05.md)
+
+#### I-824 · Radar: o singură regulă „azi nu” pentru tot ce propune pornire sau cumpărare (Acasă, Sugestii, Trade-ul zilei, fișa) · [S] · P1 · propus
+- **Problema/golul:** 🔴 audit final: „💡 Ce aș cumpăra azi · Boți: STX, LIT sau CC” chiar sub „Frâna zilei… n-aș mai porni boți azi” și „N-aș porni boți grid noi până nu se liniștește” — `acasaCumpar` verifică doar pauza de sezon.
+- **Soluția:** O funcție comună (frâna zilei + pauza de sezon + verdictul pieței MIȘCARE / `fisaOpreste`) chemată de fiecare loc care propune o pornire; listele rămân la vedere sub „azi nu: <motivul>”.
+- **Impact:** Nu mai ai pe același ecran două sfaturi opuse despre bani.
+- **Riscuri/dependențe:** Una dintre voci trebuie să câștige: frâna și verdictul bat lista (regula lui de disciplină).
+- **Fișiere atinse:** crypto/public/lib/acasa-ecran.js, asezare-paznic.js, sugestii-ecran.js, trade-zilei-ecran.js
+
+#### I-825 · Radar: Trade-ul zilei cinstit — P3 cu ziua deja făcută, gridul măsurat pe ora UTC, „5 grile pe parte”, prețuri pe cifre semnificative · [M] · P1 · propus
+- **Problema/golul:** 🔴 ×3: seara „mai mult ca ieri: 7%” deși deja s-a mișcat mai mult; „cuprinde ziua în trei din patru cazuri” e adevărat doar în 43–67% din zile (banda e centrată pe prețul de acum, lățimea e range-ul zilei); „zece grile pe parte” = 5; PEPE „0,000005 – 0,000005” (6 zecimale fixe).
+- **Soluția:** P3 = 1 când `panaAcum ≥ r1`, mișcarea așteptată = max(așteptat, până acum); banda = cuantila 75 a lui max(sus−preț, preț−jos) pe orele rămase, măsurată pe depozit după ora UTC; „5 grile pe parte”; un formator comun de preț pe cifre semnificative (ca `rfPret`); garda verifică FRECVENȚA pe date, nu fraza.
+- **Impact:** Pagina de dimineață spune adevărul și seara; gridul propus chiar cuprinde ziua cât promite.
+- **Riscuri/dependențe:** Cuantila nouă se măsoară pe depozit (ipoteză, de ținut în proba de pe date noi).
+- **Fișiere atinse:** crypto/public/lib/trade-zilei.js, trade-zilei-ecran.js, scripts/lib/tura-trade-zilei.mjs, scripts/proba-v100298.mjs
+
+#### I-826 · Radar: scorul sezonului — „o pierdere = 3,0 câștiguri” (raportul era inversat) · [S] · P1 · propus
+- **Problema/golul:** 🔴: `raport` = câștigul mediu ÷ pierderea medie (0,33), dar textul scrie „o pierdere = 0,3 câștiguri”; real ≈ 3,0.
+- **Soluția:** Textul cu `1/raport` (sau „un câștig = 0,3 pierderi”); probă pe cifrele din captură (309,0/46 față de 678,6/34).
+- **Impact:** Cifra de risc/câștig pe care o citește înainte să pornească alt bot nu mai minte.
+- **Riscuri/dependențe:** —
+- **Fișiere atinse:** crypto/public/lib/scor-sezon.js
+
+#### I-827 · Radar colector: evaluarea botului închis, seara, oglinda și profitul nu mai depind de lista boților PORNIȚI (zero boți = gol, nu citire proastă) · [S] · P1 · propus
+- **Problema/golul:** 🔴: la zero boți porniți Pionex dă lista nulă ⇒ 510 „evaluari amanate”; XMR (închis 11:19) neevaluat; după 24 h se pierde; „Seara pe scurt” din 04.11 n-a plecat; lecția USELESS a venit după ce repornise botul.
+- **Soluția:** Listă nulă + arhiva celor închiși citită complet ⇒ „zero boți porniți”; evaluările / seara / oglinda / profitul se fac pe arhivă, independent de cei porniți; Comportament și „Aștept botul…” din ecran la fel.
+- **Impact:** Lecția fiecărui bot vine la timp, exact când alege următorul.
+- **Riscuri/dependențe:** Pionex poate da null și la o citire proastă ⇒ diferența o face arhiva citită complet.
+- **Fișiere atinse:** crypto/scripts/colector.mjs (turaComportament ~2012), functions/api/bot-orders.js (listaNula), scripts/lib/comportament.mjs
+
+#### I-828 · Busola: bilanțul pazei pe ZILE / momente rărite, nu pe monede; Radarul arată „dovedit” doar de la versiunea reparată · [S] · P1 · propus
+- **Problema/golul:** 🔴: „dovedit” −2,5 pp [−4,3; −1,0] din bootstrap pe 70 de monede (aceleași 27 de zile) ⇒ pe zile −0,9 [−2,2; +0,5] = n-am aflat; ajunge în fișa de grid și în titlul de dimineață.
+- **Soluția:** `bilantPaza` prin aceeași socoteală pe momente rărite ca I-811 (sau bootstrap pe zile), cu garda de mărime; Radarul scrie „dovedit” doar cu versiunea Busolei ≥ cea reparată.
+- **Impact:** Regula LUI „dovezile pe zile” ține și aici; nicio etichetă „dovedit” pe Discord fără acoperire.
+- **Riscuri/dependențe:** Paza avertizează mai rar „dovedit” (corect).
+- **Fișiere atinse:** busola/src/motor/jurnalPaza.ts (bilantPaza), crypto/public/lib/busola.js (bilantText), scripts/lib/dimineata-titlu.mjs
+
+#### I-829 · Busola „Acum”: Intrarea ta și botul deschis cu starea CU opțiuni (I-814 dus la capăt) + probă „o singură stare a pieței pe pagină” · [S] · P1 · propus
+- **Problema/golul:** „✓ Piața: obișnuită — nici agitată, nici calmă” lângă „mai calmă ca de obicei (din opțiuni)”; la un Q4 „pleacă” botul ar primi ✓ în loc de „! iese mai des din canal”.
+- **Soluția:** `miscareCuOptiuni(...).semn` dat lui `verificaIntrarea` / `verificaBotul`; o probă pe pagina publicată care pică dacă aceeași monedă are două cuvinte de piață diferite.
+- **Impact:** Aceeași stare peste tot pe pagină.
+- **Riscuri/dependențe:** Opțiunile pe altcoin-uri sunt „probate când Busola tace” — se spune sursa.
+- **Fișiere atinse:** busola/src/ui/Acum.tsx (~157, ~178), src/motor/verificaIntrare.ts
+
+#### I-830 · Paznicul din Worker își dă semn de viață; Radarul și `sanatate` își iau vocea înapoi după 90 de minute fără semn · [S] · P2 · propus
+- **Problema/golul:** O pană are acum o singură voce (paznicul), dar `paznic.discord` spune doar că webhook-ul e pus; dacă dispare cron-ul `*/30` (un deploy fără triggers), nu mai anunță nimeni.
+- **Soluția:** `scheduled()` scrie `paznic-la` la fiecare rulare (o cheie KV mică), servit în rezumat; Radarul tace pe Discord doar cu `paznic-la` < 90 min; `sanatate` arată vârsta lui.
+- **Impact:** Nicio pană nu mai poate rămâne fără voce.
+- **Riscuri/dependențe:** +48 de scrieri KV pe zi (sub plafon).
+- **Fișiere atinse:** busola/cron/worker.ts, cron/paznic.ts, scripts/sanatate.mjs, crypto/scripts/lib/paza-boti.mjs
+
+#### I-831 · Radar: alerte mai puține și mai utile — 1% doar la un extrem nou, T212 fără dubluri și fără noapte, critic doar ce cere acțiune în minute, bandă de prag la etichete · [M] · P2 · propus
+- **Problema/golul:** ~180 de mesaje pe zi, 47% alerte de 1%; 61 de trepte T212 retrimise la deschiderea SUA; 70 noaptea; 32 din 60 de „critice” = „−15% de la maxim” zilnic; „Crypto liniște ⇄ mișcare” de 9 ori; 43% din alertele boților se întorc în ≤ 15 min.
+- **Soluția:** Treptele doar la un extrem nou al zilei; cheia T212 pe închiderea de ieri; noaptea doar în Radar (lichidarea și stopul rămân); critic o dată pe episod; bandă ≥ 0,55 / ≤ 0,45 și 2 h între schimbări; un mesaj de dimineață care le adună pe celelalte.
+- **Impact:** Canalul redevine ceva ce citește — ~30–40% mai puține mesaje, criticele chiar critice.
+- **Riscuri/dependențe:** Pragurile benzii sunt alese, nu dovedite (spus).
+- **Fișiere atinse:** crypto/scripts/lib/poza.mjs, public/lib/actiuni-semnale.js, public/lib/alerte.js, public/lib/acasa.js, scripts/lib/tura-piata.mjs
+
+#### I-832 · Radar: textele (paznicul de pe Cloudflare, serverul oprit, subsolul) trimit la VPS — un singur loc „unde rulează colectorul”, cu gardă pe text · [S] · P2 · propus
+- **Problema/golul:** „e pornit PC-ul? rulează PORNESTE-CRYPTO-RADAR.bat?” — urmat, pornește al doilea colector acasă ⇒ alerte duble (tiparul alarmei Busolei de azi).
+- **Soluția:** O constantă „unde rulează” citită de toate textele; garda respinge „PC-ul de acasă” și „.bat” în mesajele de alertă.
+- **Impact:** Sfatul din mesaj nu mai poate dubla colectorul.
+- **Riscuri/dependențe:** —
+- **Fișiere atinse:** crypto/paznic/worker.mjs, scripts/lib/mesaje-colector.mjs, scripts/lib/canal-discord.mjs
+
+#### I-833 · Radar: sănătatea colectorului — erori 5xx pe rută, ture fără reușită în 24 h, lansatorul reface Functions la pull, rotația `wrangler.log` · [M] · P2 · propus
+- **Problema/golul:** 03.11: 1.188 de erori HTTP 500 în 15 h fără niciun mesaj (KV stricat, găsit de mână); tura „cazuri” moartă din 04.11 (41 „fetch failed”, trage după ea frâna); colectorul nou a mers 7 min peste Functions vechi; `wrangler.log` 11 MB în 2,5 zile.
+- **Soluția:** Contor 5xx pe rută ⇒ alertă după 30 min; „🩺 colectorul” doar când o tură n-a reușit 24 h (cu cauza în jurnal); lansatorul compară `functions/` și reconstruiește; rotația la 20 MB.
+- **Impact:** Penele tăcute ale Radarului se văd în minute, nu din întâmplare.
+- **Riscuri/dependențe:** Lansatorul rulează și la repornirile Windows Update ⇒ probat pe VPS cu grijă.
+- **Fișiere atinse:** crypto/scripts/colector.mjs, radar-server/porneste-radar.ps1 (VPS)
+
+#### I-834 · Un singur motor de dovezi (momente rărite / zile) pentru Busola și Radar + garda care interzice bootstrap pe monede + martorul pe monedă la 15m · [M] · P2 · propus
+- **Problema/golul:** Același tipar în 4 locuri: `Reveniri.dovada` 14–15% fals, `Verdicte.calibrare` 22–41%, paza pe monede (🔴), testul I-811 pe 15m cu monede preferate 15–21%.
+- **Soluția:** O funcție comună (momente care nu se suprapun, permutare pe straturi de monedă / blocuri de zile) + simulările de mărime ca gardă în poartă; martorul pe monedă (rezultatul minus media monedei) separă „alege monede bune” de „starea de acum spune ceva”.
+- **Impact:** Nicio etichetă „dovedit / mai bine” nu mai iese din noroc, în nicio aplicație.
+- **Riscuri/dependențe:** Testele devin mai severe ⇒ mai multe „n-am aflat” (cinstit).
+- **Fișiere atinse:** busola/src/motor/dovadaLive.ts, jurnalPaza.ts, trendLung, C4, D24; crypto/public/lib/reveniri.js, verdicte.js
+
+#### I-835 · Proba în umbră la schimbarea regulilor + decizia pentru „Acum” (pragul long a urcat la mijlocul probei) · [M] · P2 · propus
+- **Problema/golul:** Pragul long cu funding (43,5% ⇒ 45,6% pe BTC 4h) schimbă ce se notează în proba „Acum” (judecata pe 14.12), fără repornire anunțată; altfel o schimbare de regulă îngroapă 50 de zile de dovezi pentru 2 verdicte din 1.007.
+- **Soluția:** La o regulă nouă, 30 de zile se notează și cu cea veche (umbră); pentru „Acum”: notarea cu pragul vechi până la 14.12, sau repornirea probei, anunțată — hotărârea LUI.
+- **Impact:** Dovezile adunate nu se pierd la fiecare reparație.
+- **Riscuri/dependențe:** Puțin cod în plus la notare.
+- **Fișiere atinse:** busola/src/motor/jurnalAcum.ts, verificaIntrare.ts, reguli.ts
+
+#### I-836 · Radar pe telefon: fișa Grid sare la verdict, Futures pe pagina nouă, Alerte pe zile, Range Filter cu ton mut, „nicio variantă nu câștigă” când ambele medii sunt negative · [M] · P3 · propus
+- **Problema/golul:** Fișa Grid: verdictul la 1.110 px și „aș alege LARG” cu media −0,9 USDT; Futures de la 630 px; Alerte 245.000 px (1.413 rânduri) cu „info” verde; „SEMNAL SELL” roșu sub „nedovedit”.
+- **Soluția:** După „Calculează” formularul se strânge și pagina sare la verdict; „nicio variantă nu câștigă” cu ambele negative; `deriv` în `pePaginaNoua`; Alerte ultimele 50 pe zile, „Doar importante” pe telefon; Range Filter „colorant”, ton neutru.
+- **Impact:** Decizia pe primul ecran al telefonului.
+- **Riscuri/dependențe:** Poze la 412/768/1440/2560 înainte de livrare.
+- **Fișiere atinse:** crypto/public/app.js (pePaginaNoua ~3332, fișa), public/lib/range-filter-ecran.js, app.css (Alerte, info)
+
+#### I-837 · Convențiile LUI cu gardă pe ambele aplicații: o zecimală, virgulă, minus „−”, separator de mii, fără engleză · [S] · P3 · propus
+- **Problema/golul:** Încă de la 23.10, după 48 de versiuni: „−5,62%”, „$25.17”, „2401 boți”, „−6430,9 USDT”, WIN/LOSS, „ASTEAPTA”; Busola „-1.84%” (`scor.ts`).
+- **Soluția:** O gardă în proba de telefon a Radarului care citește textul paginilor (rezultatele, nu ecoul a ce tastează omul) + formatarea lui `scor.ts` pe ecran, fără să atingă amprenta regulii.
+- **Impact:** Abaterile nu mai pot reveni după fiecare versiune.
+- **Riscuri/dependențe:** Excepțiile (prețurile Pionex cu zecimalele lor) scrise în gardă.
+- **Fișiere atinse:** crypto/scripts/proba-ecran-telefon (garda de text), busola/src/ui/cifrePeEcran.ts (scor.ts pe ecran)
+
+#### I-838 · Pionex: cache comun în colector (lista boților la 30 s, lumânări incrementale) — ~10.000 de cereri pe zi ⇒ ~4.000 · [M] · P3 · propus
+- **Problema/golul:** ~10.000 de cereri Pionex pe zi de pe IP-ul VPS-ului (comun cu Busola): lista boților ~3.300 (din ~10 locuri), clasamentul și scanul ~4.600, dimineața aceleași lumânări de 1 h de două ori.
+- **Soluția:** Lista boților cu cache de 30 s în colector; lumânări de 4h incrementale (ca Busola 1.88); `Lumanari` comun pentru Range Filter și Trade-ul zilei.
+- **Impact:** Mai departe de blocarea IP-ului care ar orbi ambele aplicații.
+- **Riscuri/dependențe:** Prospețimea listei la 30 s (alertele de lichidare rămân pe citirea proaspătă).
+- **Fișiere atinse:** crypto/scripts/colector.mjs, scripts/lib/rf-dimineata.mjs, tura-trade-zilei.mjs
+
+#### I-839 · Busola: banda „Atenție la procentele direcției” doar când pe ecran e un verdict de direcție, pliată pe un rând · [S] · P3 · propus
+- **Problema/golul:** Efect lateral I-816: calibrarea de pe PC (51 de zile) trece de prag ⇒ banda stă deasupra tuturor filelor (~130 px pe telefon) și vorbește despre direcție când direcția e „FĂRĂ VERDICT” peste tot.
+- **Soluția:** Banda apare doar lângă un verdict de direcție, pe un rând pliat („procentele direcției pe 4h au promis mai mult — de ce ›”).
+- **Impact:** Conținutul urcă pe telefon; avertismentul stă unde contează.
+- **Riscuri/dependențe:** —
+- **Fișiere atinse:** busola/src/App.tsx (~252, ~417)
