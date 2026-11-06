@@ -3517,8 +3517,8 @@ pe un singur chart.
 | I-837 | Convențiile LUI cu gardă pe ambele aplicații: o zecimală, virgulă, minus „−”, separator de mii, fără engleză | crypto/scripts/proba-ecran-telefon (garda de text), busola/src/ui/cifrePeEcran.ts (scor.ts pe ecran) | S | P3 | făcut | ideation | 2026-11-05 → 2026-11-06 |
 | I-838 | Pionex: cache comun în colector (lista boților la 30 s, lumânări incrementale) — ~10.000 de cereri pe zi ⇒ ~4.000 | crypto/scripts/colector.mjs, scripts/lib/rf-dimineata.mjs, tura-trade-zilei.mjs | M | P3 | făcut | ideation | 2026-11-05 → 2026-11-06 |
 | I-839 | Busola: banda „Atenție la procentele direcției” doar când pe ecran e un verdict de direcție, pliată pe un rând | busola/src/App.tsx (~252, ~417) | S | P3 | făcut | ideation | 2026-11-05 → 2026-11-06 |
-| I-840 | Busola: testul live cu varianța pe DOUĂ căi (monedă + timp), ca Verdicte — martorul pe monedă scapă rata care variază lent | busola/src/motor/dovadaLive.ts, probe/dovada-live.ts | M | P2 | propus | audit | 2026-11-06 |
-| I-841 | Radar Trade-ul zilei: P3 condiționat de ziua făcută (seara „6 %” când ziua e la 8,9 % față de 9,3 % ieri, cu 95 % din zi format) | crypto/public/lib/trade-zilei.js, trade-zilei-ecran.js, scripts/proba-v100306-b.mjs | M | P2 | propus | audit | 2026-11-06 |
+| I-840 | Busola: testul live cu varianța pe DOUĂ căi (monedă + timp), ca Verdicte — martorul pe monedă scapă rata care variază lent | busola/src/motor/dovadaLive.ts, probe/dovada-live.ts | M | P2 | făcut | audit | 2026-11-06 → 2026-11-06 |
+| I-841 | Radar Trade-ul zilei: P3 condiționat de ziua făcută (seara „6 %” când ziua e la 8,9 % față de 9,3 % ieri, cu 95 % din zi format) | crypto/public/lib/trade-zilei.js, trade-zilei-ecran.js, scripts/proba-v100306-b.mjs | M | P2 | făcut | audit | 2026-11-06 → 2026-11-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8081,14 +8081,16 @@ Lentile — Trader: pagina și dash-ul spun acum cinstit „direcția, fără co
 - **Riscuri/dependențe:** —
 - **Fișiere atinse:** busola/src/App.tsx (~252, ~417)
 
-#### I-840 · Busola: testul live cu varianța pe DOUĂ căi (monedă + timp), ca Verdicte — martorul pe monedă scapă rata care variază lent · [M] · P2 · propus
+#### I-840 · Busola: testul live cu varianța pe DOUĂ căi (monedă + timp), ca Verdicte — martorul pe monedă scapă rata care variază lent · [M] · P2 · făcut
+- **Făcut 06.11.2026:** Busola 1.89.1 (`d74fdbb`, VPS + Worker `369d9c8f`) — `dovadaPeMomente`: p și IC din varianța pe două căi (monedă + bloc = o zi sau un orizont), jackknife CV3, Student cu min(G) − 1 grade, sub 8 monede „prea puțin”. Mărimea: lumea revizorului 19,4 % ⇒ 4,6 %, stres 23,9 % ⇒ 4,5 %, lumânări reale 1,3–4,5 %; unde 1.89 era cinstit, 83–91 % din putere păstrată.
 - **Problema/golul:** Revizia 1.89: cu rata monedei care urcă și coboară încet (zile) și alegerea ținută pe aceeași monedă, martorul pe toată fereastra dă 6–18 % fals (scratchpad rev-busola/marime-mu-variabil.ts). Două reparații încercate pe 06.11 au picat: fereastra rulantă pe toate rândurile (mărime 0–3 %, dar efectul sădit înghițit, −0,2 pp) și pe momentele nealese (16–28 % fals cu monede preferate).
 - **Soluția:** Statistica rămâne aceeași; p și IC din varianța pe două căi (monedă + bloc de zile), Student cu min(G) − 1 grade — metoda din Verdicte.comparaPeZi / laboratorul gridului (v100.306), cu toate gărzile de mărime și putere din dovada-live.ts + lumea revizorului.
 - **Impact:** „Ține / greșește” pe pagina Busolei nu mai poate ieși din noroc nici când moneda își schimbă încet obiceiul.
 - **Riscuri/dependențe:** Puterea scade puțin; azi toate verdictele live sunt „n-am aflat” / „prea puține” ⇒ fără urgență.
 - **Fișiere atinse:** busola/src/motor/dovadaLive.ts, probe/dovada-live.ts
 
-#### I-841 · Radar Trade-ul zilei: P3 condiționat de ziua făcută (seara „6 %” când ziua e la 8,9 % față de 9,3 % ieri, cu 95 % din zi format) · [M] · P2 · propus
+#### I-841 · Radar Trade-ul zilei: P3 condiționat de ziua făcută (seara „6 %” când ziua e la 8,9 % față de 9,3 % ieri, cu 95 % din zi format) · [M] · P2 · făcut
+- **Făcut 06.11.2026:** Radar v100.307 (`71609d6`) — P3 = regresie logistică pe 6 blocuri de ore din modelul de dimineață și P3c = P(G_h ≥ ieri / până acum), G = întinderea finală relativă cu închiderea reală (încercarea 2, după revizia care a prins saltul de la x = 1 al încercării 1). Brier pe 72 de zile nevăzute 0,149 față de 0,210 modelul și 0,164 P3c; seara, în jurul lui x ≈ 1, spus / ieșit 87/86, 92/89, 47/52, 29/24. Prognoza de la 00:00 UTC rămâne pe rândul ei; regulile pre-înregistrate A / B pe P3-ul de dimineață. Nedovedit: seara, cu modelul < 15 %, pare sub ce iese (32–51 de rânduri).
 - **Problema/golul:** Pozele din 05.11 23:18: P3 al modelului vede doar ieri și alaltăieri; seara, aproape de ieri, cifra mare minte (v100.306 doar o spune în text: „nu vede ziua de azi”).
 - **Soluția:** Distribuția măsurată a lui F_h = întinderea până la ora h / întinderea zilei (data/istoric-1h, 75 de monede), înghețată pe ore; P3 = P(F_h ≤ până acum / ieri), combinat cu modelul (logistic pe ore) și verificat pe zile nevăzute (calibrare + Brier față de modelul de azi).
 - **Impact:** „Azi se mișcă mai mult ca ieri” devine adevărat și seara.
