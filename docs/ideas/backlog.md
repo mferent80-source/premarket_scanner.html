@@ -3519,12 +3519,12 @@ pe un singur chart.
 | I-839 | Busola: banda „Atenție la procentele direcției” doar când pe ecran e un verdict de direcție, pliată pe un rând | busola/src/App.tsx (~252, ~417) | S | P3 | făcut | ideation | 2026-11-05 → 2026-11-06 |
 | I-840 | Busola: testul live cu varianța pe DOUĂ căi (monedă + timp), ca Verdicte — martorul pe monedă scapă rata care variază lent | busola/src/motor/dovadaLive.ts, probe/dovada-live.ts | M | P2 | făcut | audit | 2026-11-06 → 2026-11-06 |
 | I-841 | Radar Trade-ul zilei: P3 condiționat de ziua făcută (seara „6 %” când ziua e la 8,9 % față de 9,3 % ieri, cu 95 % din zi format) | crypto/public/lib/trade-zilei.js, trade-zilei-ecran.js, scripts/proba-v100306-b.mjs | M | P2 | făcut | audit | 2026-11-06 → 2026-11-06 |
-| I-842 | Radar Tabloul botului: „ce poate face piața botului tău în 7 zile” — lățimea gridului față de mișcarea tipică pe 7 zile, șansa ca stopul / capetele să fie atinse, pierderea la stop (extinde I-475 la boții DESCHIȘI) | crypto/public/lib/tablou-bot.js, tablou-extra.js, grid-sim.js (pStop) | S | P1 | propus | ideation | 2026-11-07 |
-| I-843 | Radar: caietul de păreri judecate — o direcție scrisă (a ta sau a mea), cu probabilitate, notată la preț și oră și judecată singură la termen; Brier-ul tău față de 50% și față de M1 / M2 | crypto/public/lib/ (nou: pareri.js + ecran), functions/api/istoric-bot.js (action=pareri), scripts/lib/tura-directie.mjs (judeca) | M | P2 | propus | ideation | 2026-11-07 |
-| I-844 | Radar: raportul de duminică spune și unde sunt probele ÎNAINTE (căderi E/A/B/C/P, direcție M1/M2 abs/rel, Trade-ul zilei A, Trend 12 luni) față de privirile fixate + zilele lipsă | crypto/public/lib/obiceiuri.js (raportDuminica), scripts/colector.mjs (turaRaport) | S | P2 | propus | ideation | 2026-11-07 |
-| I-845 | Radar: proba de telefon cu DATE în KV-ul serverului de probă (o zi de căderi, una de direcție), ca garda de convenții să citească textele grupurilor la fiecare livrare | crypto/scripts/proba-ecran-telefon.mjs, scripts/copie-de-lucru.mjs, scripts/date/ (corpuri) | S | P2 | propus | ideation | 2026-11-07 |
-| I-846 | Radar: mutațiile intră în repo — `scripts/mutatii.mjs` + listele de mutații ale probelor statistice (căderi, direcție, v100310), la cerere și în livrare pe fișierele atinse | crypto/scripts/mutatii.mjs (nou), scripts/date/mutatii-*.json, scripts/copie-de-lucru.mjs | M | P3 | propus | ideation | 2026-11-07 |
-| I-847 | Radar colector: un singur panou zilnic Binance pentru turele căderi și direcție (pe disc, pe ziua UTC) — ~1.040 de cereri de bare pe zi ⇒ ~520, fără „după căderi” | crypto/scripts/lib/tura-caderi.mjs, tura-directie.mjs, scripts/colector.mjs | S | P3 | propus | ideation | 2026-11-07 |
+| I-842 | Radar Tabloul botului: „ce poate face piața botului tău în 7 zile” — lățimea gridului față de mișcarea tipică pe 7 zile, șansa ca stopul / capetele să fie atinse, pierderea la stop (extinde I-475 la boții DESCHIȘI) | crypto/public/lib/tablou-bot.js, tablou-extra.js, grid-sim.js (pStop) | S | P1 | făcut | ideation | 2026-11-07 → 2026-11-08 |
+| I-843 | Radar: caietul de păreri judecate — o direcție scrisă (a ta sau a mea), cu probabilitate, notată la preț și oră și judecată singură la termen; Brier-ul tău față de 50% și față de M1 / M2 | crypto/public/lib/ (nou: pareri.js + ecran), functions/api/istoric-bot.js (action=pareri), scripts/lib/tura-directie.mjs (judeca) | M | P2 | făcut | ideation | 2026-11-07 → 2026-11-08 |
+| I-844 | Radar: raportul de duminică spune și unde sunt probele ÎNAINTE (căderi E/A/B/C/P, direcție M1/M2 abs/rel, Trade-ul zilei A, Trend 12 luni) față de privirile fixate + zilele lipsă | crypto/public/lib/obiceiuri.js (raportDuminica), scripts/colector.mjs (turaRaport) | S | P2 | făcut | ideation | 2026-11-07 → 2026-11-08 |
+| I-845 | Radar: proba de telefon cu DATE în KV-ul serverului de probă (o zi de căderi, una de direcție), ca garda de convenții să citească textele grupurilor la fiecare livrare | crypto/scripts/proba-ecran-telefon.mjs, scripts/copie-de-lucru.mjs, scripts/date/ (corpuri) | S | P2 | făcut | ideation | 2026-11-07 → 2026-11-08 |
+| I-846 | Radar: mutațiile intră în repo — `scripts/mutatii.mjs` + listele de mutații ale probelor statistice (căderi, direcție, v100310), la cerere și în livrare pe fișierele atinse | crypto/scripts/mutatii.mjs (nou), scripts/date/mutatii-*.json, scripts/copie-de-lucru.mjs | M | P3 | făcut | ideation | 2026-11-07 → 2026-11-08 |
+| I-847 | Radar colector: un singur panou zilnic Binance pentru turele căderi și direcție (pe disc, pe ziua UTC) — ~1.040 de cereri de bare pe zi ⇒ ~520, fără „după căderi” | crypto/scripts/lib/tura-caderi.mjs, tura-directie.mjs, scripts/colector.mjs | S | P3 | făcut | ideation | 2026-11-07 → 2026-11-08 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8108,42 +8108,48 @@ Lentile — Trader: pagina și dash-ul spun acum cinstit „direcția, fără co
 **Excluse:** alerta „pornit cu frâna” (există: MesajeColector.pornitCuFrana, colector.mjs ~2057); I-824 (făcut); I-475 (propus — extins de I-842, nu repropus).
 **Defecte văzute (nu idei ⇒ trading-code-craft):** Sugestii · Trend 12 luni: „locul 1.0017064846416381 din 20” (rangul nu e întreg); Sugestii · Sectoare: simbolul lipit de nume („MAMastercard”).
 
-#### I-842 · Radar Tabloul botului: „ce poate face piața botului tău în 7 zile” · [S] · P1 · propus
+#### I-842 · Radar Tabloul botului: „ce poate face piața botului tău în 7 zile” · [S] · P1 · făcut
+- **Făcut 08.11.2026:** Radar v100.312 / colector v101.170 (`6c7f749`, LIVE pe VPS) — rândul „Pe 7 zile” în Tablou (`GridSim.riscSaptamana` / `textSaptamana`): jumătatea gridului față de mișcarea pe o săptămână (randamente zilnice × √7; pe 15 minute și pe 4 ore STX ieșea umflat la ±18,5%, pe zile ±16,4%), ieșirea din grid, pierderea la stop; botul deja oprit în reluare ⇒ fără șanse pe drumuri (STX: stopul 0,33, sub grid). Calculat și de colector (`sapt`, păstrat de ruta mcVerdict). Constatat: șansa stopului la 7 zile era deja în textul Monte Carlo — rândul adaugă restul.
 - **Problema/golul:** Pe 07.11, botul STX (long 3×, grid 0,333–0,3607 = 8%, stop 0,30) avea: mișcarea tipică pe 7 zile ~13% (σ30 5,1% / zi), șansa ~26% ca stopul să fie atins în 7 zile (pierdere ≈ −28 USDT din 89), ieșire sub grid ~92%. Nicăieri în Tablou; `pStop` există doar în Simulator / Carnet / Monte Carlo (grid-sim.js), pentru griduri PLĂNUITE.
 - **Soluția:** În Tabloul botului, un rând „în 7 zile, fără tendință”: lățimea gridului față de mișcarea pe 7 zile, șansa de a atinge stopul / capetele (GridSim pe barele botului), pierderea la stop în USDT. Același motor ca simulatorul, nu unul nou.
 - **Impact:** Riscul botului deschis devine o cifră înainte să se întâmple (ex. gridul de 8% față de mișcarea de 13%), nu o surpriză la stop.
 - **Riscuri/dependențe:** Mers fără tendință (spus pe ecran); probabilitatea verificată cu „verificat pe ce a urmat” al simulatorului înainte de a o arăta ca procent; I-475 (planul) rămâne separat.
 - **Fișiere atinse:** crypto/public/lib/tablou-bot.js, tablou-extra.js, grid-sim.js
 
-#### I-843 · Radar: caietul de păreri judecate · [M] · P2 · propus
+#### I-843 · Radar: caietul de păreri judecate · [M] · P2 · făcut
+- **Făcut 08.11.2026:** Radar v100.312 / colector v101.170 (`6c7f749`) — caietul pe pagina „🧪 Probe” (`public/lib/caiet.js`, `probe-ecran.js`): monedă, P(sus), 1 / 3 / 7 / 14 / 30 de zile, autor; ora o pune serverul, retro cel mult 3 zile și doar cu termenul la peste o oră, ștergere în primele 15 minute (`action=pareri`, `pareriJudecate`); colectorul (`scripts/lib/tura-pareri.mjs`, o dată pe oră) judecă pe închiderea minutului de 1 m la notare și la termen (Binance, 1000PEPE). Brier pe autor față de „50% la fiecare”; M2 doar pe părerile de 7 zile. Diferit de fișă: judecat pe preț, fără cost / funding / față de piață și fără M1. Prima părere: STX 47%, p0 0,3371, termen 14.11 13:40 UTC.
 - **Problema/golul:** Întrebarea lui (07.11): „la ce potențial ai tu… să fim realiști” — modelele de direcție se judecă acum (proba din 07.11), dar părerile LIBERE (ale lui sau ale mele, ca STX 47% „sus” pe 14.11) stau doar în memorie și nu se judecă singure.
 - **Soluția:** Un caiet: monedă, direcție, probabilitate, orizont, notate cu prețul și ora; colectorul le judecă la termen (aceeași `judeca` ca la direcție: cost, funding, față de piață) și ține Brier-ul pe autor față de 50%, de rata de bază și de M1 / M2 din aceleași zile.
 - **Impact:** Arată cu cifre dacă judecata cuiva (a lui, a mea) bate banul — exact întrebarea lui, pe date care vin, nu pe amintiri.
 - **Riscuri/dependențe:** Puține păreri ⇒ ani până la ceva sigur (spus pe pagină); ora notării e fixă (fără editare după); depinde de tura direcției (v101.169).
 - **Fișiere atinse:** crypto/public/lib/ (nou: pareri.js + ecran), functions/api/istoric-bot.js, scripts/lib/tura-directie.mjs
 
-#### I-844 · Radar: raportul de duminică cu probele înainte · [S] · P2 · propus
+#### I-844 · Radar: raportul de duminică cu probele înainte · [S] · P2 · făcut
+- **Făcut 08.11.2026:** colector v101.170 (`6c7f749`) — `scripts/lib/probe-raport.mjs` în `turaRaport`: câte un rând pentru căderi, direcție (M1 / M2, absolut și față de piață) și caiet, cu zilele lipsă din săptămână și privirile fixate, fără verdict. Rămas: Trade-ul zilei A și Trend 12 luni nu au rând în raport (stau pe pagina „🧪 Probe”).
 - **Problema/golul:** `Obiceiuri.raportDuminica` (colector `turaRaport`) are trade-urile, socoteala, laboratorul, autopsia — nu și probele înainte (căderi din 07.11, direcție din 07.11, Trade-ul zilei A din 04.11, Trend 12 luni). Cifrele lor stau pe pagini diferite; o tură care nu mai scrie zile se vede doar în sănătate.
 - **Soluția:** O secțiune scurtă, un rând pe probă: câte zile / evenimente judecate, media față de reper, cât mai e până la privirea fixată, „zile lipsă săptămâna asta”. Fără verdict înainte de privire.
 - **Impact:** Deriva față de istoric (live-vs-backtest) se vede săptămânal, fără să deschidă 4 pagini; o tură moartă nu trece neobservată.
 - **Riscuri/dependențe:** Mesajul se lungește ⇒ un rând pe probă; cifrele vin din KV-urile existente (sugestii:caderi, sugestii:directie, trade-zilei, trend12).
 - **Fișiere atinse:** crypto/public/lib/obiceiuri.js, scripts/colector.mjs
 
-#### I-845 · Radar: proba de telefon cu date în KV-ul serverului de probă · [S] · P2 · propus
+#### I-845 · Radar: proba de telefon cu date în KV-ul serverului de probă · [S] · P2 · făcut
+- **Făcut 08.11.2026:** Radar v100.312 (`6c7f749`) — corpurile reale din `scripts/date/proba-telefon/` (căderi, direcție, păreri, probaA) servite prin CDP (`Fetch.fulfillRequest`), nu puse în KV; pagina Probe în garda convențiilor; proba de telefon 59/59 la livrare.
 - **Problema/golul:** La livrare, proba de telefon rulează pe serverul copiei (8788) cu KV gol ⇒ grupurile Sugestii „căderi” / „direcție” arată „aștept tura” ⇒ garda de convenții nu le citește niciodată textele reale. Pe 07.11 le-am verificat doar de mână (CDP cu răspunsul pus peste).
 - **Soluția:** Înainte de proba de telefon, livrarea pune în KV-ul serverului de probă corpurile reale salvate (o zi de căderi, una de direcție) din scripts/date/; după probă le scoate.
 - **Impact:** Orice text nou din aceste grupuri (cifre, zecimale, engleză) e prins la livrare, nu de el pe telefon.
 - **Riscuri/dependențe:** Corpurile salvate îmbătrânesc (de împrospătat la schimbarea formatului); nu se atinge KV-ul de producție (VPS).
 - **Fișiere atinse:** crypto/scripts/proba-ecran-telefon.mjs, scripts/copie-de-lucru.mjs, scripts/date/
 
-#### I-846 · Radar: mutațiile intră în repo · [M] · P3 · propus
+#### I-846 · Radar: mutațiile intră în repo · [M] · P3 · făcut
+- **Făcut 08.11.2026:** Radar v100.312 (`6c7f749`) — `scripts/mutatii.mjs` + 87 de mutații (`mutatii-caderi` 36, `mutatii-directie` 16, `mutatii-v100312` 35); proba trebuie să treacă nestricată întâi, fișierul se pune la loc doar dacă e încă cel stricat; 87/87 prinse (2 scăpate la prima trecere ⇒ teste întărite). Diferit de fișă: `npm test` verifică doar că tiparele încă se potrivesc (`--doar-tiparele`); rularea întreagă e la cerere (`npm run mutatii`), nu în livrare.
 - **Problema/golul:** Pe 07.11 mutațiile ad-hoc (scratchpad) au prins 3 goluri în teste care treceau: r7 pe 6 zile (Python), fereastra funding-ului cu ciclul de 7 decontări (21 pe săptămână ⇒ rate egale), fraza calibrării. Scripturile se pierd odată cu sesiunea.
 - **Soluția:** `scripts/mutatii.mjs` + câte o listă de mutații lângă probele statistice (căderi, direcție, sugestii); rulat la cerere și, în livrare, pe probele fișierelor atinse; „scăpată” = livrarea oprită.
 - **Impact:** Testele probelor rămân în stare să prindă greșelile care contează și după ce codul se schimbă.
 - **Riscuri/dependențe:** Timp de livrare în plus (1–3 min pe probă); tiparele trebuie ținute la zi (o mutație care nu se mai potrivește = semnalată, nu sărită).
 - **Fișiere atinse:** crypto/scripts/mutatii.mjs (nou), scripts/date/mutatii-*.json, scripts/copie-de-lucru.mjs
 
-#### I-847 · Radar colector: un singur panou zilnic Binance pentru căderi și direcție · [S] · P3 · propus
+#### I-847 · Radar colector: un singur panou zilnic Binance pentru căderi și direcție · [S] · P3 · făcut
+- **Făcut 08.11.2026:** colector v101.170 (`6c7f749`) — `scripts/lib/panou-binance.mjs` (`cuPanouZilnic`): barele zilnice și exchangeInfo o dată pe ziua UTC pentru căderi și direcție, date ca copii, eșecurile nu se țin minte, golit după tura direcției; `tura-caderi` / `tura-directie` neatinse. Diferit de fișă: în memorie, nu pe disc.
 - **Problema/golul:** Ambele ture cer barele zilnice ale ~520 de perpetue (ponderea 2) ⇒ ~1.040 de cereri pe zi; direcția așteaptă căderile ca să nu se apropie de 2.400 / minut.
 - **Soluția:** Prima tură a zilei scrie panoul (bare închise, pe ziua UTC) pe disc; a doua îl citește. Aceleași `bareInchise` / `panou`.
 - **Impact:** Jumătate din cereri, mai puțin risc de 429, turele independente una de alta.
