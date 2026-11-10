@@ -83,8 +83,10 @@ test('`| tee` doar cu `set -o pipefail` în același pas (altfel a doua încerca
 });
 
 // 28.10.2026 (revizia F4): și clasamentul zilnic Trend și bilanțul săptămânal Top Long — un `git push` fără reîncercare pierdea ziua la o cursă cu alt robot
-test('push-ul probelor reîncearcă de 3 ori și pică vizibil (V1 / Top Long, Trend zilnic și bilanț, bilanțul Top Long)', () => {
-  for (const n of ['v1-proba.yml', 'trend-12-1-bilant.yml', 'trend-12-1.yml', 'premarket-bilant.yml']) {
+// 10.11.2026: și Amploarea (pages.yml) — pe 09.11 22:23 UTC un singur 403 la push („Permission … denied to github-actions[bot]”, cu Contents: write,
+// aceeași imagine care scrisese pe 07.11 și a scris din nou pe 10.11) a lăsat Astăzi pe „Amploare · veche · 06.11”
+test('push-ul probelor reîncearcă de 3 ori și pică vizibil (V1 / Top Long, Trend zilnic și bilanț, bilanțul Top Long, Amploarea)', () => {
+  for (const n of ['v1-proba.yml', 'trend-12-1-bilant.yml', 'trend-12-1.yml', 'premarket-bilant.yml', 'pages.yml']) {
     const y = FLUXURI.find((f) => f.n === n).y;
     assert.match(y, /for i in 1 2 3; do if git pull --rebase origin main && git push origin HEAD:main; then ok=1; break; fi/, n);
     assert.match(y, /\[ "\$ok" = 1 \] \|\| \{ echo 'Push eșuat de 3 ori\.'; exit 1; \}/, n);

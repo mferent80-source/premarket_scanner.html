@@ -64,8 +64,9 @@ jobs:
           git add market-breadth/data/latest.json market-breadth/generated
           if ! git diff --cached --quiet; then
             git commit -m 'data(breadth): refresh public EOD observations [skip ci]'
-            git pull --rebase origin main
-            git push origin HEAD:main
+            # 10.11.2026: un singur 403 trecător la push (09.11 22:23 UTC) a lăsat Amploarea pe 06.11 — 3 încercări, apoi pică vizibil (ca la Trend / V1 / bilanț)
+            ok=0; for i in 1 2 3; do if git pull --rebase origin main && git push origin HEAD:main; then ok=1; break; fi; git rebase --abort 2>/dev/null || true; sleep 10; done
+            [ "$ok" = 1 ] || { echo 'Push eșuat de 3 ori.'; exit 1; }
           fi
       # 20.10.2026 (I-733): robotul Breadth nu mai cade tăcut — Discord la eșec, ca ceilalți roboți
       - name: Discord la eșec
