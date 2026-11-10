@@ -3527,9 +3527,9 @@ pe un singur chart.
 | I-847 | Radar colector: un singur panou zilnic Binance pentru turele căderi și direcție (pe disc, pe ziua UTC) — ~1.040 de cereri de bare pe zi ⇒ ~520, fără „după căderi” | crypto/scripts/lib/tura-caderi.mjs, tura-directie.mjs, scripts/colector.mjs | S | P3 | făcut | ideation | 2026-11-07 → 2026-11-08 |
 | I-848 | Radar Tabloul botului: deschiderea fără coada de cereri | crypto/public/app.js (pornirea, tbAdu*, getJSON), crypto/public/lib/t212-ecran.js, sugestii-ecran.js, acasa-ecran.js | M | P1 | propus | ideation | 2026-11-10 |
 | I-849 | Radar grafic bot: „dacă închizi la prețul ăsta” lângă prețul din scară | crypto/public/app.js (renderTabloGrafic, tbLaPret), crypto/public/app.css | S | P3 | propus | ideation | 2026-11-10 |
-| I-850 | Radar Tabloul botului: Monte Carlo o singură dată pe pagină | crypto/public/app.js (tbMcSus, tbDeseneazaCitire), crypto/public/lib/monte-simbol-ecran.js | S | P2 | propus | ideation | 2026-11-10 |
-| I-851 | Radar Tabloul botului: pagina pe trei etaje (hotărârea, graficul, restul pliat) | crypto/public/index.html (#tabloubot), crypto/public/app.css, crypto/public/app.js (render*Tablou*) | L | P2 | propus | ideation | 2026-11-10 |
-| I-852 | Radar Tabloul botului: scara de litere de la 18 mărimi la 5 | crypto/public/app.css (regulile #tabloubot) | M | P3 | propus | ideation | 2026-11-10 |
+| I-850 | Radar Tabloul botului: Monte Carlo o singură dată pe pagină | crypto/public/app.js (tbMcSus, tbDeseneazaCitire), crypto/public/lib/monte-simbol-ecran.js | S | P2 | făcut | ideation | 2026-11-10 → 2026-11-10 |
+| I-851 | Radar Tabloul botului: pagina pe trei etaje (hotărârea, graficul, restul pliat) | crypto/public/index.html (#tabloubot), crypto/public/app.css, crypto/public/app.js (render*Tablou*) | L | P2 | făcut | ideation | 2026-11-10 → 2026-11-10 |
+| I-852 | Radar Tabloul botului: scara de litere de la 18 mărimi la 5 | crypto/public/app.css (regulile #tabloubot) | M | P3 | făcut | ideation | 2026-11-10 → 2026-11-10 |
 | I-853 | Radar grafic bot: mișcarea mouse-ului fără recalculare la fiecare pas | crypto/public/app.js (renderTabloGrafic: arata, pointermove) | S | P3 | propus | ideation | 2026-11-10 |
 | I-854 | Radar Tabloul botului: stările de așteptare spun ce așteaptă și de când | crypto/public/app.js (cartela verdictului, tbSemaforTf, trendul pe TF-uri), crypto/public/lib/consilier.js | S | P2 | propus | ideation | 2026-11-10 |
 | I-855 | Radar Tabloul botului pe telefon: țintele mici de atins | crypto/public/app.css (.gbSem, .tbCcDet, linkurile din carduri) | S | P3 | propus | ideation | 2026-11-10 |
@@ -8179,21 +8179,24 @@ Lentile — Trader: pagina și dash-ul spun acum cinstit „direcția, fără co
 - **Riscuri/dependențe:** El a numit datele etichetei „aiurea”: se face doar dacă cere cifra asta înapoi. Tabelul „Dacă prețul ajunge la…” dă deja aceeași socoteală pe prețuri fixe.
 - **Fișiere atinse:** crypto/public/app.js (renderTabloGrafic, tbLaPret), crypto/public/app.css
 
-#### I-850 · Radar Tabloul botului: Monte Carlo o singură dată pe pagină · [S] · P2 · propus
+#### I-850 · Radar Tabloul botului: Monte Carlo o singură dată pe pagină · [S] · P2 · făcut
+- **Făcut 10.11.2026:** Radar v100.316 (`25e531f`) — cât cardul Monte Carlo e pe ecran, rândul din „Ce spune piața acum” rămâne o trimitere de o linie (doar foaie de stil, nimic șters).
 - **Problema/golul:** Blocul „Scorul Monte Carlo” (7 rânduri dese, ~300 px) apare de două ori cu același text: sus, sub „Contează acum”, și a doua oară în „Ce spune piața acum”. La fel „Încă socotesc fișa monedei” (în capul paginii și în cartela Consilierului).
 - **Soluția:** Blocul întreg rămâne sus. În „Ce spune piața acum” rămâne un rând: „Monte Carlo: câștigă în 47% din drumuri · vezi sus”. Starea fișei rămâne în capul paginii, iar cartela ei arată doar motivele.
 - **Impact:** ~350 px mai puțin de derulat pe lat, ~700 px pe telefon; aceeași cifră nu se mai citește de două ori.
 - **Riscuri/dependențe:** Inventarul rândurilor înainte (regula lui: nimic pierdut); probele care caută textul în ambele locuri.
 - **Fișiere atinse:** crypto/public/app.js (tbMcSus, tbDeseneazaCitire), crypto/public/lib/monte-simbol-ecran.js
 
-#### I-851 · Radar Tabloul botului: pagina pe trei etaje (hotărârea, graficul, restul pliat) · [L] · P2 · propus
+#### I-851 · Radar Tabloul botului: pagina pe trei etaje (hotărârea, graficul, restul pliat) · [L] · P2 · făcut
+- **Făcut 10.11.2026:** Radar v100.316 (`25e531f`) + v100.317 (`f892f77`, `c2d903f`) — capul paginii (verdict, cifre, riglă, „Contează acum”), apoi graficul (de la ~1.240 la ~740 px pe 1440), apoi restul pe 10 rânduri de o linie care se deschid la clic. Diferit de fișă: nimic mutat în DOM, totul din foaia de stil + atributul `data-rand`; temă deschisă cu buton pentru cea închisă.
 - **Problema/golul:** Pagina are 5.656 px înălțime pe 1440 și 10.483 px pe telefon (412), 2.436 de cuvinte la vedere și 18 pliuri. Graficul, panoul numit dominant în design.md, începe abia la ~1.170 px: pe ecranul de 900 nu se vede fără derulare. Deasupra lui stau cinci blocuri.
 - **Soluția:** Etajul 1 (fără derulare): verdictul, cifrele botului și „Contează acum” pe un rând compact. Etajul 2: graficul cu „Drumul botului” lipit de el. Etajul 3: restul, în ordinea de azi, cu Monte Carlo, „Ce spune piața”, „Dacă prețul ajunge la…” pliate cu rezumat de un rând. Demo pe poze la lățimile lui înainte de aplicare.
 - **Impact:** Hotărârea și graficul pe primul ecran; derularea scade la aproximativ jumătate.
 - **Riscuri/dependențe:** Reproiectare ⇒ inventarul ecranului vechi de pe live, cu pliurile deschise, și comparația 100% înainte de demo și de aplicare. Multe probe citesc ordinea blocurilor (`order` în CSS).
 - **Fișiere atinse:** crypto/public/index.html (#tabloubot), crypto/public/app.css, crypto/public/app.js (render*Tablou*)
 
-#### I-852 · Radar Tabloul botului: scara de litere de la 18 mărimi la 5 · [M] · P3 · propus
+#### I-852 · Radar Tabloul botului: scara de litere de la 18 mărimi la 5 · [M] · P3 · făcut
+- **Făcut 10.11.2026:** Radar v100.316 (`25e531f`) — 5 trepte (12 / 13,5 / 15 / 20 / 30), generate din foaia veche de `scripts/face-tema-tablou.mjs`; un singur font (IBM Plex Sans).
 - **Problema/golul:** Pe pagină sunt 18 mărimi de literă (10,5 · 11 · 11,5 · 12 · 12,5 · 13 · 13,5 · 14 · 14,5 · 15 · 15,5 · 16 · 16,5 · 17 · 18,5 · 19,5 · 22 · 30 px). Diferențele de jumătate de pixel nu fac ierarhie, fac zgomot; 45 de texte sunt sub 12 px.
 - **Soluția:** Cinci trepte numite (notă 12 · text 13,5 · titlu de card 15 · cifră 19,5 · verdict 30), ca variabile CSS; regulile paginii le folosesc pe ele.
 - **Impact:** Cardurile se citesc la fel între ele; nimic sub 12 px pe telefon.
