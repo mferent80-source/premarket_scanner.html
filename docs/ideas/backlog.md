@@ -3525,6 +3525,15 @@ pe un singur chart.
 | I-845 | Radar: proba de telefon cu DATE în KV-ul serverului de probă (o zi de căderi, una de direcție), ca garda de convenții să citească textele grupurilor la fiecare livrare | crypto/scripts/proba-ecran-telefon.mjs, scripts/copie-de-lucru.mjs, scripts/date/ (corpuri) | S | P2 | făcut | ideation | 2026-11-07 → 2026-11-08 |
 | I-846 | Radar: mutațiile intră în repo — `scripts/mutatii.mjs` + listele de mutații ale probelor statistice (căderi, direcție, v100310), la cerere și în livrare pe fișierele atinse | crypto/scripts/mutatii.mjs (nou), scripts/date/mutatii-*.json, scripts/copie-de-lucru.mjs | M | P3 | făcut | ideation | 2026-11-07 → 2026-11-08 |
 | I-847 | Radar colector: un singur panou zilnic Binance pentru turele căderi și direcție (pe disc, pe ziua UTC) — ~1.040 de cereri de bare pe zi ⇒ ~520, fără „după căderi” | crypto/scripts/lib/tura-caderi.mjs, tura-directie.mjs, scripts/colector.mjs | S | P3 | făcut | ideation | 2026-11-07 → 2026-11-08 |
+| I-848 | Radar Tabloul botului: deschiderea fără coada de cereri | crypto/public/app.js (pornirea, tbAdu*, getJSON), crypto/public/lib/t212-ecran.js, sugestii-ecran.js, acasa-ecran.js | M | P1 | propus | ideation | 2026-11-10 |
+| I-849 | Radar grafic bot: „dacă închizi la prețul ăsta” lângă prețul din scară | crypto/public/app.js (renderTabloGrafic, tbLaPret), crypto/public/app.css | S | P3 | propus | ideation | 2026-11-10 |
+| I-850 | Radar Tabloul botului: Monte Carlo o singură dată pe pagină | crypto/public/app.js (tbMcSus, tbDeseneazaCitire), crypto/public/lib/monte-simbol-ecran.js | S | P2 | propus | ideation | 2026-11-10 |
+| I-851 | Radar Tabloul botului: pagina pe trei etaje (hotărârea, graficul, restul pliat) | crypto/public/index.html (#tabloubot), crypto/public/app.css, crypto/public/app.js (render*Tablou*) | L | P2 | propus | ideation | 2026-11-10 |
+| I-852 | Radar Tabloul botului: scara de litere de la 18 mărimi la 5 | crypto/public/app.css (regulile #tabloubot) | M | P3 | propus | ideation | 2026-11-10 |
+| I-853 | Radar grafic bot: mișcarea mouse-ului fără recalculare la fiecare pas | crypto/public/app.js (renderTabloGrafic: arata, pointermove) | S | P3 | propus | ideation | 2026-11-10 |
+| I-854 | Radar Tabloul botului: stările de așteptare spun ce așteaptă și de când | crypto/public/app.js (cartela verdictului, tbSemaforTf, trendul pe TF-uri), crypto/public/lib/consilier.js | S | P2 | propus | ideation | 2026-11-10 |
+| I-855 | Radar Tabloul botului pe telefon: țintele mici de atins | crypto/public/app.css (.gbSem, .tbCcDet, linkurile din carduri) | S | P3 | propus | ideation | 2026-11-10 |
+| I-856 | Radar: prima deschidere fără 82 de fișiere de script una după alta | crypto/public/index.html (lista de scripturi), crypto/public/sw.js, crypto/scripts (pas de lipire) | M | P4 | propus | ideation | 2026-11-10 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8155,3 +8164,66 @@ Lentile — Trader: pagina și dash-ul spun acum cinstit „direcția, fără co
 - **Impact:** Jumătate din cereri, mai puțin risc de 429, turele independente una de alta.
 - **Riscuri/dependențe:** Atinge două probe care rulează ⇒ echivalențele (630/630, 174/174) și probele lor trebuie să rămână verzi; panoul de azi nu se refolosește a doua zi.
 - **Fișiere atinse:** crypto/scripts/lib/tura-caderi.mjs, tura-directie.mjs, scripts/colector.mjs
+
+#### I-848 · Radar Tabloul botului: deschiderea fără coada de cereri · [M] · P1 · propus
+- **Problema/golul:** La deschiderea Tabloului pagina face 128 de cereri la server (9,4 MB de date), din care multe sunt ale altor pagini: Trading 212 de 17 ori, știri de 8 ori, arbori 425 KB, rețea 321 KB, cazuri 396 KB, boții închiși 1,4 MB de două ori; `cons`, `decizie` și `profil` pleacă de câte 9 ori, `plan` de 7 ori. Serverul le ia pe rând: într-o deschidere măsurată pe 10.11 `bot-orders` a stat 44 s la coadă și pagina a scris „Nu pot citi boții: eroare necunoscută”; în celelalte, graficul a apărut după 5–13 s.
+- **Soluția:** La deschidere pleacă doar cererile Tabloului (botul, lumânările, planul, alertele botului). Restul pleacă la intrarea pe pagina lor sau după ce graficul e desenat. Cererile identice pornite din mai multe locuri se unesc într-una (aceeași adresă în lucru ⇒ aceeași promisiune).
+- **Impact:** Graficul și cifrele botului apar în 2–3 s în loc de 5–13 s; dispare „Nu pot citi boții” din aglomerație; mai puține cereri spre Pionex (blochează IP-ul la prea multe).
+- **Riscuri/dependențe:** Paginile care citeau date aduse „din întâmplare” la pornire trebuie să și le ceară singure; banda de sus (T212, sold) are nevoie de cererile ei. Probă: numărul de cereri la deschidere, pe Chrome real.
+- **Fișiere atinse:** crypto/public/app.js (pornirea, tbAdu*, getJSON), crypto/public/lib/t212-ecran.js, sugestii-ecran.js, acasa-ecran.js
+
+#### I-849 · Radar grafic bot: „dacă închizi la prețul ăsta” lângă prețul din scară · [S] · P3 · propus
+- **Problema/golul:** Eticheta de pe grafic a fost scoasă la cererea lui (v100.315). O singură cifră din ea nu mai e nicăieri la îndemână: „dacă închizi la X: ±N USDT”, socotită la înălțimea mouse-ului (`tbLaPret`, rămasă fără apelant).
+- **Soluția:** Un singur rând fix sub grafic (nu peste lumânări), care se schimbă cu crucea: „la 0.3050: −4,2 USDT”. Fără fereastră plutitoare.
+- **Impact:** Citești pe loc cât te costă un stop mutat, fără să deschizi „Dacă prețul ajunge la…”.
+- **Riscuri/dependențe:** El a numit datele etichetei „aiurea”: se face doar dacă cere cifra asta înapoi. Tabelul „Dacă prețul ajunge la…” dă deja aceeași socoteală pe prețuri fixe.
+- **Fișiere atinse:** crypto/public/app.js (renderTabloGrafic, tbLaPret), crypto/public/app.css
+
+#### I-850 · Radar Tabloul botului: Monte Carlo o singură dată pe pagină · [S] · P2 · propus
+- **Problema/golul:** Blocul „Scorul Monte Carlo” (7 rânduri dese, ~300 px) apare de două ori cu același text: sus, sub „Contează acum”, și a doua oară în „Ce spune piața acum”. La fel „Încă socotesc fișa monedei” (în capul paginii și în cartela Consilierului).
+- **Soluția:** Blocul întreg rămâne sus. În „Ce spune piața acum” rămâne un rând: „Monte Carlo: câștigă în 47% din drumuri · vezi sus”. Starea fișei rămâne în capul paginii, iar cartela ei arată doar motivele.
+- **Impact:** ~350 px mai puțin de derulat pe lat, ~700 px pe telefon; aceeași cifră nu se mai citește de două ori.
+- **Riscuri/dependențe:** Inventarul rândurilor înainte (regula lui: nimic pierdut); probele care caută textul în ambele locuri.
+- **Fișiere atinse:** crypto/public/app.js (tbMcSus, tbDeseneazaCitire), crypto/public/lib/monte-simbol-ecran.js
+
+#### I-851 · Radar Tabloul botului: pagina pe trei etaje (hotărârea, graficul, restul pliat) · [L] · P2 · propus
+- **Problema/golul:** Pagina are 5.656 px înălțime pe 1440 și 10.483 px pe telefon (412), 2.436 de cuvinte la vedere și 18 pliuri. Graficul, panoul numit dominant în design.md, începe abia la ~1.170 px: pe ecranul de 900 nu se vede fără derulare. Deasupra lui stau cinci blocuri.
+- **Soluția:** Etajul 1 (fără derulare): verdictul, cifrele botului și „Contează acum” pe un rând compact. Etajul 2: graficul cu „Drumul botului” lipit de el. Etajul 3: restul, în ordinea de azi, cu Monte Carlo, „Ce spune piața”, „Dacă prețul ajunge la…” pliate cu rezumat de un rând. Demo pe poze la lățimile lui înainte de aplicare.
+- **Impact:** Hotărârea și graficul pe primul ecran; derularea scade la aproximativ jumătate.
+- **Riscuri/dependențe:** Reproiectare ⇒ inventarul ecranului vechi de pe live, cu pliurile deschise, și comparația 100% înainte de demo și de aplicare. Multe probe citesc ordinea blocurilor (`order` în CSS).
+- **Fișiere atinse:** crypto/public/index.html (#tabloubot), crypto/public/app.css, crypto/public/app.js (render*Tablou*)
+
+#### I-852 · Radar Tabloul botului: scara de litere de la 18 mărimi la 5 · [M] · P3 · propus
+- **Problema/golul:** Pe pagină sunt 18 mărimi de literă (10,5 · 11 · 11,5 · 12 · 12,5 · 13 · 13,5 · 14 · 14,5 · 15 · 15,5 · 16 · 16,5 · 17 · 18,5 · 19,5 · 22 · 30 px). Diferențele de jumătate de pixel nu fac ierarhie, fac zgomot; 45 de texte sunt sub 12 px.
+- **Soluția:** Cinci trepte numite (notă 12 · text 13,5 · titlu de card 15 · cifră 19,5 · verdict 30), ca variabile CSS; regulile paginii le folosesc pe ele.
+- **Impact:** Cardurile se citesc la fel între ele; nimic sub 12 px pe telefon.
+- **Riscuri/dependențe:** Cifrele din SVG-ul graficului au mărimile lor (rămân). Poze la toate lățimile lui, fiindcă se schimbă ruperea rândurilor.
+- **Fișiere atinse:** crypto/public/app.css (regulile #tabloubot)
+
+#### I-853 · Radar grafic bot: mișcarea mouse-ului fără recalculare la fiecare pas · [S] · P3 · propus
+- **Problema/golul:** O mișcare de mouse peste grafic costă ~8,2 ms (măsurat pe 200 de mișcări): fiecare pas cere dimensiunea SVG-ului (`getBoundingClientRect`) imediat după ce a mutat crucea, deci browserul reface așezarea paginii de ~34.000 de noduri la fiecare pas. Pe telefon aceeași funcție costă 0,03 ms când nu e mișcare continuă.
+- **Soluția:** Dimensiunea se citește o dată (la desen, la resize și la derulare), iar mutarea crucii se face cel mult o dată pe cadru (`requestAnimationFrame`).
+- **Impact:** Crucea urmărește mouse-ul fără sacadare și pe PC-uri mai lente; sub 1 ms pe mișcare.
+- **Riscuri/dependențe:** Dimensiunea ținută minte trebuie aruncată la derulare, altfel crucea rămâne decalată. Proba v100315 acoperă legăturile.
+- **Fișiere atinse:** crypto/public/app.js (renderTabloGrafic: arata, pointermove)
+
+#### I-854 · Radar Tabloul botului: stările de așteptare spun ce așteaptă și de când · [S] · P2 · propus
+- **Problema/golul:** La 20–30 s după deschidere pagina încă scria „SOCOTESC · Încă socotesc fișa monedei”, „Aștept lumânările…” de trei ori în cartela Trend și „se aduce…” pe rândurile de 1 h, 4 h și 1 zi. Nu se vede dacă mai vine ceva sau s-a blocat.
+- **Soluția:** Fiecare stare de așteptare spune ce cerere așteaptă și de câte secunde; după un termen (de exemplu 30 s) scrie „n-a venit, reîncerc” cu buton, nu rămâne pe „aștept”.
+- **Impact:** Știi dacă verdictul lipsește fiindcă încă se socotește sau fiindcă a picat o cerere; nu iei „Nu m-aș mișca” drept sfat când e doar o așteptare.
+- **Riscuri/dependențe:** Se leagă de I-848: cu mai puține cereri la pornire, așteptările se scurtează singure. De verificat pe ecranul lui dacă „SOCOTESC” rămâne și după un minut.
+- **Fișiere atinse:** crypto/public/app.js (cartela verdictului, tbSemaforTf, trendul pe TF-uri), crypto/public/lib/consilier.js
+
+#### I-855 · Radar Tabloul botului pe telefon: țintele mici de atins · [S] · P3 · propus
+- **Problema/golul:** Pe 412 px: becurile semaforului de deasupra graficului au 20–27 px lățime (schimbă intervalul la atingere), cele trei „detalii” din „Stopul / Gridul / Mișcarea” au 18 px înălțime, iar „deschide în Simulator” și „deschide în Busolă” 21–23 px. Sub ~40 px degetul nimerește vecinul.
+- **Soluția:** Zona de atingere crește la cel puțin 40 px (umplutură, nu desen mai mare); becurile semaforului se distanțează pe toată lățimea benzii.
+- **Impact:** Mai puține atingeri greșite pe telefon, mai ales la schimbarea intervalului.
+- **Riscuri/dependențe:** Banda semaforului are lățime fixă în SVG; rândurile „detalii” cresc puțin cardul.
+- **Fișiere atinse:** crypto/public/app.css (.gbSem, .tbCcDet, linkurile din carduri)
+
+#### I-856 · Radar: prima deschidere fără 82 de fișiere de script una după alta · [M] · P4 · propus
+- **Problema/golul:** Fără cache, aplicația pornește în 12–22 s prin Tailscale: 82 de fișiere `lib/*.js` (fiecare a așteptat ~10 s la rând) plus `app.js` de 1,2 MB și `index.html` de 276 KB. Cu service worker-ul lui pornirea e din cache, deci doare doar la prima deschidere după o versiune nouă și pe un telefon nou.
+- **Soluția:** Un pas de livrare care lipește `lib/*.js` într-un singur fișier (aceeași ordine, fără alt cod), servit comprimat; fișierele separate rămân sursa.
+- **Impact:** Prima deschidere după fiecare versiune scade la câteva secunde.
+- **Riscuri/dependențe:** Probele citesc fișierele separate (rămân); service worker-ul trebuie să țină lista nouă; pas de build în plus într-un proiect care azi nu are.
+- **Fișiere atinse:** crypto/public/index.html (lista de scripturi), crypto/public/sw.js, crypto/scripts (pas de lipire)
