@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { amprentaRegulii, AMPRENTE_V21, regulaPentru, linieZi, deRegula, REGULA } from './verdict-piata-robot.mjs';
+import { amprentaRegulii, AMPRENTE_V21, regulaPentru, linieZi, deRegula, REGULA, breadthDin } from './verdict-piata-robot.mjs';
 
 const citeste = (f) => readFileSync(f, 'utf8');
 test('amprenta regulii de azi e una recunoscută ca v2.1 și e scrisă în tabelul din protocol', () => {
@@ -26,6 +26,18 @@ test('o schimbare de prag în compute ⇒ altă amprentă ⇒ linia nouă nu mai
   assert.equal(render, a, 'render (afișajul) nu decide eticheta');
   assert.ok(macro !== a, 'macro-regime.js intră întreg');
   const r = regulaPentru(alt); assert.equal(r, alt); assert.equal(deRegula({ regula: r, generat: '2026-11-01T05:00:00Z' }), false, 'linia sub altă regulă nu intră în proba v2.1');
+});
+// 10.11.2026: rândul `rv-77b4373fbbcb` (I-794) e „fără efect pe etichetă” DOAR cât robotul nu dă regulii lățime „veche” / „din altă sesiune”:
+// `participare` sare peste scor la state stale/error/loading sau `session` ≠ `asOf`. Dacă breadthDin începe să le dea, eticheta robotului
+// se poate schimba ⇒ nu e un rând nou, e regula v2.2 (probă nouă).
+test('rândul rv-77b4373fbbcb: breadthDin din robot dă doar ready / error, fără session ⇒ ramura I-794 din participare nu e atinsă', () => {
+  const ok = { sources: { sp500: { fetchStatus: 'OK', asOf: '2026-11-06', latest: { above50: 0.629, above200: 0.66 }, history: [{ date: '2026-11-05', above50: 0.6 }, { date: '2026-11-06', above50: 0.629 }] } } };
+  for (const j of [ok, { sources: { sp500: { ...ok.sources.sp500, fetchStatus: 'ERROR' } } }, { sources: {} }, null]) {
+    const { breadth } = breadthDin(j);
+    assert.ok(['ready', 'error'].includes(breadth.state), 'stare nouă din breadthDin: ' + breadth.state);
+    assert.equal('session' in breadth, false, 'breadthDin dă `session` ⇒ I-794 poate muta eticheta robotului');
+    if (breadth.state === 'error') assert.equal(Number.isFinite(breadth.above50), false, 'la eroare nu există valoare (scorul era null și înainte de I-794)');
+  }
 });
 test('linia nouă poartă regula și amprenta din conținut', () => {
   const v = { asOf: '2026-10-28', label: { id: 'neutru' }, score: 0, citite: 6, indicatori: [{ id: 'trend', score: 0 }] }, a = amprentaRegulii();

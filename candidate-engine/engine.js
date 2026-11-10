@@ -118,10 +118,14 @@
     try {
       var r = await EARN.calendar({ zile: 14, toate: true });
       if (!r || !r.ok) { state.earningsMotiv = r && r.motiv ? String(r.motiv) : 'calendarul de raportări nu a răspuns'; return; }
-      state.earningsOk = true; state.earningsMotiv = '';
+      state.earningsMotiv = '';
       // 01.11.2026: o fereastră care începe după ziua New York nu dovedește „fără earnings”.
+      // 10.11.2026: garda stă AICI, nu în earningsInfo — earningsInfo intră în amprenta Top Long (premarket-proba-2, pm-25c7a3be0f23,
+      // 6 zile notate) și o ramură nouă acolo cerea o probă nouă. Un calendar care a sărit ziua e NECITIT (earningsOk rămâne false) ⇒
+      // earningsInfo dă „neverificat” pentru toate simbolurile și gardaEarnings nu lasă plan. Robotul probei nu cere calendarul (PROTOCOL.calendar = false).
       state.earningsFerestaSarita = !!(window.EARN && EARN.acoperaZiua && !EARN.acoperaZiua(r.from));
       if (state.earningsFerestaSarita) state.earningsMotiv = 'calendarul a sărit ziua New York';
+      state.earningsOk = !state.earningsFerestaSarita;
       (r.items || []).forEach(function (e) { if (e && e.symbol && !state.earningsMap[e.symbol]) state.earningsMap[e.symbol] = e; });
     } catch (e) { state.earningsMotiv = e && e.message ? e.message : 'calendarul de raportări a dat eroare'; }
   }
@@ -139,10 +143,7 @@
     if (regionOf(sym) === 'EU') return { penalty: 5, blocked: false, unverified: true, eu: true, text: 'earnings EU neverificat — verifică singur calendarul' };
     // revizie 14.10: calendarul vede doar tickere US de forma AAAA sau AAAA-B (BRK-B) — orice altceva NU e „verificat curat”
     if (!/^[A-Z][A-Z0-9]{0,4}(-[A-Z])?$/.test(sym)) return { penalty: 5, blocked: false, unverified: true, text: 'earnings neverificat (simbolul nu e în calendar)' };
-    if (!e || !e.date) {
-      if (state.earningsFerestaSarita) return { penalty: 5, blocked: true, unverified: true, motiv: state.earningsMotiv || 'fereastra a sărit ziua New York', text: 'earnings neverificat (fereastra a sărit ziua)' };
-      return { penalty: 0, blocked: false, text: 'fără earnings în 14z' };
-    }
+    if (!e || !e.date) return { penalty: 0, blocked: false, text: 'fără earnings în 14z' };
     var days = zileNY(e.date);
     if (days <= 1) return { penalty: 30, blocked: true, days: days, text: 'earnings în ' + Math.max(0, days) + 'z' };
     if (days <= 3) return { penalty: 12, blocked: false, inFereastra: true, days: days, text: 'earnings în ' + days + 'z' };

@@ -14,7 +14,7 @@ function bars(symbol) {
   let c = 100; const out = stamps.map((t, i) => { c += i % 3 === 1 ? -.32 : .25; return { t, o: c - .1, h: c + .8, l: c - .8, c, v: i === 239 ? 1800000 : 1000000 }; });
   out.meta = { symbol, currency: 'USD', timezone: 'America/New_York', regularEnd: Date.parse('2026-10-14T20:00:00Z') }; return out;
 }
-function setup({ items = [], ok = true } = {}) {
+function setup({ items = [], ok = true, from } = {}) {
   const nodes = {}, store = new Map(), reports = [], apeluri = [];
   const node = (id) => nodes[id] || (nodes[id] = { value: '', checked: false, innerHTML: '', textContent: '', disabled: false, hidden: false, dataset: {}, style: {}, title: '', className: '', classList: { toggle() {}, add() {}, remove() {} }, scrollIntoView() {} });
   class Clock extends Date { constructor(...a) { super(...(a.length ? a : [now])); } static now() { return now; } }
@@ -25,7 +25,7 @@ function setup({ items = [], ok = true } = {}) {
     fetch: async () => { throw Error('fără robot în test'); },
     D: { fetchStock: async (sym) => bars(sym) }, MEB: { computeEarlyBird: () => ({ isConfirmed: false, signals: {} }) }, WL: { get: () => ['TEST'] },
     GV: { status: () => ({ verdict: 'TRADE', reasons: [] }) }, TTDecisionPanel: { set: (r) => reports.push(r) }, EL: { sectorOf: () => 'Technology', loadSectorMap: () => ({}) }, matchMedia: () => ({ matches: false }),
-    EARN: { calendar: async (o) => { apeluri.push(o); return ok ? { ok: true, items, motiv: '' } : { ok: false, items: [], motiv: 'fără cheie' }; } },
+    EARN: { calendar: async (o) => { apeluri.push(o); return ok ? { ok: true, items, motiv: '', from } : { ok: false, items: [], motiv: 'fără cheie' }; }, acoperaZiua: (f) => !f || f <= ziNY(0) },
   };
   ctx.window = ctx; ctx.parent = ctx; vm.createContext(ctx);
   for (const f of ['lib/indicators.js', 'lib/daily-series.js', 'lib/decision-verdict.js', 'lib/candidate-plan-handoff.js']) vm.runInContext(readFileSync(f, 'utf8'), ctx);
@@ -85,4 +85,26 @@ test('fara cheie Finnhub: candidatul spune „earnings neverificat” si NU e ac
   const f = setup({ ok: false }); await f.hooks.scan();
   const x = f.hooks.state.analyses.find((a) => a.mode === 'momentum');
   assert.ok(x); assert.equal(x.actionable, false); assert.equal(x.state, 'WATCH'); assert.match(x.reason, /earnings neverificat/);
+});
+
+// 01.11.2026 (auditul banilor): o fereastră Finnhub care începe DUPĂ ziua New York nu dovedește „fără raportare azi”.
+// 10.11.2026: comportamentul, nu textul — rămâne valabil și după mutarea gărzii în earningsGate (în afara amprentei Top Long).
+test('fereastra calendarului a sarit ziua New York: simbolul fara raportare gasita NU e actionable, Desk-ul nu primeste plan, motivul o spune', async () => {
+  const f = setup({ items: [], from: ziNY(1) }); await f.hooks.scan();
+  const x = f.hooks.state.analyses.find((a) => a.mode === 'momentum');
+  assert.ok(x); assert.equal(x.actionable, false); assert.match(x.reason, /sărit ziua/);
+  assert.equal(f.ctx.CandidatePlanHandoff.read(x).ok, false, 'fără plan pe un calendar care a sărit ziua');
+  assert.doesNotMatch(x.reason, /fără earnings în 14z/, 'nu se spune „curat” pe o fereastră care a sărit ziua');
+});
+
+test('fereastra sarita: nici simbolul CU raportare gasita in fereastra nu primeste plan', async () => {
+  const f = setup({ items: [{ symbol: 'TEST', date: ziNY(6), hour: 'amc', epsEstimate: 1 }], from: ziNY(1) }); await f.hooks.scan();
+  const x = f.hooks.state.analyses.find((a) => a.mode === 'momentum');
+  assert.ok(x); assert.equal(x.actionable, false); assert.equal(f.ctx.CandidatePlanHandoff.read(x).ok, false);
+});
+
+test('fereastra care incepe chiar azi (ziua New York): fara raportare ramane actionable, ca inainte', async () => {
+  const f = setup({ items: [], from: ziNY(0) }); await f.hooks.scan();
+  const x = f.hooks.state.analyses.find((a) => a.mode === 'momentum');
+  assert.ok(x && x.actionable === true); assert.match(x.reason, /fără earnings în 14z/);
 });

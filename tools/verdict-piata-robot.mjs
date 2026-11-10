@@ -43,7 +43,7 @@ export function amprentaDependinteVerdict(radacina = '.', citeste = (f) => readF
 export function pregatestePiata(raw, simboluri, fg, now) { return { serii: Object.fromEntries(simboluri.filter((s) => raw[s]).map((s) => [s, raw[s].map((b) => ({ t: b.t, c: b.c }))])), fg, la: now, erori: simboluri.filter((s) => !raw[s]) }; }
 /** Amprentele de conținut recunoscute ca regula v2.1 — tabelul din docs/verdict-piata-protocol.md (§ „Amprentele regulii v2.1”), care doar
  *  crește; fiecare rând nou are motivul „fără efect asupra etichetei”. O amprentă necunoscută = altă regulă: linia o poartă ca `regula`. */
-export const AMPRENTE_V21 = Object.freeze(['rv-62c4d5d5f014', 'rv-2d9c18951701', 'rv-3ae2d077258b', 'rv-3e18543febee', 'rv-9e8358a5273b', 'rv-051f4e5b9738']);
+export const AMPRENTE_V21 = Object.freeze(['rv-62c4d5d5f014', 'rv-2d9c18951701', 'rv-3ae2d077258b', 'rv-3e18543febee', 'rv-9e8358a5273b', 'rv-051f4e5b9738', 'rv-77b4373fbbcb']);
 export function regulaPentru(amprenta) { return AMPRENTE_V21.includes(amprenta) ? REGULA : amprenta; }
 /** 28.10.2026 (revizia F2, 🔵19): regula liniei zilei — cea recunoscută, afară de o zi cu Fear & Greed în afara 0–100, când „fără efect” (rândul
  *  `rv-3e18543febee`) nu mai e adevărat: atunci linia poartă amprenta ca regulă și rămâne în afara probei v2.1. */
