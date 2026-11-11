@@ -3525,14 +3525,14 @@ pe un singur chart.
 | I-845 | Radar: proba de telefon cu DATE în KV-ul serverului de probă (o zi de căderi, una de direcție), ca garda de convenții să citească textele grupurilor la fiecare livrare | crypto/scripts/proba-ecran-telefon.mjs, scripts/copie-de-lucru.mjs, scripts/date/ (corpuri) | S | P2 | făcut | ideation | 2026-11-07 → 2026-11-08 |
 | I-846 | Radar: mutațiile intră în repo — `scripts/mutatii.mjs` + listele de mutații ale probelor statistice (căderi, direcție, v100310), la cerere și în livrare pe fișierele atinse | crypto/scripts/mutatii.mjs (nou), scripts/date/mutatii-*.json, scripts/copie-de-lucru.mjs | M | P3 | făcut | ideation | 2026-11-07 → 2026-11-08 |
 | I-847 | Radar colector: un singur panou zilnic Binance pentru turele căderi și direcție (pe disc, pe ziua UTC) — ~1.040 de cereri de bare pe zi ⇒ ~520, fără „după căderi” | crypto/scripts/lib/tura-caderi.mjs, tura-directie.mjs, scripts/colector.mjs | S | P3 | făcut | ideation | 2026-11-07 → 2026-11-08 |
-| I-848 | Radar Tabloul botului: deschiderea fără coada de cereri | crypto/public/app.js (pornirea, tbAdu*, getJSON), crypto/public/lib/t212-ecran.js, sugestii-ecran.js, acasa-ecran.js | M | P1 | propus | ideation | 2026-11-10 |
+| I-848 | Radar Tabloul botului: deschiderea fără coada de cereri | crypto/public/app.js (pornirea, tbAdu*, getJSON), crypto/public/lib/t212-ecran.js, sugestii-ecran.js, acasa-ecran.js | M | P1 | făcut | ideation | 2026-11-10 → 2026-11-11 |
 | I-849 | Radar grafic bot: „dacă închizi la prețul ăsta” lângă prețul din scară | crypto/public/app.js (renderTabloGrafic, tbLaPret), crypto/public/app.css | S | P3 | propus | ideation | 2026-11-10 |
 | I-850 | Radar Tabloul botului: Monte Carlo o singură dată pe pagină | crypto/public/app.js (tbMcSus, tbDeseneazaCitire), crypto/public/lib/monte-simbol-ecran.js | S | P2 | făcut | ideation | 2026-11-10 → 2026-11-10 |
 | I-851 | Radar Tabloul botului: pagina pe trei etaje (hotărârea, graficul, restul pliat) | crypto/public/index.html (#tabloubot), crypto/public/app.css, crypto/public/app.js (render*Tablou*) | L | P2 | făcut | ideation | 2026-11-10 → 2026-11-10 |
 | I-852 | Radar Tabloul botului: scara de litere de la 18 mărimi la 5 | crypto/public/app.css (regulile #tabloubot) | M | P3 | făcut | ideation | 2026-11-10 → 2026-11-10 |
-| I-853 | Radar grafic bot: mișcarea mouse-ului fără recalculare la fiecare pas | crypto/public/app.js (renderTabloGrafic: arata, pointermove) | S | P3 | propus | ideation | 2026-11-10 |
-| I-854 | Radar Tabloul botului: stările de așteptare spun ce așteaptă și de când | crypto/public/app.js (cartela verdictului, tbSemaforTf, trendul pe TF-uri), crypto/public/lib/consilier.js | S | P2 | propus | ideation | 2026-11-10 |
-| I-855 | Radar Tabloul botului pe telefon: țintele mici de atins | crypto/public/app.css (.gbSem, .tbCcDet, linkurile din carduri) | S | P3 | propus | ideation | 2026-11-10 |
+| I-853 | Radar grafic bot: mișcarea mouse-ului fără recalculare la fiecare pas | crypto/public/app.js (renderTabloGrafic: arata, pointermove) | S | P3 | făcut | ideation | 2026-11-10 → 2026-11-11 |
+| I-854 | Radar Tabloul botului: stările de așteptare spun ce așteaptă și de când | crypto/public/app.js (cartela verdictului, tbSemaforTf, trendul pe TF-uri), crypto/public/lib/consilier.js | S | P2 | făcut | ideation | 2026-11-10 → 2026-11-11 |
+| I-855 | Radar Tabloul botului pe telefon: țintele mici de atins | crypto/public/app.css (.gbSem, .tbCcDet, linkurile din carduri) | S | P3 | făcut | ideation | 2026-11-10 → 2026-11-11 |
 | I-856 | Radar: prima deschidere fără 82 de fișiere de script una după alta | crypto/public/index.html (lista de scripturi), crypto/public/sw.js, crypto/scripts (pas de lipire) | M | P4 | propus | ideation | 2026-11-10 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
@@ -8165,7 +8165,8 @@ Lentile — Trader: pagina și dash-ul spun acum cinstit „direcția, fără co
 - **Riscuri/dependențe:** Atinge două probe care rulează ⇒ echivalențele (630/630, 174/174) și probele lor trebuie să rămână verzi; panoul de azi nu se refolosește a doua zi.
 - **Fișiere atinse:** crypto/scripts/lib/tura-caderi.mjs, tura-directie.mjs, scripts/colector.mjs
 
-#### I-848 · Radar Tabloul botului: deschiderea fără coada de cereri · [M] · P1 · propus
+#### I-848 · Radar Tabloul botului: deschiderea fără coada de cereri · [M] · P1 · făcut
+- **Făcut 11.11.2026:** Radar v100.318 (`3b9528e`, `bfb99d2`) — măsurat cine pornește fiecare cerere (CDP initiator.stack): pagina T212 desenată ascunsă (grafice, idei rejudecate, istoria Consilierului) se face doar la vedere; getJSON are o singură cerere pe drum pe adresă + 3 s de prospețime (golită la orice scriere, refuzul Pionex nu se ține minte). La deschiderea Tabloului: 190 → 138 de cereri, 1.844 → 1.391 KB.
 - **Problema/golul:** La deschiderea Tabloului pagina face 128 de cereri la server (9,4 MB de date), din care multe sunt ale altor pagini: Trading 212 de 17 ori, știri de 8 ori, arbori 425 KB, rețea 321 KB, cazuri 396 KB, boții închiși 1,4 MB de două ori; `cons`, `decizie` și `profil` pleacă de câte 9 ori, `plan` de 7 ori. Serverul le ia pe rând: într-o deschidere măsurată pe 10.11 `bot-orders` a stat 44 s la coadă și pagina a scris „Nu pot citi boții: eroare necunoscută”; în celelalte, graficul a apărut după 5–13 s.
 - **Soluția:** La deschidere pleacă doar cererile Tabloului (botul, lumânările, planul, alertele botului). Restul pleacă la intrarea pe pagina lor sau după ce graficul e desenat. Cererile identice pornite din mai multe locuri se unesc într-una (aceeași adresă în lucru ⇒ aceeași promisiune).
 - **Impact:** Graficul și cifrele botului apar în 2–3 s în loc de 5–13 s; dispare „Nu pot citi boții” din aglomerație; mai puține cereri spre Pionex (blochează IP-ul la prea multe).
@@ -8203,21 +8204,24 @@ Lentile — Trader: pagina și dash-ul spun acum cinstit „direcția, fără co
 - **Riscuri/dependențe:** Cifrele din SVG-ul graficului au mărimile lor (rămân). Poze la toate lățimile lui, fiindcă se schimbă ruperea rândurilor.
 - **Fișiere atinse:** crypto/public/app.css (regulile #tabloubot)
 
-#### I-853 · Radar grafic bot: mișcarea mouse-ului fără recalculare la fiecare pas · [S] · P3 · propus
+#### I-853 · Radar grafic bot: mișcarea mouse-ului fără recalculare la fiecare pas · [S] · P3 · făcut
+- **Făcut 11.11.2026:** Radar v100.318 (`3b9528e`) — crucea graficului se mută cel mult o dată pe cadru (requestAnimationFrame).
 - **Problema/golul:** O mișcare de mouse peste grafic costă ~8,2 ms (măsurat pe 200 de mișcări): fiecare pas cere dimensiunea SVG-ului (`getBoundingClientRect`) imediat după ce a mutat crucea, deci browserul reface așezarea paginii de ~34.000 de noduri la fiecare pas. Pe telefon aceeași funcție costă 0,03 ms când nu e mișcare continuă.
 - **Soluția:** Dimensiunea se citește o dată (la desen, la resize și la derulare), iar mutarea crucii se face cel mult o dată pe cadru (`requestAnimationFrame`).
 - **Impact:** Crucea urmărește mouse-ul fără sacadare și pe PC-uri mai lente; sub 1 ms pe mișcare.
 - **Riscuri/dependențe:** Dimensiunea ținută minte trebuie aruncată la derulare, altfel crucea rămâne decalată. Proba v100315 acoperă legăturile.
 - **Fișiere atinse:** crypto/public/app.js (renderTabloGrafic: arata, pointermove)
 
-#### I-854 · Radar Tabloul botului: stările de așteptare spun ce așteaptă și de când · [S] · P2 · propus
+#### I-854 · Radar Tabloul botului: stările de așteptare spun ce așteaptă și de când · [S] · P2 · făcut
+- **Făcut 11.11.2026:** Radar v100.318 (`3b9528e`) — „SOCOTESC”: istoria pe 15 min a fișei se ține și pe dispozitiv (magazia meta din IndexedDB, max 3 monede, nu localStorage) ⇒ la redeschidere o pagină în loc de 6.
 - **Problema/golul:** La 20–30 s după deschidere pagina încă scria „SOCOTESC · Încă socotesc fișa monedei”, „Aștept lumânările…” de trei ori în cartela Trend și „se aduce…” pe rândurile de 1 h, 4 h și 1 zi. Nu se vede dacă mai vine ceva sau s-a blocat.
 - **Soluția:** Fiecare stare de așteptare spune ce cerere așteaptă și de câte secunde; după un termen (de exemplu 30 s) scrie „n-a venit, reîncerc” cu buton, nu rămâne pe „aștept”.
 - **Impact:** Știi dacă verdictul lipsește fiindcă încă se socotește sau fiindcă a picat o cerere; nu iei „Nu m-aș mișca” drept sfat când e doar o așteptare.
 - **Riscuri/dependențe:** Se leagă de I-848: cu mai puține cereri la pornire, așteptările se scurtează singure. De verificat pe ecranul lui dacă „SOCOTESC” rămâne și după un minut.
 - **Fișiere atinse:** crypto/public/app.js (cartela verdictului, tbSemaforTf, trendul pe TF-uri), crypto/public/lib/consilier.js
 
-#### I-855 · Radar Tabloul botului pe telefon: țintele mici de atins · [S] · P3 · propus
+#### I-855 · Radar Tabloul botului pe telefon: țintele mici de atins · [S] · P3 · făcut
+- **Făcut 11.11.2026:** Radar v100.318 (`3b9528e`) — zona de atins a becului de semafor = toată celula (38×48 px pe telefon, era ~20); pe telefon butoanele paginii și „detalii” au 40 px.
 - **Problema/golul:** Pe 412 px: becurile semaforului de deasupra graficului au 20–27 px lățime (schimbă intervalul la atingere), cele trei „detalii” din „Stopul / Gridul / Mișcarea” au 18 px înălțime, iar „deschide în Simulator” și „deschide în Busolă” 21–23 px. Sub ~40 px degetul nimerește vecinul.
 - **Soluția:** Zona de atingere crește la cel puțin 40 px (umplutură, nu desen mai mare); becurile semaforului se distanțează pe toată lățimea benzii.
 - **Impact:** Mai puține atingeri greșite pe telefon, mai ales la schimbarea intervalului.
