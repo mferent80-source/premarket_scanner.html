@@ -3534,6 +3534,11 @@ pe un singur chart.
 | I-854 | Radar Tabloul botului: stările de așteptare spun ce așteaptă și de când | crypto/public/app.js (cartela verdictului, tbSemaforTf, trendul pe TF-uri), crypto/public/lib/consilier.js | S | P2 | făcut | ideation | 2026-11-10 → 2026-11-11 |
 | I-855 | Radar Tabloul botului pe telefon: țintele mici de atins | crypto/public/app.css (.gbSem, .tbCcDet, linkurile din carduri) | S | P3 | făcut | ideation | 2026-11-10 → 2026-11-11 |
 | I-856 | Radar: prima deschidere fără 82 de fișiere de script una după alta | crypto/public/index.html (lista de scripturi), crypto/public/sw.js, crypto/scripts (pas de lipire) | M | P4 | propus | ideation | 2026-11-10 |
+| I-857 | Radar Trendul pe TF-uri: „Detaliile indicatorilor” închise arată o bandă cu cele 6 intervale — câți din cei 8 indicatori sunt cu botul / neutri / împotrivă, săgeata și scorul | crypto/public/app.js (renderTabloIndicatori), crypto/public/lib/indicatori-bot.js, crypto/public/index.html (#tbTrendDet), crypto/public/app.css | S | P1 | propus | ideation | 2026-11-11 |
+| I-858 | Radar Trendul pe TF-uri: rigla scorului 0–100 cu pragurile (~40 / ~60) și semnele pentru 4 ore și 1 zi, partea care ajută botul umbrită | crypto/public/app.js (renderTabloIndicatori), crypto/public/lib/indicatori-bot.js, crypto/public/app.css | S | P2 | propus | ideation | 2026-11-11 |
+| I-859 | Radar Trendul pe TF-uri: banda Radarului și banda TradingView una sub alta, pe intervalele comune, cu „≠” unde direcțiile diferă | crypto/public/app.js (renderTabloIndicatori, renderTabloTv), crypto/public/lib/tv-note.js | S | P2 | propus | ideation | 2026-11-11 |
+| I-860 | Radar Trendul pe TF-uri: intervalul care și-a schimbat verdictul de la ultima ta privire iese în față („acum ↓, era ↔”) | crypto/public/app.js (memoria tbCt* din Contează acum), crypto/public/lib/indicatori-bot.js | S | P3 | propus | ideation | 2026-11-11 |
+| I-861 | Radar Trendul pe TF-uri: mini-istoria scorului pe 4 ore (ultimele 24 de bare închise), ca linie mică cu pragurile — se apropie de „împotrivă”? | crypto/public/lib/indicatori-bot.js (scorul pe ferestre), crypto/public/app.js, crypto/public/lib/grafic-bot.js (desenul mic) | M | P3 | propus | ideation | 2026-11-11 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8234,3 +8239,41 @@ Lentile — Trader: pagina și dash-ul spun acum cinstit „direcția, fără co
 - **Impact:** Prima deschidere după fiecare versiune scade la câteva secunde.
 - **Riscuri/dependențe:** Probele citesc fișierele separate (rămân); service worker-ul trebuie să țină lista nouă; pas de build în plus într-un proiect care azi nu are.
 - **Fișiere atinse:** crypto/public/index.html (lista de scripturi), crypto/public/sw.js, crypto/scripts (pas de lipire)
+
+## Mini-spec-uri I-857..I-861 · Radar „Detaliile indicatorilor” închise: bandă / riglă cu direcția și scorul (ideation, 2026-11-11)
+El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic sau o bară cu direcția sau scorul, vino cu idei”. Azi, închis, rândul are doar titlul (lista indicatorilor); defalcarea celor 8 indicatori pe 6 intervale cere deschiderea unui tabel de 54 de celule. Datele sunt deja calculate în `renderTabloIndicatori` (rândurile pe TF, `IndicatoriBot.celule`, `IndicatoriBot.rezumat`) — nicio cerere nouă.
+
+### I-857 · Banda celor 6 intervale în rândul închis · S · P1
+- **Problema/golul:** Închis, „Detaliile indicatorilor” nu spune nimic despre indicatori. Scorul pe TF e deja în tabelul de sus („Scorul indicatorilor”), dar câți din cei 8 indicatori (medii, Supertrend, MACD, ADX, RSI, Stochastic, Bollinger, MFI) sunt cu botul pe fiecare interval se vede doar deschizând tabelul.
+- **Soluția:** În rândul închis, după titlu, o bandă de 6 căsuțe (5m · 15m · 30m · 1h · 4h · 1z). Fiecare căsuță: săgeata verdictului și scorul (↓ 38) deasupra, iar dedesubt o bară stivuită mică: câți indicatori sunt cu botul / neutri / împotrivă — culoarea raportată la direcția botului (la short, „coboară” e verde), nu la sus/jos. 4 ore și 1 zi mai late (botul ține zile). Cifre și săgeți, nu doar culoare; titlul la mouse spune numele indicatorilor din fiecare parte. Pe telefon încap 6 căsuțe de ~50 px.
+- **Impact:** Dintr-o privire vezi dacă intervalele lungi se întorc împotriva botului, fără să deschizi tabelul; e informație nouă (defalcarea), nu o copie a scorului.
+- **Riscuri/dependențe:** Indicatorii „încinși” (RSI / Stochastic / Bollinger la extreme, clasa tbWarn) nu sunt nici cu, nici împotrivă — trebuie o regulă scrisă (propun: neutri, cu un punct auriu); aceleași culori și cuvinte ca tabelul, ca să nu apară două limbaje.
+- **Fișiere atinse:** crypto/public/lib/indicatori-bot.js (o funcție pură pentru bandă, probată ca `rezumat`), crypto/public/app.js (renderTabloIndicatori), crypto/public/index.html (summary-ul lui #tbTrendDet), crypto/public/app.css
+
+### I-858 · Rigla scorului cu pragurile, pentru 4 ore și 1 zi · S · P2
+- **Problema/golul:** Scorul 0–100 are pragurile (~40 coboară / ~60 urcă) doar în titlul celulei; „52” nu spune cât de aproape e de „împotrivă”.
+- **Soluția:** O riglă orizontală 0–100 cu cele trei zone (coboară · neutru · urcă) și două semne, 4 ore și 1 zi (1 oră mai subțire); zona care ajută botul ușor umbrită. Stă în rândul închis lângă bandă (sau în locul ei pe telefon). Eticheta: „acum, pe bare închise — nu prognoză”.
+- **Impact:** Pragul se vede în loc să se citească; distanța până la schimbare e la vedere.
+- **Riscuri/dependențe:** Pragurile trebuie luate din aceeași sursă ca verdictul (IndicatoriBot), nu scrise a doua oară.
+- **Fișiere atinse:** crypto/public/lib/indicatori-bot.js, crypto/public/app.js (renderTabloIndicatori), crypto/public/app.css
+
+### I-859 · Radar și TradingView, două benzi una sub alta · S · P2
+- **Problema/golul:** Notele TradingView (v100.320) și scorul Radarului stau în locuri diferite ale cardului; acordul sau dezacordul lor se compară cu ochiul.
+- **Soluția:** Sub banda Radarului (I-857), o bandă subțire cu nota TradingView pe intervalele comune (5m, 15m, 1h, 4h, 1z/1D), în aceleași culori raportate la bot, cu „≠” unde cele două surse arată direcții opuse.
+- **Impact:** Dezacordul dintre surse — un motiv de prudență — devine vizibil fără să citești două tabele.
+- **Riscuri/dependențe:** Intervalele diferă (TV are 1W, Radarul 30m) — doar cele comune; rămâne informație, nu intră în verdict (regula v100.320). Depinde de I-857.
+- **Fișiere atinse:** crypto/public/app.js (renderTabloIndicatori, renderTabloTv), crypto/public/lib/tv-note.js, crypto/public/app.css
+
+### I-860 · Ce s-a schimbat de la ultima privire, și la indicatori · S · P3
+- **Problema/golul:** O întoarcere pe 4 ore sau 1 zi se vede doar dacă ții minte cum era.
+- **Soluția:** Ca la „Contează acum” (v100.322): căsuța intervalului al cărui verdict s-a schimbat de la ultima ta privire primește contur și „acum ↓ · era ↔”; memoria e în browser (pe bot), reluată după ≥ 30 min cu pagina ascunsă.
+- **Impact:** Schimbarea pe intervalul lung iese în față înainte să o cauți.
+- **Riscuri/dependențe:** Reutilizează memoria tbCt* (aceeași regulă de reluare); depinde de I-857.
+- **Fișiere atinse:** crypto/public/app.js, crypto/public/lib/indicatori-bot.js
+
+### I-861 · Mini-istoria scorului pe 4 ore · M · P3
+- **Problema/golul:** Scorul de acum nu spune încotro merge — dacă se apropie de pragul „împotrivă” sau se îndepărtează.
+- **Soluția:** Scorul socotit pe ultimele 24 de bare închise de 4 ore (aceeași funcție, ferestre glisante), ca o linie mică cu benzile 40 / 60 și punctul de acum mai mare; recalculat o dată pe bară nouă de 4 ore, ținut în memorie.
+- **Impact:** Tendința scorului se vede înainte să treacă pragul.
+- **Riscuri/dependențe:** Cost de calcul (24 × calculul pe ~300 de bare) — o dată la 4 ore; ipoteză nedovedită ca semnal (avertismentul din trader.md: de validat out-of-sample, nu „îmbunătățire garantată”) — afișată ca informație.
+- **Fișiere atinse:** crypto/public/lib/indicatori-bot.js, crypto/public/app.js, crypto/public/lib/grafic-bot.js (desenul mic)
