@@ -3539,6 +3539,12 @@ pe un singur chart.
 | I-859 | Radar Trendul pe TF-uri: banda Radarului și banda TradingView una sub alta, pe intervalele comune, cu „≠” unde direcțiile diferă | crypto/public/app.js (renderTabloIndicatori, renderTabloTv), crypto/public/lib/tv-note.js | S | P2 | făcut | ideation | 2026-11-11 → 2026-11-11 |
 | I-860 | Radar Trendul pe TF-uri: intervalul care și-a schimbat verdictul de la ultima ta privire iese în față („acum ↓, era ↔”) | crypto/public/app.js (memoria tbCt* din Contează acum), crypto/public/lib/indicatori-bot.js | S | P3 | făcut | ideation | 2026-11-11 → 2026-11-11 |
 | I-861 | Radar Trendul pe TF-uri: mini-istoria scorului pe 4 ore (ultimele 24 de bare închise), ca linie mică cu pragurile — se apropie de „împotrivă”? | crypto/public/lib/indicatori-bot.js (scorul pe ferestre), crypto/public/app.js, crypto/public/lib/grafic-bot.js (desenul mic) | M | P3 | făcut | ideation | 2026-11-11 → 2026-11-11 |
+| I-862 | Radar: „De unde știu” — vârsta fiecărei surse pe un rând, sub verdict, pe Piața azi, Tablou și T212; o sursă critică veche oprește invitația | crypto/public/lib/acasa.js, acasa-ecran.js, t212-ecran.js, asezare-paznic.js, public/app.css | M | P1 | propus | ideation | 2026-11-12 |
+| I-863 | Radar: proba „surse căzute” — gardă în suită: fiecare sursă făcută să pice / să vină goală / veche ⇒ niciun verdict verde și nicio invitație | crypto/scripts/proba-surse-cazute.mjs (nou), scripts/lib/garda-*.mjs, package.json | M | P1 | propus | ideation | 2026-11-12 |
+| I-864 | T212: pe fiecare poziție IEȘI — de când e depășit stopul și cât a costat așteptarea de atunci | crypto/public/lib/t212-ecran.js, actiuni-semnale.js | S | P1 | propus | ideation | 2026-11-12 |
+| I-865 | Radar: paza paginilor după livrare și dimineața — cele 3 pagini deschise pe VPS cu verificatorul din audit, mesaj pe Discord dacă pică | crypto/scripts/vps/paza-pagini.mjs (nou), sarcină programată pe VPS | M | P2 | propus | ideation | 2026-11-12 |
+| I-866 | Tablou: vocile de sub verdict își poartă scorul — vocea fără avantaj măsurat apare „nedovedită”, nu bifă verde | crypto/public/lib/asezare-paznic.js, public/app.js (scorurile vocilor), public/app.css | S | P2 | propus | ideation | 2026-11-12 |
+| I-867 | Piața azi: pachetul de dimineață — o singură cerere cu tot ce socotește colectorul, în locul a ~150 | crypto/scripts/colector.mjs (tură nouă), functions/api/istoric-bot.js, public/lib/acasa-ecran.js | L | P3 | propus | ideation | 2026-11-12 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8277,3 +8283,47 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Tendința scorului se vede înainte să treacă pragul.
 - **Riscuri/dependențe:** Cost de calcul (24 × calculul pe ~300 de bare) — o dată la 4 ore; ipoteză nedovedită ca semnal (avertismentul din trader.md: de validat out-of-sample, nu „îmbunătățire garantată”) — afișată ca informație.
 - **Fișiere atinse:** crypto/public/lib/indicatori-bot.js, crypto/public/app.js, crypto/public/lib/grafic-bot.js (desenul mic)
+
+## Idei 12.11.2026 — după auditul celor 3 ferestre ale Radarului (Tabloul botului, Trading 212, Piața azi)
+
+### I-862 · „De unde știu”: vârsta surselor sub verdict · M · P1
+- **Problema/golul:** Auditul din 12.11 a găsit șase cazuri din aceeași familie: o sursă lipsă sau veche (calendarul, clasamentul colectorului, lățimea Nasdaq, VIX, barele T212) arătată ca „e bine”. Reparațiile v100.332 închid fiecare caz în parte, dar ora fiecărei surse tot nu se vede: „actualizat 07:30” e ora paginii, nu a datelor.
+- **Soluția:** Un rând mic sub verdict, același pe cele trei pagini: fiecare sursă care a intrat în verdict, cu vârsta ei (colectorul acum 12 min · calendarul azi 06:00 · VIX închiderea de ieri · T212 acum 30 s) și un singur semn când una e peste pragul ei. Pragurile stau într-un singur loc, pe sursă. Când o sursă critică e peste prag, verdictul rămâne la vedere, dar fraza „ce aș face” nu mai invită și spune ce lipsește.
+- **Impact:** Vezi dintr-o privire dacă verdictul e socotit pe date de acum; clasa de greșeli „lipsa datelor = bine” nu mai poate apărea neobservată.
+- **Riscuri/dependențe:** Pragurile de vârstă sunt alegeri (colectorul 100 min, lățimea 30 h): se scriu o dată, la vedere; prea stricte ar stinge verdictul des. Depinde de v100.332 (sursele își poartă deja ora).
+- **Fișiere atinse:** crypto/public/lib/acasa.js (un tabel al surselor și pragurilor), acasa-ecran.js, t212-ecran.js, asezare-paznic.js (rândul de sub verdict), public/app.css
+
+### I-863 · Proba „surse căzute” în suită · M · P1
+- **Problema/golul:** Suita are ~350 de probe, dar aproape toate pe drumul bun. Niciuna nu întreabă „ce scrie pagina când sursa X lipsește?” — de aceea cele șase 🔴 din 12.11 au trecut de toate auditurile de până acum.
+- **Soluția:** O probă transversală care ia lista surselor (calendar, piață / VIX, lățime Nasdaq, clasament, raportul contului, boții închiși, barele T212, cursul) și, pentru fiecare, rulează funcțiile de verdict și de frână cu sursa în trei stări: eroare, goală, veche. Regula verificată e una singură: fără sursă nu iese nivel verde, nu iese „nimic roșu / nu e trasă”, iar fraza nu invită. Sursele noi se adaugă în listă odată cu codul lor.
+- **Impact:** Clasa de greșeli găsită la audit devine imposibil de reintrodus fără ca suita să pice.
+- **Riscuri/dependențe:** Cere ca funcțiile de verdict să poată fi rulate cu date injectate (cele mai multe pot deja: Acasa.vreme / vremeBursa / franaCont, T212 semafor); unde nu, proba cere o mică despărțire a calculului de desen.
+- **Fișiere atinse:** crypto/scripts/proba-surse-cazute.mjs (nou), crypto/package.json (lanțul), crypto/public/lib/acasa.js, t212.js, actiuni-semnale.js (doar dacă trebuie expuse funcții)
+
+### I-864 · T212: de când e depășit stopul și cât a costat așteptarea · S · P1
+- **Problema/golul:** Pe 12.11 pagina arată 7 poziții pe IEȘI (APLD: stopul calculat 25,17 $, prețul 17,00 $, −2.758 lei). Verdictul e același în fiecare zi și nu spune de câte ședințe stă așa, nici cât s-a pierdut de la ziua în care stopul a fost trecut.
+- **Soluția:** Din barele zilnice deja aduse: prima ședință închisă sub stopul de atunci, numărul de ședințe de atunci și diferența în lei dintre „ieșit în ziua aceea” și „azi”. Un rând sub „Ce ai de făcut”: „sub stop de 14 ședințe · așteptarea a costat −1.120 lei” (sau „a adus +…”, când prețul a revenit). În banda contului, suma pe toate pozițiile.
+- **Impact:** Costul amânării devine o cifră, nu o impresie — exact decizia pe care pagina o cere de zile întregi.
+- **Riscuri/dependențe:** Stopul calculat se mișcă în timp (urcă odată cu maximul): se folosește stopul din ziua respectivă, recalculat pe barele de până atunci, altfel cifra se uită în viitor. E un fapt despre trecut, nu o prognoză: prețul poate reveni, și atunci rândul arată un plus.
+- **Fișiere atinse:** crypto/public/lib/actiuni-semnale.js (stopul la o dată trecută, fără date din viitor), t212-ecran.js (rândul și suma din bandă)
+
+### I-865 · Paza paginilor după livrare și dimineața · M · P2
+- **Problema/golul:** După fiecare livrare verific de mână, cu unelte din dosarul de lucru al sesiunii: 0 excepții, fără derulare laterală, fără „undefined / NaN” în text, fără stări de așteptare rămase. Între livrări nu verifică nimeni; o sursă care își schimbă forma strică pagina până o vede el.
+- **Soluția:** Verificatorul folosit la auditul din 12.11 (deschide pagina, așteaptă să se liniștească, caută texte stricate, elemente ieșite din ecran, excepții) mutat în depozit, rulat pe VPS după fiecare livrare și o dată dimineața, la 1920 și 412, pe cele trei pagini. La abatere: un mesaj pe Discord cu pagina, lățimea și rândul găsit.
+- **Impact:** O pagină stricată se află în minute, nu când o deschide el; livrarea are aceeași verificare de fiecare dată.
+- **Riscuri/dependențe:** Încă un Chrome pe VPS (4 nuclee, deja încărcat ziua): rulat scurt, pe rând, în afara livrărilor de gestiune. Alarme false la date vii (o sursă lentă) ⇒ doar abaterile repetate de două ori la rând pleacă pe Discord.
+- **Fișiere atinse:** crypto/scripts/vps/paza-pagini.mjs (nou), crypto/scripts/vps/ (sarcina programată), scripts/lib/ (verificatorul)
+
+### I-866 · Vocile de sub verdict cu scorul lor · S · P2
+- **Problema/golul:** Sub verdict, „✓ Monte Carlo” arată ca o confirmare, iar două rânduri mai jos scorul lui e 83 – 79 (51,2%), sub „mereu pe plus” (95 – 67). O bifă verde de la o voce care nimerește cât banul cântărește vizual cât una măsurată.
+- **Soluția:** Fiecare voce din șir primește, din scorurile deja ținute (Monte Carlo, Busola, alertele „contra”), una din trei forme: măsurată peste reper, nedovedită (gri, cu „51%”), prea puține cazuri. Verdictul Consilierului nu se schimbă; se schimbă doar cât de tare arată vocea.
+- **Impact:** Nu mai iei o voce nedovedită drept confirmare; vezi pe care se poate pune preț.
+- **Riscuri/dependențe:** Pragul „peste reper” e o judecată statistică: se folosește regula deja scrisă a casei (pe zile, față de martor), nu un procent ales acum; până atunci, doar cifra la vedere, fără culoare. Ipoteză de afișare, nu de semnal.
+- **Fișiere atinse:** crypto/public/lib/asezare-paznic.js (voci), crypto/public/app.js (de unde vin scorurile), crypto/public/app.css
+
+### I-867 · Piața azi dintr-un singur pachet al colectorului · L · P3
+- **Problema/golul:** Deschiderea Piața azi face 151 de cereri (1,7 MB), măsurat pe 12.11 după v100.331; cele mai multe sunt date pe care colectorul le are deja (clasament, piață, calendar, lățimi, sugestii, sectoare, trend). Fiecare cerere e și un loc în care o sursă poate lipsi fără să se vadă.
+- **Soluția:** Colectorul scrie la fiecare tură un singur document „piața acum” cu toate bucățile lui și ora fiecăreia; pagina îl cere o dată și cade pe cererile de azi doar pentru ce lipsește sau e vechi. Datele contului (Pionex, T212) rămân cereri separate.
+- **Impact:** Pagina se deschide mai repede pe telefon, iar vârsta fiecărei surse vine gratis (leagă de I-862).
+- **Riscuri/dependențe:** Lucrare mare: 25 de cereri de mutat pe rând, cu paritate pe fiecare (ca la lărgimea crypto din v100.331); KV are plafon de mărime pe cheie. De făcut doar după I-862 / I-863.
+- **Fișiere atinse:** crypto/scripts/colector.mjs + scripts/lib/ (tura pachetului), functions/api/istoric-bot.js (ruta), public/lib/acasa-ecran.js (acasaPorneste)
