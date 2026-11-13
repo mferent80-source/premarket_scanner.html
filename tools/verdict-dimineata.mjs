@@ -39,5 +39,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   let ev = []; try { ev = c.MCTX.hardcodedEvents(); } catch (_) { ev = []; }
   const m = mesaj(j, { zi, ev, fut }); if (!m) { console.log('Fișierul verdictului lipsește — fără mesaj.'); process.exit(0); }
   console.log(m);
-  if (process.env.DISCORD_WEBHOOK && !process.argv.includes('--uscat')) { const r = await fetch(process.env.DISCORD_WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: m }), signal: AbortSignal.timeout(20000) }); console.log('Discord: ' + r.status); }
+  // 13.11.2026 (auditul Discordului): refuzul Discord PICĂ rularea (pasul „Discord la eșec” + roșul din Actions); înainte ieșea „success”
+  if (process.env.DISCORD_WEBHOOK && !process.argv.includes('--uscat') && !(await trimite(m, process.env.DISCORD_WEBHOOK))) process.exitCode = 1;
+}
+
+/** Trimite mesajul pe Discord; true doar la 2xx. Nu aruncă: rețeaua căzută = false, motivul în jurnal. */
+export async function trimite(m, webhook, { fetch: f = fetch, jurnal = console.log } = {}) {
+  try {
+    const r = await f(webhook, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: m }), signal: AbortSignal.timeout(20000) });
+    jurnal('Discord: ' + r.status);
+    return !!r.ok;
+  } catch (e) { jurnal('Discord: ' + (e && e.message || e)); return false; }
 }

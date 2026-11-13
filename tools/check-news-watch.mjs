@@ -17,6 +17,7 @@
 // ═══════════════════════════════════════════════════════════════════
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs';
 import { trimiteDiscord, ETICHETA_NEVERIFICAT } from './discord-mesaj.mjs';
+import { inAfaraSUA, articoleDinRss, urlYahoo } from './stiri-yahoo.mjs';   // 13.11.2026: Finnhub refuza (403) acțiunile din afara SUA
 import '../lib/news-rules.js';
 
 const FILE = new URL('./news-watch.json', import.meta.url);
@@ -237,6 +238,14 @@ function loadPriceAlertSymbols() {
 // (pragurile au ieșit din pagină în v116, botul de praguri check-alerts.mjs a fost șters), iar workflow-ul nici nu mai comite alerts.json.
 // Setările `autoGapAlert` / `gapPct` rămân citite (fișierele salvate le au), fără efect.
 
+// 13.11.2026 (auditul Discordului): știrile din Yahoo RSS (în afara SUA, sau când Finnhub refuză)
+async function stiriYahoo(sym) {
+  const r = await fetch(urlYahoo(sym), { signal: AbortSignal.timeout(15000), headers: { 'user-agent': 'Mozilla/5.0', accept: 'application/rss+xml, application/xml, */*' } });
+  if (!r.ok) throw new Error(`Yahoo RSS HTTP ${r.status} (${sym})`);
+  const since = (Date.now() - LOOKBACK_DAYS * 864e5) / 1000;
+  return articoleDinRss(await r.text()).filter((a) => !a.datetime || a.datetime >= since);
+}
+
 async function fetchArticles(w) {
   if (!FH_KEY) throw new Error('FINNHUB_API_KEY lipsește din secrets');
   const kws = keywordsFor(w);
@@ -253,13 +262,20 @@ async function fetchArticles(w) {
     list = Array.isArray(j) ? j : [];
     list = list.filter(a => matchKw((a.headline || '') + ' ' + (a.summary || ''), kws));
   } else {
-    const url =
-      `https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(fetchSym)}` +
-      `&from=${isoDate(from)}&to=${isoDate(to)}&token=${encodeURIComponent(FH_KEY)}`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!r.ok) throw new Error(`Finnhub company-news HTTP ${r.status} (${fetchSym})`);
-    const j = await r.json();
-    list = Array.isArray(j) ? j : [];
+    if (inAfaraSUA(fetchSym)) {
+      list = await stiriYahoo(fetchSym);
+    } else {
+      const url =
+        `https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(fetchSym)}` +
+        `&from=${isoDate(from)}&to=${isoDate(to)}&token=${encodeURIComponent(FH_KEY)}`;
+      const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      if (r.status === 403 || r.status === 401) { list = await stiriYahoo(fetchSym); }
+      else {
+        if (!r.ok) throw new Error(`Finnhub company-news HTTP ${r.status} (${fetchSym})`);
+        const j = await r.json();
+        list = Array.isArray(j) ? j : [];
+      }
+    }
     if ((w.keywords || []).length) {
       list = list.filter(a => matchKw((a.headline || '') + ' ' + (a.summary || ''), kws));
     }

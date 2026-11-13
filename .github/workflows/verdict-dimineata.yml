@@ -2,19 +2,37 @@ name: Verdictul pieței — rezumatul de dimineață pe Discord
 
 # I-684 (17.10.2026): înainte de deschiderea SUA, în zilele de bursă: verdictul notat noaptea, ce s-a schimbat, evenimentele zilei,
 # marile companii, futures. Doar trimite; nu scrie nimic în depozit. Zilele fără bursă (sărbători SUA) ies fără mesaj.
+# 13.11.2026 (auditul Discordului): cronul de 12:00 UTC pornea abia la 16:13 → 19:26 UTC (întârzierea GitHub a crescut de la 20.10 la 12.11)
+# ⇒ rezumatul „de dimineață” venea seara. Acum pornește imediat după robotul verdictului (verdictul proaspăt), o singură dată pe zi;
+# cronul rămâne rezervă (dacă robotul verdictului pică sau întârzie și mai mult).
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Verdictul pieței (noaptea, pentru Astăzi)"]
+    types: [completed]
   schedule:
-    - cron: '0 12 * * 1-5'   # 12:00 UTC = 15:00 vara / 14:00 iarna la București, înainte de 13:30 / 14:30 UTC
+    - cron: '0 12 * * 1-5'   # rezervă: 12:00 UTC = 15:00 vara / 14:00 iarna la București
 
 permissions:
   contents: read
+  actions: read   # rulările de azi ale acestui flux (o singură trimitere pe zi)
 
 jobs:
   rezumat:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # o singură trimitere pe zi (UTC): a mai reușit azi o rulare a acestui flux? Pornirea de mână (workflow_dispatch) trimite oricum.
+      - name: Trimis deja azi?
+        id: azi
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "deja=0" >> "$GITHUB_OUTPUT"; exit 0; fi
+          n=$(gh api "repos/${{ github.repository }}/actions/workflows/verdict-dimineata.yml/runs?created=>=$(date -u +%F)&status=success&per_page=20" --jq '[.workflow_runs[] | select(.id != ${{ github.run_id }})] | length' || echo 0)
+          echo "rulări reușite azi (fără aceasta): $n"
+          if [ "${n:-0}" -gt 0 ]; then echo "deja=1" >> "$GITHUB_OUTPUT"; else echo "deja=0" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: main
@@ -22,6 +40,7 @@ jobs:
         with:
           node-version: '24'
       - name: Rezumatul
+        if: steps.azi.outputs.deja != '1'
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: node tools/verdict-dimineata.mjs
