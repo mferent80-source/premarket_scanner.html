@@ -3553,6 +3553,10 @@ pe un singur chart.
 | I-873 | Tablou: verdict stabil — regim cu histerezis (sau parametri ficși), confirmare pe 2 bare închise și „ține de N bare” | crypto/public/app.js (calc, profileParams, superTrend), public/lib/indicatori-bot.js (rezumat, sparkHtml), crypto/scripts/ (probe cu serie de referință) | M | P2 | făcut | ideation | 2026-11-13 → 2026-11-14 |
 | I-874 | Tablou: vârsta, ritmul și poziția botului la vedere (de când rulează, câte perechi, ritmul pe oră, poziția în monedă și în USDT, levierul efectiv) | crypto/public/app.js (KPI-urile Tabloului, botiBan), public/lib/tablou-extra.js, public/lib/sfaturi.js | S | P3 | făcut | ideation | 2026-11-13 → 2026-11-14 |
 | I-875 | Jurnal zilnic al notei TradingView cu bara în curs, lângă verdictul Radarului și ce a făcut prețul după | crypto/scripts/colector.mjs (tură nouă, rară), scripts/lib/, functions/api/istoric-bot.js (citire) | S | P4 | făcut | ideation | 2026-11-13 → 2026-11-14 |
+| I-876 | Scanner: categoria „Bun pentru grid” numită după ce e (liniștit, lateral) sau măsurată înainte de a-și păstra numele | crypto/public/lib/scan.js (categoria), crypto/public/app.js (eticheta din sugestii), crypto/docs/cercetare/ | S | P2 | propus | tcc-idei | 2026-11-14 |
+| I-877 | Regimul pentru grid: efectul „benzi largi ⇒ drum mai lung” reluat pe date NOI, o singură dată | crypto/scripts/cercetare-v100339-acuratete.mjs (modul m5), crypto/public/lib/regim-grid.js (MASURAT), crypto/docs/cercetare/ | M | P3 | propus | tcc-idei | 2026-11-14 |
+| I-878 | Nota TradingView față de verdictul Radarului: bilanțul jurnalului pe pagină, după 30 de zile | crypto/scripts/lib/tura-nota-tv.mjs (raportNotaTv), crypto/scripts/colector.mjs, crypto/functions/api/istoric-bot.js (citire), crypto/public/app.js (cartela TradingView) | S | P3 | propus | tcc-idei | 2026-11-14 |
+| I-879 | Radar: proba de ecran a Tabloului (`npm run test:ecran`) reparată sau scoasă | crypto/scripts/proba-ecran-tablou.mjs, crypto/package.json | S | P4 | propus | tcc-idei | 2026-11-14 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8372,6 +8376,7 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Riscuri/dependențe:** Cifrele de mai sus sunt explorare: înainte de orice culoare trebuie o probă cu reguli scrise (a doua încercare, se numără). Pragurile regimului sunt ipoteze, de validat pe date nevăzute.
 - **Fișiere atinse:** crypto/public/lib/tablou-bot.js (judecaAmplitudine — de scos), public/lib/directie.js, public/lib/tablou-extra.js, public/app.js
 - **Starea (14.11.2026, Radar v100.339):** făcut parțial. Pe pagină: „drumul prețului, în trepte” (cu cifra amplitudinii păstrată pe același rând, fără starea ei „rău”) și ritmul perechilor judecat peste zgomotul lui. Nefăcut: regimul pentru grid și „becul tradus” — proba cu reguli scrise (M4, pe date mai vechi) NU a confirmat că becul lateral aduce mai puțină mișcare, deci pagina nu spune nimic despre asta.
+- **Starea (14.11.2026, Radar v100.340):** restul e făcut. Regimul pentru grid (ADX 25 / 20, percentila lățimii benzilor Bollinger 30 / 70) apare pe 1 oră și pe 4 ore, ca stare de acum. Ce urmează după un regim s-a măsurat cu reguli scrise dinainte (M5: 21 de perechi, dovada pe blocuri de 5 zile, mărimea testului verificată întâi pe serii fără efect): NEDOVEDIT peste tot — eficiența următoarelor 24 de ore e aceeași după „trend” și după „lateral” (0,21 cu 0,21 pe 1h); după benzi largi drumul e de 1,2–1,3 ori mai lung, sub pragul scris. Pagina scrie „ce urmează: nedovedit”. „Bun pentru grid” a fost scos: becul lateral e neutru, piața laterală nu mai apare „cu botul” și nu mai e motiv verde în Consilier. Perechile din drumul prețului se numără pe liniile gridului (aritmetic sau geometric), cu ultima oră lângă ultima oră a botului. Cardul vechi ascuns e scos. Jurnalul: crypto/docs/cercetare/2026-11-13-tablou-acuratete.md.
 
 ### I-873 · Verdict stabil, fără întoarceri din comutarea parametrilor · M · P2
 - **Problema/golul:** Multiplicatorul Supertrend (2,4 / 2,8 / 3,0), pragul verdictului (64 / 66 / 67) și ponderile se aleg după ADX și ATR pe ultima bară, iar toată linia se recalculează. Măsurat pe 21 de monede: cele trei multiplicatoare dau direcții diferite în ~15% din bare, iar în ~10% din comutările de profil săgeata se întoarce fără ca prețul să fi trecut linia. Pe HYPE 1h, 14.09 06:00: scor neschimbat 64,6, verdictul trece din „urcă” în neutru doar pentru că pragul a devenit 66. Pe HYPE 4h, 32 din 63 de episoade cu direcție țin cel mult două bare. Supertrend-ul paginii diferă de cel implicit din TradingView (10, 3) în ~12,7% din bare, fără ca parametrii să fie scriși.
@@ -8395,3 +8400,32 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Riscuri/dependențe:** Încă o cerere la scannerul TradingView (rară, o dată la câteva ore). Pragurile de judecată se scriu înainte de primele 30 de zile.
 - **Fișiere atinse:** crypto/scripts/colector.mjs (tură nouă, rară), scripts/lib/, functions/api/istoric-bot.js (citire)
 - **Starea (14.11.2026, colector v101.178):** făcut ca jurnal al notei și al prețului (o notare pe bară de 4 ore, judecată după 4 bare, cel mult o cerere la un sfert de oră). Verdictul Radarului din aceeași clipă nu se notează încă.
+- **Starea (14.11.2026, colector v101.179):** restul e făcut. Lângă notă se scrie verdictul Radarului din aceeași clipă — cel arătat de pagină (confirmat pe două bare), cu al barei alături, pe 4 ore și pe 1 zi, doar pe bare proaspete; se judecă la același soroc și cu același preț ca nota. Bilanțul se citește cu `npm run raport:nota-tv` (sub 30 de zile spune că e prea devreme).
+
+### I-876 · Categoria „Bun pentru grid” a scannerului, după măsurătoare · S · P2
+- **Problema/golul:** Sugestiile scannerului au categoria „Bun pentru grid · liniștit, lateral”. Măsurătoarea M5 din 14.11 (21 de perechi, reguli scrise dinainte) n-a dovedit că după „lateral” prețul oscilează mai mult decât înaintează: eficiența următoarelor 24 de ore e aceeași după „trend” și după „lateral”. În Tabloul botului vorba „bun pentru grid” a fost scoasă; în scanner a rămas.
+- **Soluția:** Două drumuri, la alegere: (a) numele categoriei spune ce e („Liniștit, lateral”), iar „pentru grid” devine o notă că e doar un punct de plecare; (b) se măsoară întâi, cu reguli scrise dinainte, dacă monedele din categorie dau mai multe perechi pe treaptă în zilele următoare decât celelalte — și numele rămâne doar dacă iese dovedit.
+- **Impact:** Aceeași regulă pe toată aplicația: o laudă apare doar unde e măsurată. Nu mai contrazice Tabloul.
+- **Riscuri/dependențe:** E numele unei categorii cerute anume: se schimbă doar cu acordul lui. Varianta (b) e încă o încercare statistică (se numără) și cere reluarea unui grid pe istoric, nu doar eficiența prețului.
+- **Fișiere atinse:** crypto/public/lib/scan.js (categoria), crypto/public/app.js (eticheta din sugestii), crypto/docs/cercetare/
+
+### I-877 · Benzi largi ⇒ drum mai lung, pe date noi · M · P3
+- **Problema/golul:** În M5 (14.11) drumul următoarelor 24 de ore a fost de 1,2–1,3 ori mai lung după benzi Bollinger largi decât după benzi strânse, pe toate cele patru ferestre, dar sub pragul scris dinainte (cel mai bun p = 0,134% față de 0,078%; mărimea minimă 1,3 neatinsă pe 1h). Pe aceleași date nu se mai încearcă alt prag.
+- **Soluția:** După 60–90 de zile de lumânări noi, aceeași procedură (blocuri de 5 zile, Student într-o parte), cu pragul și mărimea minimă scrise înainte de rulare și cu o singură rulare. Dacă trece, rândul regimului poate spune cifra măsurată despre lungimea drumului (de folos la lățimea gridului); dacă nu, rămâne „nedovedit”.
+- **Impact:** Singurul efect din M5 care a avut semn pe toate ferestrele primește o a doua șansă cinstită, pe date nevăzute.
+- **Riscuri/dependențe:** Volatilitatea care ține în timp e un efect cunoscut: riscul e să se dovedească ceva banal și puțin folositor. Mărimea minimă se scrie dinainte tocmai de aceea. Datele noi trebuie să nu se suprapună cu ferestrele din 14.11.
+- **Fișiere atinse:** crypto/scripts/cercetare-v100339-acuratete.mjs (modul m5), crypto/public/lib/regim-grid.js (MASURAT), crypto/docs/cercetare/
+
+### I-878 · Bilanțul notei TradingView și al Radarului, pe pagină · S · P3
+- **Problema/golul:** Colectorul ține din 14.11 un jurnal cu nota TradingView și verdictul Radarului din aceeași clipă, judecate după patru bare. Bilanțul se vede azi doar din linia de comandă (`npm run raport:nota-tv`), pe mașina colectorului.
+- **Soluția:** Când jurnalul are cel puțin 30 de zile cu note judecate, cartela TradingView arată un rând: de câte ori a nimerit direcția nota și de câte ori verdictul, cu numărul de zile. Regula de judecată (pe zile, nu pe note) se scrie înainte de prima afișare; sub 30 de zile rândul nu apare.
+- **Impact:** Se vede pe viu, nu din motorul refăcut, dacă nota TradingView afișată merită locul din pagină.
+- **Riscuri/dependențe:** Notele aceleiași zile se mișcă împreună: o numărătoare simplă pare mai sigură decât e, deci cifra se dă cu numărul de zile și fără culoare până la o probă pe zile.
+- **Fișiere atinse:** crypto/scripts/lib/tura-nota-tv.mjs (raportNotaTv), crypto/scripts/colector.mjs, crypto/functions/api/istoric-bot.js (citire), crypto/public/app.js (cartela TradingView)
+
+### I-879 · Proba de ecran a Tabloului, rămasă în urmă · S · P4
+- **Problema/golul:** `scripts/proba-ecran-tablou.mjs` nu e în lanțul `npm test` și pică la fel pe pagina neatinsă și pe cea nouă (32 din 73 de pași, verificat pe 14.11 cu un server martor): descrie o așezare mai veche a Tabloului. O probă care pică mereu nu mai păzește nimic.
+- **Soluția:** Pașii care mai au sens (starea fără bot, eroarea de parolă, botul ales dispărut) se aduc la așezarea de acum și proba intră în lanț; restul se șterg, cu o notă despre ce probă nouă le-a luat locul.
+- **Impact:** Ecranul Tabloului are din nou o probă care trece și care oprește o livrare stricată.
+- **Riscuri/dependențe:** Proba deschide pagina într-un browser fără cap: e lentă și sensibilă la așteptări; în lanț trebuie să rămână sub un minut.
+- **Fișiere atinse:** crypto/scripts/proba-ecran-tablou.mjs, crypto/package.json
