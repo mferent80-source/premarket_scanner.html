@@ -3560,11 +3560,13 @@ pe un singur chart.
 | I-880 | Tabloul: rândul bilanțului notei TradingView spune și de când e | crypto/public/lib/tv-note.js (bilantText), crypto/public/app.js (renderTabloTv) | S | P4 | făcut | tcc-idei | 2026-11-14 → 2026-11-14 |
 | I-881 | Clasamentul de grid: ordinea după scor măsurată — candidații din fruntea listei față de ceilalți (G1) | crypto/scripts/lib/g1-candidati-grid.mjs, crypto/scripts/cercetare-v100342-candidati-grid.mjs, crypto/public/lib/scan.js, crypto/public/lib/scan-ecran.js, crypto/docs/cercetare/ | M | P2 | făcut | tcc-idei | 2026-11-14 → 2026-11-14 |
 | I-882 | Tabloul fără bot, deschis direct: banda contului, „Piața azi” și „Pe ce aș porni” rămâneau goale | crypto/public/app.js (tbRenderTodo), crypto/public/app.css, crypto/scripts/proba-ecran-tablou.mjs | S | P2 | făcut | tcc-idei | 2026-11-14 → 2026-11-14 |
-| I-883 | Grid: pierde poziția rămasă mai mult decât aduc grilele? — întrebarea pusă cum trebuie, pe orizontul boților adevărați | crypto/scripts/lib/g1-candidati-grid.mjs, crypto/scripts/cercetare-v100342-candidati-grid.mjs, crypto/docs/cercetare/, eventual crypto/public/lib/grid-proba.js (fișa) | M | P2 | propus | tcc-idei | 2026-11-14 |
-| I-884 | Tabloul fără bot: candidații apar de două ori (în Consilier și în banda „Pe ce aș porni”) | crypto/public/app.js (cartela fără bot a Consilierului), crypto/public/lib/t212-ecran.js (tbIdeiRender) | S | P4 | propus | tcc-idei | 2026-11-14 |
-| I-885 | Tabloul lăsat deschis: banda contului nu se reîmprospătează singură | crypto/public/app.js (tbContTot), crypto/public/lib/t212-ecran.js (contTotAsigura) | S | P3 | propus | tcc-idei | 2026-11-14 |
-| I-886 | Scanner: tăietura după volum a rețetei „Candidați de grid” (primele 60 de monede după volum), măsurată cu un test care vede | crypto/scripts/lib/g1-candidati-grid.mjs, crypto/scripts/cercetare-v100342-candidati-grid.mjs, crypto/public/lib/scan.js, crypto/docs/cercetare/ | M | P3 | propus | tcc-idei | 2026-11-14 |
-| I-887 | Lista „nu e crypto”: perpetue noi care par acțiuni tokenizate intră în clasamentul de grid | crypto/public/lib/grid-calcul.js (NU_CRYPTO), crypto/scripts/lib/tura-clasament.mjs | S | P3 | propus | tcc-idei | 2026-11-14 |
+| I-883 | Grid: pierde poziția rămasă mai mult decât aduc grilele? — întrebarea pusă cum trebuie, pe orizontul boților adevărați | crypto/scripts/lib/g1-candidati-grid.mjs, crypto/scripts/cercetare-v100342-candidati-grid.mjs, crypto/docs/cercetare/, eventual crypto/public/lib/grid-proba.js (fișa) | M | P2 | făcut | tcc-idei | 2026-11-14 → 2026-11-15 |
+| I-884 | Tabloul fără bot: candidații apar de două ori (în Consilier și în banda „Pe ce aș porni”) | crypto/public/app.js (cartela fără bot a Consilierului), crypto/public/lib/t212-ecran.js (tbIdeiRender) | S | P4 | făcut | tcc-idei | 2026-11-14 → 2026-11-15 |
+| I-885 | Tabloul lăsat deschis: banda contului nu se reîmprospătează singură | crypto/public/app.js (tbContTot), crypto/public/lib/t212-ecran.js (contTotAsigura) | S | P3 | făcut | tcc-idei | 2026-11-14 → 2026-11-15 |
+| I-886 | Scanner: tăietura după volum a rețetei „Candidați de grid” (primele 60 de monede după volum), măsurată cu un test care vede | crypto/scripts/lib/g1-candidati-grid.mjs, crypto/scripts/cercetare-v100342-candidati-grid.mjs, crypto/public/lib/scan.js, crypto/docs/cercetare/ | M | P3 | făcut | tcc-idei | 2026-11-14 → 2026-11-15 |
+| I-887 | Lista „nu e crypto”: perpetue noi care par acțiuni tokenizate intră în clasamentul de grid | crypto/public/lib/grid-calcul.js (NU_CRYPTO), crypto/scripts/lib/tura-clasament.mjs | S | P3 | făcut | tcc-idei | 2026-11-14 → 2026-11-15 |
+| I-888 | Motorul de grid: minusul fals al lumânării — de măsurat pe lumânări de un minut și de îndreptat (fișa cere „medie peste zero”) | crypto/public/lib/grid-proba.js (simuleaza, proba, fisa), crypto/public/lib/grid-sim.js, crypto/scripts/lib/g2-grid-date-nevazute.mjs (reperM), crypto/docs/cercetare/ | M | P1 | propus | tcc-idei | 2026-11-15 |
+| I-889 | Regula de formă a acțiunilor tokenizate și pe pagină, nu doar în colector | crypto/public/app.js (grAduMonede), crypto/public/lib/grid-calcul.js (invataNuCrypto), crypto/public/lib/acasa.js | S | P3 | propus | tcc-idei | 2026-11-15 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8472,6 +8474,7 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Răspunde la întrebarea care contează înaintea oricărui clasament: merită gridul, în medie, pe setările propuse?
 - **Riscuri/dependențe:** E un test nou (se numără). Testul pe blocuri de 5 zile a ieșit aproape orb la G1: trebuie o statistică ce vede (de pildă pe zile, cu împrăștierea socotită pe monede statornice) și o poartă pe etichete statornice. Motorul socotește executat un ordin când prețul îi atinge linia.
 - **Fișiere atinse:** crypto/scripts/lib/g1-candidati-grid.mjs, crypto/scripts/cercetare-v100342-candidati-grid.mjs, crypto/docs/cercetare/, eventual crypto/public/lib/grid-proba.js (fișa)
+- **Starea (15.11.2026, Radar v100.343):** făcut ca măsurătoare (G2-M), cu un rezultat care NU se poate citi ca răspuns. Pe 400 de zile nevăzute, cu universul ales la început și regulile scrise dinainte, gridul brut al clasamentului (fără levier, cu stopul casei) a ieșit față de zero pe minus la 3 și la 7 zile. O revizie independentă a arătat însă că simulatorul dă același minus și pe un preț fără nicio direcție: merge prin fiecare lumânare pe drumul cel mai scurt și nu vede dus-întorsurile dinăuntru (pe lumânări mai mari minusul crește). Față de reperul fără direcție nu rămâne nimic, nici în plus, nici în minus. Deci: nedovedit că gridul pierde sau câștigă peste costuri; pe pagină nu s-a scris nimic. Descrierea E2 din v100.342 avea aceeași problemă și a fost îndreptată. Ce rămâne de făcut e în I-888. Jurnalul: crypto/docs/cercetare/2026-11-13-tablou-acuratete.md („G2”, „G2 — îndreptări”).
 
 ### I-884 · Candidații, o singură dată în Tabloul fără bot · S · P4
 - **Problema/golul:** Fără bot, Consilierul arată trei candidați din Scan, iar banda „Pe ce aș porni un bot acum” arată cinci, cu alte detalii. Sunt aceleași monede, spuse de două ori, și pagina se lungește pe telefon.
@@ -8479,6 +8482,7 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Pagina fără bot e mai scurtă și nu se contrazice dacă cele două liste taie diferit.
 - **Riscuri/dependențe:** Schimbă o cartelă cerută anume: se face doar cu acordul lui, cu inventarul „nimic pierdut” înainte și după.
 - **Fișiere atinse:** crypto/public/app.js (cartela fără bot a Consilierului), crypto/public/lib/t212-ecran.js (tbIdeiRender)
+- **Starea (15.11.2026, Radar v100.343):** făcut. Lista e o singură dată, în banda de candidați; cartela Consilierului trimite la ea și la Scan. Banda poartă și grilele, pasul și mișcarea pe 7 zile, iar candidații din Scan pe care îi arăta cartela (și care nu erau printre primii cinci după scor) rămân în aceeași listă, cu eticheta lor. Inventarul „nimic pierdut” la 412 și 1280 px: nimic lipsă; moneda care apărea de două ori apare o dată.
 
 ### I-885 · Banda contului, reîmprospătată pe Tablou · S · P3
 - **Problema/golul:** Pe Tablou, contul se cere doar cât lipsește. După prima aducere, cifrele Trading 212 din bandă și clasamentul din „Pe ce aș porni” rămân cele de la deschidere până treci prin altă pagină; Acasă le readuce la un minut.
@@ -8486,6 +8490,7 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Banda de sus nu mai arată cifre vechi pe pagina pe care stă cel mai mult.
 - **Riscuri/dependențe:** Câteva cereri în plus la 5 minute; poarta Pionex e comună cu boții, deci se păstrează limitele existente.
 - **Fișiere atinse:** crypto/public/app.js (tbContTot), crypto/public/lib/t212-ecran.js (contTotAsigura)
+- **Starea (15.11.2026, Radar v100.343):** făcut. Cu contul adus, aducerea se reia la 5 minute cât Tabloul e la vedere și fila e în față; cât contul lipsește rămâne frâna de un minut. Fiecare reluare face și citirea întreagă Trading 212 (ca Acasă).
 
 ### I-886 · Tăietura după volum a rețetei de grid, măsurată · M · P3
 - **Problema/golul:** Rețeta lasă doar candidații dintre primele 60 de monede după volum („volum mic nu e bun de grid”). G1 a măsurat altceva (ordinea după scor), deci regula aceasta a rămas nemăsurată. Iar testul lui G1 a ieșit aproape orb.
@@ -8493,6 +8498,7 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Singura regulă a rețetei în afară de „fără mișcare mare” primește o măsurătoare; dacă nu ține, tăietura se poate muta sau scoate.
 - **Riscuri/dependențe:** Volumul bursei de pe care vin lumânările nu e cel al bursei boților. Două teste în plus la numărătoarea casei.
 - **Fișiere atinse:** crypto/scripts/lib/g1-candidati-grid.mjs, crypto/scripts/cercetare-v100342-candidati-grid.mjs, crypto/public/lib/scan.js, crypto/docs/cercetare/
+- **Starea (15.11.2026, Radar v100.343):** făcut (G2-V). Pe 400 de zile nevăzute, candidații cu volum mare și cei cu volum mic au ieșit la fel: grilele încasate ×1,01, rezultatul total practic egal — NEDOVEDIT la amândouă, cu teste care ar fi văzut ×1,2 și +0,2% pe zi și cu o poartă de permutare pe etichete statornice. Rostul tăieturii (executarea pe monede cu carnet subțire) nu se vede în lumânări, deci rămâne o măsură de prudență, nu un câștig măsurat; explicația rețetei o spune. Locul după volum e cel din universul fix de 100 de monede, pe volumul altei burse.
 
 ### I-887 · Acțiuni tokenizate noi în clasamentul crypto · S · P3
 - **Problema/golul:** La aducerea datelor pentru G1, zece din primele 100 de perpetue după volum n-aveau pereche pe bursa de referință; cinci dintre ele par, după nume, acțiuni tokenizate listate după ce s-a scris lista „nu e crypto”. Lista se ține de mână, deci o acțiune nouă intră în clasamentul de grid, în Scan și în regimul crypto ca și cum ar fi monedă.
@@ -8500,3 +8506,18 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Clasamentul și regimul crypto rămân despre monede.
 - **Riscuri/dependențe:** O monedă adevărată cu nume asemănător nu trebuie scoasă din greșeală: lista se schimbă doar după verificare.
 - **Fișiere atinse:** crypto/public/lib/grid-calcul.js (NU_CRYPTO), crypto/scripts/lib/tura-clasament.mjs
+- **Starea (15.11.2026, Radar v100.343):** făcut. Verificate din anunțurile bursei: două acțiuni asiatice de semiconductori și o acțiune de îngrășăminte; după denumirea de pe alte burse: încă una; după nume: paladiul și platina; după formă: șapte cu X. În total 12 simboluri scoase. De acum tura de clasament a colectorului (v101.181) citește lista simbolurilor și scoate singură perpetuele noi cu formă de acțiune (nume terminat în X, preț cu 2 zecimale), spunând-o o dată în jurnal; pe lista din 14.11 regula prinde 112 din 115 acțiuni știute cu X și nicio monedă. Ce n-are X se adaugă tot de mână. Regula e doar în colector (vezi I-889).
+
+### I-888 · Minusul fals al lumânării în motorul de grid · M · P1
+- **Problema/golul:** Motorul merge prin fiecare lumânare pe drumul cel mai scurt care atinge deschiderea, maximul, minimul și închiderea. Prețul adevărat face mai multe dus-întorsuri în aceeași lumânare, iar fiecare e o grilă încasată pe care simularea n-o vede; poziția rămasă e socotită întreagă. Urmarea, măsurată la G2: pe un preț fără nicio direcție motorul scoate un minus dincolo de costuri, cu atât mai mare cu cât lumânarea e mai mare (la 3 zile: lumânări de 15 minute, de 30, de o oră ⇒ din ce în ce mai jos). Proba fișei rulează pe lumânări de o oră la orizont de două zile sau mai mult și spune PORNEȘTE doar la „medie peste zero”: ștacheta ei adevărată e „bate costurile plus partea nevăzută”.
+- **Soluția:** Întâi măsurat cât e partea nevăzută, pe lumânări de un minut (nu din mers la întâmplare), pe câteva zeci de monede. Apoi una din două: proba fișei pe lumânări mai fine acolo unde contează, sau judecata ei față de reperul fără direcție (aceleași lumânări întoarse la întâmplare, deja în script) în loc de zero. Cu reguli scrise dinainte și cu revizie înainte de orice schimbare a verdictului fișei.
+- **Impact:** Fișa și Simulatorul n-ar mai respinge griduri bune din cauza instrumentului; orice măsurătoare viitoare a gridului ar avea un zero adevărat.
+- **Riscuri/dependențe:** Schimbă verdictele fișei (PORNEȘTE / NU) — nu se face din mers. Lumânările de un minut sunt multe (de 15 ori mai multe cereri). Costurile rămân reale: reperul nu le scoate.
+- **Fișiere atinse:** crypto/public/lib/grid-proba.js (simuleaza, proba, fisa), crypto/public/lib/grid-sim.js, crypto/scripts/lib/g2-grid-date-nevazute.mjs (reperM), crypto/docs/cercetare/
+
+### I-889 · Regula de formă a acțiunilor, și pe pagină · S · P3
+- **Problema/golul:** Din v100.343 colectorul scoate singur din clasament perpetuele noi cu formă de acțiune. Pagina nu cheamă regula: listele ei care filtrează direct (harta de pe Acasă, lărgimea crypto de rezervă) scot doar ce e în lista scrisă de mână, iar în colector numele se învață abia la prima tură de clasament de după repornire.
+- **Soluția:** Pagina are deja lista simbolurilor (o aduce pentru fișa Grid): o trece prin aceeași regulă la pornire. Colectorul învață numele la pornire, nu la prima tură.
+- **Impact:** O acțiune tokenizată nouă nu mai apare nicăieri ca monedă, nici o oră.
+- **Riscuri/dependențe:** O monedă adevărată nouă, cu nume terminat în X și preț la 2 zecimale, ar fi scoasă peste tot până e pusă în lista monedelor cu X; azi apare doar un rând în jurnalul colectorului — ar trebui să se vadă și pe pagină.
+- **Fișiere atinse:** crypto/public/app.js (grAduMonede), crypto/public/lib/grid-calcul.js (invataNuCrypto), crypto/public/lib/acasa.js
