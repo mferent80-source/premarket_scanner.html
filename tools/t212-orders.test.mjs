@@ -66,6 +66,8 @@ test('refusals say the order was NOT sent; a lost answer says to check Trading 2
   assert.match((await dup.O.pune({ ticker: 'MU_US_EQ', quantity: 5.5, stopPrice: 832.2 }, { garda: garda() })).mesaj, /deja o vânzare.*830,00/);
   const lost = setup({ relay: async () => { throw Error('offline'); } });
   const l = await lost.O.pune({ ticker: 'MU_US_EQ', quantity: 5.5, stopPrice: 832.2 }, { garda: garda() }); assert.equal(l.ok, false); assert.match(l.mesaj, /ÎNAINTE să încerci din nou/); assert.doesNotMatch(l.mesaj, /NU a fost trimis/);
+  const S = mem(), inflight = setup({ relay: async () => new Response(JSON.stringify({ error: 'order_in_flight' }), { status: 409 }) }), ordin = { ticker: 'MU_US_EQ', quantity: 5.5, stopPrice: 832.2 };
+  const i = await inflight.O.pune(ordin, { garda: garda({ storage: S }) }); assert.equal(i.ok, false); assert.equal(i.error, 'order_in_flight'); assert.match(i.mesaj, /deja pe drum/); assert.match(i.mesaj, /Ordine în așteptare/); assert.doesNotMatch(i.mesaj, /NU a fost trimis/); assert.ok(inflight.O.trimisRecent(S, ordin));
   const novault = setup({ vault: null, relay: async () => { throw Error('nu trebuie apelat'); } });
   assert.equal((await novault.O.pune({ ticker: 'MU_US_EQ', quantity: 5.5, stopPrice: 832.2 }, { garda: garda() })).error, 'fara-conexiune');
   assert.equal(novault.calls.filter((x) => x.opts.method === 'POST').length, 0);
