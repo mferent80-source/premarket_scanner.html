@@ -3,7 +3,8 @@
 (function () {
   'use strict';
   const S = window.StopSetter, host = document.getElementById('stopPanel'); if (!S || !host) return;
-  const atr = {}, ultim = {}, alese = {}, noteBara = {}; let stare = '', cerut = new Set(), discord = '';
+  const atr = {}, ultim = {}, alese = {}, noteBara = {}; let stare = '', stareTon = '', cerut = new Set(), discord = '';
+  function marcheaza(text, ton) { stare = text; stareTon = ton || ''; }
   // 18.10.2026: ordinul de stop REAL în Trading 212 (lib/t212-orders.js) — butonul apare doar cu conexiunea salvată pe dispozitiv; confirmare în pagină
   let ordine = null, confirm = null, trimitOrdin = false;
   // alarma pe Discord (worker-ul Paznicului) află ce poziții au stop: lista pleacă la fiecare schimbare
@@ -71,7 +72,7 @@
     const scris = {}; host.querySelectorAll('[data-stop-ticker]').forEach((a) => { scris[a.dataset.stopTicker] = { alt: a.querySelector('[data-stop-alt]')?.value || '', tinta: a.querySelector('[data-stop-tinta]')?.value || '' }; });
     const activ = document.activeElement && host.contains(document.activeElement) ? { tk: document.activeElement.closest('[data-stop-ticker]')?.dataset.stopTicker, camp: document.activeElement.hasAttribute('data-stop-alt') ? 'data-stop-alt' : document.activeElement.hasAttribute('data-stop-tinta') ? 'data-stop-tinta' : null } : null;
     const poz = typeof S.pentruPanou === 'function' ? S.pentruPanou(d.snapshot, { ordine: ordineLaBroker(d) }) : S.faraStop(d.snapshot, stops(d.scope));
-    host.innerHTML = S.render(poz, { atr, ultim, alese, ordine, confirm, trimite: trimitOrdin, fel: felStop(d, poz), noteBare: noteBara, oprire: oprireActiv(), stare: [stare, pozaNota, notaOprire(), poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul (luni–vineri, 08:00–22:00; în rest tace).') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
+    host.innerHTML = S.render(poz, { atr, ultim, alese, ordine, confirm, trimite: trimitOrdin, fel: felStop(d, poz), noteBare: noteBara, oprire: oprireActiv(), stareOrdin: stare, stareTon, stare: [pozaNota, notaOprire(), poz.length ? (discord || 'Pe Discord vine alarma la fiecare 15 minute până pui stopul (luni–vineri, 08:00–22:00; în rest tace).') : ''].filter(Boolean).join(' ') }); host.hidden = !poz.length;
     host.querySelectorAll('[data-stop-ticker]').forEach((a) => { const v = scris[a.dataset.stopTicker]; if (!v) return; const x = a.querySelector('[data-stop-alt]'), y = a.querySelector('[data-stop-tinta]'); if (x) x.value = v.alt; if (y) y.value = v.tinta; });
     if (activ && activ.tk && activ.camp) host.querySelector('[data-stop-ticker="' + CSS.escape(activ.tk) + '"] [' + activ.camp + ']')?.focus();
     const fetchStock = window.D?.fetchStock; if (typeof fetchStock !== 'function') return;
@@ -93,18 +94,18 @@
     // 19.10.2026 (I-711): „Alt stop” nevalid ⇒ eroare, nimic salvat / trimis (înainte cădea tăcut pe varianta −5 %)
     const altEl = art.querySelector('[data-stop-alt]'), ales = art.querySelector(`[data-stop-var="${alese[tk] || 'fix'}"]`) || art.querySelector('[data-stop-var]');
     const ales2 = S.stopDinFormular(altEl?.value, !!altEl?.validity?.badInput, ales?.dataset.stopPret);
-    if (ales2.eroare) { stare = '⚠ ' + ales2.eroare; confirm = null; desen(); return; }
+    if (ales2.eroare) { marcheaza('⚠ ' + ales2.eroare, 'refuz'); confirm = null; desen(); return; }
     const stop = ales2.stop, tv = art.querySelector('[data-stop-tinta]')?.value, tinta = tv ? Number(tv) : null;
     const sy = S.symYahoo(tk), px = S.preturi(poz, sy ? ultim[sy] : null);
-    if (vreaOrdin) { const r = window.T212Orders?.rezumat(poz, stop, px.acum, d.snapshot.summary?.currency); if (!r) { stare = '⚠ Alege o variantă de stop sau scrie stopul, apoi apasă din nou.'; confirm = null; }
+    if (vreaOrdin) { const r = window.T212Orders?.rezumat(poz, stop, px.acum, d.snapshot.summary?.currency); if (!r) { marcheaza('⚠ Alege o variantă de stop sau scrie stopul, apoi apasă din nou.', 'refuz'); confirm = null; }
       else { /* I-758: controalele pre-ordin ÎNAINTE de fereastră — cantitate ≤ poziție, dublură (copia ordinelor / 2 minute) ⇒ refuz; în afara collarului 0,5–25 % ⇒ fereastra cere bifa */
         const ver = typeof window.T212Orders.verifica === 'function' ? window.T212Orders.verifica({ ticker: r.ticker, quantity: r.qty, stopPrice: r.stop }, garda(poz, px.acum, d, false)) : { ok: true };
-        if (!ver.ok && ver.cod !== 'collar') { stare = '⚠ ' + ver.mesaj; confirm = null; }
-        else { confirm = { ...r, scope: d.scope, tinta, intrare: px.intrare, collar: ver.cod === 'collar' ? ver : null, copiaNecitita: ver.ok ? ver.copiaNecitita === true : ordinePending(d.scope) === null }; stare = ''; } }
+        if (!ver.ok && ver.cod !== 'collar') { marcheaza('⚠ ' + ver.mesaj, 'refuz'); confirm = null; }
+        else { confirm = { ...r, scope: d.scope, tinta, intrare: px.intrare, collar: ver.cod === 'collar' ? ver : null, copiaNecitita: ver.ok ? ver.copiaNecitita === true : ordinePending(d.scope) === null }; marcheaza('', ''); } }
       desen(); return; }
     const err = S.salveaza({ scope: d.scope, poz: { ...poz, averagePrice: px.intrare ?? poz.averagePrice, currentPrice: px.acum ?? poz.currentPrice }, stop, tinta });
     // I-711: confirmarea spune valoarea SALVATĂ (rotunjită la 4 zecimale, ca în teză), în moneda acțiunii
-    stare = err ? '⚠ ' + err : '✓ Stopul pentru ' + tk.replace(/_US_EQ$|_[A-Z]{2}_EQ$/, '') + ' e salvat în Portofoliu: ' + new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(+stop.toFixed(4)) + ' ' + (S.moneda(poz) || '') + '.';
+    marcheaza(err ? '⚠ ' + err : '✓ Stopul pentru ' + tk.replace(/_US_EQ$|_[A-Z]{2}_EQ$/, '') + ' e salvat în Portofoliu: ' + new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(+stop.toFixed(4)) + ' ' + (S.moneda(poz) || '') + '.', err ? 'refuz' : 'ok');
     desen(); window.dispatchEvent(new Event('tt-stop-salvat')); if (!err) trimite(true);
   });
   /* I-758: copia ordinelor citită pe acest aparat (lista T212Pending) — null = necitită (dublura o verifică doar releul, la broker) */
@@ -114,12 +115,12 @@
     if (trimitOrdin || !confirm || !window.T212Orders) return; const c = confirm;
     // I-758: în afara collarului 0,5–25 % ordinul pleacă doar cu bifa din fereastră
     const bifa = c.collar ? !!host.querySelector('[data-stop-t212-collar]')?.checked : false;
-    if (c.collar && !bifa) { stare = '⚠ Bifează confirmarea pentru stopul în afara intervalului 0,5–25 % sau alege alt stop. Ordinul NU a fost trimis.'; desen(); return; }
+    if (c.collar && !bifa) { marcheaza('⚠ Bifează confirmarea pentru stopul în afara intervalului 0,5–25 % sau alege alt stop. Ordinul NU a fost trimis.', 'refuz'); desen(); return; }
     const d0 = date(), proaspat = d0 && window.T212Snapshot?.fresh?.(d0.snapshot);
-    if (!proaspat) { stare = '⚠ Copia locală a contului are peste 5 minute. Reia citirea înainte de ordinul STOP.'; confirm = null; desen(); return; }
+    if (!proaspat) { marcheaza('⚠ Copia locală a contului are peste 5 minute. Reia citirea înainte de ordinul STOP.', 'refuz'); confirm = null; desen(); return; }
     const poz0 = (d0.snapshot.positions || []).find((p) => p.ticker === c.ticker);
     const qty = poz0 && Number(poz0.quantity);
-    if (!(qty > 0)) { stare = '⚠ Cantitatea din citirea proaspătă lipsește. Ordinul STOP nu a plecat.'; confirm = null; desen(); return; }
+    if (!(qty > 0)) { marcheaza('⚠ Cantitatea din citirea proaspătă lipsește. Ordinul STOP nu a plecat.', 'refuz'); confirm = null; desen(); return; }
     trimitOrdin = true; desen();
     const r = await window.T212Orders.pune({ ticker: c.ticker, quantity: qty, stopPrice: c.stop }, { garda: garda(poz0, c.acum, d0, bifa) }); trimitOrdin = false; confirm = null;
     if (r.ok) {
@@ -127,9 +128,13 @@
       /* 27.10 (audit): ordinul abia pus intră în copia locală a ordinelor în așteptare ⇒ Astăzi nu mai spune „doar pe hârtie” până la următoarea citire a brokerului */
       try { if (window.T212Pending && window.T212Pending.adauga && d) window.T212Pending.adauga(localStorage, c.scope || d.scope, d.snapshot.environment || 'live', { id: r.data.id ?? r.data.orderId ?? null, ticker: c.ticker, quantity: c.qty, stopPrice: r.data.stopPrice || c.stop, type: 'STOP' }, new Date().toISOString()); } catch (_) { /* copia ordinelor rămâne cum era */ }
       const err = poz ? S.salveaza({ scope: c.scope, poz: { ...poz, averagePrice: c.intrare ?? poz.averagePrice, currentPrice: r.data.currentPrice || c.acum || poz.currentPrice }, stop: r.data.stopPrice, tinta: c.tinta }) : 'poziția nu mai e în copia contului';
-      stare = '✓ Ordinul STOP pentru ' + c.simbol + ' e în Trading 212 (stop ' + r.data.stopPrice + (r.data.status ? ', ' + r.data.status : '') + ').' + (err ? ' Nu l-am putut salva și în Portofoliu: ' + err : ' L-am salvat și în Portofoliu.');
+      marcheaza('✓ Ordinul STOP pentru ' + c.simbol + ' e în Trading 212 (stop ' + r.data.stopPrice + (r.data.status ? ', ' + r.data.status : '') + ').' + (err ? ' Nu l-am putut salva și în Portofoliu: ' + err : ' L-am salvat și în Portofoliu.'), 'ok');
       window.dispatchEvent(new Event('tt-stop-salvat')); trimite(true);
-    } else stare = '⚠ ' + r.mesaj;
+    } else {
+      const peDrum = new Set(['order_in_flight', 'timeout', 'retea', 'broker_timeout', 'broker_network_error', 'broker_unavailable']);
+      if (peDrum.has(r.error)) { const m = String(r.mesaj || ''); marcheaza(/^Pe drum\b/.test(m) ? m : 'Pe drum. ' + m, 'drum'); }
+      else marcheaza('⚠ ' + (r.mesaj || ''), 'refuz');
+    }
     desen();
   }
   window.addEventListener('storage', (e) => { if (e.key === 'tt_governor_oprire_v1') { desen(); return; } if (e.key === 'tt_holdings_theses_v1' || e.key === 'tt_trading212_portfolio_v1') { desen(); trimite(false); } });
