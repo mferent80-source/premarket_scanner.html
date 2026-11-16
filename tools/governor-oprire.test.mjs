@@ -1,7 +1,8 @@
 // 27.10.2026 (planul lotului 2, contractele cu lotul E): Governor citește kill switch-ul (`tt_governor_oprire_v1`, scris de „Oprește tot”)
 // ⇒ HALTED cu motivul cât `activ` e true; re-armarea se face DOAR din formularul Governor, cu motiv obligatoriu (scrie activ:false, rearmatLa,
-// rearmatMotiv). Reconcilierea zilnică (`tt_reconciliere_v1`, scrisă de pagina contului după fiecare citire) cu ok=false ⇒ CAUTION cu lista,
-// și pe calea brokerului (T212Capital) și direct în Governor când brokerul nu e conectat pe aparat.
+// rearmatMotiv). Reconcilierea zilnică (`tt_reconciliere_v1`) cu diferențe ⇒ HALTED, pe calea brokerului și direct în Governor
+// când brokerul nu e conectat pe aparat. ok=false fără diferențe rămâne CAUTION. Curba EQ e prezentă în teste (DD 0), ca să nu
+// acopere celelalte gărzi.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -13,6 +14,7 @@ function lume(seed = {}, files = ['lib/governor.js']) {
   class Clock extends Date { constructor(...a) { super(...(a.length ? a : [NOW])); } static now() { return NOW; } }
   const asc = {};
   const c = { console, Date: Clock, Intl, JSON, Math, Number, navigator: { userAgent: 'Mozilla/5.0 (Windows NT 10.0)' }, addEventListener: (k, f) => { asc[k] = f; },
+    EQ: { drawdownStats: () => ({ currentDdPct: 0 }) },
     localStorage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) } };
   c.window = c; vm.createContext(c);
   for (const f of files) vm.runInContext(readFileSync(f, 'utf8'), c);
@@ -57,19 +59,19 @@ test('re-armarea e refuzată cât anularea e incompletă; înregistrarea veche f
   assert.equal(veche.c.GV.rearmeaza('înregistrare veche, fără câmpurile noi'), true);
 });
 
-test('reconcilierea cu diferențe ⇒ CAUTION cu lista: în Governor fără broker pe aparat și pe calea brokerului (T212Capital)', () => {
+test('reconcilierea cu diferențe ⇒ HALTED cu lista: în Governor fără broker pe aparat și pe calea brokerului (T212Capital)', () => {
   const rec = { la: '2026-10-27T13:50:00Z', scope: 'live', ok: false, diferente: [{ tip: 'pozitie', ticker: 'AAPL_US_EQ', app: 10, broker: 12, text: 'AAPL: 10 în copie, 12 la broker' }, { tip: 'numerar', ticker: null, app: 1000, broker: 950.5, text: 'numerar: 1.000,0 în copie, 950,5 la broker' }] };
   const { c } = lume({ tt_journal_v1: rand, tt_account_size_v1: '12670', tt_reconciliere_v1: rec });
-  const st = c.GV.status(); assert.equal(st.verdict, 'CAUTION'); assert.match(st.reasons.join(' '), /Reconciliere.*2 diferențe/); assert.match(st.reasons.join(' '), /AAPL: 10 în copie, 12 la broker/); assert.match(st.reasons.join(' '), /950,5/);
+  const st = c.GV.status(); assert.equal(st.verdict, 'HALTED'); assert.match(st.reasons.join(' '), /Reconciliere.*2 diferențe/); assert.match(st.reasons.join(' '), /AAPL: 10 în copie, 12 la broker/); assert.match(st.reasons.join(' '), /950,5/);
   assert.equal(lume({ tt_journal_v1: rand, tt_account_size_v1: '12670', tt_reconciliere_v1: { ...rec, ok: true, diferente: [] } }).c.GV.status().verdict, 'TRADE');
   // calea brokerului: T212Capital.build primește reconcilierea și o pune în motive (CAUTION), Governor o preia cu prefixul „Invest:” o singură dată
   const w = lume({}, ['lib/trading212-snapshot.js', 'lib/trading212-performance.js', 'lib/trading212-capital.js']);
   const at = new Date(NOW).toISOString();
   const r = w.c.T212Capital.build({ scope: 'live', snapshot: { environment: 'live', fetchedAt: at, summary: { currency: 'EUR', totalValue: 10000, available: 9000, reserved: 0, invested: 1000 }, positions: [{ ticker: 'T_US_EQ', quantity: 10, currentPrice: 100, instrumentCurrency: 'EUR', currency: 'EUR', value: 1000 }] },
     notes: { T_US_EQ: { stop: 95, stopCurrency: 'EUR' } }, history: { scope: 'live', currency: 'EUR', rows: [], complete: true, stale: false, state: 'ready' }, now: NOW, reconciliere: rec });
-  assert.equal(r.verdict, 'CAUTION'); assert.match(r.reasons.join(' '), /Reconciliere.*2 diferențe/); assert.match(r.reasons.join(' '), /AAPL: 10 în copie/);
+  assert.equal(r.verdict, 'HALTED'); assert.match(r.reasons.join(' '), /Reconciliere.*2 diferențe/); assert.match(r.reasons.join(' '), /AAPL: 10 în copie/);
   const seed = { tt_trading212_portfolio_v1: { live: { environment: 'live', active: true, fetchedAt: at, summary: { currency: 'EUR', totalValue: 10000, available: 9000, reserved: 0, invested: 1000 }, positions: [{ ticker: 'T_US_EQ', quantity: 10, currentPrice: 100, instrumentCurrency: 'EUR', currency: 'EUR', value: 1000 }] } },
     tt_trading212_fills_v1: { accounts: { live: { environment: 'live', items: [], complete: true, fetchedAt: at } } }, tt_holdings_theses_v1: { 'live|T_US_EQ': { stop: 95, stopCurrency: 'EUR' } }, tt_reconciliere_v1: rec, tt_account_size_v1: '12670', tt_journal_v1: rand };
   const g = lume(seed, ['lib/trading212-snapshot.js', 'lib/trading212-performance.js', 'lib/trading212-capital.js', 'lib/governor.js']).c.GV.status();
-  assert.equal(g.verdict, 'CAUTION'); assert.equal(g.reasons.filter((x) => /Reconciliere/.test(x)).length, 1, 'o singură dată, prin broker'); assert.match(g.reasons.join(' '), /Invest: Reconciliere/);
+  assert.equal(g.verdict, 'HALTED'); assert.equal(g.reasons.filter((x) => /Reconciliere/.test(x)).length, 1, 'o singură dată, prin broker'); assert.match(g.reasons.join(' '), /Invest: Reconciliere/);
 });

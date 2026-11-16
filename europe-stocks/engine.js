@@ -108,6 +108,8 @@
       try{
         const rate=EuropeFinance.conversion(x.currency===input.currency?null:await EuropeFinance.loadRates(),x.currency,input.currency);
         if(state.selected?.symbol!==symbol||node!==$('riskResult'))return;
+        const gate=EuropeDecision.canSize(x,e,stale);
+        if(!gate.ok){node.innerHTML='<p class="risk-error">'+esc(gate.reason)+'</p>';return;}
         const result=EuropeDecision.calculateRisk(input,x.plan,rate);node.innerHTML=EuropeView.riskResult(result,rate,x);
         if(result.ok){try{
           // valoarea sincronizată păstrează intrarea deja salvată (câmpul e cerut de validarea din cloud) ⇒ alt preț de intrare nu mai dă conflict între aparate

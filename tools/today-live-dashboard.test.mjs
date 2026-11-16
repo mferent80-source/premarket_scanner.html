@@ -140,8 +140,9 @@ test('acasă: titlul ia ziua, iar ideile numesc simbolurile deja scanate',async(
  assert.equal(s.doc.title,'Mai mult stai — Trading Tools');
  assert.equal(s.parent.document.title,'Mai mult stai · Trading Tools');
  assert.equal(s.parent.__ttDayTitle,'Mai mult stai');
- assert.match(s.element('briefMarket').innerHTML,/>Prudent</);
- assert.match(s.element('briefMarket').innerHTML,/riscul redus/);
+ assert.match(s.element('briefMarket').innerHTML,/>Mai mult stai</);
+ assert.match(s.element('briefMarket').innerHTML,/Conduc energie/);
+ assert.doesNotMatch(s.element('briefMarket').innerHTML,/riscul redus/);
  assert.doesNotMatch(s.element('pageTitle').innerHTML,/>Prudent</);
  assert.match(s.element('briefIdeas').innerHTML,/În Premarket: <b>MPC, PSX<\/b>/);
  assert.match(s.element('briefIdeas').innerHTML,/În V1: <b>XOM<\/b>/);
@@ -166,7 +167,7 @@ test('brief-ul de sus arată sugestiile pe rânduri și păstrează fraza când 
  const s=setup({a:account({state:'missing',scope:null,total:null,available:null,positions:[],points:[]}),market,news,extra:{MarketVerdict:MV}});await flush();
  const h=s.element('briefMarket').innerHTML;
  assert.match(h,/<b>Sugestii<\/b>/);assert.match(h,/Energie: <b>MPC și PSX\.<\/b>/);assert.match(h,/Sănătate: <b>MRNA, deja în cont\.<\/b>/);
- assert.match(h,/href="#marketVerdict">Foaia zilei ↓/);assert.match(h,/nu știe pozițiile/);assert.match(h,/riscul redus/);assert.doesNotMatch(h,/În lista deja citită/);
+ assert.match(h,/href="#marketVerdict">Detaliile zilei ↓/);assert.match(h,/nu știe pozițiile/);assert.match(h,/>Mai mult stai</);assert.doesNotMatch(h,/În lista deja citită/);
  assert.doesNotMatch(s.element('briefAccount').innerHTML,/În sectorul care conduce/);
  assert.match(s.element('marketVerdict').innerHTML,/nu știe pozițiile/);
 });
@@ -235,7 +236,7 @@ test('brief-ul pune verdictul deasupra și desparte semnalele deja scrise; lăț
  ctx.MarketVerdict.raportBreadth=()=>new Promise(()=>{});ctx.MarketVerdict.robotFile=()=>new Promise(()=>{});ctx.MarketVerdict.extraData=()=>new Promise(()=>{});
  const s=setup({market,news:{state:'ready',items:[],reason:''},extra:{MarketVerdict:ctx.MarketVerdict}});await flush();
  const h=s.element('briefMarket').innerHTML;
- assert.match(h,new RegExp('>'+v.label.text+'<'));
+ assert.match(h,new RegExp('>'+(v.foaia&&v.foaia.titlu?v.foaia.titlu:v.label.text)+'<'));
  assert.match(h,/Participare peste jumătate/);assert.match(h,/Amploare 72,0%/);assert.doesNotMatch(h,/· veche/);
  assert.match(h,/nu un semnal de cumpărare și nu o probabilitate/);
  if(v.indicatori.some(x=>x.score>0))assert.match(h,/În favoare:/);
@@ -247,7 +248,7 @@ test('brief-ul pune verdictul deasupra și desparte semnalele deja scrise; lăț
  assert.match(stale.element('marketContext').innerHTML,/Peste SMA 50 · ultima valoare, nu contextul de azi · 14\.10/);
  assert.match(stale.element('marketContext').innerHTML,/Peste SMA 200 · ultima valoare, nu contextul de azi · 14\.10/);
  assert.doesNotMatch(s.element('marketContext').innerHTML,/ultima valoare, nu contextul de azi/);
- if(v.foaia){assert.match(s.element('pageTitle').innerHTML,new RegExp('^'+v.foaia.titlu.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'<span>\\.</span>$'));assert.equal(s.element('pageLead').textContent,v.foaia.deCe);assert.match(v.foaia.deCe,/^După miercuri, 14\.10: da\. E zi bună de trading/);assert.doesNotMatch(v.foaia.deCe,/După sesiunea/);assert.doesNotMatch(s.element('pageTitle').innerHTML,/din 6/);assert.match(s.element('briefMarket').innerHTML,/riscul obișnuit/);assert.match(s.element('marketVerdict').innerHTML,/mv-day-why/);assert.match(s.element('marketVerdict').innerHTML,/class="mv-score">Scor [^<]* din 6 indicatori citiți/);}
+ if(v.foaia){assert.match(s.element('pageTitle').innerHTML,new RegExp('^'+v.foaia.titlu.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'<span>\\.</span>$'));assert.equal(s.element('pageLead').textContent,v.foaia.deCe);assert.match(v.foaia.deCe,/^După miercuri, 14\.10: e zi de trade/);assert.doesNotMatch(v.foaia.deCe,/După sesiunea/);assert.doesNotMatch(s.element('pageTitle').innerHTML,/din 6/);assert.match(s.element('marketVerdict').innerHTML,/riscul obișnuit/);assert.match(s.element('marketVerdict').innerHTML,/mv-day-why/);assert.match(s.element('marketVerdict').innerHTML,/class="mv-score">Scor [^<]* din 6 indicatori citiți/);}
  assert.match(stale.element('pageLead').textContent,/Lățimea nu e de azi/);
  assert.doesNotMatch(stale.element('pageLead').textContent,/majoritatea acțiunilor participă/);
 });
@@ -267,7 +268,7 @@ test('oprirea activă bate foaia zilei și pe brief, și pe panou',async()=>{
  assert.match(s.element('marketVerdict').innerHTML,/Oprirea e activă/);
  assert.doesNotMatch(s.element('briefMarket').innerHTML,/Zi de trade|Sugestii|AAPL|Foaia zilei/);
  assert.doesNotMatch(s.element('briefAccount').innerHTML,/În sectorul care conduce|AAPL 29/);
- assert.match(s.element('briefMarket').innerHTML,/>Favorabil</);
+ assert.doesNotMatch(s.element('briefMarket').innerHTML,/>Favorabil</);
  assert.match(s.element('pageTitle').innerHTML,/Oprirea e activă<span>\.<\/span>/);
  assert.match(s.element('pageLead').textContent,/Nu se deschid planuri noi/);
  assert.doesNotMatch(s.element('pageLead').textContent,/zi bună de trading/);

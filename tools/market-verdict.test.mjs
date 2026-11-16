@@ -75,7 +75,7 @@ test('foaia zilei traduce eticheta deja scrisă și numește sectoarele care con
   const bun = MV.compute({ market: piata(true), sectors: sect(false), now: Date.parse('2026-10-17T08:00:00Z') });
   assert.equal(bun.label.id, 'favorabil');
   assert.equal(bun.foaia.titlu, 'Zi de trade');
-  assert.match(bun.foaia.deCe, /^După vineri, 16\.10: da\. E zi bună de trading, pentru că /);
+  assert.match(bun.foaia.deCe, /^După vineri, 16\.10: e zi de trade, pentru că /);
   assert.match(bun.foaia.deCe, /indicii sunt în trend/);
   assert.doesNotMatch(bun.foaia.deCe, /După sesiunea/);
   assert.doesNotMatch(bun.foaia.deCe, /ordin|probabilitate|din 6/);
@@ -100,7 +100,7 @@ test('foaia zilei traduce eticheta deja scrisă și numește sectoarele care con
   const h = MV.render(bun);
   assert.match(h, /Foaia zilei/);
   assert.match(h, /class="mv-day-why"/);
-  assert.match(h, /După vineri, 16\.10: da\. E zi bună de trading/);
+  assert.match(h, /După vineri, 16\.10: e zi de trade/);
   assert.match(h, /Zi de trade/);
   assert.match(h, /Nu e un ordin și nu e o probabilitate/);
   assert.match(h, /<p class="mv-score">Scor [^<]* din 6 indicatori citiți<\/p>/);

@@ -105,6 +105,8 @@ test('[4] butonul „Actualizează” șterge cache-urile carcasei și copiile A
     { url: 'https://example.test/premarket_scanner.html/today/index.html?v=26.11.02.0644' },
     { url: 'https://example.test/premarket_scanner.html/today/?v=26.11.02.0644' },
     { url: 'https://example.test/premarket_scanner.html/lib/market-verdict.js?v=26.10.27.1759' },
+    { url: 'https://example.test/premarket_scanner.html/desk/index.html?v=1' },
+    { url: 'https://example.test/premarket_scanner.html/lib/journal.js?v=1' },
     { url: 'https://example.test/premarket_scanner.html/journal/review.js?v=26.10.27.2240' },
   ];
   const c = { URL, Date, document: { documentElement: { dataset: { appVersion: '26.10.03.1400' } }, querySelectorAll: (q) => (q === '[data-version]' ? [label] : [button]), addEventListener: () => {} }, window: { addEventListener: () => {} }, location: { href: 'https://example.test/app/', replace: (u) => { replaced = u; } },
@@ -117,6 +119,8 @@ test('[4] butonul „Actualizează” șterge cache-urile carcasei și copiile A
   assert.equal(updated, 1);
   assert.deepEqual(deleted, ['tt-decision-phone-design-26.10.03.1400'], 'cache-ul suitei și carcasa nouă rămân');
   for (const nume of ['view.js', 'style.css', 'today/index.html', 'today/?v=', 'market-verdict.js']) assert.ok(scoase.some((s) => s.includes(nume)), nume);
-  assert.equal(scoase.some((s) => s.includes('journal/review.js')), false, 'jurnalul rămâne în cache-ul suitei');
+  assert.ok(scoase.some((s) => s.includes('desk/index.html')), 'Planuri iese din cache');
+  assert.ok(scoase.some((s) => s.includes('lib/journal.js')), 'librăria jurnalului iese din cache');
+  assert.equal(scoase.some((s) => s.includes('journal/review.js')), false, 'pagina jurnalului rămâne în cache-ul suitei');
   assert.match(replaced, /v=26\.10\.03\.1500/);
 });

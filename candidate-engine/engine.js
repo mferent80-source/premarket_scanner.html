@@ -79,6 +79,8 @@
       if (!r || !r.ok) return false;
       var j = await r.json();
       if (!j || !Array.isArray(j.l) || j.l.length < 50) return false;
+      var la = Date.parse(j.la), n = Number(j.n);
+      if (!(la > 0) && !(n > 0)) return false;
       state.screener = unique(j.l.map(function (x) { return x && x.s; })); state.screenerLa = j.la || null;
       return true;
     } catch (_) { return false; }
@@ -332,10 +334,30 @@
     var risk=window.GV?.status?.(),blocked=risk&&!['TRADE','CAUTION'].includes(risk.verdict),confirmed=state[state.mode].filter(function(x){return x.actionable;}).length;
     $('scanDetailsBody').innerHTML='<p>'+state.verified+' / '+state.scanned+' serii verificate. '+(state.scanning?'Scanarea continuă.':state.hasScan?'Clasamentele includ numai criteriile strategiei; numărul de analize nu este numărul de confirmări.':'Scanarea nu a fost încă finalizată.')+'</p>'
       +'<p>Governor: '+escapeHtml(risk?.verdict||'neverificat')+(blocked?' · candidații tehnici rămân vizibili pentru analiză; planurile noi sunt blocate. '+escapeHtml((risk.reasons||[]).join(' · ')):'. '+confirmed+' '+(confirmed===1?'candidat cu confirmare':'candidați cu confirmare')+' în clasamentul curent.')+'</p>'
-      +(state.trendMeta?'<p>Trend 12 luni: clasament EOD '+escapeHtml(state.trendMeta.dataUltimei)+(state.trendMeta.vechime>7?' (VECHI, '+state.trendMeta.vechime+' zile)':'')+' · '+(state.trendMeta.univers?escapeHtml(String(state.trendMeta.univers.n))+' acțiuni clasate':'')+' · regim '+(state.trendMeta.regim&&state.trendMeta.regim.peste?'pornit':'oprit')+' · '+escapeHtml(state.trendMeta.eticheta)+'</p>':state.trendEroare?'<p>Trend 12 luni: clasamentul robotului nu s-a putut citi ('+escapeHtml(state.trendEroare)+').</p>':'')
+      +(state.trendMeta?'<p>Trend 12 luni: clasament EOD '+escapeHtml(state.trendMeta.dataUltimei)+(state.trendMeta.vechime>4?' (VECHI, '+state.trendMeta.vechime+' zile)':'')+' · '+(state.trendMeta.univers?escapeHtml(String(state.trendMeta.univers.n))+' acțiuni clasate':'')+' · regim '+(state.trendMeta.regim&&state.trendMeta.regim.peste?'pornit':'oprit')+' · '+escapeHtml(state.trendMeta.eticheta)+'</p>':state.trendEroare?'<p>Trend 12 luni: clasamentul robotului nu s-a putut citi ('+escapeHtml(state.trendEroare)+').</p>':'')
       +'<p>Sectoare: '+(state.sectorPending?'completare în fundal; rezultatele sunt deja disponibile.':'sunt folosite clasificările disponibile; cele lipsă rămân „Necunoscut”.')+'</p>'
       +(state.updatedAt&&fereastraVolum(state.updatedAt)?'<p>Volum: scanat între 16:15 și 18:00 la New York — Yahoo încă revizuiește volumul zilei, așa că RVOL și starea FIRE (pragul 1,15×) pot pâlpâi între rescanări; se stabilizează după 18:00 ET.</p>':'')
       +'<div class="ce-coverage-grid"><div><b>Indici de comparație</b><ul>'+state.benchmarks.map(function(x){return '<li>'+escapeHtml(x.region+' · '+x.symbol+' · '+(x.asOf||x.reason))+'</li>';}).join('')+'</ul></div><div><b>Surse excluse</b><ul>'+state.failures.map(function(x){return '<li>'+escapeHtml(x.symbol+' · '+x.reason)+'</li>';}).join('')+'</ul>'+(state.failures.length?'':'<p>Nicio eroare de serie raportată.</p>')+'</div></div>';
+  }
+
+  /* Foaia zilei se aplică după analyze: analyze rămâne în amprenta probei Top Long. Excepția EU din 14.10 nu se atinge aici. */
+  function aplicaFoaie(pair) {
+    if (!pair || !window.TTDecisionVerdict) return pair;
+    var rp = state.verdictPiata && window.MarketVerdict && typeof MarketVerdict.regula === 'function' ? MarketVerdict.regula(state.verdictPiata) : null;
+    var foaie = rp && rp.label && rp.label !== 'neverificat' ? rp.label : undefined;
+    if (!foaie) return pair;
+    for (const item of [pair.momentum, pair.reversal]) {
+      if (!item) continue;
+      var verdict = TTDecisionVerdict.build({ purpose: 'entry', candidate: item, risk: item.governor, foaie: foaie });
+      if (!verdict.canPlan) {
+        item.actionable = false;
+        if (verdict.code === 'BLOCKED') item.state = 'BLOCKED';
+        else if (item.state !== 'BLOCKED') item.state = 'WATCH';
+        var msg = (verdict.blockers[0] && verdict.blockers[0].text) || (verdict.cautions[0] && verdict.cautions[0].text) || verdict.title;
+        if (msg && String(item.reason || '').indexOf(msg) < 0) item.reason += ' · ' + msg;
+      }
+    }
+    return pair;
   }
 
   async function scan() {
@@ -355,7 +377,7 @@
       async function worker() {
         while (q.length) {
           var sym = q.shift();
-          try { all.push(await analyze(sym, bench[regionOf(sym)], govScan));state.verified++; }
+          try { all.push(aplicaFoaie(await analyze(sym, bench[regionOf(sym)], govScan)));state.verified++; }
           catch (e) { state.failures.push({ symbol: sym, reason: e && e.message || 'eroare' }); }
           done++; progress(done, list.length);
         }
@@ -508,7 +530,14 @@
     var harta = {};
     if (cal && cal.ok) (cal.items || []).forEach(function (e) { if (e && e.symbol && e.date && !harta[e.symbol]) harta[e.symbol] = e; });
     lista.forEach(function (x) {
-      if (x.earningsDinRobot) return;
+      if (x.earningsDinRobot) {
+        if (/fără raportare/.test(String(x.earnings || '')) && window.EARN && EARN.acoperaZiua && cal && cal.ok && !EARN.acoperaZiua(cal.from)) {
+          x.earnings = 'earnings neverificat (fereastra a sărit ziua New York)';
+          x.fapte = (x.fapte || []).filter(function (p) { return p.k !== 'earnings'; });
+          x.fapte.push({ k: 'earnings', v: 'neverificat', rol: 'block' });
+        }
+        return;
+      }
       x.fapte = x.fapte || [];
       if (!cal || !cal.ok) { x.earnings = 'earnings neverificat (' + (cal && cal.motiv ? cal.motiv : 'calendarul de raportări nu a răspuns') + ')'; x.fapte.push({ k: 'earnings', v: 'neverificat', rol: 'attention' }); return; }
       var e = harta[x.symbol];
@@ -666,7 +695,7 @@
     if (!items.length) {
       var query=$('search').value.trim(),only=$('onlyActionable').checked;
       $('rows').innerHTML = '<div class="ce-empty"><b>'+(state.scanning?'Scanarea este în curs':!state.hasScan?'Scanarea se pregătește':!state.verified?'Nicio serie verificată':'Niciun candidat pentru filtrele curente')+'</b>'
-        +(state.scanning?'Pornită singură: verific prețurile, trendul și indicii de comparație (<span id="rowsProgress">'+escapeHtml($('ctxScanned').textContent||'')+'</span>). Rezultatele apar aici la final.':query?'Căutarea „'+escapeHtml(query)+'” nu are rezultate în selecția curentă. Resetează filtrele.':only?'Filtrul „doar confirmate” ascunde candidații de monitorizare și cei cu plan blocat. Resetează filtrele pentru a-i vedea.':!state.verified?'Vezi Acoperire pentru erorile surselor sau schimbă universul scanat.':governorNecunoscut()?'Seriile au fost verificate, dar Governor nu se poate citi ('+escapeHtml(window.GV?.status?.()?.verdict||'indisponibil')+'): fără limitele contului candidații nu intră în clasament. Reîncarcă aplicația sau verifică Cont & sincronizare.':'Seriile au fost verificate, dar nu trec criteriile acestei strategii. Verifică Acoperire sau schimbă între Top Long și Early Reversal.')+'</div>';
+        +(state.scanning?'Pornită singură: verific prețurile, trendul și indicii de comparație (<span id="rowsProgress">'+escapeHtml($('ctxScanned').textContent||'')+'</span>). Rezultatele apar aici la final.':query?'Căutarea „'+escapeHtml(query)+'” nu are rezultate în selecția curentă. Resetează filtrele.':only?'Filtrul „doar confirmate” ascunde candidații de monitorizare și cei cu plan blocat. Resetează filtrele pentru a-i vedea.':!state.verified?'Vezi Acoperire pentru erorile surselor sau schimbă universul scanat.':governorNecunoscut()?'Seriile au fost verificate, dar Governor nu se poate citi ('+escapeHtml(window.GV?.status?.()?.verdict||'indisponibil')+'): fără limitele contului candidații nu intră în clasament. Reîncarcă aplicația sau verifică Cont & sincronizare.':$('universe').value==='screener'&&!state.screener?'Lista screenerului nu e citită: fișierul nu are număr sau dată. Verifică Acoperire.':'Seriile au fost verificate, dar nu trec criteriile acestei strategii. Verifică Acoperire sau schimbă între Top Long și Early Reversal.')+'</div>';
       state.selected = null; renderDetail(null); return;
     }
     state.selected=items.find(function(x){return x.symbol===state.selected?.symbol&&x.mode===state.selected?.mode;})||items[0];

@@ -16,7 +16,7 @@
   async function pozaExterna() {
     if (pozaInCurs) return;
     let cheie = '', url = 'https://paznic-radar.mferent80.workers.dev';
-    try { cheie = String(localStorage.getItem('radar_cheie') || '').trim(); const u = String(localStorage.getItem('radar_url') || '').trim(); if (/^https:\/\/[^\s/?#]+\.[^\s/?#]+/i.test(u)) url = u.replace(/\/+$/, ''); } catch (_) { return; }
+    try { cheie = String(localStorage.getItem('radar_cheie') || '').trim(); } catch (_) { return; }
     if (!cheie) return;
     pozaInCurs = true;
     const ctl = typeof AbortController === 'function' ? new AbortController() : null;
@@ -115,9 +115,13 @@
     // I-758: în afara collarului 0,5–25 % ordinul pleacă doar cu bifa din fereastră
     const bifa = c.collar ? !!host.querySelector('[data-stop-t212-collar]')?.checked : false;
     if (c.collar && !bifa) { stare = '⚠ Bifează confirmarea pentru stopul în afara intervalului 0,5–25 % sau alege alt stop. Ordinul NU a fost trimis.'; desen(); return; }
+    const d0 = date(), proaspat = d0 && window.T212Snapshot?.fresh?.(d0.snapshot);
+    if (!proaspat) { stare = '⚠ Copia locală a contului are peste 5 minute. Reia citirea înainte de ordinul STOP.'; confirm = null; desen(); return; }
+    const poz0 = (d0.snapshot.positions || []).find((p) => p.ticker === c.ticker);
+    const qty = poz0 && Number(poz0.quantity);
+    if (!(qty > 0)) { stare = '⚠ Cantitatea din citirea proaspătă lipsește. Ordinul STOP nu a plecat.'; confirm = null; desen(); return; }
     trimitOrdin = true; desen();
-    const d0 = date(), poz0 = d0 && (d0.snapshot.positions || []).find((p) => p.ticker === c.ticker);
-    const r = await window.T212Orders.pune({ ticker: c.ticker, quantity: c.qty, stopPrice: c.stop }, { garda: garda(poz0, c.acum, d0, bifa) }); trimitOrdin = false; confirm = null;
+    const r = await window.T212Orders.pune({ ticker: c.ticker, quantity: qty, stopPrice: c.stop }, { garda: garda(poz0, c.acum, d0, bifa) }); trimitOrdin = false; confirm = null;
     if (r.ok) {
       const d = date(), poz = d && (d.snapshot.positions || []).find((p) => p.ticker === c.ticker);
       /* 27.10 (audit): ordinul abia pus intră în copia locală a ordinelor în așteptare ⇒ Astăzi nu mai spune „doar pe hârtie” până la următoarea citire a brokerului */

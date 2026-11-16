@@ -74,7 +74,13 @@ test('I-701: MarketVerdict.compute spune explicit „dată rezultate necunoscut�
   assert.match(t, /[Dd]ată rezultate necunoscută[^.]*AVGO/); assert.match(t, /fără cheie Finnhub/);
   assert.doesNotMatch(t, /Niciuna dintre pozițiile tale nu raportează/, 'nu se pretinde că nimeni nu raportează când o dată lipsește');
   const toate = c.MarketVerdict.compute({ market: { items: [], breadth: { state: 'loading' } }, positions: [{ ticker: 'MU_US_EQ' }], earnings: [], now: NOW });
-  assert.match(toate.pentruTine.join(' '), /Niciuna dintre pozițiile tale nu raportează/);
+  const toateT = toate.pentruTine.join(' ');
+  assert.doesNotMatch(toateT, /Niciuna dintre pozițiile tale nu raportează/);
+  assert.match(toateT, /nu e citit pentru toate pozițiile/);
+  const gol = c.MarketVerdict.compute({ market: { items: [], breadth: { state: 'loading' } }, positions: [{ ticker: 'MU_US_EQ' }], earnings: null, now: NOW });
+  assert.match(gol.pentruTine.join(' '), /nu e citit pe acest dispozitiv/); assert.doesNotMatch(gol.pentruTine.join(' '), /Niciuna/);
+  const liniste = c.MarketVerdict.compute({ market: { items: [], breadth: { state: 'loading' } }, positions: [{ ticker: 'MU_US_EQ' }], earnings: [{ symbol: 'MU', date: '2026-12-01' }], now: NOW });
+  assert.match(liniste.pentruTine.join(' '), /Niciuna dintre pozițiile tale nu raportează/);
 });
 
 test('I-702: la o reîmprospătare fără date noi verdictul nu se recalculează și coloanele nu se re-măsoară', async () => {

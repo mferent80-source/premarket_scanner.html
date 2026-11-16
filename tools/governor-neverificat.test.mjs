@@ -5,11 +5,12 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 
-function governor({ jurnal = [], broker = null, acct = null } = {}) {
+function governor({ jurnal = [], broker = null, acct = null, eq = { currentDdPct: 0 } } = {}) {
   const store = new Map([['tt_journal_v1', JSON.stringify(jurnal)]]);
   const ctx = { console, Date, Intl, JSON, Math, Number, localStorage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) } };
   if (broker) ctx.T212Capital = { read: () => broker };
   if (acct) ctx.ACCT = acct;
+  if (eq) ctx.EQ = { drawdownStats: () => eq };
   ctx.window = ctx; vm.createContext(ctx);
   vm.runInContext(readFileSync('lib/governor.js', 'utf8'), ctx);
   return ctx.GV;
@@ -30,6 +31,14 @@ test('capital de pornire (ACCT.known false) => CAUTION cu motivul; capital scris
   assert.equal(stiut.verdict, 'TRADE'); assert.doesNotMatch(stiut.reasons.join(' '), /Capital necunoscut/);
   const vechi = governor({ jurnal: rand, acct: { get: () => ({ value: 12670 }) } }).status(); // ACCT fără known(): ca înainte
   assert.equal(vechi.verdict, 'TRADE');
+});
+
+test('fara curba EQ => HALTED pe drawdown rolling, chiar cu un rand in jurnal; nu ajunge la NEVERIFICAT', () => {
+  const now = Date.now();
+  const s = governor({ eq: null, jurnal: [{ id: 'a1', sym: 'AAPL', dir: 'long', entry: 100, exit: 105, size: 1, openTs: now - 86400000 * 3, closeTs: now - 86400000 * 2, status: 'closed' }] }).status();
+  assert.equal(s.verdict, 'HALTED'); assert.match(s.reasons.join(' '), /Drawdown rolling nu poate fi verificat/);
+  const gol = governor({ eq: null }).status();
+  assert.equal(gol.verdict, 'HALTED'); assert.doesNotMatch(gol.reasons.join(' '), /Jurnalul manual e gol/);
 });
 
 test('cu un rand in jurnal => TRADE ca inainte; cu Trading 212 conectat si jurnal gol => verdictul brokerului', () => {

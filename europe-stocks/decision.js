@@ -66,5 +66,14 @@
     return {ok:true,quantity,notional,total:notional+fees,risk,reward,rr:reward!==null?reward/risk:null,
       budget,loss:limit,fees,entry,stop,rate:fx,step,currency:input.currency};
   }
-  g.EuropeDecision={VERSION,pivots,structure,breadth,calculateRisk};
+  function canSize(x, earnings, stale){
+    if(stale)return {ok:false,reason:'Scanarea e veche. Nu calculez o cantitate pe date expirate.'};
+    if(!x||x.state!=='ARMED')return {ok:false,reason:'Starea nu e ARMED. Cantitatea se calculează doar pe un setup armat.'};
+    if(!x.plan||x.plan.state!=='CONFIRMED')return {ok:false,reason:'Planul nu e confirmat. Fără cantitate până la confirmare.'};
+    const st=earnings&&earnings.status;
+    if(!earnings||st==null||st==='unknown'||st==='stale')return {ok:false,reason:'Calendarul rezultatelor nu e citit. Fără cantitate până știi data.'};
+    if(Number.isFinite(earnings.days)&&earnings.days<=1)return {ok:false,reason:'Rezultatele sunt în fereastra de blocare. Fără cantitate.'};
+    return {ok:true};
+  }
+  g.EuropeDecision={VERSION,pivots,structure,breadth,calculateRisk,canSize};
 })(typeof window!=='undefined'?window:globalThis);

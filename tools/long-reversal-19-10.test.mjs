@@ -15,7 +15,8 @@ test('prețul de acum: peste zonă ⇒ riscul real × (AAPL la 350: 14,91 față
   assert.equal(P.evalueaza(AAPL, {pret: 330, la: now}, now).stare, 'sub-stop');
   assert.equal(P.evalueaza(AAPL, {pret: 340, la: now}, now).stare, 'sub');
   assert.equal(P.evalueaza(AAPL, null, now).stare, 'neverificat');
-  assert.match(P.evalueaza(AAPL, {pret: 343, la: now - 3600000}, now).text, /piața e probabil închisă/);
+  const vechi = P.evalueaza(AAPL, {pret: 343, la: now - 3600000}, now);
+  assert.equal(vechi.stare, 'veche'); assert.match(vechi.text, /nu clasific zona/);
 });
 
 test('dimensionarea: costul de schimb (0,3 % dus-întors) intră în riscul pe acțiune; planul ține costul și eticheta probei', () => {

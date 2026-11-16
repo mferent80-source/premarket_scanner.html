@@ -23,7 +23,7 @@ function declanseaza(r, fragment, efect) {
 }
 
 // ---------- Governor (jurnalul manual + verdictul comun) ----------
-const gv = (seed = {}, extra = {}) => lume(seed, extra, ['lib/governor.js']).GV.status();
+const gv = (seed = {}, extra = {}) => lume(seed, { EQ: { drawdownStats: () => ({ currentDdPct: 0 }) }, ...extra }, ['lib/governor.js']).GV.status();
 const intrare = (id, o = {}) => ({ id, sym: 'AAPL', dir: 'long', entry: 100, size: 10, openTs: NOW - 3 * D, ...o });
 const inchisa = (id, exit, closeTs, o = {}) => intrare(id, { exit, closeTs, status: 'closed', ...o });
 const deschisa = [intrare('o1')];
@@ -43,6 +43,7 @@ test('gardă «governor · ultimul permis» — a 4-a intrare de azi', () => dec
 test('gardă «governor · Poziții deschise» — 4 poziții deschise', () => declanseaza(gv({ tt_journal_v1: ['a', 'b', 'c', 'd'].map((id) => intrare(id)) }), 'Poziții deschise', 'HALTED'));
 test('gardă «governor · cooldown activ» — 3 pierderi la rând în 48 h', () => declanseaza(gv({ tt_journal_v1: [1, 2, 3].map((k) => inchisa('p' + k, 99, NOW - D + k * H)) }), 'cooldown activ', 'HALTED'));
 test('gardă «governor · Drawdown rolling nu poate fi verificat» — curba aruncă eroare', () => declanseaza(gv({ tt_journal_v1: deschisa }, eq(() => { throw Error('curba'); })), 'Drawdown rolling nu poate fi verificat', 'HALTED'));
+test('gardă «governor · Drawdown rolling nu poate fi verificat» — pagina fără curba EQ', () => declanseaza(gv({ tt_journal_v1: deschisa }, { EQ: null }), 'Drawdown rolling nu poate fi verificat', 'HALTED'));
 test('gardă «governor · Drawdown rolling invalid» — DD nenumeric', () => declanseaza(gv({ tt_journal_v1: deschisa }, eq(NaN)), 'Drawdown rolling invalid', 'HALTED'));
 test('gardă «governor · % ≥ prag» — DD rolling 12 % peste pragul de 10 %', () => declanseaza(gv({ tt_journal_v1: deschisa }, eq(12)), '≥ prag', 'HALTED'));
 test('gardă «governor · aproape de prag» — DD rolling 8 % (≥ 75 % din prag)', () => declanseaza(gv({ tt_journal_v1: deschisa }, eq(8)), 'aproape de prag', 'CAUTION'));
@@ -52,7 +53,7 @@ test('gardă «governor · % consumat» — 80 % din limita lunară', () => decl
 test('gardă «governor · rezultatul lunii nu e citit» — limita pusă, luna necitită', () => declanseaza(gv({ tt_journal_v1: deschisa, tt_journal_settings_v1: { limitaLuna: 500 } }), 'rezultatul lunii nu e citit', 'CAUTION'));
 test('gardă «governor · mai vechi de 3 zile» — rezultatul lunii citit acum 4 zile', () => declanseaza(gv(luna(-10, NOW - 4 * D)), 'mai vechi de 3 zile', 'CAUTION'));
 test('gardă «governor · Oprire de urgență» — „Oprește tot” activ', () => declanseaza(gv({ tt_journal_v1: deschisa, tt_governor_oprire_v1: { activ: true, la: iso(NOW - H), motiv: 'test', aparat: 'PC', ordineAnulate: [] } }), 'Oprire de urgență', 'HALTED'));
-test('gardă «governor · Reconciliere:» — o diferență față de broker, fără broker citit pe aparat', () => declanseaza(gv({ tt_journal_v1: deschisa, tt_reconciliere_v1: { la: iso(NOW - H), scope: 'x', ok: false, diferente: [{ tip: 'pozitie', ticker: 'AAPL_US_EQ', app: 1, broker: 2, text: 'AAPL: 1 în aplicație, 2 la broker' }] } }), 'Reconciliere:', 'CAUTION'));
+test('gardă «governor · Reconciliere:» — o diferență față de broker, fără broker citit pe aparat', () => declanseaza(gv({ tt_journal_v1: deschisa, tt_reconciliere_v1: { la: iso(NOW - H), scope: 'x', ok: false, diferente: [{ tip: 'pozitie', ticker: 'AAPL_US_EQ', app: 1, broker: 2, text: 'AAPL: 1 în aplicație, 2 la broker' }] } }), 'Reconciliere:', 'HALTED'));
 test('gardă «governor · Jurnalul manual e gol» — nimic de verificat', () => declanseaza(gv({}), 'Jurnalul manual e gol', 'NEVERIFICAT'));
 test('gardă «governor · nu are curs BCE verificat» — bugetul brokerului în EUR fără curs (notă, verdictul rămâne)', () => {
   const broker = { state: 'ready', verdict: 'TRADE', reasons: [], notes: [], currency: 'EUR', budgetLeft: 100, weekBudgetLeft: 100, totalStopRisk: 0, stopBudgetLeft: 100, positions: 0 };
@@ -106,6 +107,11 @@ test('gardă «trading212-capital · Limita intrărilor BUY» — a 5-a cumpăra
 test('gardă «trading212-capital · următoarea e ultima permisă» — a 4-a cumpărare de azi', () => declanseaza(cont(buys(4)), 'următoarea e ultima permisă', 'CAUTION'));
 test('gardă «trading212-capital · ordine de ieșire consecutive cu pierdere» — 3 ieșiri pe pierdere', () => declanseaza(cont((x) => { x.history.rows = [1, 2, 3].map((k) => fill('l' + k, -10, { date: iso(NOW - k * 1000) })); }), 'ordine de ieșire consecutive cu pierdere', 'HALTED'));
 test('gardă «trading212-capital · Concentrare peste limita» — 10 % pe un instrument față de limita de 5 %', () => declanseaza(cont((x) => { x.cfg = { maxInstrumentPct: 5 }; }), 'Concentrare peste limita', 'CAUTION'));
-test('gardă «trading212-capital · FX estimat din valoarea poziției» — acțiune în USD pe un cont EUR', () => declanseaza(cont((x) => { Object.assign(x.snapshot.positions[0], { instrumentCurrency: 'USD', currentPrice: 125 }); x.notes.TEST_US_EQ = { stop: 120, stopCurrency: 'USD' }; }), 'FX estimat din valoarea poziției', 'CAUTION'));
-test('gardă «trading212-capital · Reconciliere:» — o diferență față de broker', () => declanseaza(cont((x) => { x.reconciliere = { la: at, scope: 'active', ok: false, diferente: [{ tip: 'numerar', ticker: null, app: 9000, broker: 8990, text: 'numerar: 9.000 în aplicație, 8.990 la broker' }] }; }), 'Reconciliere:', 'CAUTION'));
+test('gardă «trading212-capital · Cursul estimat din valoare» și «trading212-capital · cursul estimat nu intră în risc» — acțiune în USD pe un cont EUR', () => {
+  const r = cont((x) => { Object.assign(x.snapshot.positions[0], { instrumentCurrency: 'USD', currentPrice: 125 }); x.notes.TEST_US_EQ = { stop: 120, stopCurrency: 'USD' }; });
+  declanseaza(r, 'Cursul estimat din valoare', 'HALTED');
+  assert.match(r.reasons.join(' '), /cursul estimat nu intră în risc/);
+  assert.equal(r.totalStopRisk, null); assert.equal(r.rows[0].rate, null); assert.equal(r.rows[0].rateSource, 'estimat-nefolosit');
+});
+test('gardă «trading212-capital · Reconciliere:» — o diferență față de broker', () => declanseaza(cont((x) => { x.reconciliere = { la: at, scope: 'active', ok: false, diferente: [{ tip: 'numerar', ticker: null, app: 9000, broker: 8990, text: 'numerar: 9.000 în aplicație, 8.990 la broker' }] }; }), 'Reconciliere:', 'HALTED'));
 test('gardă «trading212-capital · 75% dintr-un buget de pierdere este consumat» — −160 € realizat azi', () => declanseaza(cont((x) => { x.history.rows = [fill('s', -160)]; }), '75% dintr-un buget de pierdere este consumat', 'CAUTION'));

@@ -39,7 +39,9 @@ test('ideea 1 — R: stopul din analiza salvată are prioritate față de Portof
   const r = J.stopuriR(tr, { analize: [{ sellIds: ['s3'], record: { stop: 190, verdict: { title: 'Cumpără la retragere' } } }], teze: { NVDA_US_EQ: 150, AAPL_US_EQ: 90 } });
   const s3 = r.find((x) => x.id === 's3'), s1 = r.find((x) => x.id === 's1');
   assert.equal(s3.R, 1); assert.equal(s3.stopSursa, 'analiza'); assert.equal(s3.tip, 'Cumpără la retragere');
-  assert.equal(s1.R, 1); assert.equal(s1.stopSursa, 'portofoliu'); assert.equal(J.rDin({ entry: 100, exit: 90 }, 120), null);
+  assert.equal(s1.R, null, 'stopul live din teze nu rescrie R-ul vânzării'); assert.equal(s1.stopSursa, null); assert.equal(J.rDin({ entry: 100, exit: 90 }, 120), null);
+  const cu = J.stopuriR(tr, { istoricStop: { AAPL_US_EQ: [{ at: Date.parse('2026-03-02T15:00:00Z'), stop: 90 }] } });
+  const s1b = cu.find((x) => x.id === 's1'); assert.equal(s1b.stopSursa, 'la-intrare'); assert.equal(s1b.R, 1);
 });
 test('ideile 2 și 3 — cel mai jos / sus între intrare și ieșire, prețul la 5 sesiuni după; prețuri nepotrivite (split) = respinse', () => {
   const bars = Array.from({ length: 30 }, (_, i) => { const t = Date.UTC(2026, 2, 2, 20) + i * 86400000; return { t, h: 100 + i, l: 95 + i * 0.5, c: 98 + i }; });
@@ -78,7 +80,10 @@ test('revizia 17.10 — split între intrare și ieșire: fără intrare / mișc
   assert.equal(x.corp, true); assert.equal(x.entry, null); assert.equal(x.pct, null); assert.equal(x.rez, 450); assert.equal(c2.corporative, 1);
   assert.equal(y.partial, true); assert.equal(y.cost, null); assert.ok(Math.abs(y.pct - 10) < 1e-9); assert.equal(c2.partiale, 2); // Y și X (după split, 1 cumpărată / 10 vândute)
   const rr = J.stopuriR(c2.rows, { teze: { Z_US_EQ: 95 }, deschisa: c2.deschisa });
-  assert.equal(rr.find((r) => r.id === 's3').R, null, 'tranzacția veche NU primește stopul de azi'); assert.equal(rr.find((r) => r.id === 's4').R, 1);
+  assert.equal(rr.find((r) => r.id === 's3').R, null, 'tranzacția veche NU primește stopul de azi'); assert.equal(rr.find((r) => r.id === 's4').R, null, 'stopul live al poziției deschise nu rescrie R');
+  const cu24 = J.stopuriR(c2.rows, { istoricStop: { Z_US_EQ: [{ at: Date.parse('2026-03-02T16:00:00Z'), stop: 95 }] } });
+  assert.equal(cu24.find((r) => r.id === 's4').R, 1); assert.equal(cu24.find((r) => r.id === 's4').stopSursa, 'la-intrare');
+  assert.equal(cu24.find((r) => r.id === 's3').R, null, 'stopul notat la intrarea nouă nu se lipește pe tranzacția veche');
 });
 test('revizia 17.10 — valori aproape de zero nu blochează graficele; scăderea de la prima vânzare are dată; ziua după ora României; ora doar pentru SUA', () => {
   const t0 = Date.parse('2026-10-05T15:00:00Z'), tr = [{ id: 'a', ticker: 'A_US_EQ', sym: 'A', intrare: t0 - 86400000, iesire: t0, zile: 1, rez: 0.1 + 0.2, fees: 0 }, { id: 'b', ticker: 'B_US_EQ', sym: 'B', intrare: t0 - 86400000, iesire: t0 + 1000, zile: 1, rez: -0.3, fees: 0 }];
