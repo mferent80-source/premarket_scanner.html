@@ -102,7 +102,7 @@ async function stopOrder(request,env,upstream,headers,reply,{now=Date.now(),memo
   if(body?.confirm!==STOP_CONFIRM||typeof ticker!=='string'||!/^[A-Za-z0-9._-]{1,40}$/.test(ticker)||!(quantity>0)||quantity>1e7||!(asked>0)||asked>1e7)return reply({error:'invalid_order'},400);
   const stop=roundStop(asked),key=await idempotencyKey(auth,ticker,stop,quantity,now);
   for(const [k,v] of memory)if(now-v.at>IDEMPOTENT_MS)memory.delete(k);
-  const seen=memory.get(key);if(seen)return reply({...seen.body,idempotent:true});
+  const seen=memory.get(key);if(seen?.pending)return reply({error:'order_in_flight'},409);if(seen?.body)return reply({...seen.body,idempotent:true});
   const call=brokerCall(auth,upstream,AbortSignal.timeout(BUDGET_MS)),refused=raw=>refusal(reply,raw);
   try{
     const rp=await call(ROUTES.positions);if(!rp.ok)return refused(rp);
@@ -116,8 +116,9 @@ async function stopOrder(request,env,upstream,headers,reply,{now=Date.now(),memo
     const pending=await ro.json();if(!Array.isArray(pending))return reply({error:'broker_schema_mismatch'},502);
     const existing=pending.find(o=>(o?.ticker??o?.instrument?.ticker)===ticker&&(Number(o?.quantity)<0||String(o?.side||'').toUpperCase()==='SELL'));
     if(existing)return reply({error:'sell_order_exists',stopPrice:Number(existing.stopPrice)>0?Number(existing.stopPrice):null},409);
+    memory.set(key,{at:now,pending:true});
     const rs=await call('/api/v0/equity/orders/stop',{method:'POST',body:JSON.stringify({ticker,quantity:-quantity,stopPrice:stop,timeValidity:'GOOD_TILL_CANCEL'})});
-    if(!rs.ok){if(rs.status===400||rs.status===422){let detail='';try{const b=await rs.json();detail=String(b?.message||b?.code||b?.clarification||'').replace(/[^\w .,:%()\-]/g,'').slice(0,160);}catch(_){}return reply({error:'broker_rejected',detail},502);}return refused(rs);}
+    if(!rs.ok){if([400,401,403,409,422].includes(rs.status))memory.delete(key);if(rs.status===400||rs.status===422){let detail='';try{const b=await rs.json();detail=String(b?.message||b?.code||b?.clarification||'').replace(/[^\w .,:%()\-]/g,'').slice(0,160);}catch(_){}return reply({error:'broker_rejected',detail},502);}return refused(rs);}
     let placed={};try{placed=await rs.json();}catch(_){}
     const out={source:'Trading 212',environment:auth.environment,placedAt:new Date(now).toISOString(),data:{id:placed?.id??null,status:typeof placed?.status==='string'?placed.status:null,ticker,quantity,stopPrice:stop,currentPrice:current}};
     memory.set(key,{at:now,body:out});return reply(out);
