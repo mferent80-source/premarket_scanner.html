@@ -3569,6 +3569,10 @@ pe un singur chart.
 | I-889 | Regula de formă a acțiunilor tokenizate și pe pagină, nu doar în colector | crypto/public/app.js (grAduMonede), crypto/public/lib/grid-calcul.js (invataNuCrypto), crypto/public/lib/acasa.js | S | P3 | făcut | tcc-idei | 2026-11-15 → 2026-11-17 |
 | I-890 | Motorul de grid: a doua încercare de îndreptare a părții nevăzute a lumânării (C2, doi exponenți), judecată pe o fereastră de date NOUĂ | crypto/public/lib/grid-proba.js (simuleaza, opt.nevazut), crypto/scripts/cercetare-v100355-lumanarea.mjs, crypto/docs/cercetare/ | M | P2 | propus | tcc-idei | 2026-11-17 |
 | I-891 | Fișa Grid judecată față de reperul fără direcție, nu față de zero | crypto/public/lib/grid-proba.js (proba, fisa), crypto/public/app.js (fișa), crypto/scripts/lib/g2-grid-date-nevazute.mjs (reperM), crypto/docs/cercetare/ | M | P2 | propus | tcc-idei | 2026-11-17 |
+| I-892 | Colector: tura Monte Carlo / „Ce fac cu botul ăsta?” scoasă de pe bucla principală (fir separat) — azi o blochează 6–19 s la fiecare 31 de minute, cu un singur bot | crypto/scripts/lib/tura-monte-carlo-bot.mjs, crypto/scripts/colector.mjs, crypto/scripts/lib/martor-bucla.mjs | M | P2 | propus | ideation | 2026-11-17 |
+| I-893 | „Ce fac”: calibrarea tabelului pe TOATE notele judecate — diferența prezisă (altceva − îl țin) față de cea petrecută pe barele reale, ca măsurătoare separată de regula B | crypto/scripts/lib/tura-monte-carlo-bot.mjs (raportHotarari), crypto/public/lib/grid-sim.js (notaHotarare, judecaHotarare), crypto/public/lib/grid-sim-ecran.js, crypto/docs/cercetare/ | M | P2 | propus | ideation | 2026-11-17 |
+| I-894 | Verdictul bilanțului hotărârilor pe Discord, o singură dată, când se scrie (la 30 și la 60 de zile) | crypto/scripts/colector.mjs (blocul hotărârilor), crypto/scripts/lib/tura-monte-carlo-bot.mjs (actualizeazaBilant, textVerdictBilant) | S | P3 | propus | ideation | 2026-11-17 |
+| I-895 | Partea nevăzută a lumânării re-măsurată singură o dată pe lună, noaptea, pe VPS (cifrele de pe pagină poartă data măsurătorii) | crypto/scripts/cercetare-v100355-lumanarea.mjs, crypto/public/lib/grid-proba.js (NEVAZUT, nevazutText), crypto/scripts/colector.mjs | M | P4 | propus | ideation | 2026-11-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8539,3 +8543,31 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Verdictul fișei ar spune ce adaugă direcția monedei peste un preț oarecare, nu ce adaugă lumânarea mare.
 - **Riscuri/dependențe:** Schimbă verdictele PORNEȘTE / NU. Reperul nu scoate costurile reale; amestecarea strică agitația pe zile, deci reperul se alege cu blocuri.
 - **Fișiere atinse:** crypto/public/lib/grid-proba.js (proba, fisa), crypto/public/app.js (fișa), crypto/scripts/lib/g2-grid-date-nevazute.mjs (reperM), crypto/docs/cercetare/
+
+### I-892 · Tura Monte Carlo / „Ce fac” pe un fir separat în colector · M · P2
+- **Problema/golul:** Jurnalul de pe VPS din 17.11: „bucla a stat blocată” de 34 de ori, între 5,8 și 19 s, de fiecare dată chiar înainte de rândul „monte carlo boți: 1 din 1 bot activ” (la ~31 de minute). Calculul (Monte Carlo + „Ce fac” + judecarea notelor) e sincron și ține pe loc toată bucla: cererile în zbor își pot depăși limita (precedentul din 13.11: „sugestii ESEC fetch failed” după un blocaj, v100.333). Cu 3 boți activi blocajul ar fi de ~20–60 s.
+- **Soluția:** Calculul greu al turei mută într-un fir separat (worker_threads), cu aceleași module ca pagina (GridSim din pagină, ca azi); bucla principală doar trimite datele și primește rezultatul. Martorul buclei rămâne proba: după livrare, niciun „bucla a stat blocată” lângă tura Monte Carlo.
+- **Impact:** Alertele, poza și turele de rețea nu mai așteaptă după calcul; numărul boților nu mai crește blocajul.
+- **Riscuri/dependențe:** Rezultatul trebuie să fie identic (aceeași sămânță, aceleași drumuri): proba = aceeași tură pe aceleași date, în fir și pe loc. Memoria: un fir în plus pe VPS.
+- **Fișiere atinse:** crypto/scripts/lib/tura-monte-carlo-bot.mjs, crypto/scripts/colector.mjs, crypto/scripts/lib/martor-bucla.mjs
+
+### I-893 · Calibrarea tabelului „Ce fac” pe toate notele · M · P2
+- **Problema/golul:** Regula B (v100.355) judecă doar notele cu sfat «altceva» și are putere mică (11% pe forma „pierde des puțin, câștigă rar mult”): verdictul cel mai probabil e „n-am aflat”. Dar fiecare notă ține deja cifra prezisă pe variantă (notaHotarare: media și diferența față de «îl țin»), iar judecata pe barele reale ține cifra petrecută pe aceleași variante (y7.val) — și la notele «îl țin». Nimeni nu le pune față în față.
+- **Soluția:** O măsurătoare SEPARATĂ (nu schimbă regula B, care e scrisă dinainte): pe toate notele judecate, diferența prezisă (altceva − îl țin) față de cea petrecută — media abaterii (prezice prea mult / prea puțin) și panta. Reguli, prag și n minim scrise înainte de a privi cifrele, probate sub H0 pe aceeași formă de date (ferestre fără suprapunere pe bot, ca la regula B). Pe pagină, sub bilanț, doar ca text.
+- **Impact:** E proba pe viu a lui I-888 pe botul lui: dacă tabelul subestimează constant «îl țin», abaterea arată asta direct, cu mai multe note decât regula B. Spune dacă cifrele din tabel se pot crede, nu doar dacă sfaturile au câștigat.
+- **Riscuri/dependențe:** Notele aceluiași bot sunt corelate (ferestre suprapuse) ⇒ doar ferestre de 7 zile fără suprapunere, altfel n-ul e fals. E o ipoteză de măsurat, nu o îmbunătățire garantată; nu atinge recomandarea.
+- **Fișiere atinse:** crypto/scripts/lib/tura-monte-carlo-bot.mjs (raportHotarari), crypto/public/lib/grid-sim.js (notaHotarare, judecaHotarare), crypto/public/lib/grid-sim-ecran.js, crypto/docs/cercetare/
+
+### I-894 · Verdictul bilanțului pe Discord, o singură dată · S · P3
+- **Problema/golul:** Verdictul regulii B se scrie în registru (data/hot-bilant.json) și apare pe pagină, dar Discordul nu-l anunță. Dacă iese „au pierdut”, tabelul tace de atunci despre «altceva» fără să spună de ce, iar el poate afla abia când deschide pagina.
+- **Soluția:** Când actualizeazaBilant scrie un verdict (la 30 și la 60 de zile), colectorul trimite o dată textul lui (textVerdictBilant) pe canalul alertelor, ținut minte în registru ca să nu se repete.
+- **Impact:** Schimbarea purtării tabelului nu mai trece neobservată.
+- **Riscuri/dependențe:** Doar o dată pe verdict; nu și la „prea puține”.
+- **Fișiere atinse:** crypto/scripts/colector.mjs (blocul hotărârilor), crypto/scripts/lib/tura-monte-carlo-bot.mjs (actualizeazaBilant, textVerdictBilant)
+
+### I-895 · Partea nevăzută re-măsurată lunar · M · P4
+- **Problema/golul:** Cifrele de pe pagină (NEVAZUT: ~0,2–0,5% pe zi la 15 minute, ~0,5–1,0% la o oră) sunt măsurate o singură dată, pe 18.10–17.11. Partea nevăzută crește cu agitația pieței; într-o lună mai liniștită sau mai agitată cifra de pe pagină poate fi depășită.
+- **Soluția:** Același script I-888 (aceeași tragere de monede, aceleași reguli), rulat o dată pe lună noaptea pe VPS, scrie cifrele noi cu data lor; pagina le arată cu „măsurat la”. Cifra rămâne descriptivă, nu schimbă motorul.
+- **Impact:** Textul „cât vede simulatorul mai puțin” rămâne adevărat în timp.
+- **Riscuri/dependențe:** ~1.700 de cereri Binance de lumânări de un minut ⇒ doar noaptea (regula: ziua nimic greu pe VPS), cu respiro între cereri.
+- **Fișiere atinse:** crypto/scripts/cercetare-v100355-lumanarea.mjs, crypto/public/lib/grid-proba.js (NEVAZUT, nevazutText), crypto/scripts/colector.mjs
