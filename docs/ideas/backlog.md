@@ -3565,8 +3565,10 @@ pe un singur chart.
 | I-885 | Tabloul lăsat deschis: banda contului nu se reîmprospătează singură | crypto/public/app.js (tbContTot), crypto/public/lib/t212-ecran.js (contTotAsigura) | S | P3 | făcut | tcc-idei | 2026-11-14 → 2026-11-15 |
 | I-886 | Scanner: tăietura după volum a rețetei „Candidați de grid” (primele 60 de monede după volum), măsurată cu un test care vede | crypto/scripts/lib/g1-candidati-grid.mjs, crypto/scripts/cercetare-v100342-candidati-grid.mjs, crypto/public/lib/scan.js, crypto/docs/cercetare/ | M | P3 | făcut | tcc-idei | 2026-11-14 → 2026-11-15 |
 | I-887 | Lista „nu e crypto”: perpetue noi care par acțiuni tokenizate intră în clasamentul de grid | crypto/public/lib/grid-calcul.js (NU_CRYPTO), crypto/scripts/lib/tura-clasament.mjs | S | P3 | făcut | tcc-idei | 2026-11-14 → 2026-11-15 |
-| I-888 | Motorul de grid: minusul fals al lumânării — de măsurat pe lumânări de un minut și de îndreptat (fișa cere „medie peste zero”) | crypto/public/lib/grid-proba.js (simuleaza, proba, fisa), crypto/public/lib/grid-sim.js, crypto/scripts/lib/g2-grid-date-nevazute.mjs (reperM), crypto/docs/cercetare/ | M | P1 | propus | tcc-idei | 2026-11-15 |
-| I-889 | Regula de formă a acțiunilor tokenizate și pe pagină, nu doar în colector | crypto/public/app.js (grAduMonede), crypto/public/lib/grid-calcul.js (invataNuCrypto), crypto/public/lib/acasa.js | S | P3 | propus | tcc-idei | 2026-11-15 |
+| I-888 | Motorul de grid: minusul fals al lumânării — de măsurat pe lumânări de un minut și de îndreptat (fișa cere „medie peste zero”) | crypto/public/lib/grid-proba.js (simuleaza, proba, fisa), crypto/public/lib/grid-sim.js, crypto/scripts/lib/g2-grid-date-nevazute.mjs (reperM), crypto/docs/cercetare/ | M | P1 | făcut | tcc-idei | 2026-11-15 → 2026-11-17 |
+| I-889 | Regula de formă a acțiunilor tokenizate și pe pagină, nu doar în colector | crypto/public/app.js (grAduMonede), crypto/public/lib/grid-calcul.js (invataNuCrypto), crypto/public/lib/acasa.js | S | P3 | făcut | tcc-idei | 2026-11-15 → 2026-11-17 |
+| I-890 | Motorul de grid: a doua încercare de îndreptare a părții nevăzute a lumânării (C2, doi exponenți), judecată pe o fereastră de date NOUĂ | crypto/public/lib/grid-proba.js (simuleaza, opt.nevazut), crypto/scripts/cercetare-v100355-lumanarea.mjs, crypto/docs/cercetare/ | M | P2 | propus | tcc-idei | 2026-11-17 |
+| I-891 | Fișa Grid judecată față de reperul fără direcție, nu față de zero | crypto/public/lib/grid-proba.js (proba, fisa), crypto/public/app.js (fișa), crypto/scripts/lib/g2-grid-date-nevazute.mjs (reperM), crypto/docs/cercetare/ | M | P2 | propus | tcc-idei | 2026-11-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8514,6 +8516,7 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Fișa și Simulatorul n-ar mai respinge griduri bune din cauza instrumentului; orice măsurătoare viitoare a gridului ar avea un zero adevărat.
 - **Riscuri/dependențe:** Schimbă verdictele fișei (PORNEȘTE / NU) — nu se face din mers. Lumânările de un minut sunt multe (de 15 ori mai multe cereri). Costurile rămân reale: reperul nu le scoate.
 - **Fișiere atinse:** crypto/public/lib/grid-proba.js (simuleaza, proba, fisa), crypto/public/lib/grid-sim.js, crypto/scripts/lib/g2-grid-date-nevazute.mjs (reperM), crypto/docs/cercetare/
+- **Starea (17.11.2026, Radar v100.355):** făcut ca măsurătoare; îndreptarea a picat. Reguli scrise înainte de date; 40 de monede trase la întâmplare, 30 de zile pe lumânări de 1 minut, 27 de griduri. Partea nevăzută „contează”: pe lumânări de 15 minute simulatorul iese cu ~0,2–0,5% din sumă pe zi sub adevăr (0,8% la pasul de 0,3%), pe lumânări de o oră (fișa) cu ~0,5–1,0% (1,5%). Corecția C1 (dus-întorsuri în plus pe bară, a·(R/pas)^b), potrivită pe jumătate din monede și judecată pe cealaltă, a PICAT pragul scris dinainte ⇒ motorul NU s-a schimbat; pagina spune diferența (Simulator, Monte Carlo, „Ce fac cu botul ăsta?”, nota fișei). Ce rămâne: I-890 (a doua încercare, pe date noi) și I-891 (fișa față de reperul fără direcție). Jurnalul: crypto/docs/cercetare/2026-11-17-i888-lumanarea-si-bilantul.md.
 
 ### I-889 · Regula de formă a acțiunilor, și pe pagină · S · P3
 - **Problema/golul:** Din v100.343 colectorul scoate singur din clasament perpetuele noi cu formă de acțiune. Pagina nu cheamă regula: listele ei care filtrează direct (harta de pe Acasă, lărgimea crypto de rezervă) scot doar ce e în lista scrisă de mână, iar în colector numele se învață abia la prima tură de clasament de după repornire.
@@ -8521,3 +8524,18 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** O acțiune tokenizată nouă nu mai apare nicăieri ca monedă, nici o oră.
 - **Riscuri/dependențe:** O monedă adevărată nouă, cu nume terminat în X și preț la 2 zecimale, ar fi scoasă peste tot până e pusă în lista monedelor cu X; azi apare doar un rând în jurnalul colectorului — ar trebui să se vadă și pe pagină.
 - **Fișiere atinse:** crypto/public/app.js (grAduMonede), crypto/public/lib/grid-calcul.js (invataNuCrypto), crypto/public/lib/acasa.js
+- **Starea (17.11.2026, Radar v100.355):** făcut. Pagina învață formele la încărcare din lista PERP (aceeași regulă ca în colector) și pe Acasă, în legenda „top 100 futures”, spune ce a scos din listele crypto; colectorul (v101.193) le învață la pornire, nu la prima tură. O listă PERP venită goală nu mai rămâne ținută minte.
+
+### I-890 · A doua încercare de îndreptare a lumânării (C2), pe date noi · M · P2
+- **Problema/golul:** I-888 a măsurat partea nevăzută, dar îndreptarea C1 (un singur exponent) a picat pe monedele de probă: ar fi umflat gridurile cu pas rar. Azi pagina spune doar diferența; cifrele Simulatorului, ale Monte Carlo și ale fișei rămân sub adevăr.
+- **Soluția:** O formă cu doi exponenți (separat pentru lărgimea barei și pentru pas), cu regulile și pragurile scrise înainte, judecată pe o fereastră de date NOUĂ (alte 30 de zile, alte monede trase la întâmplare), nu pe cele pe care s-a văzut C1. Doar dacă trece: cârligul există deja în motor (opt.nevazut), iar VERS_HOT crește.
+- **Impact:** Simulatorul, Monte Carlo și „Ce fac” n-ar mai înclina spre închidere din cauza instrumentului.
+- **Riscuri/dependențe:** A doua încercare pe aceeași întrebare e o încercare în plus: se numără și se spune. Schimbă verdictele și bilanțul hotărârilor (VERS_HOT nou ⇒ bilanțul de la zero).
+- **Fișiere atinse:** crypto/public/lib/grid-proba.js (simuleaza, opt.nevazut), crypto/scripts/cercetare-v100355-lumanarea.mjs, crypto/docs/cercetare/
+
+### I-891 · Fișa Grid judecată față de reperul fără direcție · M · P2
+- **Problema/golul:** Fișa spune PORNEȘTE doar la „media pe test peste zero”, pe lumânări de o oră, unde partea nevăzută e ~0,5–1,0% pe zi. Ștacheta reală e mai înaltă decât pare: griduri bune pot ieși NU din cauza instrumentului.
+- **Soluția:** Proba fișei judecată față de același grid pe un preț fără direcție (lumânările amestecate la întâmplare, reperM există deja), în loc de zero: diferența scoate partea nevăzută din ambele. Reguli și prag scrise dinainte, probate sub H0, revizie înainte de a schimba verdictul fișei.
+- **Impact:** Verdictul fișei ar spune ce adaugă direcția monedei peste un preț oarecare, nu ce adaugă lumânarea mare.
+- **Riscuri/dependențe:** Schimbă verdictele PORNEȘTE / NU. Reperul nu scoate costurile reale; amestecarea strică agitația pe zile, deci reperul se alege cu blocuri.
+- **Fișiere atinse:** crypto/public/lib/grid-proba.js (proba, fisa), crypto/public/app.js (fișa), crypto/scripts/lib/g2-grid-date-nevazute.mjs (reperM), crypto/docs/cercetare/
