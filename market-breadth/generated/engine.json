@@ -22,10 +22,30 @@
       "extra": "fara warning-uri",
       "_file_age": 0.0,
       "data_date": "2026-11-19"
+    },
+    "ndx": {
+      "score": 45.5,
+      "zone": "Neutral",
+      "exposure": "60-75%",
+      "weakest": "trend MM200 (44.7%)",
+      "trend": "in scadere (-5.8)",
+      "extra": ">MM200 44.7% | >MM50 46.8%",
+      "_file_age": 0.0,
+      "data_date": "2026-11-19"
+    },
+    "r2k": {
+      "score": 30.6,
+      "zone": "Weakening",
+      "exposure": "40-60%",
+      "weakest": "trend MM200 (29.8%)",
+      "trend": "in scadere (-6.0)",
+      "extra": ">MM200 29.8% | >MM50 31.9%",
+      "_file_age": 0.0,
+      "data_date": "2026-11-19"
     }
   },
   "master": {
-    "score": -5,
+    "score": -4,
     "stance": "RISK-OFF",
     "action": "Prezervare capital; fara pozitii noi speculative; asteapta stabilizare.",
     "confidence": "SCAZUTA - semnale in conflict (1 pozitive / 4 negative)",
@@ -33,9 +53,9 @@
     "net_ceiling": 40,
     "scorecard": [
       [
-        "Breadth participare (2/4 surse valide)",
-        -2,
-        "Risk-OFF (idx 34.1, min 24.3)"
+        "Breadth participare (4/4 surse valide)",
+        0,
+        "Mixt / racire (idx 39.8, min 24.3)"
       ],
       [
         "Market timing (distribution days)",
@@ -50,17 +70,22 @@
       [
         "New Highs - New Lows",
         -1,
-        "9\u25b2/23\u25bc (net -14), slab (NL domina)"
+        "9\u25b2/27\u25bc (net -18), slab (NL domina)"
       ],
       [
         "Intermarket / macro",
         -2,
         "Macro RISK-OFF (VIX term 1.052)"
+      ],
+      [
+        "Small-caps",
+        -1,
+        "raman in urma (risk-off incipient)"
       ]
     ],
     "reconciliation": [
       "Semnale POZITIVE: Confirmare risc (VIX/credit/breadth pret).",
-      "Semnale NEGATIVE: Breadth participare (2/4 surse valide), Market timing (distribution days), New Highs - New Lows, Intermarket / macro.",
+      "Semnale NEGATIVE: Market timing (distribution days), New Highs - New Lows, Intermarket / macro, Small-caps.",
       "Market timing foloseste sesiuni EOD incheiate (mai proaspete ca breadth-ul) - cand semnaleaza vanzare, are prioritate ca avertisment timpuriu.",
       "Conflictul in sine = incertitudine: redu marimea, nu paria puternic intr-o directie."
     ],
@@ -68,13 +93,22 @@
     "neg": 4
   },
   "analysis": {
-    "verdict": "Risk-OFF",
-    "action": "Breadth slab pe toate. Prezervare capital, ridica cash, asteapta stabilizare.",
-    "flags": [],
-    "regime": "risk_off",
-    "idx_avg": 34.1,
+    "verdict": "Mixt / racire",
+    "action": "Semnale mixte. Redu marimea pozitiilor noi, prioritizeaza calitatea.",
+    "flags": [
+      [
+        "narrow_market",
+        "\u26a0\ufe0f Piata larga (2800) 24.3 << large-cap 39.8 \u2192 raliu INGUST: RISC/volatilitate ridicata (nu implica randament slab - vezi backtest)"
+      ],
+      [
+        "smallcap_lag",
+        "\u26a0\ufe0f Small-caps 30.6 raman in urma \u2192 apetit de risc in scadere"
+      ]
+    ],
+    "regime": "mixed",
+    "idx_avg": 39.8,
     "min": 24.3,
-    "max": 34.1
+    "max": 45.5
   },
   "detail": {
     "net_ceiling": 40,
@@ -87,21 +121,33 @@
       [
         "Broad2800",
         60
+      ],
+      [
+        "Nasdaq*",
+        75
+      ],
+      [
+        "Small-cap*",
+        60
       ]
     ],
     "diagnosis": [
-      "Piata larga (~2800 actiuni): 24.3 (Cautious), cu 9.8 pct SUB large-cap. Veriga slaba: Market Breadth (Overall) (5)."
+      "Large-cap: S&P 34.1 (Weakening), Nasdaq 45.5 \u2014 slabesc. Momentum S&P (8/200MA): 35.",
+      "Piata larga (~2800 actiuni): 24.3 (Cautious), cu 15.5 pct SUB large-cap. Veriga slaba: Market Breadth (Overall) (5).",
+      "Small-caps (R2K* 30.6): raman in urma (risk-off incipient). Veriga slaba: trend MM200 (29.8%).",
+      "Dinamica: Nasdaq* in scadere (-5.8); Small-cap* in scadere (-6.0)."
     ],
     "playbook": [
       "Plafonul combinat de context este 40%; riscul personal se verifica separat in Guardrail.",
-      "Fara pozitii noi speculative; protejeaza castigurile.",
-      "Asteapta stabilizarea breadth (trough) inainte de reangajare."
+      "Prioritizeaza calitatea; evita sectoarele lagging.",
+      "Ridica putin cash daca breadth continua sa scada."
     ],
     "watch": [
       "Broad2800: peste 45 \u2192 iese din 'ingust'; sub 30 \u2192 risk-off.",
+      "R2K*: sub 31.8 \u2192 small-caps lag (risk-off incipient); peste 47.8 \u2192 conduc.",
       "S&P: peste 60 \u2192 Healthy (upgrade); sub 40 \u2192 Weakening (alerta)."
     ],
-    "confidence": "MEDIE (spread 9.8 \u2014 divergenta moderata)",
-    "spread": 9.8
+    "confidence": "SCAZUTA (spread 21.2 \u2014 surse in dezacord, semnalul e fragil)",
+    "spread": 21.2
   }
 }
