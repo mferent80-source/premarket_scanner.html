@@ -3580,6 +3580,12 @@ pe un singur chart.
 | I-900 | Tabloul: take-profitul și zero-ul pe liniile gridului GEOMETRIC (azi aproximate: cu 0,2–0,5 prea sus, se mută cu prețul) | crypto/public/lib/tablou-extra.js (starePeNiveluri, totalCuGridLa, pretTpLive), crypto/public/lib/asezare-paznic.js (drumul) | M | P2 | propus | ideation | 2026-11-20 |
 | I-901 | Tabloul, rândul de cost: „își acoperă costul în ~M minute, la ritmul de acum” | crypto/public/lib/cap-margine.js (cost, textCost), crypto/public/app.js (tbCostDeseneaza) | S | P2 | propus | ideation | 2026-11-20 |
 | I-902 | Tabloul: o singură cifră pentru „atinge marginea” (capul 72 din 100 față de Consilier „53% din zile”) și fără dublura din „Contează acum” | crypto/public/lib/sfaturi.js (scurt), crypto/public/lib/consiliu.js, crypto/public/lib/conteaza.js, crypto/public/app.js | S | P3 | propus | ideation | 2026-11-20 |
+| I-903 | Tabloul, capul: rândul EXPUNERII — poziția în USDT, levierul efectiv și „1% contra = X USDT = N ore de grile” | crypto/public/lib/cap-margine.js (alcatuieste), crypto/public/lib/asezare-paznic.js (verdict), crypto/public/app.js (tbCapMargine) | S | P1 | propus | ideation | 2026-11-20 |
+| I-904 | Tabloul: „fără stop” ca motiv de siguranță în cap, cu dovada de pe boții lui (și roșu când botul fără stop e afară din grid sau mai vechi de o zi) | crypto/public/lib/consiliu.js (FIX), crypto/public/lib/semnale-bot.js (componenta), crypto/public/lib/cap-margine.js (textBani, dinBoti), crypto/public/lib/alerte.js (regula „fără stop” există) | S | P1 | propus | ideation | 2026-11-20 |
+| I-905 | Tabloul: „Vremea” într-un rând — toți indicatorii de direcție rezumați într-o frază cu numărătoare, tabelele în pliu | crypto/public/app.js (renderTabloTrend, tbDeseneazaCitire), crypto/public/lib/asezare-paznic.js (voci), crypto/public/index.html (#tbTrend*) | M | P2 | propus | ideation | 2026-11-20 |
+| I-906 | Grid „ce setez?” și fișa: costul dus-întors ÎNAINTE de pornire, în % din marjă (levierul × comisionul la piață) și în minute de grile | crypto/public/lib/grid-plan.js, crypto/public/lib/grid-proba.js (fisa), crypto/public/app.js (fișa Grid), crypto/public/lib/cap-margine.js (cost) | S | P1 | propus | ideation | 2026-11-20 |
+| I-907 | Tabloul, „Riscul tău”: plata lui — câștigul mediu față de pierderea medie și cât îi trebuie pe plus, pe durate | crypto/public/lib/risc-ecran.js, crypto/public/lib/risc-luna.js (descBoti), crypto/scripts/colector.mjs (tura riscului) | S | P2 | propus | ideation | 2026-11-20 |
+| I-908 | PROBA MARGINII, pre-înregistrată: când prețul atinge marginea contra botului, se notează ce a făcut și ce a urmat la 1 h / 4 h / 24 h — verdict după 60 de episoade | crypto/scripts/colector.mjs, crypto/scripts/lib/ (tură nouă), crypto/functions/api/istoric-bot.js, crypto/public/lib/probe-ecran.js (pagina Probe) | M | P1 | propus | ideation | 2026-11-20 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8634,3 +8640,45 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Primul ecran spune un lucru o singură dată, cu o singură cifră.
 - **Riscuri/dependențe:** „Nimic pierdut”: fraza întreagă rămâne la un clic; se arată în demo înainte.
 - **Fișiere atinse:** crypto/public/lib/sfaturi.js (scurt), crypto/public/lib/consiliu.js, crypto/public/lib/conteaza.js, crypto/public/app.js
+
+### I-903 · Rândul expunerii · S · P1
+- **Problema/golul:** Pe cei 2.465 de boți închiși, rezultatul merge cu POZIȚIA, nu cu grilele: r = 0,94 (r² 88,8%), semnul rezultatului = semnul poziției la 94,6% din boți; abaterea poziției e 11,7% din sumă, a grilelor 2,4%. Pagina vorbește însă despre grile și indicatori; mărimea poziției stă într-un pliu („Banii botului”). Pe botul viu din 20.11: 251,8 USDT poziție (levier efectiv 2,7×), grile 0,21 USDT pe oră ⇒ 1% contra = −2,5 USDT = ~12 ore de grile.
+- **Soluția:** Un rând în cap, deasupra marginii: „Poziția: 251,8 USDT long (levier efectiv 2,7×) · 1% contra = −2,5 USDT = 12 ore de grile”, cu ritmul grilelor luat din botul însuși (fără ritm măsurat: doar primele două). Cifre de pe botul viu, fără nicio prognoză.
+- **Impact:** Înainte de orice sfat, vede cât cântărește prețul față de grile: hotărârea reală e despre expunere și ieșire, nu despre pasul gridului.
+- **Riscuri/dependențe:** La botul neutru semnul poziției e nesigur (se spune). Ritmul din primele minute e zgomot ⇒ „ore de grile” doar de la câteva perechi încheiate.
+- **Fișiere atinse:** crypto/public/lib/cap-margine.js (alcatuieste), crypto/public/lib/asezare-paznic.js (verdict), crypto/public/app.js (tbCapMargine)
+
+### I-904 · „Fără stop”, cu dovada lui · S · P1
+- **Problema/golul:** Boții lui fără stop: 371 (15%), 66,0% pe plus (mai des decât cei cu stop: 55,4%), dar cei mai răi 18 fac −3.122,1 USDT, cu cea mai mare pierdere −878,6 (la cei cu stop: −404,2). Fără stop și ținuți peste 24 h: 38 de boți, −1.853,4 (cu stop, peste 24 h: 48 de boți, −52,2). Dintre cei 176 închiși dincolo de margine, 33 n-aveau niciun stop: −3.342,0, închiși în mediană la 7,7% dincolo. Azi capul scrie doar „fără stop pus”, cu litere mici; alerta „Fără stop” există, dar fără cifrele lui.
+- **Soluția:** „Fără stop” intră printre motivele care țin titlul capului, cu dovada pe un rând („pe boții tăi fără stop: cei mai răi 18 din 371 au făcut −3.122 USDT; ținuți peste o zi: 38, −1.853”). Treapta urcă la roșu când botul fără stop e pe minus și afară din grid sau are peste 24 h.
+- **Impact:** Oprește exact coada care îi face jumătate din pierdere, fără să-i ceară un stop strâns.
+- **Riscuri/dependențe:** E contabilitate cu selecție (boții lungi fără stop sunt pierzătorii neînchiși), deci textul spune „așa au ieșit”, nu „stopul aduce bani”; pragurile (24 h, afară din grid) sunt ipoteze de urmărit pe date noi (I-898).
+- **Fișiere atinse:** crypto/public/lib/consiliu.js (FIX), crypto/public/lib/semnale-bot.js (componenta), crypto/public/lib/cap-margine.js (textBani, dinBoti), crypto/public/lib/alerte.js (regula „fără stop” există)
+
+### I-905 · Vremea într-un rând · M · P2
+- **Problema/golul:** Pagina are ~16 voci de direcție (becurile pe 6 intervale, TradingView, scorul indicatorilor pe 4 intervale, estimarea, Range Filter, Busola, BTC, lățimea, sectoarele, macro) și spune singură că sunt nedovedite: direcția lor a fost nimerită în 47–50 din 100 de cazuri (măsurat 13.11, 21 de monede); pe boții lui, la pornire, 12 comparații nu despart câștigul de pierdere (cel mai mic p 14,9%, pragul corectat 0,4%), iar „mai multe voci contra” a ieșit pe dos. Totuși tabelele lor ocupă cea mai mare parte din primul ecran de sub grafic (pe telefon, peste 1.300 px).
+- **Soluția:** O frază deasupra tabelelor: „Vremea: 5 din 6 intervale contra botului · BTC contra · lățimea contra · TradingView vinde tare · Busola așteaptă — pe boții tăi vremea n-a despărțit câștigul de pierdere”. Tabelul intervalelor, TradingView, scorul și graficul lui coboară în pliul „Vremea, pe larg” (nimic scos); cipurile de sub cap rămân.
+- **Impact:** Primul ecran e al faptelor cu bani (expunerea, ieșirea, costul); indicatorii rămân la un clic, cu greutatea pe care au dovedit-o.
+- **Riscuri/dependențe:** „Nimic pierdut”: inventar înainte și după, demo cu poze; el s-a obișnuit cu tabelul la vedere ⇒ hotărârea e a lui.
+- **Fișiere atinse:** crypto/public/app.js (renderTabloTrend, tbDeseneazaCitire), crypto/public/lib/asezare-paznic.js (voci), crypto/public/index.html (#tbTrend*)
+
+### I-906 · Costul dus-întors înainte de pornire · S · P1
+- **Problema/golul:** Comisioanele fac −3.075,4 USDT, 45,5% din toată pierderea lui. La boții de sub 15 minute cu levier peste 20× (357): comisioane −561,3 dintr-un net de −566,5 — au pierdut exact comisionul. Taxa de intrare e pe notional (suma × levierul × partea cumpărată la pornire × 0,05%), deci la 20× dus-întorsul costă până la ~2% din marjă; fișa arată „comisionul ia din fiecare umplere 13%”, dar nu și costul de intrare și ieșire față de marjă (n-am găsit „taxa de intrare” în grid-plan.js / grid-proba.js).
+- **Soluția:** Pe fișă și în „Grid: ce setez?”, lângă levier: „dus-întors plătești ≈ X USDT (Y% din marjă); la N perechi pe zi din fișă, grilele îl acoperă în ~M minute” + dovada „la boții tăi de sub 15 minute cu levier peste 20×: comisioane −561 din −567”.
+- **Impact:** Hotărârea de levier și de „îl pornesc pentru zece minute?” se ia cu costul în față.
+- **Riscuri/dependențe:** Partea cumpărată la pornire depinde de locul prețului în interval (se ia din aceeași estimare ca TabloExtra.taxaIntrare); „minutele” vin din trecerile fișei, nu sunt o promisiune.
+- **Fișiere atinse:** crypto/public/lib/grid-plan.js, crypto/public/lib/grid-proba.js (fisa), crypto/public/app.js (fișa Grid), crypto/public/lib/cap-margine.js (cost)
+
+### I-907 · Plata, pe durate · S · P2
+- **Problema/golul:** Câștigul lui mediu e 8,6 USDT, pierderea medie 19,0 ⇒ i-ar trebui 68,8% pe plus, are 57,0%. Pierderea medie urcă odată cu durata: 11,2 (sub 15 minute), 25,7 (1–4 h), 32,5 (4–24 h), 63,5 (peste 24 h, unde i-ar trebui 82,1% și are 53,5%). „Riscul tău” spune câți au ieșit pe plus și luna proastă, nu și raportul ăsta (n-am găsit textul în risc-ecran.js).
+- **Soluția:** Două rânduri în „Riscul tău”: „câștigi în medie 8,6, pierzi în medie 19,0: ca să ieși pe zero îți trebuie 68,8% pe plus, ai 57,0%” și un tabel mic pe durate; lângă botul de acum, cutia lui de durată.
+- **Impact:** Vede că problema nu e cât de des câștigă, ci cât lasă pierderile să crească — lucru pe care îl hotărăște el.
+- **Riscuri/dependențe:** Descriptiv (durata e alegerea lui, făcută după rezultat); raportul se reface de colector odată cu „Riscul”.
+- **Fișiere atinse:** crypto/public/lib/risc-ecran.js, crypto/public/lib/risc-luna.js (descBoti), crypto/scripts/colector.mjs (tura riscului)
+
+### I-908 · Proba marginii · M · P1
+- **Problema/golul:** Din −9.855,0 USDT pierduți de cei 176 de boți închiși dincolo de margine, estimat −4.900,4 s-au făcut DUPĂ margine (plafonul a ce ar fi oprit un stop acolo: 72,4% din toată pierderea lui); cu stopul la 2% dincolo: 3.075,6. Costul nu se știe: câți boți ating marginea și se întorc (din jurnalul benzii: după o oră afară se întorc în grid 70 din 100 — 107 episoade, interval 61–78; după 12 ore, 27 din 100; după 48 de ore, 4 din 100). Fără drumul botului întrebarea „stop la margine sau nu?” nu are răspuns.
+- **Soluția:** Ipoteza și pragul scrise înainte: la fiecare atingere a marginii contra botului (un episod pe bot), colectorul notează totalul de atunci și apoi totalul la 1 h, 4 h, 24 h sau la închidere; compară „închis la margine” (totalul de atunci, minus comisionul de închidere) cu „lăsat” (ce a urmat). Verdict după 60 de episoade pe cel puțin 20 de zile, pe media diferenței cu interval pe zile; până atunci pagina Probe arată doar numărătoarea.
+- **Impact:** Singura întrebare cu bani mari rămasă deschisă de audit primește un răspuns pe datele lui, nu o părere.
+- **Riscuri/dependențe:** Cam 60 de episoade înseamnă 2–3 luni la ritmul lui; e o probă, nu schimbă nimic pe pagină până la verdict. Se leagă de I-898 (drumul botului).
+- **Fișiere atinse:** crypto/scripts/colector.mjs, crypto/scripts/lib/ (tură nouă), crypto/functions/api/istoric-bot.js, crypto/public/lib/probe-ecran.js (pagina Probe)
