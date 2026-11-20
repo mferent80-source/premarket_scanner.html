@@ -3574,6 +3574,12 @@ pe un singur chart.
 | I-894 | Verdictul bilanțului hotărârilor pe Discord, o singură dată, când se scrie (la 30 și la 60 de zile) | crypto/scripts/colector.mjs (blocul hotărârilor), crypto/scripts/lib/tura-monte-carlo-bot.mjs (actualizeazaBilant, textVerdictBilant) | S | P3 | făcut | ideation | 2026-11-17 |
 | I-895 | Partea nevăzută a lumânării re-măsurată singură o dată pe lună, noaptea, pe VPS (cifrele de pe pagină poartă data măsurătorii) | crypto/scripts/cercetare-v100355-lumanarea.mjs, crypto/public/lib/grid-proba.js (NEVAZUT, nevazutText), crypto/scripts/colector.mjs | M | P4 | făcut | ideation | 2026-11-17 |
 | I-896 | Fișa Grid pe ruta de rezervă de 15 minute (fără barele de o oră): PORNEȘTE pe date fără avantaj în 20–22% din cazuri la H = 1 - de măsurat cât de des se ajunge acolo și de oprit verdictul | crypto/public/lib/grid-proba.js (fisa, bareOraFisa), crypto/public/lib/grid-calcul.js (verdict), crypto/scripts/sim-h0-v100269.mjs | S | P2 | făcut | ideation | 2026-11-17 |
+| I-897 | Tabloul: „stopul tău față de margine” — diferența în bani pe un rând, cu „copiază prețul marginii” | crypto/public/lib/cap-margine.js, crypto/public/lib/asezare-paznic.js (verdict), crypto/public/app.js (tbCapMargine) | S | P1 | propus | ideation | 2026-11-20 |
+| I-898 | Colector: drumul botului ținut după închidere + rândurile brute ale registrelor (sfaturi, Monte Carlo), 90 de zile | crypto/scripts/colector.mjs, crypto/functions/api/istoric-bot.js (ist:<bot>, socoteala, mc-verdict, botiInchisi), crypto/scripts/lib/tura-monte-carlo-bot.mjs | M | P1 | propus | ideation | 2026-11-20 |
+| I-899 | Monte Carlo pe bot, judecat pe întrebarea pusă: „totalul mai sus peste 1 h / 4 h”, față de rata de bază — IPOTEZĂ | crypto/scripts/lib/tura-monte-carlo-bot.mjs, crypto/public/lib/grid-sim.js (textCalibrareMc), crypto/public/app.js (tbMcRand) | M | P2 | propus | ideation | 2026-11-20 |
+| I-900 | Tabloul: take-profitul și zero-ul pe liniile gridului GEOMETRIC (azi aproximate: cu 0,2–0,5 prea sus, se mută cu prețul) | crypto/public/lib/tablou-extra.js (starePeNiveluri, totalCuGridLa, pretTpLive), crypto/public/lib/asezare-paznic.js (drumul) | M | P2 | propus | ideation | 2026-11-20 |
+| I-901 | Tabloul, rândul de cost: „își acoperă costul în ~M minute, la ritmul de acum” | crypto/public/lib/cap-margine.js (cost, textCost), crypto/public/app.js (tbCostDeseneaza) | S | P2 | propus | ideation | 2026-11-20 |
+| I-902 | Tabloul: o singură cifră pentru „atinge marginea” (capul 72 din 100 față de Consilier „53% din zile”) și fără dublura din „Contează acum” | crypto/public/lib/sfaturi.js (scurt), crypto/public/lib/consiliu.js, crypto/public/lib/conteaza.js, crypto/public/app.js | S | P3 | propus | ideation | 2026-11-20 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8586,3 +8592,45 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Riscuri/dependențe:** Cu mai puține ferestre pe 15 minute, cerința t poate face PORNEȘTE aproape imposibil acolo - ceea ce e cinstit.
 - **Fișiere atinse:** crypto/public/lib/grid-proba.js (fisa, bareOraFisa), crypto/public/lib/grid-calcul.js (verdict), crypto/scripts/sim-h0-v100269.mjs
 - **Starea (17.11.2026, Radar v100.357):** făcut. Frecvența rutei de 15 minute nu se putea număra (notele fișelor nu țineau barele) ⇒ de acum o țin (`bare`: 24 / 96). Regula: fără barele de o oră, verdictul cel mult AȘTEAPTĂ, cu motivul („n-am barele de o oră ale monedei…”), în verdictul comun (fișa și fereastra ÎNGUST / LARG). Poarta sim-h0: pe 15 minute 21,7% ⇒ 0,0% (grupată 20,0% ⇒ 0,0%), pe o oră neschimbat. Jurnalul: crypto/docs/cercetare/2026-11-17-v100357-fisa-15min.md.
+
+### I-897 · Stopul față de margine, în bani · S · P1
+- **Problema/golul:** Pe boții lui închiși (2.465, 21.12.2025 – 20.11.2026) pierderea stă în cei 176 închiși cu prețul trecut de marginea gridului, contra botului: −9.855,0 USDT (ceilalți 2.289: +3.089,5). 110 din cei 176 aveau stop pus, deci stopul era prea departe ca să conteze; jumătate au fost închiși la cel mult 0,7% dincolo de margine și au pierdut în mediană 9,1% din sumă. Capul nou (v100.373) arată „la margine −8,7 USDT · la stopul tău −25,5 USDT”, dar nu spune diferența și nu dă prețul de copiat.
+- **Soluția:** Sub rândul banilor din cap: „între margine și stopul tău mai pierzi 16,8 USDT (stopul e cu 6,7% sub margine)”, cu șansa stopului pe 24 h lângă, și butonul „copiază prețul marginii” (ca la take-profit). Fără sfat nou: cifra și fapta.
+- **Impact:** Hotărârea „unde pun stopul” se ia pe bani, din capul paginii, nu din trei cartele.
+- **Riscuri/dependențe:** Un stop la margine se atinge mai des (azi 72 din 100 în 24 h) și închide și boți care s-ar fi întors ⇒ NU se scrie ca sfat; e o IPOTEZĂ de urmărit pe date noi (I-898), cu pragul scris dinainte.
+- **Fișiere atinse:** crypto/public/lib/cap-margine.js, crypto/public/lib/asezare-paznic.js (verdict), crypto/public/app.js (tbCapMargine)
+
+### I-898 · Drumul botului și rândurile registrelor · M · P1
+- **Problema/golul:** Auditul din 20.11 n-a putut judeca niciun verdict pe orizonturile lui (un bot trăiește în mediană 21 de minute) și nici „ce era dacă închidea la margine”: arhiva boților închiși ține doar începutul și sfârșitul, iar registrul sfaturilor și jurnalul Monte Carlo păstrează doar sumarul. `ist:<bot>` există cât e botul urmărit; cât rămâne după închidere e de verificat pe VPS.
+- **Soluția:** La închiderea botului, colectorul pune în arhivă drumul lui rărit (totalul și prețul la 5 minute în prima oră, apoi la 15 minute) și clipa primei ieșiri din grid; registrele își țin rândurile 90 de zile (bot, sfat, oră, total, ce a urmat la 1 h, la 4 h și la închidere).
+- **Impact:** După ~60 de zile se răspunde cu cifre la „stopul la margine ar fi salvat bani?” și verdictele se pot judeca pe orizontul lui, cu p pe zile.
+- **Riscuri/dependențe:** Mărimea KV (ținut pe bucăți; sub ~2 MB la 2.500 de boți); e doar strângere de date, nicio regulă nouă.
+- **Fișiere atinse:** crypto/scripts/colector.mjs, crypto/functions/api/istoric-bot.js (ist:<bot>, socoteala, mc-verdict, botiInchisi), crypto/scripts/lib/tura-monte-carlo-bot.mjs
+
+### I-899 · Monte Carlo judecat pe orizontul lui · M · P2
+- **Problema/golul:** Scorul 96 – 88 judecă la închiderea botului (mediana după 1 h) un verdict pe 7 zile; e sub „mereu pe plus” (52,2% față de 61,4%), iar ca să se afle dacă bate rata de bază ar trebui ~1.040 de verdicte (~208 zile; puterea de azi 20%). Singura parte verificată e riscul scurt: stopul în 1 h prezis 1,3%, atins 1,7% din 300.
+- **Soluția:** Tura notează, din aceleași drumuri, șansa „totalul mai sus peste 1 h” și „peste 4 h” și o judecă la același orizont, pe valoarea din drumul botului (I-898); pagina arată scorul scurt lângă reper; scorul vechi rămâne în pliu, cu eticheta lui.
+- **Impact:** Un scor care poate confirma sau infirma ceva în săptămâni, nu în luni.
+- **Riscuri/dependențe:** IPOTEZĂ: verdictul scurt poate ieși tot zgomot; pragul (peste rata de bază, pe zile, după corecție) se scrie înainte de date. Depinde de I-898.
+- **Fișiere atinse:** crypto/scripts/lib/tura-monte-carlo-bot.mjs, crypto/public/lib/grid-sim.js (textCalibrareMc), crypto/public/app.js (tbMcRand)
+
+### I-900 · Take-profitul pe liniile gridului geometric · M · P2
+- **Problema/golul:** La grid geometric (al lui și cel propus de fișă) modelul pe linii nu rulează (`tablou-extra.js:201`); aproximarea pune take-profitul cu 0,2–0,5 prea sus și îl mută cu ~1,7× mișcarea prețului, fără nicio umplere; Drumul botului îl socotește la alt preț (în aceeași poză 64,6545 față de 64,5994). Nota de pe pagină dă vina pe „un ordin în curs”. Revizorul a refăcut pe linii 64,3455 (take-profit) și 62,7245 (zero).
+- **Soluția:** Liniile geometrice (jos × r^k) în același model; nota spune cauza adevărată; Drumul folosește același bot ca restul paginii.
+- **Impact:** Prețul pe care îl copiază în Pionex ca take-profit e cel la care botul chiar atinge suma.
+- **Riscuri/dependențe:** Partea pierderii (marginea −8,9, stopul −25,7) e deja corectă la zecimală și nu se atinge; probă pe botul viu înainte de livrare.
+- **Fișiere atinse:** crypto/public/lib/tablou-extra.js (starePeNiveluri, totalCuGridLa, pretTpLive), crypto/public/lib/asezare-paznic.js (drumul)
+
+### I-901 · Minute până la acoperirea costului · S · P2
+- **Problema/golul:** 44,0% din boții lui (1.084) sunt închiși sub 15 minute: net −2.017,5 USDT, din care comisioane −1.174,8. Rândul de cost (v100.373) spune „încă neacoperit” și câți boți de durata asta și-au acoperit costul, dar nu și cât mai e până acolo.
+- **Soluția:** Cât e neacoperit: „la ritmul de acum (N perechi pe oră, câte P USDT) își acoperă costul în ~M minute”; fără ritm măsurat (sub câteva perechi încheiate) nu spune nimic.
+- **Impact:** Înainte de o închidere repezită vede cât costă graba, în minute și în USDT.
+- **Riscuri/dependențe:** Ritmul din primele minute e zgomot; e o socoteală pe ritmul de până acum, nu o prognoză de preț.
+- **Fișiere atinse:** crypto/public/lib/cap-margine.js (cost, textCost), crypto/public/app.js (tbCostDeseneaza)
+
+### I-902 · O singură cifră pentru margine · S · P3
+- **Problema/golul:** Pe primul ecran, aceeași întrebare are două cifre: capul zice „în 24 h — 72 din 100” (ferestre de 24 h în situații ca acum), Consilierul „atinsă în 53% din zile” (zile calendaristice în care moneda scade atât); iar „Contează acum” repetă sub cap rândul marginii, cu aceeași frază și același îndemn.
+- **Soluția:** Titlul Consilierului ia cifra capului (aceeași sursă) și spune ce măsoară cealaltă doar în explicație; în „Contează acum” rândul marginii se scurtează la „↑ e în capul paginii”, iar locul îl ia următorul rând cu bani.
+- **Impact:** Primul ecran spune un lucru o singură dată, cu o singură cifră.
+- **Riscuri/dependențe:** „Nimic pierdut”: fraza întreagă rămâne la un clic; se arată în demo înainte.
+- **Fișiere atinse:** crypto/public/lib/sfaturi.js (scurt), crypto/public/lib/consiliu.js, crypto/public/lib/conteaza.js, crypto/public/app.js
