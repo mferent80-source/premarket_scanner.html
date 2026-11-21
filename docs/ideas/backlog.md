@@ -3592,6 +3592,7 @@ pe un singur chart.
 | I-912 | Tabloul: „ai mutat gridul” — ce a schimbat mutarea, în bani (marginile, pierderea la margine, locul stopului) | crypto/public/lib/cap-margine.js, crypto/public/app.js (tbCapMargine; istoricul botului e deja adus pentru grafic), crypto/functions/api/istoric-bot.js (citeste: punctele poartă gridJos / gridSus din v100.374) | S | P1 | propus | ideation | 2026-11-21 |
 | I-913 | Tabloul: stopul pus chiar pe marginea gridului — spus în cap, cu șansa lui și cu ce au făcut boții tăi așa | crypto/public/lib/cap-margine.js (alcatuieste, textIntre), crypto/public/lib/semnale-bot.js (cartela Stopul: eticheta „pus”) | S | P1 | propus | ideation | 2026-11-21 |
 | I-914 | „Dacă muți gridul acum”: recuperarea socotită pe gridul propus de fișă, nu pe ritmul botului vechi | crypto/public/lib/cap-margine.js (textMut), crypto/public/app.js (tbCapMargine, tbFisa), crypto/public/lib/grid-plan.js / grid-proba.js (perechile pe zi ale fișei) | M | P2 | propus | ideation | 2026-11-21 |
+| I-915 | Colectorul: alerta „ai mutat gridul” pe Discord — ce era, cât pierzi acum la marginea contra, stopul rămas pe ea, zero-ul care nu se mai atinge | crypto/scripts/colector.mjs (gridMutatDinBot, st._grid), crypto/scripts/lib/mesaje-colector.mjs (gridMutat) | S | P1 | propus | user | 2026-11-21 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8730,3 +8731,10 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Compară mutarea cu ce ar porni de fapt, nu cu trecutul botului.
 - **Riscuri/dependențe:** Perechile fișei sunt o așteptare din istorie (se spune ca atare); când fișa zice „nu porni”, rândul o spune și nu mai socotește zile.
 - **Fișiere atinse:** crypto/public/lib/cap-margine.js (textMut), crypto/public/app.js (tbCapMargine, tbFisa), crypto/public/lib/grid-plan.js / grid-proba.js (perechile pe zi ale fișei)
+
+### I-915 · Alerta „ai mutat gridul” · S · P1
+- **Problema/golul:** Pe 21.11.2026 a mutat gridul botului pornit (60–66 a devenit 54–61) și stopul de la 54 a rămas chiar pe marginea nouă; în gridul nou botul nu mai ajunge pe zero. A aflat doar deschizând pagina.
+- **Soluția:** Colectorul ține minte gridul fiecărui bot; la prima tură după o mutare trimite o alertă (o dată): „HYPE: ai mutat gridul la 54–61 · Era 60–66. La marginea de jos pierzi acum −35,1 USDT; stopul e chiar pe ea. Pe zero nu mai ajunge în grid (sus rămâi cu −12,3 USDT).” Cifrele vin din aceleași funcții ca pagina.
+- **Impact:** Află ce a cumpărat cu mutarea în minutul următor, pe telefon.
+- **Riscuri/dependențe:** Noaptea urmează politica alertelor (treapta „atenție”). Prima tură după livrare doar notează gridul, fără alertă.
+- **Fișiere atinse:** crypto/scripts/colector.mjs (gridMutatDinBot, st._grid), crypto/scripts/lib/mesaje-colector.mjs (gridMutat)
