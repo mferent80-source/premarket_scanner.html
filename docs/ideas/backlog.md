@@ -3593,6 +3593,11 @@ pe un singur chart.
 | I-913 | Tabloul: stopul pus chiar pe marginea gridului — spus în cap, cu șansa lui și cu ce au făcut boții tăi așa | crypto/public/lib/cap-margine.js (alcatuieste, textIntre), crypto/public/lib/semnale-bot.js (cartela Stopul: eticheta „pus”) | S | P1 | propus | ideation | 2026-11-21 |
 | I-914 | „Dacă muți gridul acum”: recuperarea socotită pe gridul propus de fișă, nu pe ritmul botului vechi | crypto/public/lib/cap-margine.js (textMut), crypto/public/app.js (tbCapMargine, tbFisa), crypto/public/lib/grid-plan.js / grid-proba.js (perechile pe zi ale fișei) | M | P2 | propus | ideation | 2026-11-21 |
 | I-915 | Colectorul: alerta „ai mutat gridul” pe Discord — ce era, cât pierzi acum la marginea contra, stopul rămas pe ea, zero-ul care nu se mai atinge | crypto/scripts/colector.mjs (gridMutatDinBot, st._grid), crypto/scripts/lib/mesaje-colector.mjs (gridMutat) | S | P1 | propus | user | 2026-11-21 |
+| I-916 | Tabloul botului pe telefon: cuprinsul capitolelor — un rând de cinci legături sub capul paginii care duce la Decizia / Riscul / Banii / Piața / Jurnalul | crypto/public/index.html (.tbCadru), crypto/public/app.js (funcție nouă de salt la capitol), crypto/public/app.css (blocul v100.375 design) | S | P2 | propus | ideation | 2026-11-21 |
+| I-917 | Tabloul botului pe calculator: capul pe două coloane când „Contează acum” n-are nimic de spus — dreapta capului e goală azi, capul are 610–700 px | crypto/public/lib/asezare-paznic.js (verdict), crypto/public/app.css, crypto/scripts/proba-v100374.mjs (grupa S ține marcajul capului) | M | P2 | propus | ideation | 2026-11-21 |
+| I-918 | „Ce spune piața acum” pe telefon: rândurile roșii și galbene rămân deschise, cele fără semn se strâng într-un rând numărat („încă N informații”) | crypto/public/app.js (desenul listei și copia ei de telefon, tbCitireMobil), crypto/public/app.css | M | P2 | propus | ideation | 2026-11-21 |
+| I-919 | Titlurile capitolelor Tabloului poartă starea de azi — o cifră vie lângă fiecare (Riscul: stopul atins în 24 h; Banii: totalul și cât din grile; Piața: câte intervale contra) | crypto/public/index.html (h3.tbCap), crypto/public/app.js (desenul rândurilor care au deja cifrele), crypto/public/app.css | S | P3 | propus | ideation | 2026-11-21 |
+| I-920 | Tabloul botului pe telefon: cele 4 cifre (Rezultat total, lichidarea, prețul în grid, piața) înaintea graficului, cu rândurile lor rămase sub grafic | crypto/public/app.js (tbKpiAsezare — pragul de 1181 px), crypto/public/app.css | S | P3 | propus | ideation | 2026-11-21 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8738,3 +8743,38 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Află ce a cumpărat cu mutarea în minutul următor, pe telefon.
 - **Riscuri/dependențe:** Noaptea urmează politica alertelor (treapta „atenție”). Prima tură după livrare doar notează gridul, fără alertă.
 - **Fișiere atinse:** crypto/scripts/colector.mjs (gridMutatDinBot, st._grid), crypto/scripts/lib/mesaje-colector.mjs (gridMutat)
+
+### I-916 · Cuprinsul capitolelor pe telefon · S · P2
+- **Problema/golul:** Pe telefon Tabloul are în jur de 7.500 px; capitolele puse în v100.375 încep la ~3.300 px de sus și se întind până la ~7.000. Ca să ajungă la „Banii” derulează patru ecrane.
+- **Soluția:** Un rând de cinci legături sub capul paginii („Decizia · Riscul · Banii · Piața · Jurnalul”) care duce pagina la titlul capitolului. Butoane cu funcție de salt, nu ancore (aplicația își ține singură adresa în bară).
+- **Impact:** Timp: capitolul căutat e la o atingere.
+- **Riscuri/dependențe:** Locul rândului în grila cadrului diferă pe lățimi (la ≥ 1181 px rândurile 1–5 sunt fixe) ⇒ poze la toate lățimile lui; pagina „niciun bot” nu-l arată.
+- **Fișiere atinse:** crypto/public/index.html (.tbCadru), crypto/public/app.js (funcție nouă de salt la capitol), crypto/public/app.css (blocul v100.375 design)
+
+### I-917 · Capul pe două coloane · M · P2
+- **Problema/golul:** La 1181–2560 px, când „Contează acum” e gol, capul ține toată lățimea, dar textul lui stă pe ~900 px; în dreapta rămâne doar prețul mare. Capul are 610–700 px înălțime și împinge Drumul și graficul sub primul ecran.
+- **Soluția:** Banda de cifre și barele șanselor în stânga; în dreapta notele (stopul pe margine cu dovada lui, Consilierul, „De unde știu”) sau cele 4 cifre ale botului. Capul scade spre ~420 px.
+- **Impact:** Primul ecran arată verdictul, banii și Drumul fără derulare.
+- **Riscuri/dependențe:** Marcajul capului e pe o singură coloană (.pzVerbTxt) ⇒ cere două învelitori în stratul de așezare; proba v100.374 îi ține marcajul; „nimic pierdut” și poze la 1280–2560. Când „Contează acum” are rânduri, capul e pe jumătate de lățime și rămâne cum e.
+- **Fișiere atinse:** crypto/public/lib/asezare-paznic.js (verdict), crypto/public/app.css, crypto/scripts/proba-v100374.mjs (grupa S ține marcajul capului)
+
+### I-918 · Lista pieței pe telefon: ce contează sus · M · P2
+- **Problema/golul:** Sub 1181 px lista stă deschisă: 1.640–2.200 px, în jur de 25 de rânduri, cele mai multe cu semnul gri (informație). Rândurile roșii și galbene se pierd printre ele, iar capitolul „Jurnalul și dovada” ajunge la 2.000 px sub începutul Pieței.
+- **Soluția:** Rândurile roșii și galbene rămân deschise, în ordinea lor; cele gri se strâng într-un singur rând „încă N informații fără semn”, care se deschide la atingere. Nimic scos.
+- **Impact:** Capitolul Piața se citește într-un ecran; ce cere atenție e primul lucru văzut.
+- **Riscuri/dependențe:** Regula lui „fapta rămâne la vedere, se pliază doar decorul” ⇒ de hotărât de el înainte (gri = informație, nu ceva de făcut). Lista e scrisă în două locuri (cartela și copia de telefon) ⇒ amândouă la fel.
+- **Fișiere atinse:** crypto/public/app.js (desenul listei și copia ei de telefon, tbCitireMobil), crypto/public/app.css
+
+### I-919 · Capitolul își spune starea · S · P3
+- **Problema/golul:** Titlurile de capitol puse în v100.375 au sub ele un text fix („stopul, scenariile și probabilitățile”); nu spun nimic despre azi. Cu toate rândurile pliate, pagina nu se poate citi doar din titluri.
+- **Soluția:** Lângă fiecare titlu, o cifră luată din ce e deja socotit: Decizia — câte lucruri sunt de făcut; Riscul — „stop atins în 24 h: ~29%”; Banii — „−14,5 USDT, din grile +4,2”; Piața — „4 din 6 intervale contra”; Jurnalul — câte alerte în 24 h.
+- **Impact:** Pagina pliată se citește în cinci rânduri.
+- **Riscuri/dependențe:** Încă o copie a unor cifre ⇒ aceeași sursă ca rândul ei (regula „o singură cifră pe ecran” din v100.374); fără cifră când sursa lipsește, nu zero.
+- **Fișiere atinse:** crypto/public/index.html (h3.tbCap), crypto/public/app.js (desenul rândurilor care au deja cifrele), crypto/public/app.css
+
+### I-920 · Telefon: cele 4 cifre înaintea graficului · S · P3
+- **Problema/golul:** Pe telefon „Rezultat total” și celelalte trei cifre stau sub grafic și sub „Ce e pe grafic”, la ~2.700 px de sus; pe calculator stau deasupra graficului.
+- **Soluția:** Sub 1181 px banda urcă între „Contează acum” și grafic doar cu cifrele; rândurile fiecărei cifre rămân sub grafic, ca pe calculator.
+- **Impact:** Banii se văd în al doilea ecran al telefonului.
+- **Riscuri/dependențe:** Sub 1181 px rândurile stau azi în celula cifrei (mutarea lor se face doar de la 1181 în sus) ⇒ pragul trebuie coborât și verificat la 412 / 768 / 1024. Pe 11.11.2026 el a hotărât „sus compact, detaliile sub grafic” pentru calculator — pentru telefon trebuie întrebat.
+- **Fișiere atinse:** crypto/public/app.js (tbKpiAsezare — pragul de 1181 px), crypto/public/app.css
