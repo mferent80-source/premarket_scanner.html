@@ -3589,6 +3589,9 @@ pe un singur chart.
 | I-909 | Proba marginii: clipa trecerii de margine notată PE VIU (boții ținuți peste 7 zile nu intră azi în probă) | crypto/scripts/colector.mjs (bucla care scrie ist:<bot>), crypto/scripts/lib/tura-proba-margine.mjs, crypto/scripts/lib/proba-margine.mjs (episod), crypto/functions/api/istoric-bot.js (drum) | S | P2 | propus | ideation | 2026-11-21 |
 | I-910 | Registrele (sfaturile, Monte Carlo): „ce a urmat la 1 h și la 4 h după sfat”, socotit din drumul botului | crypto/scripts/colector.mjs (turaSocoteala), crypto/scripts/lib/tura-monte-carlo-bot.mjs, crypto/public/lib/semnale-bot.js (socotealaToti), crypto/functions/api/istoric-bot.js (drum, semnale) | M | P2 | propus | ideation | 2026-11-21 |
 | I-911 | Tabloul, capul, botul AFARĂ din grid: de cât timp e afară și câți se mai întorc de acolo (din jurnalul benzii) | crypto/public/lib/cap-margine.js (alcatuieste, text nou), crypto/public/app.js (tbCapMargine; banda e deja adusă pentru Disciplină), crypto/scripts/colector.mjs (oreAfaraPe din turaDisciplinaBanda) | S | P1 | propus | ideation | 2026-11-21 |
+| I-912 | Tabloul: „ai mutat gridul” — ce a schimbat mutarea, în bani (marginile, pierderea la margine, locul stopului) | crypto/public/lib/cap-margine.js, crypto/public/app.js (tbCapMargine; istoricul botului e deja adus pentru grafic), crypto/functions/api/istoric-bot.js (citeste: punctele poartă gridJos / gridSus din v100.374) | S | P1 | propus | ideation | 2026-11-21 |
+| I-913 | Tabloul: stopul pus chiar pe marginea gridului — spus în cap, cu șansa lui și cu ce au făcut boții tăi așa | crypto/public/lib/cap-margine.js (alcatuieste, textIntre), crypto/public/lib/semnale-bot.js (cartela Stopul: eticheta „pus”) | S | P1 | propus | ideation | 2026-11-21 |
+| I-914 | „Dacă muți gridul acum”: recuperarea socotită pe gridul propus de fișă, nu pe ritmul botului vechi | crypto/public/lib/cap-margine.js (textMut), crypto/public/app.js (tbCapMargine, tbFisa), crypto/public/lib/grid-plan.js / grid-proba.js (perechile pe zi ale fișei) | M | P2 | propus | ideation | 2026-11-21 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8706,3 +8709,24 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Hotărârea „mai aștept sau închid” se ia cu timpul și cu șansa întoarcerii în față, exact când costă cel mai mult.
 - **Riscuri/dependențe:** Cifrele benzii sunt descriptive (puține episoade pe treptele lungi) și privesc întoarcerea în grid, nu banii; se spun ca atare, cu numărul de episoade. Banii îi dă proba marginii (I-908) la verdict.
 - **Fișiere atinse:** crypto/public/lib/cap-margine.js (alcatuieste, text nou), crypto/public/app.js (tbCapMargine; banda e deja adusă pentru Disciplină), crypto/scripts/colector.mjs (oreAfaraPe din turaDisciplinaBanda)
+
+### I-912 · „Ai mutat gridul”: ce s-a schimbat · S · P1
+- **Problema/golul:** Pe 21.11.2026, pe la 08:10, a mutat gridul botului pornit (HYPE long: 60–66 a devenit 54–61, același bot). Pagina a trecut pe gridul nou fără să spună nimic despre mutare: pierderea la marginea de jos a urcat de la −7,5 la −35,7 USDT (38% din bani), iar stopul de la 54 a ajuns chiar pe marginea de jos. Din v100.374 fiecare punct al drumului botului ține marginile din clipa lui, deci mutarea se poate vedea.
+- **Soluția:** Un rând în cap, cât timp mutarea e proaspătă (24 h): „Ai mutat gridul la 08:10: 60–66 → 54–61 · la marginea de jos pierzi acum −35,7 USDT (înainte −7,5) · stopul tău (54) e chiar pe margine”. Cifrele vin din același model ca restul paginii (totalCuGridLa pe gridul vechi și pe cel nou).
+- **Impact:** Vede pe loc ce a cumpărat cu mutarea: mai mult loc până la margine, dar o pierdere mai mare acolo.
+- **Riscuri/dependențe:** Ajută doar de la mutările făcute după v100.374 (drumurile vechi nu au marginile). Gridul vechi se ia din ultimul punct cu alte margini.
+- **Fișiere atinse:** crypto/public/lib/cap-margine.js, crypto/public/app.js (tbCapMargine; istoricul botului e deja adus pentru grafic), crypto/functions/api/istoric-bot.js (citeste: punctele poartă gridJos / gridSus din v100.374)
+
+### I-913 · Stopul pe margine · S · P1
+- **Problema/golul:** După mutarea din 21.11 stopul (54) e exact pe marginea de jos (54). Pagina îl dă „pus” (verde) și nu scrie rândul „între margine și stop” (nu e niciun loc între ele). Pe boții lui închiși dincolo de margine cu stop pus (110), 83 aveau stopul chiar la margine (analiza din 20.11, T5): botul se închide la prima atingere, fără loc de întoarcere. Șansa de atingere e chiar cea a marginii (azi ~59 din 100 într-o zi).
+- **Soluția:** Când stopul e la mai puțin de o grilă de margine: un rând în cap „Stopul tău e chiar pe marginea de jos: prima atingere închide botul la −35,7 USDT · o atinge în 24 h în ~59 din 100 de cazuri”, iar cartela Stopul spune „pe margine” în loc de „pus”. Dovada de pe boții lui lângă (câți aveau stopul la margine și ce au făcut), ca descriere.
+- **Impact:** Știe că stopul și marginea sunt același eveniment și cât costă, înainte să se întâmple.
+- **Riscuri/dependențe:** Nu e un sfat de mutat stopul (mai departe înseamnă pierdere mai mare): doar faptul și cifrele. Dovada e contabilitate cu selecție.
+- **Fișiere atinse:** crypto/public/lib/cap-margine.js (alcatuieste, textIntre), crypto/public/lib/semnale-bot.js (cartela Stopul: eticheta „pus”)
+
+### I-914 · Recuperarea, pe gridul din fișă · M · P2
+- **Problema/golul:** Blocul „Dacă muți gridul acum” (v100.374) spune cât i-ar lua unui grid nou să scoată pierderea „la ritmul botului de acum” — ritmul unui grid care tocmai n-a mers. Fișa monedei are deja gridul propus la prețul de acum și perechile pe zi așteptate (din cele 30 de zile dinainte); comisionul de intrare al botului nou e doar estimat (jumătate din bani × levier).
+- **Soluția:** Rândul devine: „cu gridul din fișă (jos–sus, N grile, levier L): ≈ X USDT pe zi din grile ⇒ pierderea de 22,9 se scoate în ~Z zile, dacă prețul rămâne în el; intrarea costă ≈ C USDT”, cu ritmul botului vechi păstrat alături, ca reper.
+- **Impact:** Compară mutarea cu ce ar porni de fapt, nu cu trecutul botului.
+- **Riscuri/dependențe:** Perechile fișei sunt o așteptare din istorie (se spune ca atare); când fișa zice „nu porni”, rândul o spune și nu mai socotește zile.
+- **Fișiere atinse:** crypto/public/lib/cap-margine.js (textMut), crypto/public/app.js (tbCapMargine, tbFisa), crypto/public/lib/grid-plan.js / grid-proba.js (perechile pe zi ale fișei)
