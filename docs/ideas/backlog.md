@@ -3598,6 +3598,7 @@ pe un singur chart.
 | I-918 | „Ce spune piața acum” pe telefon: rândurile roșii și galbene rămân deschise, cele fără semn se strâng într-un rând numărat („încă N informații”) | crypto/public/app.js (desenul listei și copia ei de telefon, tbCitireMobil), crypto/public/app.css | M | P2 | propus | ideation | 2026-11-21 |
 | I-919 | Titlurile capitolelor Tabloului poartă starea de azi — o cifră vie lângă fiecare (Riscul: stopul atins în 24 h; Banii: totalul și cât din grile; Piața: câte intervale contra) | crypto/public/index.html (h3.tbCap), crypto/public/app.js (desenul rândurilor care au deja cifrele), crypto/public/app.css | S | P3 | propus | ideation | 2026-11-21 |
 | I-920 | Tabloul botului pe telefon: cele 4 cifre (Rezultat total, lichidarea, prețul în grid, piața) înaintea graficului, cu rândurile lor rămase sub grafic | crypto/public/app.js (tbKpiAsezare — pragul de 1181 px), crypto/public/app.css | S | P3 | propus | ideation | 2026-11-21 |
+| I-921 | Pagina Probe: „La boții porniți acum” — lângă regulile „închid la −5% din sumă” și „închid după 4 ore pe minus”, câți boți porniți sunt chiar în clipa regulii și câți bani înseamnă | crypto/public/lib/probe-ecran.js (prPorniti, prPornitiText), crypto/public/app.css | S | P2 | făcut | tcc-idei | 2026-11-22 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8778,3 +8779,11 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Banii se văd în al doilea ecran al telefonului.
 - **Riscuri/dependențe:** Sub 1181 px rândurile stau azi în celula cifrei (mutarea lor se face doar de la 1181 în sus) ⇒ pragul trebuie coborât și verificat la 412 / 768 / 1024. Pe 11.11.2026 el a hotărât „sus compact, detaliile sub grafic” pentru calculator — pentru telefon trebuie întrebat.
 - **Fișiere atinse:** crypto/public/app.js (tbKpiAsezare — pragul de 1181 px), crypto/public/app.css
+
+### I-921 · Pagina Probe: „La boții porniți acum” · S · P2
+- **Problema/golul:** Pagina Probe arată cum stă fiecare regulă pusă la probă, dar nu spune dacă un bot al lui e chiar ACUM în situația judecată; legătura cu hotărârea de azi lipsea.
+- **Soluția:** Pe rândurile „închid la −5% din sumă” și „închid după 4 ore pe minus” un rând nou spune câți boți porniți sunt în clipa regulii și totalul lor față de suma pusă. Aceleași praguri ca episodul probei și ca alerta de 4 ore; lista boților e cea a Tabloului, fără altă cerere. Un fapt, fără sfat.
+- **Impact:** Vede lângă proba fără verdict câți bani are în joc în exact situația pe care proba o judecă.
+- **Riscuri/dependențe:** Rândul îi poate schimba purtarea (ca alerta): boții închiși acolo intră în probă cu diferența zero. Notat în cele două pre-înregistrări (22.11.2026, 20:46).
+- **Fișiere atinse:** crypto/public/lib/probe-ecran.js, crypto/public/app.css
+- **Status:** făcut în Radar v100.377 (`12b344e3`, 22.11.2026).
