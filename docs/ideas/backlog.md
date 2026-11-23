@@ -3599,6 +3599,11 @@ pe un singur chart.
 | I-919 | Titlurile capitolelor Tabloului poartă starea de azi — o cifră vie lângă fiecare (Riscul: stopul atins în 24 h; Banii: totalul și cât din grile; Piața: câte intervale contra) | crypto/public/index.html (h3.tbCap), crypto/public/app.js (desenul rândurilor care au deja cifrele), crypto/public/app.css | S | P3 | propus | ideation | 2026-11-21 |
 | I-920 | Tabloul botului pe telefon: cele 4 cifre (Rezultat total, lichidarea, prețul în grid, piața) înaintea graficului, cu rândurile lor rămase sub grafic | crypto/public/app.js (tbKpiAsezare — pragul de 1181 px), crypto/public/app.css | S | P3 | propus | ideation | 2026-11-21 |
 | I-921 | Pagina Probe: „La boții porniți acum” — lângă regulile „închid la −5% din sumă” și „închid după 4 ore pe minus”, câți boți porniți sunt chiar în clipa regulii și câți bani înseamnă | crypto/public/lib/probe-ecran.js (prPorniti, prPornitiText), crypto/public/app.css | S | P2 | făcut | tcc-idei | 2026-11-22 |
+| I-922 | Tabloul botului: banda mișcării prețului — 24 h · 3 zile · 7 zile · 30 de zile, pe viu, cu locul prețului între minimul și maximul ferestrei și „de N ori o zi obișnuită” | crypto/public/app.js (PERIOADE, tura semaforului), crypto/public/lib/pret-viu.js, crypto/public/lib/grid-calcul.js (regim), crypto/public/index.html, crypto/public/app.css | S | P1 | propus | ideation | 2026-11-23 |
+| I-923 | Tabloul botului: cât a făcut BOTUL azi / 3 zile / 7 zile, în USDT, despărțit în grile și poziție (din istoria scrisă de colector o dată pe minut) | crypto/functions/api/istoric-bot.js, crypto/public/app.js (banda celor 4 cifre), crypto/public/lib/tablou-extra.js, crypto/public/app.css | M | P1 | propus | ideation | 2026-11-23 |
+| I-924 | Trading 212: coloanele „Azi” (procent + lei) și „5 zile” pe fiecare poziție, procentul lângă curba de 30 de zile și rândul „Contul azi” cu pozițiile care fac ziua | crypto/public/lib/t212-ecran.js (rândul poziției, cap212, t212SparkHtml), crypto/public/lib/t212.js, crypto/public/lib/calendar-bursa.js, crypto/public/app.css | M | P1 | propus | ideation | 2026-11-23 |
+| I-925 | Mișcarea față de piață pe aceeași fereastră: moneda botului față de BTC, acțiunea față de Nasdaq-100, în puncte procentuale (regula există doar în Scanner, pe 7 zile) | crypto/public/lib/scan.js (rel), crypto/public/app.js, crypto/public/lib/t212-ecran.js | S | P2 | propus | ideation | 2026-11-23 |
+| I-926 | Piața azi: linia „Banii tăi azi” — boții DESCHIȘI (USDT) + Trading 212 (lei), azi și pe 7 zile, cu lista după mișcarea de azi | crypto/public/lib/acasa-ecran.js, crypto/public/lib/cont-intreg.js, crypto/scripts/lib/tura-cont.mjs | M | P2 | propus | ideation | 2026-11-23 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8787,3 +8792,38 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Riscuri/dependențe:** Rândul îi poate schimba purtarea (ca alerta): boții închiși acolo intră în probă cu diferența zero. Notat în cele două pre-înregistrări (22.11.2026, 20:46).
 - **Fișiere atinse:** crypto/public/lib/probe-ecran.js, crypto/public/app.css
 - **Status:** făcut în Radar v100.377 (`12b344e3`, 22.11.2026).
+
+### I-922 · Tabloul botului: banda mișcării prețului · S · P1
+- **Problema/golul:** Tabloul are prețul viu și graficul pe patru perioade (24 de ore, 3 zile, 7 zile, 30 de zile), dar nicio cifră „cât a urcat sau a scăzut”. Ca s-o afle, schimbă perioada graficului și socotește din ochi. Cererea lui din 23.11.2026: „să fie vizibilă mișcarea live, cât a crescut astăzi sau scăzut, 3 zile, 5–7”.
+- **Soluția:** Sub prețul viu, un rând cu patru căsuțe: procentul cu semn pe fiecare fereastră, o riglă mică cu locul prețului de acum între minimul și maximul ferestrei și, la 24 h, „de N ori o zi obișnuită a ei” din regimul deja socotit. Cifrele se schimbă în nodurile existente la fiecare preț viu, fără rescrierea paginii. Atingerea unei căsuțe trece graficul pe perioada ei.
+- **Impact:** Vede dintr-o privire dacă botul stă într-o mișcare de o zi sau de o săptămână și dacă mișcarea e neobișnuită (singurul lucru dovedit la Busolă: nu porni grid după mișcare).
+- **Riscuri/dependențe:** „Azi” la crypto = ultimele 24 h (ca în Pionex) sau de la miezul nopții, ora României — de hotărât de el. Lumânări lipsă ⇒ „—”, nu zero. E un fapt, nu un semnal: direcția a fost probată de opt ori pe datele lui și a ieșit ban; culoare doar pe semn, fără verdict.
+- **Fișiere atinse:** crypto/public/app.js (PERIOADE, tura semaforului are deja lumânările), crypto/public/lib/pret-viu.js, crypto/public/lib/grid-calcul.js (regim), crypto/public/index.html, crypto/public/app.css
+
+### I-923 · Tabloul botului: cât a făcut BOTUL azi / 3 zile / 7 zile · M · P1
+- **Problema/golul:** „Rezultat total” e de la pornire. Nu se vede dacă pierderea crește sau se strânge, nici dacă grilele acoperă ce pierde poziția într-o zi. Colectorul scrie deja botul o dată pe minut (profitul total, grilele, comisioanele, prețul), ținut 7 zile.
+- **Soluția:** Sub banda celor 4 cifre: „Botul: azi −3,2 USDT (grile +1,1 · poziția −4,3) · 3 zile … · 7 zile …”, după comisioane, cu prețul pe aceeași fereastră alături. Bot mai tânăr decât fereastra ⇒ „de la pornire (2 zile)”, nu o cifră inventată.
+- **Impact:** „Îl țin / îl închid” se judecă pe direcția banilor, nu pe total; se vede câte zile de grile costă o zi contra.
+- **Riscuri/dependențe:** Istoria e de 7 zile și doar pe server (pagina publicată n-o are). Goluri când colectorul a stat ⇒ fereastra se spune „incompletă”. Gridul mutat la același bot se marchează. Finanțarea e deja în net — nu se scade a doua oară.
+- **Fișiere atinse:** crypto/functions/api/istoric-bot.js (citirea seriei), crypto/public/app.js (banda celor 4 cifre), crypto/public/lib/tablou-extra.js, crypto/public/app.css
+
+### I-924 · Trading 212: „Azi” și „5 zile” pe poziție + „Contul azi” · M · P1
+- **Problema/golul:** Tabelul pozițiilor are Acum, Rezultat (de la cumpărare), Stop, Țintă, Trend, Din cont, Plan și o curbă pe 30 de zile fără cifră. Nu spune cât s-a mișcat azi nicio poziție și nici contul.
+- **Soluția:** Două coloane: „Azi” (față de închiderea de ieri: procent și lei) și „5 zile” (o săptămână de bursă); curba de 30 de zile își primește procentul. Deasupra tabelului: „Contul azi: −312,4 lei (−0,8%) · cel mai mult: NVDA −190,0 · MU +85,5”. Din barele zilnice deja aduse și prețul viu. Cu bursa închisă: „ultima ședință, vineri”.
+- **Impact:** Vede care poziție face ziua contului; o poziție care face singură peste jumătate din zi e concentrare (legat de plafonul de 20%).
+- **Riscuri/dependențe:** Mișcarea în lei cuprinde și cursul dolar / leu (se spune). Pence / lire, prețuri găsite după numele firmei, splituri ⇒ „—” când seria e nesigură. Europa și SUA au ore diferite. Pe telefon coloanele noi coboară sub nume.
+- **Fișiere atinse:** crypto/public/lib/t212-ecran.js (rândul poziției, cap212, t212SparkHtml), crypto/public/lib/t212.js, crypto/public/lib/calendar-bursa.js, crypto/public/app.css
+
+### I-925 · Mișcarea față de piață, pe aceeași fereastră · S · P2
+- **Problema/golul:** „−6% în 3 zile” nu spune dacă e moneda sau toată piața. Scannerul are deja „față de piață pe 7 zile”; Tabloul și Trading 212 nu.
+- **Soluția:** Sub fiecare procent din I-922 și I-924: „BTC −1,1% ⇒ −5,1 puncte”; la acțiuni față de Nasdaq-100. Simetric, plus și minus.
+- **Impact:** Dacă toată piața cade, schimbarea monedei nu ajută; dacă doar a lui cade, e riscul ei.
+- **Riscuri/dependențe:** Depinde de I-922 / I-924. Lumânările BTC din cache-ul existent, fără cereri noi pe minut. Reperul pentru acțiunile din Europa de ales. Puncte procentuale, nu „beta”.
+- **Fișiere atinse:** crypto/public/lib/scan.js (regula rel), crypto/public/app.js, crypto/public/lib/t212-ecran.js
+
+### I-926 · Piața azi: linia „Banii tăi azi” · M · P2
+- **Problema/golul:** Frâna zilei și scorul numără boții închiși (de verificat la implementare ce intră în `netZi`); cât s-au mișcat azi banii din boții DESCHIȘI și din acțiuni nu se vede adunat nicăieri.
+- **Soluția:** O linie: „Azi: boții deschiși −14,2 USDT · Trading 212 +212,0 lei · 7 zile: …”; la atingere, lista boților după mișcarea de azi. Din cifrele I-923 și I-924, aceeași sursă.
+- **Impact:** Ziua întreagă într-un rând; vede când pierderea nerealizată a zilei trece de pragul lui de frână înainte s-o închidă.
+- **Riscuri/dependențe:** Depinde de I-923 și I-924. USDT și lei rămân separate, sau în lei la cursul BNR, spus. Rândurile zilnice ale contului există deja — nu se face a doua cifră pentru același lucru.
+- **Fișiere atinse:** crypto/public/lib/acasa-ecran.js, crypto/public/lib/cont-intreg.js, crypto/scripts/lib/tura-cont.mjs
