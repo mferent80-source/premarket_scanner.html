@@ -3604,6 +3604,9 @@ pe un singur chart.
 | I-924 | Trading 212: coloanele „Azi” (procent + lei) și „5 zile” pe fiecare poziție, procentul lângă curba de 30 de zile și rândul „Contul azi” cu pozițiile care fac ziua | crypto/public/lib/t212-ecran.js (rândul poziției, cap212, t212SparkHtml), crypto/public/lib/t212.js, crypto/public/lib/calendar-bursa.js, crypto/public/app.css | M | P1 | propus | ideation | 2026-11-23 |
 | I-925 | Mișcarea față de piață pe aceeași fereastră: moneda botului față de BTC, acțiunea față de Nasdaq-100, în puncte procentuale (regula există doar în Scanner, pe 7 zile) | crypto/public/lib/scan.js (rel), crypto/public/app.js, crypto/public/lib/t212-ecran.js | S | P2 | propus | ideation | 2026-11-23 |
 | I-926 | Piața azi: linia „Banii tăi azi” — boții DESCHIȘI (USDT) + Trading 212 (lei), azi și pe 7 zile, cu lista după mișcarea de azi | crypto/public/lib/acasa-ecran.js, crypto/public/lib/cont-intreg.js, crypto/scripts/lib/tura-cont.mjs | M | P2 | propus | ideation | 2026-11-23 |
+| I-927 | Ipoteză bot Pionex: CONTRA după golirea forțată (lichidări) — cădere bruscă ≥ k×ATR în 1–3 bare de 15m cu volum ×3 și vânzători taker dominanți ⇒ LONG ținut câteva ore (simetric SHORT după strângere); probă pe 1–2 ani de klines Binance, reguli înainte, explorare/test, verdict în BANI | pine-scripts/_proba-golire-fortata/ (nou), pine-scripts/RANGE-FILTER/_proba-rf-2026-11-04/optimizeaza_15m.py (motorul de simulare refolosit) | M | P1 | propus | ideation | 2026-11-23 |
+| I-928 | Ipoteză bot Pionex: SHORT pe monedele nou listate pe perp, după primele zile, ținut 2–4 săptămâni (presiunea deblocărilor / airdrop-urilor, float mic, evaluare mare) cu stop larg și garda pe funding negativ; probă pe toate listările Binance perp din 2–3 ani (onboardDate) | pine-scripts/_proba-listari-noi/ (nou) | M | P1 | propus | ideation | 2026-11-23 |
+| I-929 | Ipoteză bot Pionex: forța relativă ÎNTRE monede, neutru față de piață — săptămânal LONG cele mai tari 3 / SHORT cele mai slabe 3 din coșul lui, sume egale; ÎNTÂI verific că nu e proba „momentum lung” din 03.11 (6 variante picate) | pine-scripts/_proba-trade-zilei-2026-11-03/ (de citit), pine-scripts/_proba-forta-relativa/ (nou) | M | P2 | propus | ideation | 2026-11-23 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8827,3 +8830,24 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Ziua întreagă într-un rând; vede când pierderea nerealizată a zilei trece de pragul lui de frână înainte s-o închidă.
 - **Riscuri/dependențe:** Depinde de I-923 și I-924. USDT și lei rămân separate, sau în lei la cursul BNR, spus. Rândurile zilnice ale contului există deja — nu se face a doua cifră pentru același lucru.
 - **Fișiere atinse:** crypto/public/lib/acasa-ecran.js, crypto/public/lib/cont-intreg.js, crypto/scripts/lib/tura-cont.mjs
+
+### I-927 · Bot Pionex: CONTRA după golirea forțată (lichidări) · M · P1
+- **Problema/golul:** Range Filter pe 15m a picat azi (0/72 variante pe plus în bani); toate ipotezele de DIRECȚIE testate până acum (taker, BTC → altcoin, momentum, spargere) au picat. Lipsește o ipoteză în care cineva e FORȚAT să tranzacționeze prost.
+- **Soluția:** Mecanismul: la o cădere bruscă, lichidările vând la orice preț; cine cumpără golirea e plătit pentru lichiditate și prețul revine parțial în ore. Regula fixată înainte: cădere ≥ k×ATR în 1–3 bare de 15m + volum ≥ 3× media + vânzători taker ≥ 65 % (din klines, câmpul taker buy volume, disponibil pe ani) ⇒ LONG la închidere, ieșire după N ore sau la stop sub minimul golirii; simetric SHORT după strângere. Explorare / test pe timp, verdictul pe media pe tranzacție, cost 0,13 % + funding.
+- **Impact:** Puține semnale (evenimente), mișcări mari față de cost ⇒ costul nu mai mănâncă tot ca la 15m. Se potrivește cu Signal Bot (un semnal de intrare, unul de ieșire).
+- **Riscuri/dependențe:** Golirea poate continua (cuțitul care cade) ⇒ stop obligatoriu și mărime din risc. Lichidările reale (OI) au doar 30 de zile în API ⇒ se folosește aproximarea din klines. Dovada contra dinainte: spargerea se întoarce doar 53 % (D0) ⇒ semnal slab, poate pica.
+- **Fișiere atinse:** pine-scripts/_proba-golire-fortata/ (nou), motorul de simulare din pine-scripts/RANGE-FILTER/_proba-rf-2026-11-04/optimizeaza_15m.py
+
+### I-928 · Bot Pionex: SHORT pe monedele nou listate pe perp · M · P1
+- **Problema/golul:** Toate ipotezele testate erau despre preț; niciuna despre OFERTĂ. Monedele noi au float mic, evaluare mare și deblocări programate — vânzători care vând indiferent de preț.
+- **Soluția:** Mecanismul: primitorii de airdrop, fondurile și echipa vând pe măsură ce se deblochează; cumpărătorii sunt atrași de listare. Regula fixată înainte: la ziua D+3 de la listarea pe Binance perp (onboardDate din exchangeInfo), SHORT, ținut 14 / 28 de zile, stop larg (de ex. +40 %), nu se intră dacă funding-ul e deja foarte negativ (short aglomerat). Probă pe toate listările din 2–3 ani (inclusiv cele delistate, ca să nu rămână doar supraviețuitorii), verdict în bani.
+- **Impact:** Câteva tranzacții pe lună, ținute săptămâni ⇒ costul de 0,13 % devine neglijabil; dacă trece, e un bot simplu pe Pionex (un semnal la intrare, unul la ieșire).
+- **Riscuri/dependențe:** Strângerile pe short la monede noi pot fi violente (+100 % într-o zi) ⇒ mărime mică pe tranzacție și multe tranzacții în paralel; funding negativ pe short aglomerat costă; Pionex nu listează toate monedele Binance ⇒ se probează pe intersecție. Monedele delistate lipsesc din exchangeInfo ⇒ lista se ia din istoric.
+- **Fișiere atinse:** pine-scripts/_proba-listari-noi/ (nou)
+
+### I-929 · Bot Pionex: forța relativă între monede, neutru față de piață · M · P2
+- **Problema/golul:** Direcția pieței nu se poate prezice (8 probe picate); o strategie neutră (jumătate long, jumătate short) nu are nevoie de direcția pieței, doar de ordinea între monede.
+- **Soluția:** Mecanismul: atenția și banii se concentrează pe câteva monede săptămâni la rând (efect documentat la 1–4 săptămâni în crypto). Regula: în fiecare luni, LONG cele mai tari 3 / SHORT cele mai slabe 3 din coșul lui după randamentul pe 14 zile, sume egale, ținute o săptămână. ÎNTÂI citesc proba „momentum lung” din 03.11: dacă a fost aceeași regulă, ideea se închide fără probă nouă.
+- **Impact:** 6 tranzacții pe săptămână ⇒ cost mic; pierderea nu depinde de căderea pieței.
+- **Riscuri/dependențe:** Pe Pionex înseamnă 6 boți de semnal în paralel (complicat de ținut); legătura dintre monede crește în căderi bruște ⇒ neutralitatea se strică exact când contează. Poate fi o repetare a probei picate din 03.11.
+- **Fișiere atinse:** pine-scripts/_proba-trade-zilei-2026-11-03/ (de citit), pine-scripts/_proba-forta-relativa/ (nou)
