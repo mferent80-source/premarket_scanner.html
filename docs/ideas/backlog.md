@@ -3607,6 +3607,18 @@ pe un singur chart.
 | I-927 | Ipoteză bot Pionex: CONTRA după golirea forțată (lichidări) — cădere bruscă ≥ k×ATR în 1–3 bare de 15m cu volum ×3 și vânzători taker dominanți ⇒ LONG ținut câteva ore (simetric SHORT după strângere); probă pe 1–2 ani de klines Binance, reguli înainte, explorare/test, verdict în BANI | pine-scripts/_proba-golire-fortata/ (nou), pine-scripts/RANGE-FILTER/_proba-rf-2026-11-04/optimizeaza_15m.py (motorul de simulare refolosit) | M | P1 | propus | ideation | 2026-11-23 |
 | I-928 | Ipoteză bot Pionex: SHORT pe monedele nou listate pe perp, după primele zile, ținut 2–4 săptămâni (presiunea deblocărilor / airdrop-urilor, float mic, evaluare mare) cu stop larg și garda pe funding negativ; probă pe toate listările Binance perp din 2–3 ani (onboardDate) | pine-scripts/_proba-listari-noi/ (nou) | M | P1 | propus | ideation | 2026-11-23 |
 | I-929 | Ipoteză bot Pionex: forța relativă ÎNTRE monede, neutru față de piață — săptămânal LONG cele mai tari 3 / SHORT cele mai slabe 3 din coșul lui, sume egale; ÎNTÂI verific că nu e proba „momentum lung” din 03.11 (6 variante picate) | pine-scripts/_proba-trade-zilei-2026-11-03/ (de citit), pine-scripts/_proba-forta-relativa/ (nou) | M | P2 | propus | ideation | 2026-11-23 |
+| I-930 | Radar Tablou: curba botului de la pornire — totalul, partea din grile și partea din poziție, cu cea mai mare cădere și cel mai bun moment | crypto: public/lib/grafic-bot.js, public/app.js (Banii botului), scripts/colector.mjs (istoria pe minut, I-923) | M | P1 | propus | ideation | 2026-11-24 |
+| I-931 | Radar Tablou: fluxul monedei botului — interesul deschis (1 h / 24 h), funding-ul pe 3 zile în BANI pentru poziția lui, lichidările din piață și long/short | crypto: public/app.js (Piața: chip-ul Funding), datele din pagina Futures · funding și OI | M | P1 | propus | ideation | 2026-11-24 |
+| I-932 | Radar Tablou: graficul cu zoom / mutare, cruce cu prețul, ora și distanța până la stop / TP / zero, și ecran întreg pe telefon | crypto: public/lib/grafic-bot.js, public/lib/asezare-paznic.js | M | P1 | propus | ideation | 2026-11-24 |
+| I-933 | Radar Tablou: o singură cifră pentru șansa stopului pe toată pagina (azi 3–4 valori diferite în cap, Contează acum, titlul Riscului, blocul Monte Carlo) | crypto: public/lib/cap-margine.js, public/lib/conteaza.js, public/app.js (titlul Riscului, blocul Monte Carlo) | S | P1 | propus | ideation | 2026-11-24 |
+| I-934 | Radar Tablou: stările de așteptare care nu se mai termină — lumânările pe TF-uri (5 din 6), Mișcarea, fișa monedei, clasamentul, notele TradingView | crypto: public/app.js (coada cererilor Tabloului), public/lib/tablou-trend.js | M | P1 | propus | ideation | 2026-11-24 |
+| I-935 | Radar: instantaneul botului — un buton care salvează botul, lumânările și ce a socotit pagina (cu ora), plus istoricul pe ture al verdictului Monte Carlo în colector | crypto: public/app.js (Tablou), scripts/lib/tura-monte-carlo-bot.mjs (KV mcVerdict) | S | P1 | propus | ideation | 2026-11-24 |
+| I-936 | Radar Tablou: VWAP ancorat la pornirea botului și prețul mediu de intrare al poziției, ca linii pe grafic | crypto: public/lib/grafic-bot.js (linia „intrarea medie” există doar în legendă), public/app.js (anchoredVWAP există pe altă pagină) | S | P2 | propus | ideation | 2026-11-24 |
+| I-937 | Radar Tablou: harta umplerilor pe liniile gridului — câte perechi pe fiecare nivel, nivelurile moarte, unde stă inventarul | crypto: public/lib/grafic-bot.js (umplerile deduse din lumânările de 1 min), public/lib/grid-umpleri.js | M | P2 | propus | ideation | 2026-11-24 |
+| I-938 | Radar Tablou: riscul de piață al monedei — vârsta contractului perp, prețul mark față de ultimul preț (pe ce se declanșează stopul la Pionex), volumul Pionex față de Binance | crypto: public/app.js (capul Tabloului), functions/api (citirea Pionex) | M | P2 | propus | ideation | 2026-11-24 |
+| I-939 | Radar Tablou: capitolele ca file, nu ca derulare — 13.600 px pe calculator și 31.300 px pe telefon cu tot deschis; bara din stânga fără lista „Laborator vechi” | crypto: public/index.html, public/app.js (capitolele Decizia / Riscul / Banii / Piața / Jurnalul), public/app.css | M | P2 | propus | ideation | 2026-11-24 |
+| I-940 | Radar: Tabloul scos din app.js (9.651 de rânduri) într-un modul al lui, cu o probă pe un bot ÎNGHEȚAT (instantaneul din I-935) | crypto: public/app.js (funcțiile tb*), public/lib/tablou-*.js, scripts/proba-* | L | P3 | propus | ideation | 2026-11-24 |
+| I-941 | Radar: probele pe comportament, nu pe textul codului — azi 3 probe vechi au picat doar pentru că un apel a primit un câmp nou | crypto: scripts/proba-v100139.mjs, proba-v100140.mjs, proba-v100354.mjs (și celelalte care fixează apeluri la literă) | M | P3 | propus | ideation | 2026-11-24 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8856,3 +8868,87 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** 6 tranzacții pe săptămână ⇒ cost mic; pierderea nu depinde de căderea pieței.
 - **Riscuri/dependențe:** Pe Pionex înseamnă 6 boți de semnal în paralel (complicat de ținut); legătura dintre monede crește în căderi bruște ⇒ neutralitatea se strică exact când contează. Poate fi o repetare a probei picate din 03.11.
 - **Fișiere atinse:** pine-scripts/_proba-trade-zilei-2026-11-03/ (de citit), pine-scripts/_proba-forta-relativa/ (nou)
+
+### I-930 · Radar Tablou: curba botului de la pornire — totalul, partea din grile și partea din poziție, cu cea mai mare cădere și cel mai bun moment · M · P1
+- **Problema/golul:** Azi „Banii botului” e o listă de cifre de ACUM și „Săptămâna botului” o singură bară pe zi. Un trader își judecă botul după drum: cât a coborât cel mai jos de la pornire, cât a fost cel mai sus, dacă grilele țin pasul cu poziția.
+- **Soluția:** Un grafic mic sub „Banii botului”, de la pornire până acum: totalul (linie groasă), câștigul din grile (urcă în trepte) și rezultatul poziției (diferența), din istoria scrisă de colector o dată pe minut (I-923). Lângă el, două cifre: cea mai mare cădere de la pornire (MAE) și cel mai bun moment (MFE), cu ora lor.
+- **Impact:** Hotărârea „îl țin / îl închid” se ia pe drumul real, nu pe o poză de acum; MAE arată cât de aproape a fost deja de stop.
+- **Riscuri/dependențe:** Istoria pe minut există doar de când rulează colectorul pe VPS și doar pentru boții prinși de el; boții vechi n-au curbă întreagă (se spune pe nume).
+- **Fișiere atinse:** crypto: public/lib/grafic-bot.js, public/app.js (Banii botului), scripts/colector.mjs (istoria pe minut, I-923)
+
+### I-931 · Radar Tablou: fluxul monedei botului — interesul deschis (1 h / 24 h), funding-ul pe 3 zile în BANI pentru poziția lui, lichidările din piață și long/short · M · P1
+- **Problema/golul:** Pe Tablou, din fluxul pieței apare doar chip-ul „Funding: +0,0235%”. Pentru un short pe o monedă nouă (BULLA) contează dacă interesul deschis crește cu prețul (shorturi prinse ⇒ risc de squeeze) și cât îl costă funding-ul pe zi, în USDT, cu poziția lui. Datele există deja pe pagina Futures.
+- **Soluția:** Un rând în capitolul Riscul: OI acum și schimbarea pe 1 h / 24 h, funding-ul ultimelor 9 plăți și următoarea, în USDT pentru poziția botului (semnul: plătește / încasează), lichidările din piață pe ultima oră pe partea botului și raportul long/short. Culoarea doar când două dintre ele merg contra botului deodată.
+- **Impact:** Prinde din timp squeeze-ul contra unui short (sau capitularea contra unui long) — riscul care rupe gridul, nu zgomotul.
+- **Riscuri/dependențe:** Sursa e Binance (Pionex nu dă OI); monedele fără contract Binance rămân fără rând. Un semn nou ⇒ ipoteză, de măsurat pe boții lui înainte să devină „voce”.
+- **Fișiere atinse:** crypto: public/app.js (Piața: chip-ul Funding), datele din pagina Futures · funding și OI
+
+### I-932 · Radar Tablou: graficul cu zoom / mutare, cruce cu prețul, ora și distanța până la stop / TP / zero, și ecran întreg pe telefon · M · P1
+- **Problema/golul:** Graficul botului e static: nu se poate mări, muta sau citi o lumânare (zero ascultători de mișcare / rotiță în grafic-bot.js). Pe telefon are ~400 px lățime. Un trader citește graficul cu crucea: prețul, ora și cât e până la niveluri.
+- **Soluția:** Crucea la trecerea cu mouse-ul / degetul: prețul, ora, OHLC-ul lumânării și distanța în % și în USDT până la stop, TP, zero și marginile gridului. Rotița / ciupitul mărește pe timp, tragerea mută; dublu-clic revine. Pe telefon, un buton „ecran întreg” rotit pe lat.
+- **Impact:** Citirea nivelurilor fără să socotească în cap; graficul devine unealtă, nu poză.
+- **Riscuri/dependențe:** Desenul e SVG refăcut la fiecare preț viu — zoom-ul trebuie să țină fereastra aleasă peste reîmprospătări; atenție la ascultătorii delegați pierduți la mutarea nodurilor (capcana din memorie).
+- **Fișiere atinse:** crypto: public/lib/grafic-bot.js, public/lib/asezare-paznic.js
+
+### I-933 · Radar Tablou: o singură cifră pentru șansa stopului pe toată pagina (azi 3–4 valori diferite în cap, Contează acum, titlul Riscului, blocul Monte Carlo) · S · P1
+- **Problema/golul:** În aceeași clipă pagina arăta „~77%” (curba stopului) în cap, în Contează acum și în titlul Riscului, „34,5% în 4 h” în cap (Monte Carlo) și „stopul atins într-o zi 54,2%” în blocul Monte Carlo. Sunt cifre cu întrebări diferite (prețul atinge nivelul vs botul iese întâi pe stop), dar titlurile le spun la fel. Înrudit cu I-902 (aceeași problemă la „atinge marginea”).
+- **Soluția:** O singură cifră principală, aceeași peste tot, cu întrebarea ei scrisă („botul iese pe stop în 24 h”); cealaltă (prețul atinge nivelul) apare doar ca reper, cu numele ei, în același loc. Proba de pagină verifică că valoarea e identică în toate locurile.
+- **Impact:** Nu mai citește două cifre care par să se contrazică într-o hotărâre de bani (exact plângerea de azi).
+- **Riscuri/dependențe:** Depinde de v100.383 (Monte Carlo din banii din Pionex) — întâi cifrele corecte, apoi una singură.
+- **Fișiere atinse:** crypto: public/lib/cap-margine.js, public/lib/conteaza.js, public/app.js (titlul Riscului, blocul Monte Carlo)
+
+### I-934 · Radar Tablou: stările de așteptare care nu se mai termină — lumânările pe TF-uri (5 din 6), Mișcarea, fișa monedei, clasamentul, notele TradingView · M · P1
+- **Problema/golul:** Pe Radarul viu, la ~20 s după deschidere (cu „Deschide tot”): „Trendul pe TF-uri” 5 din 6 intervale „se aduc lumânările”, Mișcarea doar „—”, „Încă socotesc fișa monedei”, „Aștept clasamentul”, „Aștept notele TradingView”, „Piața față de bot —”. Capul spune „din 6 intervale: 1 lateral, 5 fără lumânări” — o hotărâre fără jumătate din voci. I-848 (deschiderea fără coada de cereri) era făcută — de verificat dacă e o întoarcere.
+- **Soluția:** Întâi măsurat: ce cereri pleacă la deschidere, în ce ordine, cât durează fiecare și care cad (Pionex / Binance / limite). Apoi ordinea după ce contează pentru hotărâre (prețul, gridul, intervalele de 1 h / 4 h înaintea celor de 5 min), cache-ul comun de lumânări (I-808) folosit și aici, și o stare „n-a venit în 15 s — reîncerc / sursa X nu răspunde” în loc de așteptarea fără capăt.
+- **Impact:** Verdictul și „Vremea” se sprijină pe toate vocile, nu pe una din șase.
+- **Riscuri/dependențe:** Poate fi o cădere de moment a unei surse sau limita de cereri — de aceea întâi măsurătoarea, apoi reparația (rută: trading-code-craft).
+- **Fișiere atinse:** crypto: public/app.js (coada cererilor Tabloului), public/lib/tablou-trend.js
+
+### I-935 · Radar: instantaneul botului — un buton care salvează botul, lumânările și ce a socotit pagina (cu ora), plus istoricul pe ture al verdictului Monte Carlo în colector · S · P1
+- **Problema/golul:** Azi (24.11) n-am putut reface cifrele exacte din poza cartelei BULLA: colectorul ține doar ULTIMA socotire, fără istoric pe ture, iar datele botului se schimbă de la minut la minut.
+- **Soluția:** Pe Tablou, „salvează clipa asta”: un fișier cu botul (câmpurile citite de setariDinBot), lumânările de 15 minute, setările simulării și rezultatul ei (cifrele de pe cartelă). În colector: ultimele ~48 de socotiri Monte Carlo pe bot (ora, prețul, totalul Pionex, pStop / pTp pe 1 h / 4 h / 24 h), ca să se vadă când și de ce a sărit o cifră.
+- **Impact:** O cifră suspectă se refăcută exact, nu ghicită — reparația pornește din dovadă (cum a cerut el azi).
+- **Riscuri/dependențe:** Fișierul conține date de cont (poziția, sumele) — rămâne local, fără id-urile contului.
+- **Fișiere atinse:** crypto: public/app.js (Tablou), scripts/lib/tura-monte-carlo-bot.mjs (KV mcVerdict)
+
+### I-936 · Radar Tablou: VWAP ancorat la pornirea botului și prețul mediu de intrare al poziției, ca linii pe grafic · S · P2
+- **Problema/golul:** Graficul are EMA, Bollinger, pivoți, profilul de volum și zona de valoare, dar nu are reperul botului: prețul mediu cu volum de la pornirea LUI. Pentru un grid, prețul față de VWAP-ul de la pornire spune dacă piața „s-a mutat” de la locul unde a fost pus botul.
+- **Soluția:** Linia VWAP ancorată la ora pornirii botului (funcția anchoredVWAP există deja în app.js, pe alt ecran) și linia prețului mediu de intrare din Pionex (pretDeschidere) pe grafic, cu eticheta lor și distanța în % în legenda din dreapta.
+- **Impact:** Arată dintr-o privire dacă poziția e „sub apă” față de piață, nu doar față de grid.
+- **Riscuri/dependențe:** La monede fără volum pe unele lumânări VWAP-ul nu se poate socoti (cazul există deja pe ecranul Volume Profile) — se spune pe nume.
+- **Fișiere atinse:** crypto: public/lib/grafic-bot.js (linia „intrarea medie” există doar în legendă), public/app.js (anchoredVWAP există pe altă pagină)
+
+### I-937 · Radar Tablou: harta umplerilor pe liniile gridului — câte perechi pe fiecare nivel, nivelurile moarte, unde stă inventarul · M · P2
+- **Problema/golul:** Pagina spune „77 de perechi” în total, dar nu unde: ce niveluri lucrează, care n-au prins nimic de la pornire și unde s-a strâns poziția. Pionex nu dă umplerile futures prin API, dar Radarul le deduce deja din lumânările de 1 minut.
+- **Soluția:** Pe marginea dreaptă a graficului, o bandă pe fiecare linie de grid: câte perechi s-au încheiat acolo (bară orizontală) și dacă linia ține acum poziție (punct). Sub ea: „X din 36 de linii n-au lucrat de la pornire”.
+- **Impact:** Spune dacă gridul e prea larg (multe linii moarte) sau prea îngust (prețul stă la margine) — direct pe botul lui, nu pe fișă.
+- **Riscuri/dependențe:** Umplerile sunt deduse (ora barei, nu ora Pionex) — banda poartă „estimat” și diferența față de numărul de perechi din Pionex.
+- **Fișiere atinse:** crypto: public/lib/grafic-bot.js (umplerile deduse din lumânările de 1 min), public/lib/grid-umpleri.js
+
+### I-938 · Radar Tablou: riscul de piață al monedei — vârsta contractului perp, prețul mark față de ultimul preț (pe ce se declanșează stopul la Pionex), volumul Pionex față de Binance · M · P2
+- **Problema/golul:** Pentru monede noi (BULLA) riscul e de structură: istorie scurtă (185 de zile de bare de 1 h), lichiditate mică pe Pionex, fitiluri care ating stopul pe ultimul preț. Pagina nu spune pe ce preț se declanșează stopul și lichidarea (mark sau ultimul) și nici cât de subțire e piața.
+- **Soluția:** Un rând în Riscul: „contract listat de N zile”, diferența mark–ultimul preț acum și cea mai mare pe 24 h, volumul pe 24 h pe Pionex față de Binance și distanța până la stop măsurată pe prețul pe care se declanșează la Pionex (de verificat întâi în documentația Pionex). Când diferența mark–ultimul preț trece de jumătate din distanța până la stop, rândul se colorează.
+- **Impact:** Evită stopurile luate de un fitil pe o piață subțire și arată când botul stă pe o monedă cu risc de listare / delistare.
+- **Riscuri/dependențe:** Regula exactă a Pionex (mark sau ultimul preț) trebuie verificată înainte; fără ea rândul arată doar ambele prețuri.
+- **Fișiere atinse:** crypto: public/app.js (capul Tabloului), functions/api (citirea Pionex)
+
+### I-939 · Radar Tablou: capitolele ca file, nu ca derulare — 13.600 px pe calculator și 31.300 px pe telefon cu tot deschis; bara din stânga fără lista „Laborator vechi” · M · P2
+- **Problema/golul:** Cu „Deschide tot”, Tabloul are 13.600 px pe 1440 și 31.300 px pe 412, ~134.000 de caractere, 41 de pliuri; bara din stânga are 30+ legături, plus „Laborator vechi (34)”. Pagina pe trei etaje (I-851) a ajutat, dar sub grafic tot derulare lungă e. Regula LUI: nimic pierdut, doar mutat (fapta rămâne la vedere).
+- **Soluția:** Capul, graficul și cele 4 cifre rămân sus, mereu; sub ele cele cinci capitole devin file (Decizia · Riscul · Banii · Piața · Jurnalul), fiecare cu cifra lui de azi în titlu (I-919), fila ținută minte. Pe Tablou bara din stânga arată doar ecranele zilnice; laboratorul vechi pleacă în „Mai mult”. Inventarul complet înainte de demo, comparat 100% după.
+- **Impact:** Ce contează pentru hotărâre se vede fără derulare; pe telefon cel mai mult.
+- **Riscuri/dependențe:** Redesign = regula „nimic pierdut, absolut nimic” + poze la toate lățimile lui (412, 768–2560) înainte de OK.
+- **Fișiere atinse:** crypto: public/index.html, public/app.js (capitolele Decizia / Riscul / Banii / Piața / Jurnalul), public/app.css
+
+### I-940 · Radar: Tabloul scos din app.js (9.651 de rânduri) într-un modul al lui, cu o probă pe un bot ÎNGHEȚAT (instantaneul din I-935) · L · P3
+- **Problema/golul:** Tabloul e împărțit între app.js (9.651 de rânduri) și ~10 fișiere lib; funcțiile tb* trăiesc în fișierul mare, iar probele le taie cu expresii regulate din text. O schimbare mică atinge multe locuri și probele vechi.
+- **Soluția:** Pas cu pas (fără mutare mare dintr-odată): funcțiile tb* mutate în fișiere lib ale Tabloului, cu intrări și ieșiri curate; o probă care încarcă un bot real înghețat (botul + lumânările + rezultatul) și verifică cifrele cheie ale paginii, nu textul codului.
+- **Impact:** Reparații mai rapide și mai sigure pe pagina pe care se iau hotărâri cu bani.
+- **Riscuri/dependențe:** Efort mare; se face pe bucăți, câte o funcție, fiecare cu lanțul verde.
+- **Fișiere atinse:** crypto: public/app.js (funcțiile tb*), public/lib/tablou-*.js, scripts/proba-*
+
+### I-941 · Radar: probele pe comportament, nu pe textul codului — azi 3 probe vechi au picat doar pentru că un apel a primit un câmp nou · M · P3
+- **Problema/golul:** La v100.383, v100139 / v100140 / v100354 au picat pentru că fixau la literă apelul tbMcSimuleaza / hotarare; fiecare versiune relaxează câteva probe vechi cu notă. Asta consumă timp și ascunde picările adevărate printre cele de formă.
+- **Soluția:** Un inventar al probelor care caută text de cod cu expresii regulate; pentru fiecare, aserția trece pe comportament (se rulează funcția cu un bot de probă și se verifică rezultatul) sau pe o listă de câmpuri obligatorii, nu pe ordinea lor.
+- **Impact:** Lanțul de 25 de minute pică doar când se strică ceva, nu când se adaugă ceva.
+- **Riscuri/dependențe:** Probele vechi sunt multe (~470 de pași); se face treptat, începând cu cele care au picat de formă cel mai des.
+- **Fișiere atinse:** crypto: scripts/proba-v100139.mjs, proba-v100140.mjs, proba-v100354.mjs (și celelalte care fixează apeluri la literă)
