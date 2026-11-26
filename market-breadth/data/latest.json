@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "checkedAt": "2026-11-26T04:10:01.583508+00:00",
+  "checkedAt": "2026-11-26T21:33:22.767964+00:00",
   "sources": {
     "uptrend": {
       "url": "https://raw.githubusercontent.com/tradermonty/uptrend-dashboard/main/data/uptrend_ratio_timeseries.csv",
@@ -670,7 +670,7 @@
         }
       ],
       "excludedUncompleted": 0,
-      "completedCutoff": "2026-11-25"
+      "completedCutoff": "2026-11-26"
     },
     "sp500": {
       "url": "https://tradermonty.github.io/market-breadth-analysis/market_breadth_data.csv",
@@ -1167,7 +1167,7 @@
         }
       ],
       "excludedUncompleted": 0,
-      "completedCutoff": "2026-11-25"
+      "completedCutoff": "2026-11-26"
     },
     "sp500Price": {
       "url": "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv",
@@ -1184,9 +1184,9 @@
     }
   },
   "full": {
-    "requestId": "45753444798",
-    "checkedAt": "2026-11-26T04:10:15.688623+00:00",
-    "status": "COMPLETE",
+    "requestId": "45898921185",
+    "checkedAt": "2026-11-26T21:33:42.742676+00:00",
+    "status": "PARTIAL",
     "sources": {
       "sp": {
         "fetchStatus": "OK",
@@ -1200,7 +1200,7 @@
         "usable": true,
         "freshness": "FRESH",
         "excludedUncompleted": 0,
-        "completedCutoff": "2026-11-25"
+        "completedCutoff": "2026-11-26"
       },
       "ndx": {
         "fetchStatus": "OK",
@@ -1223,16 +1223,16 @@
       "confirmation": {
         "asOf": "2026-11-25",
         "inputDates": {
-          "^VIX": "2026-11-25",
+          "^VIX": "2026-11-26",
           "HYG": "2026-11-25",
           "LQD": "2026-11-25",
           "RSP": "2026-11-25",
           "SPY": "2026-11-25"
         },
-        "usable": true,
+        "usable": false,
         "required": 5,
         "valid": 5,
-        "fetchStatus": "OK"
+        "fetchStatus": "ERROR"
       },
       "market_timing": {
         "asOf": "2026-11-25",
@@ -1249,17 +1249,17 @@
       "intermarket": {
         "asOf": "2026-11-25",
         "inputDates": {
-          "^VIX": "2026-11-25",
+          "^VIX": "2026-11-26",
           "^VIX3M": "2026-11-25",
           "DX-Y.NYB": "2026-11-25",
           "GC=F": "2026-11-25",
           "CL=F": "2026-11-25",
           "HYG": "2026-11-25"
         },
-        "usable": true,
+        "usable": false,
         "required": 6,
         "valid": 6,
-        "fetchStatus": "OK"
+        "fetchStatus": "ERROR"
       }
     },
     "engine": {
@@ -1309,12 +1309,12 @@
         }
       },
       "master": {
-        "score": -3,
-        "stance": "PRUDENTA / DEFENSIV",
-        "action": "Redu expunerea, ridica cash, doar setup-uri A+. Protejeaza castigurile.",
-        "confidence": "SCAZUTA - semnale in conflict (1 pozitive / 3 negative)",
+        "score": 0,
+        "stance": "MIXT / PRUDENTA SELECTIVA",
+        "action": "Selectiv, pozitii noi mai mici, stopuri stranse. Nu supra-dimensiona.",
+        "confidence": "SCAZUTA - semnale in conflict (1 pozitive / 1 negative)",
         "conflict": true,
-        "net_ceiling": 40,
+        "net_ceiling": 60,
         "scorecard": [
           [
             "Breadth participare (4/4 surse valide)",
@@ -1327,29 +1327,19 @@
             "max 10 dist.days, 3/3 sub MM50, follow-through recent"
           ],
           [
-            "Confirmare risc (VIX/credit/breadth pret)",
-            -1,
-            "Mixt / neconcludent (VIX 28.3)"
-          ],
-          [
             "New Highs - New Lows",
             1,
             "64▲/2▼ (net +62), sanatos (NH domina)"
-          ],
-          [
-            "Intermarket / macro",
-            -2,
-            "Macro RISK-OFF (VIX term 1.076)"
           ]
         ],
         "reconciliation": [
           "Semnale POZITIVE: New Highs - New Lows.",
-          "Semnale NEGATIVE: Market timing (distribution days), Confirmare risc (VIX/credit/breadth pret), Intermarket / macro.",
+          "Semnale NEGATIVE: Market timing (distribution days).",
           "Market timing foloseste sesiuni EOD incheiate (mai proaspete ca breadth-ul) - cand semnaleaza vanzare, are prioritate ca avertisment timpuriu.",
           "Conflictul in sine = incertitudine: redu marimea, nu paria puternic intr-o directie."
         ],
         "pos": 1,
-        "neg": 3
+        "neg": 1
       },
       "analysis": {
         "verdict": "Mixt / racire",
@@ -1366,7 +1356,7 @@
         "max": 49.8
       },
       "detail": {
-        "net_ceiling": 40,
+        "net_ceiling": 60,
         "binder": "S&P500",
         "ceilings": [
           [
@@ -1392,7 +1382,7 @@
           "Small-caps (R2K* 36.4): in linie cu large-cap. Veriga slaba: trend MM200 (35.1%)."
         ],
         "playbook": [
-          "Plafonul combinat de context este 40%; riscul personal se verifica separat in Guardrail.",
+          "Plafonul combinat de context este 60%; riscul personal se verifica separat in Guardrail.",
           "Prioritizeaza calitatea; evita sectoarele lagging.",
           "Ridica putin cash daca breadth continua sa scada."
         ],
@@ -1406,7 +1396,7 @@
       }
     },
     "ideas": {
-      "generated_at": "2026-11-26 04:10:13",
+      "generated_at": "2026-11-26 21:33:40",
       "asOf": "2026-11-25",
       "coverage_valid": 496,
       "coverage_total": 500,
@@ -1843,7 +1833,7 @@
           "asOf": "2026-11-25",
           "state": "MONITORIZARE EOD",
           "earnings_status": "PROVIDER_DATE_UNCONFIRMED",
-          "rvol": 0.82
+          "rvol": 0.83
         },
         {
           "ticker": "TYL",
