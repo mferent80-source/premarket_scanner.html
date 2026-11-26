@@ -3619,6 +3619,20 @@ pe un singur chart.
 | I-939 | Radar Tablou: capitolele ca file, nu ca derulare — 13.600 px pe calculator și 31.300 px pe telefon cu tot deschis; bara din stânga fără lista „Laborator vechi” | crypto: public/index.html, public/app.js (capitolele Decizia / Riscul / Banii / Piața / Jurnalul), public/app.css | M | P2 | făcut (v100.387 217e97ee; fila goală pe botul de semnal reparată în v100.391) | ideation | 2026-11-24 → 2026-11-25 |
 | I-940 | Radar: Tabloul scos din app.js (9.651 de rânduri) într-un modul al lui, cu o probă pe un bot ÎNGHEȚAT (instantaneul din I-935) | crypto: public/app.js (funcțiile tb*), public/lib/tablou-*.js, scripts/proba-* | L | P3 | parțial (pașii 1–3: lib/tablou-mc.js v100.388, lib/tablou-kpi.js v100.389, lib/tablou-citire.js v100.390; app.js 9.758 → 8.840 de rânduri; restul ~1.800 de rânduri tb* pe pași) | ideation | 2026-11-24 → 2026-11-25 |
 | I-941 | Radar: probele pe comportament, nu pe textul codului — azi 3 probe vechi au picat doar pentru că un apel a primit un câmp nou | crypto: scripts/proba-v100139.mjs, proba-v100140.mjs, proba-v100354.mjs (și celelalte care fixează apeluri la literă) | M | P3 | făcut (v100.387 217e97ee: scripts/lib/cod-are.mjs + probele pe câmpuri) | ideation | 2026-11-24 → 2026-11-25 |
+| I-942 | Radar: o singură pază de lichidare — orice stop propus, capul Tabloului, „long simplu” și indicația de sub cursor trec prin aceeași funcție cu lichidarea | crypto: public/lib/semnale-bot.js (protecția propusă), cap-margine.js (totalCuGridLa), tablou-extra.js (totalLaOpritor, long simplu), tablou-citire.js (indicația), grid-sim.js (dincoloLich), consiliu.js (titlul stopului) | S | P1 | propus | audit | 2026-11-26 |
+| I-943 | Radar: alertele judecate pe EPISOD, nu pe 24 h — al doilea MARGIN_CALL, al doilea stop stins și „colectorul nu-ți mai vede boții” ajung iar pe telefon | crypto: scripts/lib/politica-alerte.mjs (repetare, mereuPeDiscord), scripts/colector.mjs (anuntaColector: cheia „colector”), scripts/lib/mesaje-colector.mjs, public/lib/alerte.js (status, plan-stop, plan) | S | P1 | propus | audit | 2026-11-26 |
+| I-944 | Radar: paza boților de SEMNAL (PPST pe viu) — lichidarea citită, pierderea la −X% din sumă, „s-a oprit” trimis imediat și noaptea, poziția fără ieșire | crypto: functions/api/bot-orders.js (pretLichidare null la semnal), public/lib/bot-semnal.js (textul „lichidarea nu se aplică”), scripts/colector.mjs (boții activ:false săriți), scripts/lib/politica-alerte.mjs (/^semnal-/ noaptea) | M | P1 | propus | audit | 2026-11-26 |
+| I-945 | Radar: frâna de 4% pe O singură cifră de risc, și „n-o pot judeca” când lipsește o parte din cont | crypto: public/lib/acasa.js (franaCont: rap.risc.var95), public/lib/cont-ecran.js (ciRiscZi), public/lib/cont-intreg.js (valoare: partiLipsa), scripts/lib/tura-cont.mjs (lipsuri), public/lib/factori.js | S | P1 | propus | audit | 2026-11-26 |
+| I-946 | Radar: registrul alertelor cu verdict DOAR pe ferestre independente, înghețat, cu corecție pentru câte feluri sunt | crypto: public/lib/alerte-registru.js (rezumat, PRAG), public/lib/alerte-ecran.js (Dreptatea pe fel), scripts/lib/verdict-ferestre.mjs, public/lib/verdicte.js (Benjamini–Hochberg) | S | P1 | propus | audit | 2026-11-26 |
+| I-947 | Radar: frâna pe TOT contul, în lei, fără depuneri — o zi proastă pe T212 oprește și ea | crypto: scripts/lib/tura-cont.mjs (cont:zile), public/lib/acasa.js (frâna), public/lib/obiceiuri.js, public/lib/acasa-ecran.js (rândul zilnic T212) | M | P2 | propus | audit | 2026-11-26 |
+| I-948 | Radar: „cât risc mai încape azi” la pornirea unui bot — VaR-ul contului CU botul nou, lângă bugetul de 4% | crypto: scripts/lib/tura-cont.mjs (seriile de 120 de zile), public/lib/cont-intreg.js, Poarta / fișa Grid (app.js) | M | P2 | propus | audit | 2026-11-26 |
+| I-949 | Radar: proba listei de monede de bot cu regula LUI — PPST Doar Short/Long + stop 60%, după comision și funding, față de 5 monede din afara listei | crypto: scripts/lib/tura-monede-bot.mjs (urmărirea), public/lib/monede-bot.js, pine-scripts/PIVOT-SUPERTREND/_proba-ppst-2026-11-26/ppst_motor.py (regula) | M | P2 | propus | audit | 2026-11-26 |
+| I-950 | Radar: pragul de ieșire pe lichidare măsurat în mișcarea monedei, nu în procente fixe (8% / 15%) | crypto: public/lib/tablou-bot.js (8 / 15), public/lib/semnale-bot.js (:470), x.pragStop (profilul monedei) | M | P2 | propus | audit | 2026-11-26 |
+| I-951 | Radar: paznicul vede și Discordul mort + un singur colector garantat cât rulează | crypto: scripts/lib/canal-discord.mjs, scripts/colector.mjs (bate, pid), paznic/worker.mjs, scripts/lib/poza.mjs | S | P2 | propus | audit | 2026-11-26 |
+| I-952 | Radar: livrarea fără F5 — versiunea pe numele fișierelor, serverul își spune versiunea, banner la diferență; instalarea SW cu revalidare | crypto: public/sw.js (install cache:reload, caches.match), public/index.html (107 script src), public/app.js (x-client-version necitit), scripts/copie-de-lucru.mjs (livrarea) | S–M | P2 | propus | audit | 2026-11-26 |
+| I-953 | Radar: pauza sezonului cu ieșire clară (ziua nouă sau un bot de hârtie pe plus) | crypto: public/lib/scor-sezon.js (:100-102, 155), public/lib/obiceiuri.js (hartie), public/lib/acasa-ecran.js | S | P3 | propus | audit | 2026-11-26 |
+| I-954 | Radar: parolă generată (≥ 32 de semne) + lista de acces Tailscale — spre VPS:8443 doar telefonul și MAU | crypto: functions/_shared/auth.js, PORNESTE-CRYPTO-RADAR.bat, scripts/vps/porneste-radar.ps1, politica Tailscale (ACL) | S | P2 | propus | audit | 2026-11-26 |
+| I-955 | Radar: laboratorul vechi (34 de pagini) încărcat la cerere — întâi un contor de deschideri pe 2 săptămâni | crypto: public/index.html (34 de panouri vechi = 57% din DOM), public/app.js (pornesteLaboratorulVechi, ~161 KB de funcții doar pentru paginile vechi), public/app.css (754 KB, lista paginilor zilnice repetată de 955 de ori) | L (contorul S) | P3 | propus | audit | 2026-11-26 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -8952,3 +8966,103 @@ El, 11.11.2026: „detaliile indicatorilor când e închis să arate un grafic s
 - **Impact:** Lanțul de 25 de minute pică doar când se strică ceva, nu când se adaugă ceva.
 - **Riscuri/dependențe:** Probele vechi sunt multe (~470 de pași); se face treptat, începând cu cele care au picat de formă cel mai des.
 - **Fișiere atinse:** crypto: scripts/proba-v100139.mjs, proba-v100140.mjs, proba-v100354.mjs (și celelalte care fixează apeluri la literă)
+
+### Auditul pe tot Radarul — 2026-11-26 (6 auditori Opus + verificare pe viu, v100.395 `dbe5fca0`)
+Sursa: auditing-trading-suite + trading-ideation; 🔴 verificate în cod înainte de a intra aici. Excluse: I-416 (respins — ideea I-948 doar arată bugetul, nu împarte riscul), I-554 (făcut — I-955 e încărcarea la cerere, nu plierea).
+### I-942 · Radar: o singură pază de lichidare — orice stop propus, capul Tabloului, „long simplu” și indicația de sub cursor trec prin aceeași funcție cu lichidarea · S · P1
+- **Problema/golul:** Auditul 26.11 (🔴 verificat): când botul e pe minus și n-are stop, protecția propusă din fișă / geometrie / profil (semnale-bot.js:176-188) nu e comparată cu lichidarea — doar varianta din curba stopului (:194) și stopul LUI (:305) au gardă. La levier mare cartela poate spune „aș pune stopul la X” cu X dincolo de lichidare (stopul nu se declanșează niciodată). Capul (totalCuGridLa), „long simplu” și indicația de sub cursor socotesc pierderi peste −100% din investiție; Consilierul scrie „n-are stop activ” când stopul e dincolo de lichidare.
+- **Soluția:** O funcție comună „total la prețul X” care întoarce totalul, dacă lichidarea vine înainte și prețul ei; orice stop propus trece prin aceeași gardă ca GridSim.dincoloLich (marja 2%): se strânge spre lichidare sau se scoate cu motivul spus. Consilierul primește titlul „Stopul stă dincolo de lichidare”.
+- **Impact:** Unde pune stopul și dacă adaugă marjă / scade levierul — nicio cifră de pe Tablou nu mai promite o protecție care nu există.
+- **Riscuri/dependențe:** Atinge 5–6 fișiere pe pagina de bani: probe pe un bot cu levier 10× unde lichidarea e mai aproape decât marginea; poze înainte / după.
+- **Fișiere atinse:** crypto: public/lib/semnale-bot.js, cap-margine.js, tablou-extra.js, tablou-citire.js, consiliu.js
+
+### I-943 · Radar: alertele judecate pe EPISOD, nu pe 24 h — al doilea MARGIN_CALL, al doilea stop stins și „colectorul nu-ți mai vede boții” ajung iar pe telefon · S · P1
+- **Problema/golul:** Auditul 26.11 (🔴 verificat): toate mesajele critice de sănătate ale colectorului (server oprit, parola respinsă, nu mai poate citi, botul nu mai apare în Pionex, nu-ți mai vede boții) au cheia „colector” fără bot ⇒ politica de repetare lasă pe Discord doar PRIMUL critic, următoarele 24 h stau doar în Radar (excepția „lichid” se uită doar în titlu). Un episod nou pe aceeași cheie (status MARGIN_CALL, plan-stop) sub 24 h e tratat ca repetare, iar „a trecut” nu resetează. Aceeași regulă taie partea a doua a raportului de duminică și uneori rezumatul de dimineață.
+- **Soluția:** Cheie pe fiecare fel de mesaj (colector-orb, colector-citire, colector-lipsa-<id>…); revenirea la ok închide episodul (șterge intrarea din repetări); status, plan-stop, plan și sănătatea colectorului trec în „mereu pe Discord”; rapoartele programate ies de sub regulă.
+- **Impact:** Intervine la a doua problemă din aceeași zi (marjă, stop, colector orb) în loc să creadă că paza merge.
+- **Riscuri/dependențe:** Zgomotul poate crește puțin: de măsurat pe registrul alertelor din 7 zile câte mesaje în plus ar fi plecat, înainte de livrare.
+- **Fișiere atinse:** crypto: scripts/lib/politica-alerte.mjs, scripts/colector.mjs, scripts/lib/mesaje-colector.mjs
+
+### I-944 · Radar: paza boților de SEMNAL (PPST pe viu) — lichidarea citită, pierderea la −X% din sumă, „s-a oprit” trimis imediat și noaptea, poziția fără ieșire · M · P1
+- **Problema/golul:** Auditul 26.11 (🔴 verificat): botul de semnal (perpetual cu levier) are pe pagină „lichidarea … nu se aplică”, serverul pune lichidarea null, maintPrice e salvat dar necitit, iar colectorul îl sare din toate verificările (vine cu activ:false). „semnal-oprit-<id>” intră în programul de noapte ⇒ un bot oprit (poate lichidat) la 02:00 apare abia la 08:00.
+- **Soluția:** maintPrice verificat pe o poziție vie ⇒ distanța până la lichidare pe cartelă + alerta critică (aceleași praguri ca la grid); pierderea la −X% din suma pusă ca alertă; „s-a oprit” trimis imediat; o alertă când poziția e deschisă mai mult decât cea mai lungă rundă de până acum (webhook-ul de ieșire a tăcut).
+- **Impact:** Riscul pe boții PPST de pe viu (MMT / HYPE / BNB): închide de mână în Pionex când ieșirea n-a venit sau când lichidarea se apropie.
+- **Riscuri/dependențe:** Semnificația exactă a maintPrice la Pionex smart_copy trebuie verificată pe un bot cu poziție; până atunci textul spune „lichidarea există, n-o citesc încă”.
+- **Fișiere atinse:** crypto: functions/api/bot-orders.js, public/lib/bot-semnal.js, scripts/colector.mjs, scripts/lib/politica-alerte.mjs
+
+### I-945 · Radar: frâna de 4% pe O singură cifră de risc, și „n-o pot judeca” când lipsește o parte din cont · S · P1
+- **Problema/golul:** Auditul 26.11 (🔴 verificat): Acasă judecă frâna pe VaR-ul vechi (250 de zile egale), Contul întreg pe VaR-ul „pe agitația de acum” ⇒ Acasă poate invita „aș porni” cât Contul spune „aș reduce”. Iar când T212 sau soldul liber Pionex pică la tură, totalul contului scade fără ca frâna să știe (lipsuri nu le notează) ⇒ „o zi proastă îți ia ~56% din cont” fals, până la 6 h, și pe Discord.
+- **Soluția:** Frâna citește aceeași cifră ca pagina (ciRiscZi, cea veche doar ca rezervă); când valoarea nu e completă, verdictul e „n-o pot judeca: lipsește X”, ca la lipsuri.
+- **Impact:** Pornirea sau nu a unui bot nou — aceeași regulă dă același răspuns pe toate paginile, iar o cădere T212 nu mai sună alarmă falsă.
+- **Riscuri/dependențe:** Cifra de acum poate fi mai mare ⇒ frâna se trage mai des; spus pe pagină.
+- **Fișiere atinse:** crypto: public/lib/acasa.js, cont-intreg.js, cont-ecran.js, scripts/lib/tura-cont.mjs
+
+### I-946 · Radar: registrul alertelor cu verdict DOAR pe ferestre independente, înghețat, cu corecție pentru câte feluri sunt · S · P1
+- **Problema/golul:** Auditul 26.11 (🔴 verificat): „a avut dreptate / a greșit” se dă de cum un fel strânge 30 de cazuri, se reface la fiecare tură (se poate răsturna), pe zile care la acțiuni se suprapun (orizont 5 ședințe), fără corecție pe ~10–15 feluri ⇒ un fel poate primi verdict din întâmplare.
+- **Soluția:** Aceeași regulă ca restul Radarului: ferestre care nu se suprapun, verdictul o singură dată (la 26) și înghețat, corecția din Verdicte.registru; până atunci „se adună N din 26”.
+- **Impact:** Dacă urmează sau nu „Ieși” / „Intrare atinsă” — doar pe un verdict care chiar există.
+- **Riscuri/dependențe:** Verdictele de acum dispar (se întorc la „se adună”); spus o dată, cu motivul.
+- **Fișiere atinse:** crypto: public/lib/alerte-registru.js, alerte-ecran.js
+
+### I-947 · Radar: frâna pe TOT contul, în lei, fără depuneri — o zi proastă pe T212 oprește și ea · M · P2
+- **Problema/golul:** Frâna vede doar boții, în USDT; o zi de −2.000 lei pe T212 nu oprește nimic. Rândul zilnic T212 adună și depunerile („+2.000 lei” verde).
+- **Soluția:** Schimbarea zilnică din cont:zile, din care se scad depunerile / retragerile T212, cu praguri −X% pe zi și pe 7 zile; rândul zilnic T212 fără depuneri.
+- **Impact:** Oprirea după o zi proastă pe orice parte a contului; plus proba VaR pe zilele reale nu mai e poluată de depuneri.
+- **Riscuri/dependențe:** Depunerile trebuie citite din istoricul T212 (există ruta); pragurile se aleg înainte, scrise.
+- **Fișiere atinse:** crypto: scripts/lib/tura-cont.mjs, public/lib/acasa.js, acasa-ecran.js
+
+### I-948 · Radar: „cât risc mai încape azi” la pornirea unui bot — VaR-ul contului CU botul nou, lângă bugetul de 4% · M · P2
+- **Problema/golul:** Mărimea din Poartă e 1% din T212, iar un bot nou n-are mărime la nivelul contului: nimic nu spune cât crește ziua proastă dacă pornește încă unul.
+- **Soluția:** VaR-ul suplimentar al candidatului din seriile pe care raportul le ține deja: „cu botul ăsta, ziua proastă ajunge la 4,6% — nu încape” sau „încape până la X USDT”. Doar informație, nu împărțire automată (nu e I-416).
+- **Impact:** Suma fiecărei porniri.
+- **Riscuri/dependențe:** Corelația monedei noi cu restul pe puține zile e instabilă; intervalul spus.
+- **Fișiere atinse:** crypto: scripts/lib/tura-cont.mjs, public/lib/cont-intreg.js, public/app.js (Poarta)
+
+### I-949 · Radar: proba listei de monede de bot cu regula LUI — PPST Doar Short/Long + stop 60%, după comision și funding, față de 5 monede din afara listei · M · P2
+- **Problema/golul:** Urmărirea de acum (v100.395) măsoară doar mersul brut al monedei față de piață; hotărârea lui e „pornesc PPST Doar Short pe moneda asta”, iar pe 26.11 toate monedele lichide ieșeau pe minus după comision pe 1 min.
+- **Soluția:** În aceleași zile: primele 5 din listă față de 5 monede lichide din afara ei, cu regula lui (intervalul ales de el), comision Pionex și funding; media netă pe tranzacție și suma zilei, pe ferestre independente, cu verdict la 26.
+- **Impact:** Dacă lista merită folosită pentru botul direcțional sau e doar un filtru de junk.
+- **Riscuri/dependențe:** Regula de prag scrisă înainte; intervalul (1 min / 15 min / 1 h) ales înainte, nu după cifre.
+- **Fișiere atinse:** crypto: scripts/lib/tura-monede-bot.mjs, public/lib/monede-bot.js, public/lib/sugestii-ecran.js
+
+### I-950 · Radar: pragul de ieșire pe lichidare măsurat în mișcarea monedei, nu în procente fixe (8% / 15%) · M · P2
+- **Problema/golul:** 8% / 15% până la lichidare sunt la fel pentru BTC 2× și pentru un alt de 1 min la 10×.
+- **Soluția:** Distanța până la lichidare împărțită la coborârea zilnică în 3 din 4 zile (există: pragStop): „ieși” sub 1×, „atenție” sub 2×, pragurile verificate pe arhiva celor ~2.465 de boți închiși înainte de a le pune.
+- **Impact:** Când închide sau adaugă marjă pe monedele agitate; pe BTC cere mai rar.
+- **Riscuri/dependențe:** Calibrarea pe arhivă trebuie făcută înainte (proba scrisă); până atunci rămân pragurile fixe.
+- **Fișiere atinse:** crypto: public/lib/tablou-bot.js, semnale-bot.js
+
+### I-951 · Radar: paznicul vede și Discordul mort + un singur colector garantat cât rulează · S · P2
+- **Problema/golul:** Un webhook principal mort (404 / 401) înseamnă tăcere totală (doar jurnal); canalul evaluărilor are notă, cel cu lichidările nu. PID-ul colectorului se verifică doar la pornire ⇒ două colectoare pot rula pentru totdeauna (alerte dublate, care-l învață să le ignore).
+- **Soluția:** Poza trimisă paznicului poartă „Discord ok la HH:MM”; paznicul anunță de pe webhook-ul lui după 30 de minute fără reușită. bate() verifică proprietarul pid-ului la fiecare bătaie și iese dacă e altul viu.
+- **Impact:** Nu mai pierde tăcut toate alertele; nu mai primește dubluri.
+- **Riscuri/dependențe:** Paznicul are nevoie de propriul webhook (există).
+- **Fișiere atinse:** crypto: scripts/lib/canal-discord.mjs, scripts/colector.mjs, paznic/worker.mjs
+
+### I-952 · Radar: livrarea fără F5 — versiunea pe numele fișierelor, serverul își spune versiunea, banner la diferență; instalarea SW cu revalidare · S–M · P2
+- **Problema/golul:** După fiecare livrare: „⏳ EL: F5”; o filă deschisă nu află de versiunea nouă (nu există reg.update, x-client-version nu e citit de server); pe rețea slabă o pagină poate porni cu HTML nou și un script vechi; fiecare versiune descarcă 6,3 MB (130 de fișiere) pe fiecare aparat, iar instalarea e acceptată și parțială.
+- **Soluția:** ?v=<versiune> pe src scris la livrare; serverul răspunde cu versiunea lui, la diferență banner „versiune nouă — reîncarcă”; instalarea SW cu cache no-cache (fișierele neschimbate vin 304) și strictă (pică dacă lipsește un fișier).
+- **Impact:** Timp și date mobile: dispare pasul F5 și dispar paginile amestecate.
+- **Riscuri/dependențe:** Proba de telefon trebuie să deschidă de DOUĂ ori cu același profil după o livrare (unghiul „a doua oară”).
+- **Fișiere atinse:** crypto: public/sw.js, public/index.html, public/app.js, scripts/copie-de-lucru.mjs
+
+### I-953 · Radar: pauza sezonului cu ieșire clară (ziua nouă sau un bot de hârtie pe plus) · S · P3
+- **Problema/golul:** „Pauza sezonului” se rupe doar printr-un bot pe plus, deci doar pornind un bot contra sfatului; frâna „3 la rând” expiră după 24 h, pauza nu.
+- **Soluția:** Pauza se încheie la 00:00 (ora României) sau după un bot de hârtie (Obiceiuri.hartie) ieșit pe plus.
+- **Impact:** Regula chiar se respectă (o pauză care nu se termină ajunge ignorată).
+- **Riscuri/dependențe:** Regula de ieșire aleasă de el.
+- **Fișiere atinse:** crypto: public/lib/scor-sezon.js, obiceiuri.js
+
+### I-954 · Radar: parolă generată (≥ 32 de semne) + lista de acces Tailscale — spre VPS:8443 doar telefonul și MAU · S · P2
+- **Problema/golul:** Auditul 26.11: parola aplicației are 10 semne, aleasă de om, și e singura barieră pentru orice aparat din tailnet (inclusiv PC-urile caselor din magazine); cu ea se poate scrie config (canalul alertelor, frâna). Verificat pe viu: 8443 NU e public (Funnel nu-l servește), dar portul 10000 al VPS-ului răspunde public.
+- **Soluția:** Parolă aleatoare generată de lansator, refuz la pornire sub 24 de semne; ACL Tailscale: 8443 doar de la telefon și MAU; cf-connecting-ip ignorat când există x-forwarded-for; de văzut ce serviciu e pe 10000.
+- **Impact:** Riscul pe chei și pe canalul alertelor.
+- **Riscuri/dependențe:** Telefonul și PC-ul primesc parola nouă o singură dată; ACL-ul se pune din consola Tailscale.
+- **Fișiere atinse:** crypto: functions/_shared/auth.js, PORNESTE-CRYPTO-RADAR.bat, scripts/vps/porneste-radar.ps1
+
+### I-955 · Radar: laboratorul vechi (34 de pagini) încărcat la cerere — întâi un contor de deschideri pe 2 săptămâni · L (contorul S) · P3
+- **Problema/golul:** La fiecare pornire se încarcă 107 scripturi (4,9 MB JS), 754 KB CSS și se desenează 11 pagini vechi; prețul viu și stratul de așezare lucrează și cu fila ascunsă / pentru toate paginile.
+- **Soluția:** Contor local de deschideri pe pagină 2 săptămâni; apoi laboratorul vechi într-un pachet încărcat doar la deschiderea grupului, paginile cu 0 deschideri scoase (cu „nimic pierdut”); prețul viu oprit cu fila ascunsă; stratul de așezare doar pe pagina deschisă.
+- **Impact:** Timp și baterie pe S24; mai puțin cod de verificat la fiecare livrare.
+- **Riscuri/dependențe:** Redesign de structură ⇒ regula „nimic pierdut”, poze înainte / după.
+- **Fișiere atinse:** crypto: public/index.html, public/app.js, public/app.css, public/lib/asezare-paznic.js
