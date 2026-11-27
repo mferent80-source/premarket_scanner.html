@@ -3633,6 +3633,12 @@ pe un singur chart.
 | I-953 | Radar: pauza sezonului cu ieșire clară (ziua nouă sau un bot de hârtie pe plus) | crypto: public/lib/scor-sezon.js (:100-102, 155), public/lib/obiceiuri.js (hartie), public/lib/acasa-ecran.js | S | P3 | propus | audit | 2026-11-26 |
 | I-954 | Radar: parolă generată (≥ 32 de semne) + lista de acces Tailscale — spre VPS:8443 doar telefonul și MAU | crypto: functions/_shared/auth.js, PORNESTE-CRYPTO-RADAR.bat, scripts/vps/porneste-radar.ps1, politica Tailscale (ACL) | S | P2 | propus | audit | 2026-11-26 |
 | I-955 | Radar: laboratorul vechi (34 de pagini) încărcat la cerere — întâi un contor de deschideri pe 2 săptămâni | crypto: public/index.html (34 de panouri vechi = 57% din DOM), public/app.js (pornesteLaboratorulVechi, ~161 KB de funcții doar pentru paginile vechi), public/app.css (754 KB, lista paginilor zilnice repetată de 955 de ori) | L (contorul S) | P3 | propus | audit | 2026-11-26 |
+| I-956 | Radar Poarta: frâna CONTULUI în poartă (riscul pe o zi > 4%, frâna pe tot contul, o parte lipsă) + „Frâna boților” pentru cea în USDT | crypto: public/lib/obiceiuri.js (poarta :81, frana :138), public/app.js (gridPoarta), public/lib/acasa.js (franaCont) | S | P1 | propus | ideation | 2026-11-27 |
+| I-957 | Radar: „ce tai ca să cobori sub 4%” — planul pe poziții din contribuțiile la risc (informație, NU împărțire automată) | crypto: public/lib/cont-intreg.js (riscCuCandidat invers), public/lib/cont-ecran.js, scripts/lib/tura-cont.mjs, scripts/lib/mesaje-colector.mjs | M | P1 | propus | ideation | 2026-11-27 |
+| I-958 | Radar: boții de semnal pe viu — netul real pe tranzacție după comision, cu regula de oprire scrisă înainte | crypto: scripts/colector.mjs (turaSemnale), public/lib/bot-semnal.js, functions/api/istoric-bot.js (action=semnale) | M | P1 | propus | ideation | 2026-11-27 |
+| I-959 | Radar: frâna pe tot contul de AZI — zilele trecute curățate de depuneri din istoricul tranzacțiilor T212 | crypto: functions/api/t212.js, scripts/lib/tura-cont.mjs, public/lib/cont-intreg.js (schimbareFaraDepuneri) | S–M | P2 | propus | ideation | 2026-11-27 |
+| I-960 | Radar: zgomotul pe Discord — ~124 de mesaje pe zi (măsurat) ⇒ buget pe fel și rezumate, criticele neatinse | crypto: scripts/lib/politica-alerte.mjs, scripts/colector.mjs, scripts/lib/mesaje-colector.mjs | M | P2 | propus | ideation | 2026-11-27 |
+| I-961 | Radar: puterea dinainte (efectul minim detectabil) lângă fiecare „se adună” — știi din prima lună dacă proba poate răspunde | crypto: public/lib/alerte-registru.js, scripts/lib/tura-monede-bot.mjs, public/lib/sugestii-ecran.js, public/lib/alerte-ecran.js | S | P3 | propus | ideation | 2026-11-27 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -9066,3 +9072,49 @@ Sursa: auditing-trading-suite + trading-ideation; 🔴 verificate în cod înain
 - **Impact:** Timp și baterie pe S24; mai puțin cod de verificat la fiecare livrare.
 - **Riscuri/dependențe:** Redesign de structură ⇒ regula „nimic pierdut”, poze înainte / după.
 - **Fișiere atinse:** crypto: public/index.html, public/app.js, public/app.css, public/lib/asezare-paznic.js
+
+## Idei 27.11.2026 (după „fa tot” pe auditul din 26.11 + revizia independentă; ancorate în datele vii de azi)
+
+Lentile — Trader: contul stă la ~9,7% risc pe o zi față de bugetul de 4% (2.208 lei din 22.740; T212 ~95% din cont, −9.099 lei nerealizat, 7 semafoare „de ieșit”) și nimic nu spune ce tai; trei boți de semnal (ZEC, UNI, HYPE) rulează pe familia PPST/MACD respinsă de Proba 13, fără o regulă de oprire scrisă. · Designer: două „Frâna contului” cu sens diferit (Acasă = contul, Poarta = boții, în USDT); ~124 de mesaje pe zi pe Discord. · Inginer: frânele trăiesc în trei locuri (Obiceiuri.frana, Acasa.franaCont, ContIntreg.castigCont) ⇒ o sursă comună. · Automator: reducerea riscului și oprirea boților de semnal pot ajunge pe Discord o dată pe zi, nu doar pe pagină. Excluse: I-416 (respins: împărțirea automată a riscului) — I-957 NU e asta.
+
+### I-956 · Radar Poarta: frâna CONTULUI în poartă + „Frâna boților” pentru cea în USDT · S · P1
+- **Problema/golul:** Pe viu, 27.11, Poarta pe ZEC: „✓ Frâna contului: azi −0,6 USDT din −20, pe 7 zile …” (de fapt frâna BOȚILOR, Obiceiuri.frana) cât timp Acasă spune „Aș reduce expunerea până sub 4% pe zi: ~9,7% din cont”. Două frâne cu același nume, iar poarta o ignoră pe cea a contului.
+- **Soluția:** O regulă nouă în Obiceiuri.poarta din Acasa.franaCont (aceeași funcție, același text ca pe Acasă și pe Discord), ✗ cât e trasă; regula veche redenumită „Frâna boților”. Poarta rămâne avertisment, nu blocare.
+- **Impact:** Nu mai pornești boți cu contul deja peste buget fără să vezi asta exact în clipa pornirii.
+- **Riscuri/dependențe:** Textele prin garda (≤ 110); demo cu poze înainte / după.
+- **Fișiere atinse:** crypto: public/lib/obiceiuri.js (:81, :138), public/app.js (gridPoarta), public/lib/acasa.js (franaCont)
+
+### I-957 · Radar: „ce tai ca să cobori sub 4%” — planul pe poziții din contribuțiile la risc · M · P1
+- **Problema/golul:** Tabelul „Partea ei din riscul …” există pe Contul întreg, dar nimic nu spune CÂT trebuie redus și DIN CE ca să intri în bugetul de 4%; frâna contului e doar text pe Acasă, fără Discord.
+- **Soluția:** Din seriile raportului (aceeași metodă ca riscCuCandidat, cu semn invers): riscul contului fără fiecare poziție / cu jumătate din ea; lista minimă până sub 4% (contribuțiile mari întâi, cele cu semafor „Ieși” înainte); pe Contul întreg și o dată pe zi pe Discord cât contul stă peste buget. Doar informație: nu împarte și nu refuză (nu e I-416).
+- **Impact:** Decizia de reducere a riscului pe banii mari (T212), cu cifre.
+- **Riscuri/dependențe:** Corelațiile pe puține zile — intervalul spus; pozițiile fără serie spuse ca scoase.
+- **Fișiere atinse:** crypto: public/lib/cont-intreg.js, public/lib/cont-ecran.js, scripts/lib/tura-cont.mjs, scripts/lib/mesaje-colector.mjs
+
+### I-958 · Radar: boții de semnal pe viu — netul real pe tranzacție, cu oprirea scrisă înainte · M · P1
+- **Problema/golul:** Trei boți de semnal porniți (ZEC a întors long ↔ short în ~1 h) pe familia închisă de Proba 13 (1 h: −0,2% pe zi pe monedă); cartela arată doar „Intrări 3 · pe plus 0 din 3”. Verificat 27.11: profitul Pionex al botului de semnal e doar REALIZAT.
+- **Soluția:** Registrul tranzacțiilor închise ale boților de semnal (schimbările de poziție pe care colectorul le vede deja + diferența realizatului Pionex între ele), net pe tranzacție după comision și funding; regula de oprire scrisă ÎNAINTE: după 30 de tranzacții pe toți boții, media cu IC 95% sub zero ⇒ Discord „aș opri boții de semnal”; până atunci doar cifrele, lângă ce aștepta Proba 13.
+- **Impact:** Banii reali pe regula lui: oprirea la timp, nu după luni. (Ipoteză de verificat pe viu, nu o îmbunătățire garantată.)
+- **Riscuri/dependențe:** Întoarcerile dintr-un ordin numărate corect; o citire lipsă nu inventează o tranzacție.
+- **Fișiere atinse:** crypto: scripts/colector.mjs (turaSemnale), public/lib/bot-semnal.js, functions/api/istoric-bot.js (action=semnale)
+
+### I-959 · Radar: frâna pe tot contul de AZI — zilele trecute curățate de depuneri din istoricul T212 · S–M · P2
+- **Problema/golul:** Frâna fără depuneri (I-947) cere ppl + result pe rândul de pornire ⇒ merge abia de la primul rând nou (azi și pe 7 zile: „n-are încă ppl + result”); proba VaR pe zilele reale are 250+ rânduri cu depunerile în ele.
+- **Soluția:** /history/transactions (DEPOSIT / WITHDRAW, cu cursor) ⇒ fluxul pe zi; `schimbareFaraDepuneri` îl folosește când rândul n-are ppl + result.
+- **Impact:** Frâna pe 7 zile și proba VaR corecte din ziua livrării.
+- **Riscuri/dependențe:** Moneda (lei); dividendele și dobânda tratate ca acum; o zi fără istoric = lipsă spusă.
+- **Fișiere atinse:** crypto: functions/api/t212.js, scripts/lib/tura-cont.mjs, public/lib/cont-intreg.js
+
+### I-960 · Radar: zgomotul pe Discord — buget pe fel și rezumate, criticele neatinse · M · P2
+- **Problema/golul:** Măsurat 27.11 pe cele 1.410 alerte vii din 7 zile: 871 au plecat pe Discord (~124 pe zi; după v100.396: 961), dominate de pașii botului, grile și perechile pe oră; criticele se pierd printre ele.
+- **Soluția:** Întâi măsura pe fel (câte, câte urmate de o hotărâre a lui în jurnal); apoi informările de grilă / perechi / pași într-un rezumat la 2–4 ore; criticele și lichidările neatinse. Regula scrisă înainte, măsurat înainte / după.
+- **Impact:** Alertele care contează sunt văzute.
+- **Riscuri/dependențe:** Niciun critic în rezumat; nimic pierdut (rezumatul le numără pe toate).
+- **Fișiere atinse:** crypto: scripts/lib/politica-alerte.mjs, scripts/colector.mjs, scripts/lib/mesaje-colector.mjs
+
+### I-961 · Radar: puterea dinainte lângă fiecare „se adună” · S · P3
+- **Problema/golul:** Verdictele cer 26 de ferestre (2–6 luni) și nimic nu spune ce efect se poate vedea la 26 cu abaterea de acum — un efect realist sub pragul detectabil = așteptare degeaba.
+- **Soluția:** Efectul minim detectabil (80%) din abaterea ferestrelor de până acum, spus lângă „N din 26”; dacă e peste efectul care ar conta pe bani: „așa nu poate răspunde — trebuie alt orizont sau mai multe ferestre”.
+- **Impact:** Timp: știi din prima lună dacă proba poate răspunde.
+- **Riscuri/dependențe:** Abaterea pe puține ferestre e instabilă (intervalul spus).
+- **Fișiere atinse:** crypto: public/lib/alerte-registru.js, scripts/lib/tura-monede-bot.mjs, public/lib/sugestii-ecran.js, public/lib/alerte-ecran.js
