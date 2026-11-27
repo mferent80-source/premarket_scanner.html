@@ -3639,6 +3639,16 @@ pe un singur chart.
 | I-959 | Radar: frâna pe tot contul de AZI — zilele trecute curățate de depuneri din istoricul tranzacțiilor T212 | crypto: functions/api/t212.js, scripts/lib/tura-cont.mjs, public/lib/cont-intreg.js (schimbareFaraDepuneri) | S–M | P2 | propus | ideation | 2026-11-27 |
 | I-960 | Radar: zgomotul pe Discord — ~124 de mesaje pe zi (măsurat) ⇒ buget pe fel și rezumate, criticele neatinse | crypto: scripts/lib/politica-alerte.mjs, scripts/colector.mjs, scripts/lib/mesaje-colector.mjs | M | P2 | propus | ideation | 2026-11-27 |
 | I-961 | Radar: puterea dinainte (efectul minim detectabil) lângă fiecare „se adună” — știi din prima lună dacă proba poate răspunde | crypto: public/lib/alerte-registru.js, scripts/lib/tura-monede-bot.mjs, public/lib/sugestii-ecran.js, public/lib/alerte-ecran.js | S | P3 | propus | ideation | 2026-11-27 |
+| I-962 | Radar: ziua rezultatelor în lei pe pozițiile TALE (AVGO 9.12, MU 17.12, APLD 6.01): cât a sărit de obicei, cât trece de stop și cât din cont, cu 14 zile înainte | crypto: functions/api/rezultate.js, public/lib/rezultate.js, public/lib/profil-moneda.js, public/lib/t212-ecran.js, public/lib/sugestii-ecran.js, public/lib/actiuni-semnale.js, public/lib/probabilitati.js … | M | P1 | propus | ideation | 2026-11-27 |
+| I-963 | Radar: anul fiscal se închide pe 31.12. NET-ul T212 pe 2026 și cât schimbă impozitul ieșirea din pozițiile „de ieșit” înainte de ultima zi de bursă, nu în ianuarie | crypto: public/lib/t212.js, public/lib/t212-ecran.js, public/lib/actiuni-semnale.js, public/lib/cont-intreg.js, public/lib/cont-ecran.js, public/lib/calendar-bursa.js, scripts/colector.mjs … | S | P1 | propus | ideation | 2026-11-27 |
+| I-964 | Radar: semaforul „Ieși” pe trend în jos și −10% față de prețul mediu, probat acum pe istoric cu regula înghețată, înainte de hotărârea pe cele 7 poziții | crypto: public/lib/actiuni-semnale.js, scripts/lib/tura-t212.mjs, public/lib/t212-ecran.js, public/lib/risc-luna.js, public/lib/alerte-registru.js, public/lib/verdicte.js | M | P1 | propus | ideation | 2026-11-27 |
+| I-965 | Radar: alarma „fără stop” verifică dacă stopul T212 acoperă TOATĂ cantitatea și spune când nu mai poate citi ordinele (azi tace în ambele cazuri) | crypto: functions/api/t212.js, scripts/lib/sanatate-colector.mjs, scripts/colector.mjs, scripts/lib/poza.mjs, paznic/worker.mjs, scripts/paznic-stop-v101126.mjs | S | P1 | propus | ideation | 2026-11-27 |
+| I-966 | Radar: cât ar fi economisit un sold în USD la T212 (umplerile din ultimul an reluate cu un portofel virtual în dolari, lângă rândul conversiei) | crypto: public/lib/cont-intreg.js, public/lib/cont-ecran.js, public/lib/risc-luna.js, public/lib/t212.js, scripts/lib/tura-cont.mjs | S | P2 | propus | ideation | 2026-11-27 |
+| I-967 | Radar: botul de semnal arată pe ecran rezultatul CU poziția deschisă, aceeași cifră ca alerta de −15% și Contul întreg (scăpare din v100.396) | crypto: public/lib/bot-semnal.js, public/lib/pret-viu.js, public/lib/acasa-ecran.js, public/lib/asezare-paznic.js, functions/api/bot-orders.js | S | P1 | propus | ideation | 2026-11-27 |
+| I-968 | Radar: pozițiile încă deschise intră în proba stopului și în obiceiuri (alegerea stopului care urcă, A1, „Pe total ești pe plus”) | crypto: scripts/lib/tura-t212.mjs, public/lib/actiuni-semnale.js, public/lib/t212-ecran.js, public/lib/risc-luna.js, public/lib/risc-ecran.js, public/lib/comportament-ecran.js, public/lib/statistica-trade.js … | M | P2 | propus | ideation | 2026-11-27 |
+| I-969 | Radar: frâna pe tot contul socotește și comisionul de conversie T212 ca pierdere, nu ca „bani retrași” | crypto: public/lib/cont-intreg.js, public/lib/t212.js, scripts/lib/tura-cont.mjs, scripts/lib/mesaje-colector.mjs, public/lib/acasa.js, public/lib/acasa-ecran.js, scripts/lib/tura-piata.mjs | S | P2 | propus | ideation | 2026-11-27 |
+| I-970 | Radar: riscul contului refăcut după o tranzacție reală, nu doar la 6 ore: „înainte → după” pe Discord, iar până atunci raportul spune că e de dinainte | crypto: scripts/lib/tura-cont.mjs, scripts/colector.mjs, public/lib/cont-ecran.js, public/lib/acasa-ecran.js, public/lib/acasa.js, scripts/lib/mesaje-colector.mjs | M | P2 | propus | ideation | 2026-11-27 |
+| I-971 | Radar: alerta duce la botul, poziția sau pagina ei: butonul din Alerte cu tot cu bot, plus legătura în mesajul de pe Discord | crypto: public/lib/alerte-ecran.js, public/app.js, public/lib/t212-ecran.js, scripts/lib/canal-discord.mjs, scripts/colector.mjs, scripts/lib/tura-pornire.mjs, scripts/lib/tura-cont.mjs | S | P2 | propus | ideation | 2026-11-27 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -9118,3 +9128,246 @@ Lentile — Trader: contul stă la ~9,7% risc pe o zi față de bugetul de 4% (2
 - **Impact:** Timp: știi din prima lună dacă proba poate răspunde.
 - **Riscuri/dependențe:** Abaterea pe puține ferestre e instabilă (intervalul spus).
 - **Fișiere atinse:** crypto: public/lib/alerte-registru.js, scripts/lib/tura-monede-bot.mjs, public/lib/sugestii-ecran.js, public/lib/alerte-ecran.js
+
+### Idei 27.11.2026 (după v100.396, workflow pe 6 lentile + sceptici + sinteză): I-962…I-971
+Respinse de sceptici (nu se repropun): Radar: riscul pe o zi cu TOATE pozițiile — cele cu istorie scurtă intră printr-un înlocuit · Din ideea „semaforul Ieși pe istoric”: reluarea filtrului ideilor de cumpărare pe aceeași  · Din ideea „ziua raportului în risc”: poarta „dacă depășirile riscului nu se strâng în zile · (din ideea bazei KV) Paza 5xx cu a doua regulă: proporția pe oră pe rută (≥ 5% și ≥ 10 ero · (din ideea paznicului) Contorul de scrieri KV pe ziua UTC, în poză și în sănătate · (din ideea paznicului) Ora ultimului anunț ținută în Cache API ca să nu se repete la 10 mi · (din ideea alarmei T212) t212Sanatate chemată și pe ruta `ordine-deschise` + 429 peste 60  · Radar: câștigul T212 verificat pe bani (contul minus depunerile nete, lângă cifra refăcută
+
+### I-962 · Radar: ziua rezultatelor în lei pe pozițiile TALE (AVGO 9.12, MU 17.12, APLD 6.01): cât a sărit de obicei, cât trece de stop și cât din cont, cu 14 zile înainte · M · P1
+- **Problema/golul:** Pe viu, T212 ține ~95% din cont (~21.600 lei). Riscul pe o zi e 2.208 lei, adică 9,7% față de bugetul de 4% (909,6 lei). Trei poziții raportează în curând: AVGO peste 12 zile, MU peste 20 și APLD pe 6.01.
+  Radarul scrie aceeași frază pentru orice firmă, „prețul poate sări 10–20% într-o noapte”:
+  - t212-ecran.js:1114, doar cu ≤ 10 zile înainte, deci AVGO n-are încă rând;
+  - biletul, la :1826;
+  - sugestii-ecran.js:378.
+  Poarta spune doar „poate sări peste stop”, fără nicio cifră (actiuni-semnale.js:260). Textele se și contrazic: t212-ecran.js:1114 sfătuiește „aș avea stopul pus înainte”, iar profilul aceleiași acțiuni spune „stopul nu te apără de ele” (profil-moneda.js:122-124).
+  Cifrele pe firmă există, dar nu ajung în lei și nici acolo unde se hotărăște:
+  - Reacția fiecărei raportări trecute e socotită în functions/api/rezultate.js:82-95. Sunt cel mult 8 raportări, în practică 4 de la Nasdaq, fiindcă Finnhub gratuit nu dă trecutul (:48-49). Apare doar pe pagina Rezultate, la clic (app.js:7451), și doar în %.
+  - Săriturile peste P98 din profil (profil-moneda.js:57, :69-76) apar pe poziție abia cu ≤ 5 zile înainte, tot în % (probabilitati.js:166-172).
+  - Rezumatul de dimineață și Acasă dau doar data (consilier.js:160, acasa-ecran.js:95-104).
+  - Riscul pe o zi (riscAcum, cont-intreg.js:545) nu știe de calendar.
+  - Planul „ce tai ca să cobori sub 4%” (I-957, cont-ecran.js:258) îi cere chiar azi să taie MU și APLD, adică două din cele trei care raportează, fără să spună cât valorează ziua raportului.
+- **Soluția:** (1) Pentru fiecare poziție T212 care raportează în ≤ 14 zile se cere o dată istoricul ei. Serverul îl ține 6 h. Ruta trimite și saltul la deschidere CU semn (azi salt() de la :83 e în valoare absolută și servește doar la ghicirea orei). Pe valoarea de azi a poziției se socotesc în lei: mișcarea obișnuită în ziua reacției (mediana |reacție|), cea mai mare văzută și cea mai mare săritură la deschidere din profil (pe mai mulți ani, etichetată „sărituri mari, nu neapărat rapoarte”). Se spune și dacă la cea mai rea deschidere prețul a sărit peste stopul pus: „la o reacție ca cea mai mare pierzi X lei, nu Y cât zice stopul”.
+  (2) Cifrele înlocuiesc fraza „10–20%” în rândul poziției, în bilet, în Sugestii și în Poartă. Pe Contul întreg stau lângă riscul pe o zi și lângă pasul poziției din planul „ce tai”. La risc egal, planul numește întâi poziția care are raport în fereastră. În rezumatul de dimineață, ele înlocuiesc „își anunță rezultatele” la 14 zile, la 5 zile și la o ședință înainte.
+  (3) În dimineața de după un raport dat după închidere: ultima cotație din afara ședinței × bucățile dă leii deja câștigați sau pierduți și spune dacă stopul se va umple sub prețul lui. Ruta prepost=1 există deja (t212-ecran.js:1542-1593).
+  (4) Urmărirea înainte: estimarea se scrie înainte de fiecare raport și se judecă după. Verdictul vine la ≥ 26 de date distincte, înghețat. Până atunci frâna nu se schimbă.
+- **Impact:** Hotărârea „țin întreg, înjumătățesc sau ies înainte de raport” pe banii mari, mai ales pe pozițiile deja pe IEȘI. Pentru AVGO ai 12 zile de gândire, nu 5, iar cifrele sunt ale firmei LUI, nu o frază la fel pentru toate. Planul de 4% capătă o ordine: la risc egal tai întâi poziția cu raportul cel mai aproape. În dimineața de după raport hotărăști stopul înainte de deschidere, nu afli de la umplere. Riscul închis: ziua în care stopul nu ține nu mai stă ascunsă într-o cifră socotită pe o zi obișnuită, cu contul deja la 2,4× bugetul.
+- **Riscuri/dependențe:** - Pe ~4 raportări pe firmă, cifra e o DESCRIERE (obișnuit / cea mai mare văzută), nu o probabilitate, nu o direcție și nici „cel mai rău caz”. Asta se scrie lângă cifră.
+  - Orice prag sau multiplu (cele 14 zile, cuantila) e o ipoteză de validat out-of-sample.
+  - Ora dedusă din preț se scoate din medie, ca la rezultate.js:51. Ora neștiută înseamnă reacție lipsă, nu ghicită.
+  - Datele estimate (sigur: false) se marchează ca estimate.
+  - Doar listările SUA au dată (t212.js:397-398). Dublurile europene păstrează textul de azi, spus ca atare.
+  - Săritura NU se adună în VaR, fiindcă zilele de raport sunt deja în cele 250 de zile și s-ar număra de două ori. Stă lângă VaR.
+  - O firmă care și-a schimbat afacerea (APLD) poate reacționa altfel. Contagiunea (AVGO trage MU) nu intră.
+  - Schimbarea se vede pe ecran, deci poze înainte și după, fără să se piardă nimic din rândurile de azi.
+- **Fișiere atinse:** crypto: functions/api/rezultate.js (istoric :64-110, saltul cu semn :83, ora :93-95), public/lib/rezultate.js (:51), public/lib/profil-moneda.js (evenimente :57-76, textSarituri :122-124), public/lib/t212-ecran.js (:1114, :1826, rândul poziției :1444, prepost :1542-1593), public/lib/sugestii-ecran.js (:378), public/lib/actiuni-semnale.js (:260), public/lib/probabilitati.js (:166-172), public/lib/cont-intreg.js (riscAcum :545, planSub4 :692-713), public/lib/cont-ecran.js (ciCifreHtml :203, ciPlanHtml :250-258), public/lib/consilier.js (rezumatDimineata :160), scripts/colector.mjs (rezultateZilePt :1575-1580, dateDimineata :1956-1990), scripts/lib/mesaje-colector.mjs, functions/api/t212.js (:396-405)
+- **Verificat (dubluri, pe disc):** Cod, verificat de mine acum: grep „10–20%|sări peste stop” în public/lib găsește t212-ecran.js:1114 și :1826, sugestii-ecran.js:378 și actiuni-semnale.js:260, toate text fix. Ruta rezultate cere _US_EQ (t212.js:396-398).
+  Din lentile: „action=istoric” e cerut doar din app.js:7451. cont-intreg.js și tura-cont.mjs n-au nicio legătură între risc și calendar. Procentele pe acțiune apar doar cu ≤ 5 zile înainte.
+  Backlog (grep „earnings|raportăr|rezultate|săritur|reacți|mișcarea așteptată|after-hours”):
+  - I-006, I-016, I-046, I-051, I-199, I-698: gărzi la cumpărare;
+  - I-154, I-165, I-169, I-683, I-701, I-734, I-795: insigne, date și mesaje;
+  - I-620: PEAD;
+  - I-179, I-679, I-681: macro, indicele, calendarul pieței.
+  Niciuna nu pune reacția trecută a poziției ținute în lei, lângă stop, VaR sau planul de tăiere. Nu e niciuna din I-942…I-961 (tabelul, rândurile 3622-3641).
+
+### I-963 · Radar: anul fiscal se închide pe 31.12. NET-ul T212 pe 2026 și cât schimbă impozitul ieșirea din pozițiile „de ieșit” înainte de ultima zi de bursă, nu în ianuarie · S · P1
+- **Problema/golul:** Pe viu sunt 7 poziții T212 pe IEȘI (t212-ecran.js:1071; semaforul la actiuni-semnale.js:94-111) și −9.099 lei nerealizat.
+  Radarul are ambele bucăți. Prima e NET-ul realizat pe an (T212.raportAnual, t212.js:138-168; blocul „Pentru Declarația Unică”, t212-ecran.js:2143-2174, cu anul implicit cel curent). A doua e ppl-ul în lei al fiecărei poziții deschise. Dar blocul privește doar înapoi și doar la cerere. De anul fiscal nu știu:
+  - semaforul;
+  - planul „ce tai ca să cobori sub 4%” (cont-intreg.js:692-713; ciPlanHtml, cont-ecran.js:250);
+  - rezumatul de dimineață, care dă doar procentul (colector.mjs:1957-1982, consilier.js:155-158).
+  Aceeași ieșire făcută pe 30.12 sau pe 5.01 cade în ani diferiți. După azi mai sunt ~23 de ședințe SUA (25.12 e închis). 31.12 e joi, iar o vânzare din 31.12 se decontează abia pe 4.01.2027 (T+1, cu 1.01 liber).
+  În cod nu există nicio socoteală de impozit: grep „impozit|CASS” găsește doar trimiterea la contabil (t212-ecran.js:2171, t212.js:133). „Rezultatul” T212 de 11.371 lei (cont-intreg.js:636) e pe toată viața contului, nu pe 2026.
+- **Soluția:** Pasul zero: NET-ul T212 pe 2026, din raportAnual. Dacă istoricul e incomplet, rândul spune „nu știu NET-ul anului”, nu zero.
+  Dacă NET ≤ 0, apare o singură frază: „pe 2026 n-ai câștig din acțiuni de compensat”. Simetric, se spune cât câștig de pe pozițiile pe plus pe care planul sau semaforul le scot oricum ar încăpea fără impozit.
+  Dacă NET > 0, pe fiecare poziție IEȘI și pe fiecare pas din planul de tăiere apare un rând: „vândută până pe 30.12: NET 2026 trece de la A la B lei ⇒ impozit cu ~C lei mai mic, la cota ta”. Pierderea se ia din ppl-ul T212, minus comisionul de ieșire.
+  Cota și celelalte venituri din investiții (pentru distanța până la pragul CASS) le scrie el o dată în Setări, după ce vorbește cu contabilul. Radarul nu ghicește nimic. Pe Discord pleacă câte un mesaj pe ~15.12 și pe 28.12, doar dacă diferența există și mai sunt poziții IEȘI pe minus. Radarul nu propune vânzări pentru impozit: socotește doar pe ce scot deja semaforul sau planul.
+- **Impact:** Hotărăște DATA a până la 7 ieșiri pe care Radarul le cere deja și ordinea tăierilor din planul de 4%, cu termen fix. Dacă NET 2026 > 0, impozitul pe 2026 scade cu cota × min(pierderea realizată, NET). La 16% (de confirmat) și dacă toată pierderea de −9.099 lei ar fi pe pozițiile IEȘI, asta înseamnă cel mult ~1.455,8 lei, fără risc de piață în plus. CASS e o treaptă: câțiva lei peste prag costă tot pragul. APLD raportează pe 6.01, deci o ieșire până pe 30.12 vine și înaintea raportului. Dacă NET ≤ 0, ideea tace singură după o frază.
+- **Riscuri/dependențe:** - Regulile le confirmă contabilul; Radarul dă doar cifrele, ca blocul de azi. De confirmat: cota pe 2026 la un intermediar nerezident, data care contează (a tranzacției sau a decontării; prudent, până pe 30.12), reportul pierderilor (dacă există, ieșirea în ianuarie mai mult amână decât pierde) și pragurile CASS.
+  - Radarul socotește realizatul FIFO din umpleri (t212.js:149), iar legea cere costul mediu ponderat (I-686 l-a folosit în suita veche). La pozițiile cumpărate în tranșe cifrele diferă, așa că rândul ia ppl-ul T212 (preț mediu) și o spune.
+  - IEȘI nu înseamnă mereu minus: stopul sau urmăritorul pot fi peste prețul mediu.
+  - Pionex e altă categorie de venit și nu se compensează cu acțiunile.
+  - Recumpărarea imediată după vânzare o prinde deja Poarta (actiuni-semnale.js:257).
+  - Cursul din ziua vânzării nu se știe dinainte, deci cifra „după” e aproximativă.
+  - Nu e sfat fiscal.
+- **Fișiere atinse:** crypto: public/lib/t212.js (raportAnual :138-168 + o funcție pură nouă „dacă ieși până la 30.12”), public/lib/t212-ecran.js (t212DeclaratieBloc :2143-2174, p.sem :587, :1071), public/lib/actiuni-semnale.js (semafor :86-111, doar citit), public/lib/cont-intreg.js (planSub4 :692-713), public/lib/cont-ecran.js (ciPlanHtml :250), public/lib/calendar-bursa.js (ultima zi de bursă din an), scripts/colector.mjs (dateDimineata :1956-1990), scripts/lib/poza.mjs (costLeiDinLoturi), scripts/lib/mesaje-colector.mjs
+- **Verificat (dubluri, pe disc):** Cod: grep „impozit|fiscal|Declarați|CASS|tax” în public/lib, scripts și functions găsește doar raportul pe anul vânzării (t212.js:131-168, t212-ecran.js:2143-2174) și textele „de verificat cu contabilul”. Nimic despre vânzările încă nefăcute, nimic în planSub4 sau în semafor.
+  Backlog, verificat de mine acum: grep „impozit|sold în USD|harvest|anul fiscal|31.12|tax.loss|compens…pierder” dă 0 rânduri pe mecanism (31.12 apare doar la piețele care expiră, :7236). I-686 (:3394, făcut pe 17.10) e raportul fiscal anual al vânzărilor deja făcute, la cursul BNR, în suita veche: fără pozițiile deschise, fără termen și fără CASS. Nu e I-957 (acolo e doar riscul) și nici alt rând din I-942…I-961.
+
+### I-964 · Radar: semaforul „Ieși” pe trend în jos și −10% față de prețul mediu, probat acum pe istoric cu regula înghețată, înainte de hotărârea pe cele 7 poziții · M · P1
+- **Problema/golul:** Azi 7 poziții T212 au semaforul „de ieșit” (t212-ecran.js:1071, nivelul iesi), cu −9.099 lei nerealizat și sfatul „Aș ieși (tot sau jumătate)” (actiuni-semnale.js:111). Ramura care nu vine din planul lui, „trend în jos pe zilnice ȘI −10% față de prețul TĂU mediu” (actiuni-semnale.js:101), n-a fost reluată niciodată pe istoric.
+  Unica probă e registrul pe viu. El judecă la 5 ședințe față de QQQ și dă verdict abia la 26 de ferestre aflate la ≥ 7 zile una de alta (alerte-registru.js:45, :53), deci cel mai devreme pe la jumătatea lui mai 2027. În plus, QQQ e reperul greșit: când vinde, banii lui rămân în lei, nu trec în QQQ.
+  Mașina de reluare pe trade-urile lui există deja: turaCfActiuni (scripts/lib/tura-t212.mjs:93-123, barele zilnice pe fiecare trade) și „Cât te-ar fi salvat stopul” (t212-ecran.js:2054-2083). Concluzia ei a fost că stopurile mai strânse au tăiat prea multe trade-uri care își reveneau (t212-ecran.js:1497). Deci pe datele lui ieșirile mai devreme au costat, iar regula „Ieși” pe trend n-a trecut prin aceeași probă.
+- **Soluția:** O reluare pe istoric, rulată o singură dată, acasă, cu funcțiile pure de azi (ActiuniSemnale.stare + semafor, doar ramura trend-jos-minus), fixate după hash. Două seturi:
+  (1) episoadele lui din jurnalul T212, închise și deschise, cu prețul mediu refăcut din umpleri, pe barele pe care turaCfActiuni le aduce deja;
+  (2) Nasdaq-100 pe 10 ani de bare zilnice, cu intrări sintetice.
+  La primul „Ieși” din fiecare episod se compară vânzarea la deschiderea următoare cu ținerea, în lei, după conversia de 0,15% la ieșire.
+  Ipoteza principală, scrisă înainte: 20 de ședințe, față de banii ținuți în lei. 5 și 60 de ședințe, plus comparația față de QQQ, sunt secundare, cu corecția Holm. Semnalele se grupează în blocuri de 20 de ședințe care nu se suprapun, cu media pe bloc. Verdictul vine la ≥ 26 de blocuri, înghețat. Nasdaq-100 dă ~125 de blocuri; pe trade-urile lui s-ar putea să nu ajungă la 26, și atunci se spune.
+- **Impact:** Hotărârea pe cele 7 poziții se ia acum, nu la vară. Dacă „Ieși” iese dovedit, fiecare poziție primește costul ținerii: „pe istoric, ținerea după «Ieși» a costat X% în 20 de ședințe ⇒ ~Y lei la tine”. Dacă iese nedovedit sau pe dos, Radarul nu mai spune „Aș ieși” pe trend-jos-minus și nu-l mai împinge să facă definitivă o pierdere pe o regulă fără dovadă. Revenirea pe termen scurt e un efect cunoscut, iar „Cât te-ar fi salvat stopul” arată deja că ieșirile strânse l-au costat. Ieșirile din planul lui (stop sau trail atins) rămân, fiindcă sunt regula lui.
+- **Riscuri/dependențe:** - Nasdaq-100 de azi are doar supraviețuitorii: lipsesc acțiunile ieșite din indice după cădere, adică tocmai cazurile în care „Ieși” avea dreptate. Proba e deci strâmbă împotriva semaforului, și asta se spune.
+  - Pragurile s-au ales pe datele lui (25.09), deci setul (1) se raportează separat, ca „pe datele regulii”. Pragurile rămân ipoteze de validat out-of-sample.
+  - Split-urile se tratează cu pretPotrivit (actiuni-semnale.js:527).
+  - Consilierul oscilează Ieși ⇄ Atenție (41 / 61 sub o oră, auditul din 19.11), deci un episod se numără o singură dată.
+  - Partea pe care Consiliu.alcatuiesteActiune o pune peste semafor nu intră, și se spune.
+  - Câte dintre cele 7 sunt pe trend-jos-minus și câte pe planul lui se arată separat.
+  - Rulează acasă, pe cea mai nouă copie a datelor, nu pe PC-ul cu puțină memorie.
+- **Fișiere atinse:** crypto: public/lib/actiuni-semnale.js (semafor :86-119, stare, pretPotrivit :527), scripts/lib/tura-t212.mjs (turaCfActiuni :93-123), public/lib/t212-ecran.js (:587, :1071, :1497, :2054-2083), public/lib/risc-luna.js (episoade :193, prețul mediu din umpleri), public/lib/alerte-registru.js (reperul QQQ :45), public/lib/verdicte.js (SURSE: rezultatul înghețat), scripts/ (o probă nouă de reluare, rulată acasă)
+- **Verificat (dubluri, pe disc):** Cod: Verdicte.SURSE (verdicte.js:17-30) n-are nicio sursă pentru ieșire, doar porți și idei. Contrafactualul e făcut pentru boți și pentru poarta de la CUMPĂRARE (t212Cireasa, t212-ecran.js:2209-2224). „Cât te-ar fi salvat stopul” reia doar stopuri fixe sau care urcă (T212_VARIANTE_STOP), nu semaforul.
+  Backlog (grep „semafor|trend-jos-minus|regula de ieșire|pe istoric|10 ani”):
+  - I-545: becurile BOȚILOR;
+  - I-864: costul așteptării de la stopul depășit, fără probă a regulii;
+  - I-946: registrul pe viu;
+  - I-695: reguli generice în suita veche.
+  Excluderea din 06.10 (backlog :5952) privea becurile la cumpărare, nu regula de ieșire. Nu e în I-942…I-961.
+
+### I-965 · Radar: alarma „fără stop” verifică dacă stopul T212 acoperă TOATĂ cantitatea și spune când nu mai poate citi ordinele (azi tace în ambele cazuri) · S · P1
+- **Problema/golul:** (1) Cantitatea. stopuriDinOrdine (functions/api/t212.js:23-31) folosește cantitatea doar ca filtru (q < 0) și păstrează pe ticker numai cel mai sus preț de stop. Proba proprie o confirmă: două ordine, de 2 și de 1 bucată, ies { MU_US_EQ: 950 }, fără bucăți (scripts/paznic-stop-v101126.mjs:70-72). Așa că faraStop (paznic/worker.mjs:159) tace când un stop pus pe 1 bucată stă pe o poziție de 40. Asta lovește exact felul lui de a cumpăra, media în jos: după o cumpărare în plus, stopul vechi acoperă doar prima tranșă.
+  (2) Orbirea. După 15 minute fără o citire bună a ordinelor, sanatate-colector.mjs:186-193 golește stopurile și pune o eroare, iar colectorul o trece în t212Eroare (colector.mjs:1751-1753). Paznicul întoarce atunci „t212-nesigur” ÎNAINTE de faraStop (worker.mjs:193-194), la fiecare 15 minute, fără niciun mesaj, oricât ar ține. Tac atunci și pozițiile care n-au stop nicăieri. Paza T212 a colectorului (t212Sanatate, colector.mjs:1466-1474) e chemată doar pe ruta pozitii (:1484-1485) și iartă 429.
+  Cazul cel mai probabil: cheia regenerată fără bifa „Orders (read)”, care e o permisiune separată (t212.js:20-21, 403 la :64). Atunci pozițiile se citesc, stopurile nu, iar alarma rămâne oarbă pe termen nedefinit. În jurnalele MAU (26.10–05.11) sunt 11 episoade, toate trecătoare: e o pană posibilă, nu una văzută deja.
+- **Soluția:** Ruta ordine-deschise întoarce pe ticker și bucățile acoperite: suma cantităților de pe vânzările STOP / STOP_LIMIT. Poza pune stopBuc lângă stopT212; buc există deja (poza.mjs:103-106). Când ordinele au fost citite, o acoperire sub ~98% din poziție sună în aceeași alarmă de 15 minute, cu același DND: „ordin real pe 10 din 40 de bucăți; restul fără limită (sau doar pe hârtie, dacă are stop în plan)”.
+  Pentru orbire, colectorul pune în poză de câte minute nu poate citi ordinele. Când stă în „nesigur” de ≥ 60 de minute în fereastra alarmei (zile lucrătoare, 08–22), paznicul trimite UN mesaj: „Nu pot verifica stopurile T212 de N min — motivul”, cu textul erorii (îi spune ce bifă lipsește). Pune lângă el pozițiile pe care le-ar apăra doar un ordin T212. Urmează o amintire la 3 ore, după ceas, fără scriere KV. La revenire pleacă un singur „verific iar stopurile”, cu o scriere KV doar dacă s-a anunțat. Mesajul spune „nu știu”, nu „ai poziții fără stop”.
+- **Impact:** Pe ~95% din cont (~21.600 lei, −9.099 lei nerealizat, 7 poziții „de ieșit”), hotărârea se schimbă așa: mută stopul pe toată cantitatea chiar în ziua în care cumpără în plus, pe poziția unde pierderea crește cel mai repede. În ziua în care cheia sau ruta se strică, pune stopurile de mână sau regenerează cheia cu bifa, în loc să creadă că tăcerea înseamnă „toate au stop”. Riscul închis: bucăți fără limită și o alarmă de bani care tace zile întregi fără să spună.
+- **Riscuri/dependențe:** - Câmpurile T212 (semnul cantității, filledQuantity la ordinele parțial umplute) se verifică pe un ordin real înainte de livrare.
+  - Un STOP_LIMIT poate să nu se umple la o săritură, iar textul o spune.
+  - Stopul „pe hârtie” rămâne valabil, cum a ales el pe 17.10, doar etichetat. Decision App nu se atinge.
+  - 98% și 60 de minute sunt ipoteze, nu cifre dovedite.
+  - Paznicul se publică doar de pe VPS, cu crons păstrat în wrangler.jsonc.
+  - Proba existentă (paznic-stop-v101126.mjs:74-77) se extinde, nu se răstoarnă.
+  - Un colector vechi, fără câmpul nou, lasă doar ramura pozițiilor.
+- **Fișiere atinse:** crypto: functions/api/t212.js (stopuriDinOrdine :23-31, ruta ordine-deschise :392-395), scripts/lib/sanatate-colector.mjs (stopuriT212Pas :186-193, durata ca număr), scripts/colector.mjs (pozitiiPentruPoza :1582-1593, t212Eroare :1747-1753), scripts/lib/poza.mjs (pozitieT212 :103-106, câmpul nou), paznic/worker.mjs (faraStop :159-162, verificaStopuri :188-203), scripts/paznic-stop-v101126.mjs (proba)
+- **Verificat (dubluri, pe disc):** Verificat de mine acum:
+  - t212.js:23-31: stopuriDinOrdine ține Math.max pe ticker, fără bucăți;
+  - worker.mjs:191-194: „fara-poza” și „t212-nesigur” se întorc înainte de faraStop.
+  Din lentile:
+  - grep „t212-nesigur|t212Eroare|stopBuc|acoper” găsește doar garda „nesigur”, jurnalul, poza și proba;
+  - în Decision App, stop-setter.js:144-160 merge tot pe ticker, fără cantitate.
+  Backlog (grep „stop…cantitat|bucăț|acoper|tranș|parțial|nesigur|Orders (read)”):
+  - I-723: cantitatea doar în Decision App, aplicație separată;
+  - I-790: afișează stopT212;
+  - I-791: cheia de scriere;
+  - I-793: panoul pe ticker.
+  Niciuna nu verifică acoperirea în alarma Radarului și niciuna nu anunță orbirea. I-943 și I-951 au alt mecanism.
+
+### I-966 · Radar: cât ar fi economisit un sold în USD la T212 (umplerile din ultimul an reluate cu un portofel virtual în dolari, lângă rândul conversiei) · S · P2
+- **Problema/golul:** Comisionul de conversie e cea mai mare scurgere măsurată din cont: 6.381 lei pe 13,5 luni (18.08.2025 – 01.10.2026), adică ~472,7 lei pe lună, cu ~0,15% pe fiecare umplere. Asta e ~61% din câștigul pe preț. Cumpărările au fost de ~80× depunerile nete (memoria, 02.10), deci aproape tot comisionul s-a plătit pe bani care treceau dolari → lei → dolari doar ca să intre în următoarea acțiune americană.
+  Pagina dă doar suma pe an și mediana (cont-ecran.js:404, din executie.conversie, cont-intreg.js:498-503). Singurul sfat e „aș face mai puține cumpărări mici” (risc-luna.js:331-333). Nicăieri nu apare varianta care taie comisionul fără să schimbe felul în care tranzacționează: banii ținuți în USD între tranzacții.
+- **Soluția:** Primul pas nu e cod: el verifică în aplicația Trading 212 dacă un cont în lei poate ține un sold în USD. Dacă nu poate, ideea cade și rămâne sfatul de azi.
+  Dacă poate, umplerile din ultimul an se reiau cu un portofel virtual în dolari:
+  - moneda se ia din monedaTicker(ticker), nu din câmpul moneda, care e moneda contului;
+  - vânzările americane pun dolari în portofel;
+  - cumpărările americane iau întâi din portofel;
+  - comisionul se socotește doar pe partea convertită din lei.
+  Diferența față de comisionul plătit cu adevărat stă lângă rândul conversiei, pe an și pe lună: „cu un sold în USD ai fi plătit A lei în loc de B”. Același număr completează sfatul din risc-luna.
+- **Impact:** O hotărâre de cont, luată o singură dată (activezi soldul în USD sau nu), care poate tăia cea mai mare scurgere a contului fără să schimbe strategia. La rulajul 2025–2026, comisionul a fost de ~5.672 lei pe an, adică un sfert din contul de azi. Cifra exactă a economiei iese din umplerile lui, nu din acest exemplu.
+- **Riscuri/dependențe:** - Nu e verificat dacă T212 dă sold în USD conturilor în lei: e condiția de la care pornește totul.
+  - Un sold în USD ține cursul leu/dolar și pe cash. Valoarea contului, frâna și VaR-ul ar trebui atunci să citească și cash-ul în USD.
+  - ETF-urile din Londra și de pe Xetra (GBP / EUR) se socotesc separat.
+  - Rulajul de acum poate fi mai mic decât în 2025, deci cifra se dă pe ultimul an și pe ultimele luni.
+- **Fișiere atinse:** crypto: public/lib/cont-intreg.js (executie :494-526, reluarea cu portofelul virtual), public/lib/cont-ecran.js (rândul „Conversia lei ↔ dolari” :404), public/lib/risc-luna.js (sfatul :331-333), public/lib/t212.js (umpleri: fee, fx; monedaTicker), scripts/lib/tura-cont.mjs (raportul executie)
+- **Verificat (dubluri, pe disc):** Cod: cont-intreg.js:494-526 dă suma, mediana și cursul față de BNR, nimic despre reconversii. Sfatul „mai puține cumpărări mici” există deja, de aceea varianta „mai puține rotații” n-ar aduce nimic nou. Câmpul moneda din t212.js:51 e moneda contului.
+  Backlog, verificat de mine acum: grep „sold în USD|multi-currency|cont în dolari|reconvers|conversi…(sold|portofel|USD)” nu găsește nimic pe mecanism; I-589 e doar soldul Pionex. Din lentile: I-268 / I-341 (Pine), I-642 / I-659 (costul T212 în suita veche), I-906 (dus-întorsul gridului Pionex). Nu e în I-942…I-961.
+
+### I-967 · Radar: botul de semnal arată pe ecran rezultatul CU poziția deschisă, aceeași cifră ca alerta de −15% și Contul întreg (scăpare din v100.396) · S · P1
+- **Problema/golul:** Pe 27.11, în valul v100.396, s-a verificat pe viu că profitul dat de Pionex la botul de semnal e doar câștigul încasat. Reparația s-a pus în două locuri: paza (rezultatCuPozitie, bot-semnal.js:71-77, folosită doar la :87) și valoarea contului (cont-intreg.js:51-52, scrisă separat).
+  Ecranele au rămas pe profitTotal brut:
+  - cartela din Tablou, „Rezultat, USDT” (bot-semnal.js:109, :116);
+  - rândul de pe Piața azi (randAcasa :133, chemat din acasa-ecran.js:1000);
+  - banda de sus, verde de la 0 în sus (pret-viu.js:98-103);
+  - celula de pe pagina Paznic (asezare-paznic.js:189).
+  Cartela mai scrie „cu poziția deschisă: neverificat dacă o cuprinde” (rezultatNeverificat, functions/api/bot-orders.js:166, :186), deși acum se știe că nu o cuprinde.
+  Rezultatul: alerta critică „ZEC semnal: −15% din suma pusă (cu poziția deschisă)” poate pleca în timp ce banda de pe telefon arată verde. Contul întreg are altă cifră decât cartela. ZEC, UNI și HYPE (~50–60 USDT fiecare) rulează pe regula respinsă de Proba 13, iar hotărârea „opresc boții?” îl așteaptă. În plus, Piața azi taie la 3 boți de semnal fără niciun semn (acasa-ecran.js:1000).
+- **Soluția:** Cartela, rândul de pe Piața azi, banda de sus și Paznicul iau cifra din aceeași funcție, rezultatCuPozitie, și arată despărțirea: „−X USDT cu poziția (încasat +a · poziția deschisă −b, din intrarea ~P, estimată)”. Când intrarea nu se poate socoti, textul spune „încasat +a; poziția deschisă n-o pot socoti”, fără total și fără verde. Culoarea benzii vine din rezultatul cu poziția. Fraza „neverificat” devine „Pionex dă doar încasatul; poziția e adăugată de Radar”. Piața azi îi arată pe toți boții sau scrie „+N”.
+- **Impact:** Hotărârea „opresc boții de semnal?” se ia pe aceeași cifră pe care o folosesc alerta de oprire la −15% și Contul întreg. Nu mai apare verde peste o pierdere deschisă, care l-ar face să creadă că alerta critică e greșită și s-o lase să treacă.
+- **Riscuri/dependențe:** - Locul ei e în v100.396, înainte de livrare: revizia de azi (🟠4 / 🟠3) a reparat paza și dinBot, nu și ecranele.
+  - Intrarea e estimată din banii poziției împărțiți la cantitate, fiindcă Pionex n-o dă, și se scrie „estimată”.
+  - Funding-ul curs pe poziția deschisă nu intră, și se spune.
+  - Registrul tranzacțiilor închise (I-958) rămâne pe încasat.
+  - Proba se face pe un bot aflat în poziție și pe unul fără poziție.
+  - Se vede pe ecran, deci poze înainte și după.
+- **Fișiere atinse:** crypto: public/lib/bot-semnal.js (cardHtml :106-131, randAcasa :133, rezultatCuPozitie :71), public/lib/pret-viu.js (banda :98-103), public/lib/acasa-ecran.js (:985, :1000), public/lib/asezare-paznic.js (:189), functions/api/bot-orders.js (:166, :186, rezultatNeverificat)
+- **Verificat (dubluri, pe disc):** Verificat de mine acum cu grep „rezultatCuPozitie|rezultatNeverificat|profitTotal”: rezultatCuPozitie e chemată doar la bot-semnal.js:87. Cartela (:109, :116), randAcasa (:133), pret-viu.js:99 și asezare-paznic.js:189 citesc profitTotal brut, iar cont-intreg.js:51 are aceeași socoteală scrisă separat.
+  Backlog: I-944 e paza și I-958 e registrul tranzacțiilor închise. I-958 constată că profitul e doar încasat, dar soluția lui nu atinge ecranele. Niciun rând nu schimbă cartela, banda sau Piața azi.
+
+### I-968 · Radar: pozițiile încă deschise intră în proba stopului și în obiceiuri (alegerea stopului care urcă, A1, „Pe total ești pe plus”) · M · P2
+- **Problema/golul:** Tot ce învață Radarul din trade-urile lui pe acțiuni se socotește doar pe cele închise.
+  Cel mai scump loc e proba stopului. turaCfActiuni ia d.T212.perechi(u).inchise (scripts/lib/tura-t212.mjs:95) și hrănește „Cât te-ar fi salvat stopul” și alegeTrail (actiuni-semnale.js:641). Acesta fixează stopul minim de −15% de la maxim pe TOATE pozițiile de azi (t212-ecran.js:589-591; :1497: „stopurile mai strânse au tăiat prea multe care își reveneau”). Pozițiile care NU și-au revenit stau încă deschise (azi −9.099 lei și 7 semafoare roșii). Sunt exact cazurile în care un stop mai strâns ar fi salvat bani, și ele lipsesc din probă. E efectul de dispoziție: pierderile se țin, câștigurile se vând, deci eșantionul favorizează stopurile largi.
+  La fel:
+  - comportamentActiuni, supraviețuirea și Monte Carlo folosesc doar ep.inchise (risc-luna.js:355-358);
+  - StatisticaTrade.dinT212(j.p.inchise) (app.js:6367, :6458) dă „Pe total ești pe plus” și „Câștigi la X%”.
+  Pagina o recunoaște: „pozițiile încă deschise nu intră” (risc-ecran.js:99, comportament-ecran.js:138).
+- **Soluția:** Fiecare poziție deschisă intră ca „închisă azi”, la prețul de acum minus conversia de ieșire. În proba stopului se merge de la cumpărare până la ultima bară închisă. Dacă stopul variantei ar fi fost atins, ieșirea e la stop sau la deschidere. Altfel poziția e marcată la prețul de azi.
+  Lângă fiecare cifră socotită pe închise apare a doua coloană, „cu pozițiile deschise, dacă închideai azi”, pentru variantele de stop, A1-A3, rata de câștig, total și luna proastă. Alegerea stopului și verdictul A1 rămân pe regula scrisă și înghețată. Dacă a doua coloană întoarce cea mai bună variantă de stop sau semnul lui A1, se spune pe un rând, cu suma în lei.
+- **Impact:** Lărgimea stopului pe toate pozițiile T212 (−15% față de unul mai strâns) se sprijină pe un eșantion care include și pierderile nerealizate, nu doar pe cele care au apucat să revină. Frâna „cumpărat în jos” (alertaFrana, actiuni-semnale.js:513-515) primește cifra reală, cu mediatele care încă pierd. „Pe total ești pe plus” nu mai ascunde −9.099 lei atunci când îi spune cât să mai țină în acțiuni (~95% din cont).
+- **Riscuri/dependențe:** - Prețul de azi nu e rezultatul final: coloana e un scenariu, se mișcă zilnic, iar verdictele nu se refac din ea.
+  - Pozițiile fără preț sau cu bare nepotrivite (split, pretPotrivit) se spun ca scoase.
+  - Proba stopului rulează pe colector (40 de acțiuni pe oră), deci pozițiile deschise se refac o dată pe zi.
+  - Orice prag rămâne o ipoteză de validat out-of-sample.
+  - Se schimbă pagina, deci demo înainte și după, fără să se piardă nimic.
+- **Fișiere atinse:** crypto: scripts/lib/tura-t212.mjs (turaCfActiuni :93-123), public/lib/actiuni-semnale.js (cuStop, rezumatStop, alegeTrail :641, trailPozitie :669, alertaFrana :513), public/lib/t212-ecran.js (:589-591, :1497, :2061-2083), public/lib/risc-luna.js (episoade :193, comportamentActiuni :211, supravietuire :58, :355-358), public/lib/risc-ecran.js (:99), public/lib/comportament-ecran.js (:138), public/lib/statistica-trade.js, public/app.js (:6367, :6458)
+- **Verificat (dubluri, pe disc):** Verificat de mine acum: tura-t212.mjs:95, const inchise = d.T212.perechi(u).inchise, iar mai jos aceeași listă intră în laCumparare și cuStop. Din lentile: risc-luna.js:355-358, risc-ecran.js:99, comportament-ecran.js:138. bazinBoti (risc-luna.js:33) ia și el doar boții închiși, deci nu există model de copiat.
+  Backlog (grep „deschise|nerealizat|dispoziție|te-ar fi salvat|alegeTrail|Kaplan”):
+  - I-002, I-080: deschisele doar afișate;
+  - I-864: costul așteptării, nu calibrarea;
+  - I-672, I-715: supraviețuitori în universul de acțiuni;
+  - I-306: Pine.
+  Nu e în I-942…I-961.
+
+### I-969 · Radar: frâna pe tot contul socotește și comisionul de conversie T212 ca pierdere, nu ca „bani retrași” · S · P2
+- **Problema/golul:** fluxT212 = Δtotal − Δ(ppl + result) (cont-intreg.js:638). Comentariul de la :635-636 spune că diferența înseamnă „banii puși net (+ dividende, dobânda)”, dar result-ul T212 nu scade comisionul de conversie (t212.js:63-65).
+  Pe cifrele notei v85: 29.400,99 + 1.296,60 − 10.391,81 = 20.305,78 lei, adică depunerile nete (26.605,77) minus comisioanele (~6.353), plus dividendele și dobânda. Deci fiecare comision intră în flux cu minus, ca o retragere, iar schimbareFaraDepuneri (:647-651) îl adaugă înapoi. Frâna de −3% pe zi și −6% pe 7 zile vede astfel doar pierderea din piață. Dividendele sunt scoase din câștig „prudent”, dar comisioanele ies din pierdere fără să spună nimeni.
+  Pe Discord, franaContTot (mesaje-colector.mjs:239) scrie „(X lei retrase, scoase)” într-o zi fără nicio retragere. Aceeași cifră intră în Acasa.franaCont (acasa.js:654-659), deci și în frâna din Poartă (I-956). La rulajul din oct. 2025 (~66 lei pe zi de bursă), pe 7 zile frâna nu vedea ~330 lei, adică ~1,5% din 22.740 lei, un sfert din pragul de 6%.
+- **Soluția:** Fluxul corect devine Δtotal − Δ(ppl + result) + comisioanele umplerilor cu ora în fereastra (t0, t1]. Câmpul fee al umplerilor e deja citit (t212.js:49-51; istoricul e luat la tura-cont.mjs:146). Frâna și mesajul de pe Discord iau piața plus costurile, iar rândul spune „din care comisioane de conversie: X lei”. Proba VaR pe zilele reale (probaReala) rămâne pe mișcarea pieței, fără comisioane, și pagina o spune. Pragurile de 3% și 6% rămân cele scrise înainte.
+- **Impact:** „N-aș porni nimic nou” se trage pe pierderea reală a contului, tocmai în săptămânile cu multe rotații, când comisioanele cresc. Mesajul de pe Discord nu mai inventează „bani retrași”. Și frâna din Poartă (I-956) devine corectă, fiindcă citește aceeași cifră.
+- **Riscuri/dependențe:** - Umplerile necitite (istoricul T212 picat) înseamnă că frâna spune lipsa, nu pune 0.
+  - Taxes cuprinde și timbrul UK / FTT, care sunt tot costuri, deci intră.
+  - Comisionul de depunere cu cardul nu e în umpleri și rămâne în flux; se spune.
+  - Pragurile nu se mută pentru că cifra iese mai rea; ele rămân ipoteze de validat out-of-sample.
+  - Mărimea pe rulajul de acum nu e măsurată (datele sunt pe VPS). Se vede după livrare, în rândul „din care comisioane”.
+- **Fișiere atinse:** crypto: public/lib/cont-intreg.js (fluxT212 :638, schimbareFaraDepuneri :647, castigCont :655; probaReala :715 fără comisioane), public/lib/t212.js (fee :49-51), scripts/lib/tura-cont.mjs (umplerile :146, castigCont :389), scripts/lib/mesaje-colector.mjs (franaContTot :239), public/lib/acasa.js (franaCont :654-659), public/lib/acasa-ecran.js (:1022), scripts/lib/tura-piata.mjs (:188, t212Rez în poză)
+- **Verificat (dubluri, pe disc):** Verificat de mine acum: cont-intreg.js:638 fluxT212 = (t1 − t0) − (r1 − r0), fără niciun termen de comision. t212.js:49 adună taxes în fee pe fiecare umplere, iar tura-cont.mjs:146 citește deja istoricul cu umplerile. Identitatea total − ppl − result vine din nota v85 (25.09 și 02.10).
+  Backlog: I-947 cere doar scăderea depunerilor și a retragerilor. I-959 folosește istoricul doar ca rezervă, „dividendele și dobânda tratate ca acum”. Niciuna nu pomenește comisioanele: ideea repară o abatere a implementării de la spec.
+
+### I-970 · Radar: riscul contului refăcut după o tranzacție reală, nu doar la 6 ore: „înainte → după” pe Discord, iar până atunci raportul spune că e de dinainte · M · P2
+- **Problema/golul:** Raportul pe tot contul (VaR-ul, frâna de 4%, câștigul fără depuneri) se reface cel mult o dată la 6 ore (tura-cont.mjs:9, PAS = 6 * ORA, garda de la :119-120), doar în valul greu al colectorului (colector.mjs:3545), și niciodată la o tranzacție. Pagina avertizează abia după 12 ore (cont-ecran.js:163), Acasă îl socotește vechi tot după 12 ore (acasa-ecran.js:474), iar până atunci franaCont îl ia drept „ok” (acasa.js:642-653).
+  Așa că, până la 6 ore după o vânzare sau o cumpărare, 9,7% față de 4% și „Aș reduce expunerea…” descriu portofoliul de DINAINTEA tranzacției, fără s-o spună. După ce tai, frâna rămâne trasă. După ce cumperi în plus, un bot pornit în orele următoare trece pe cifra veche.
+  Colectorul află de umpleri în ≤ 5 minute (turaT212, colector.mjs:1419-1431, scris anume „ca frâna… să vină repede după cumpărare”), dar nu folosește asta pentru risc. Asta lovește exact când urmezi planul din I-957 sau Poarta din I-956.
+- **Soluția:** O umplere nouă în istoricul T212, sau un bot Pionex pornit ori oprit, mai nouă decât ora raportului, pornește tura contului în ~10 minute. Tranșele apropiate se adună într-o singură refacere, cel mult o dată la 30 de minute, pe seriile din cache-urile de pe disc (cont-bare, cont-lung). Pe Discord pleacă un singur rând: „riscul pe o zi după tranzacția ta: 2.208 → X lei (Y% din cont; bugetul 4%)”. Până la refacere, pagina și frâna scriu „raport de dinaintea tranzacției de la HH:MM”.
+- **Impact:** Vezi în aceeași ședință dacă tranzacția te-a dus sub buget sau peste el și o îndrepți pe loc. Nu mai aștepți până la 6 ore și nu mai socotești de mână. Frâna și Poarta nu mai judecă pe portofoliul de ieri.
+- **Riscuri/dependențe:** - Tura e grea, dar e prinsă în cache-uri. Se probează acasă, pe copia datelor.
+  - Istoricul T212 are 6 cereri pe minut, deci tura se așază după cererea din turaT212.
+  - Un VaR refăcut în ședință folosește închiderile de ieri, aproximare spusă.
+  - Fără adunarea tranșelor s-ar înmulți mesajele, iar I-960 cere mai puține.
+  - Rândul zilei (cont:zile, regula de la 07:00) nu se atinge.
+  - 10 și 30 de minute sunt alegeri, nu cifre dovedite.
+- **Fișiere atinse:** crypto: scripts/lib/tura-cont.mjs (PAS :9, garda :119-120, st.la :394), scripts/colector.mjs (turaT212 :1419-1431, turaContColector :3066-3070, bucla :3545), public/lib/cont-ecran.js (:163), public/lib/acasa-ecran.js (:474), public/lib/acasa.js (franaCont :642-653), scripts/lib/mesaje-colector.mjs
+- **Verificat (dubluri, pe disc):** Din lentile: grep „PAS|formaVeche|st.la|contStare|turaContColector” arată că tura se mișcă doar prin PAS, prin formaVeche sau după un eșec. Nu există niciun declanșator la umplere și nicio refacere la cerere (istoric-bot.js:120 și :430 doar citesc și scriu cont:raport).
+  Backlog: I-948 și I-956 se uită înainte de pornire. I-957 dă planul, nu cifra de după. I-945, I-947 și I-959 schimbă CE cifră se ia, nu CÂND se reface.
+
+### I-971 · Radar: alerta duce la botul, poziția sau pagina ei: butonul din Alerte cu tot cu bot, plus legătura în mesajul de pe Discord · S · P2
+- **Problema/golul:** Pagina știe deja să deschidă un bot sau o poziție: crLegaturaDin (app.js:3367-3374) înțelege #ecran=tabloubot&bot=<id>, #ecran=t212&poz=<ticker> și #ecran=gridset&moneda=. Pagina Alerte nu folosește nimic din asta. drum() (alerte-ecran.js:17-28) întoarce doar pagina, iar clicul (:133) cheamă navTo(pagina). Tabloul se deschide pe ultimul bot ales (tabloBotAles_v1), deși alerta are câmpurile bot și simbol (colector.mjs:525). Așa, o alertă pe ZEC poate deschide NEAR.
+  Trei chei duc pe pagina greșită:
+  (1) Alertele noi din v100.396, necomise: frana-cont-zi, frana-cont-sapt și frana-cont-risc (tura-cont.mjs:410-412). Mesajele lor spun „ce tai hotărăști… pe Contul întreg”, dar /^frana/ le trimite la Comportament (alerte-ecran.js:22). Planul e doar pe Contul întreg.
+  (2) rec-t212-<ticker> (tura-cont.mjs:403) ajunge la „Deschide Piața azi”.
+  (3) rec-urmarire (:405), care e critică, ajunge tot acolo.
+  Pe Discord, mesajDiscord (canal-discord.mjs:14-24) nu pune adresă, iar notificarea arată doar emoji + titlu. Legătura există deja doar la „bot nou” (tura-pornire.mjs:16) și în raportul de dimineață (colector.mjs:1998).
+- **Soluția:** drum() întoarce și ținta exactă:
+  - x.bot pentru Tablou;
+  - tickerul pentru T212, din cheile consilier-, sltp-, t212- și rec-t212-;
+  - Contul întreg pentru frana-cont-*;
+  - Tabloul, la botul lipsă, pentru rec-urmarire.
+  Butonul alege botul cu tbAlegeBot, sau desface poziția, înainte de navTo.
+  Colectorul refolosește drumul de la tura-pornire.mjs: adresa Tailscale din adresaRadarului, pusă pe titlul embed-ului (câmpul url), fără parolă. Fără Tailscale, mesajul pleacă fără legătură, ca azi. crLegaturaDin primește încă două ecrane, contintreg și alerts. Notificarea poartă și verbul scurt („— 👉 aș opri botul”).
+- **Impact:** De la notificare la botul sau poziția din alertă ajungi într-o apăsare, nu în 3–5 apăsări plus căutarea botului. Alerta de bani a zilei („riscul pe o zi ~9,7%, bugetul 4%: ce tai…”) duce acolo unde e planul, nu pe Comportament. Abaterea T212 ≠ jurnalul duce la poziția cu pricina.
+- **Riscuri/dependențe:** - Partea cu frana-cont-* e o scăpare a valului v100.396 (I-947 / I-957) și se repară în același val, înainte de livrare.
+  - Tabloul arată numele botului în bandă, deci câștigul e mai ales timpul.
+  - La deciziile critice acțiunea se face oricum în Pionex.
+  - Cu parola nouă (I-954), ea trebuie tastată o dată în browserul în care Discord deschide legătura.
+  - Botul și tickerul trec prin filtrele existente ([A-Za-z0-9_-]{1,40}), iar verbul prin garda textelor (≤ 110 semne).
+  - Proba se face cu alt bot ales în Tablou decât cel din alertă.
+- **Fișiere atinse:** crypto: public/lib/alerte-ecran.js (categorie :8, drum :17-28, clicul :133), public/app.js (crLegaturaDin :3367, tbAlegeBot :5092), public/lib/t212-ecran.js (t212Deschide), scripts/lib/canal-discord.mjs (mesajDiscord :14), scripts/colector.mjs (trimiteAlerta :514, adresaRadarului :1730), scripts/lib/tura-pornire.mjs (:16), scripts/lib/tura-cont.mjs (cheile :403-412)
+- **Verificat (dubluri, pe disc):** Verificat de mine acum: alerte-ecran.js:17-28, drum() nu citește x.bot, iar /^frana/ duce la Comportament (:22). tura-cont.mjs:403, :405 și :412 sunt cheile rec-t212-, rec-urmarire și frana-cont-risc.
+  Din lentile: bot= și poz= sunt deja desfăcute și probate (proba-v100203.mjs, proba-v10033.mjs).
+  Backlog:
+  - I-462: adresa tunelului în suita veche;
+  - I-632: butonul din Busola;
+  - I-555: bara de jos;
+  - I-943, I-960: schimbă CÂND pleacă alerta, nu UNDE duce.
+  Nicio idee respinsă pe acest mecanism.
