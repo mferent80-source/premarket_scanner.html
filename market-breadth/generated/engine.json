@@ -14,68 +14,78 @@
       "_file_age": 0.0
     },
     "uptrend": {
-      "score": 21.0,
+      "score": 24.2,
       "zone": "Cautious",
       "exposure": "Defensive (30-60%)",
-      "weakest": "Market Breadth (Overall) (13)",
+      "weakest": "Market Breadth (Overall) (18)",
       "trend": "",
       "extra": "1 warning-uri",
       "_file_age": 0.0,
-      "data_date": "2026-11-25"
+      "data_date": "2026-11-27"
     },
     "ndx": {
-      "score": 49.8,
+      "score": 54.3,
       "zone": "Neutral",
       "exposure": "60-75%",
-      "weakest": "trend MM200 (48.9%)",
-      "trend": "stabil",
-      "extra": ">MM200 48.9% | >MM50 51.1%",
+      "weakest": "trend MM200 (54.3%)",
+      "trend": "in crestere (+4.5)",
+      "extra": ">MM200 54.3% | >MM50 54.3%",
       "_file_age": 0.0,
-      "data_date": "2026-11-25"
+      "data_date": "2026-11-27"
     },
     "r2k": {
-      "score": 36.4,
+      "score": 38.5,
       "zone": "Weakening",
       "exposure": "40-60%",
       "weakest": "trend MM200 (35.1%)",
-      "trend": "stabil",
-      "extra": ">MM200 35.1% | >MM50 38.3%",
+      "trend": "in crestere (+2.1)",
+      "extra": ">MM200 35.1% | >MM50 43.6%",
       "_file_age": 0.0,
-      "data_date": "2026-11-25"
+      "data_date": "2026-11-27"
     }
   },
   "master": {
-    "score": 0,
-    "stance": "MIXT / PRUDENTA SELECTIVA",
-    "action": "Selectiv, pozitii noi mai mici, stopuri stranse. Nu supra-dimensiona.",
-    "confidence": "SCAZUTA - semnale in conflict (1 pozitive / 1 negative)",
+    "score": -2,
+    "stance": "PRUDENTA / DEFENSIV",
+    "action": "Redu expunerea, ridica cash, doar setup-uri A+. Protejeaza castigurile.",
+    "confidence": "SCAZUTA - semnale in conflict (1 pozitive / 3 negative)",
     "conflict": true,
-    "net_ceiling": 60,
+    "net_ceiling": 40,
     "scorecard": [
       [
         "Breadth participare (4/4 surse valide)",
         0,
-        "Mixt / racire (idx 41.3, min 21.0)"
+        "Mixt / racire (idx 43.5, min 24.2)"
       ],
       [
         "Market timing (distribution days)",
         -1,
-        "max 10 dist.days, 3/3 sub MM50, follow-through recent"
+        "max 8 dist.days, 3/3 sub MM50, follow-through recent"
+      ],
+      [
+        "Confirmare risc (VIX/credit/breadth pret)",
+        -1,
+        "Mixt / neconcludent (VIX 23.8)"
       ],
       [
         "New Highs - New Lows",
         1,
-        "64\u25b2/2\u25bc (net +62), sanatos (NH domina)"
+        "72\u25b2/1\u25bc (net +71), sanatos (NH domina)"
+      ],
+      [
+        "Intermarket / macro",
+        -1,
+        "Macro RISK-OFF (VIX term 1.0)"
       ]
     ],
     "reconciliation": [
       "Semnale POZITIVE: New Highs - New Lows.",
-      "Semnale NEGATIVE: Market timing (distribution days).",
+      "Semnale NEGATIVE: Market timing (distribution days), Confirmare risc (VIX/credit/breadth pret), Intermarket / macro.",
       "Market timing foloseste sesiuni EOD incheiate (mai proaspete ca breadth-ul) - cand semnaleaza vanzare, are prioritate ca avertisment timpuriu.",
       "Conflictul in sine = incertitudine: redu marimea, nu paria puternic intr-o directie."
     ],
     "pos": 1,
-    "neg": 1
+    "neg": 3
   },
   "analysis": {
     "verdict": "Mixt / racire",
@@ -83,16 +93,16 @@
     "flags": [
       [
         "narrow_market",
-        "\u26a0\ufe0f Piata larga (2800) 21.0 << large-cap 41.3 \u2192 raliu INGUST: RISC/volatilitate ridicata (nu implica randament slab - vezi backtest)"
+        "\u26a0\ufe0f Piata larga (2800) 24.2 << large-cap 43.5 \u2192 raliu INGUST: RISC/volatilitate ridicata (nu implica randament slab - vezi backtest)"
       ]
     ],
     "regime": "mixed",
-    "idx_avg": 41.3,
-    "min": 21.0,
-    "max": 49.8
+    "idx_avg": 43.5,
+    "min": 24.2,
+    "max": 54.3
   },
   "detail": {
-    "net_ceiling": 60,
+    "net_ceiling": 40,
     "binder": "S&P500",
     "ceilings": [
       [
@@ -113,21 +123,22 @@
       ]
     ],
     "diagnosis": [
-      "Large-cap: S&P 32.8 (Weakening), Nasdaq 49.8 \u2014 slabesc. Momentum S&P (8/200MA): 35.",
-      "Piata larga (~2800 actiuni): 21.0 (Cautious), cu 20.3 pct SUB large-cap. Veriga slaba: Market Breadth (Overall) (13).",
-      "Small-caps (R2K* 36.4): in linie cu large-cap. Veriga slaba: trend MM200 (35.1%)."
+      "Large-cap: S&P 32.8 (Weakening), Nasdaq 54.3 \u2014 slabesc. Momentum S&P (8/200MA): 35.",
+      "Piata larga (~2800 actiuni): 24.2 (Cautious), cu 19.3 pct SUB large-cap. Veriga slaba: Market Breadth (Overall) (18).",
+      "Small-caps (R2K* 38.5): in linie cu large-cap. Veriga slaba: trend MM200 (35.1%).",
+      "Dinamica: Nasdaq* in crestere (+4.5); Small-cap* in crestere (+2.1)."
     ],
     "playbook": [
-      "Plafonul combinat de context este 60%; riscul personal se verifica separat in Guardrail.",
+      "Plafonul combinat de context este 40%; riscul personal se verifica separat in Guardrail.",
       "Prioritizeaza calitatea; evita sectoarele lagging.",
       "Ridica putin cash daca breadth continua sa scada."
     ],
     "watch": [
       "Broad2800: peste 45 \u2192 iese din 'ingust'; sub 30 \u2192 risk-off.",
-      "R2K*: sub 33.3 \u2192 small-caps lag (risk-off incipient); peste 49.3 \u2192 conduc.",
+      "R2K*: sub 35.5 \u2192 small-caps lag (risk-off incipient); peste 51.5 \u2192 conduc.",
       "S&P: peste 60 \u2192 Healthy (upgrade); sub 40 \u2192 Weakening (alerta)."
     ],
-    "confidence": "SCAZUTA (spread 28.8 \u2014 surse in dezacord, semnalul e fragil)",
-    "spread": 28.8
+    "confidence": "SCAZUTA (spread 30.1 \u2014 surse in dezacord, semnalul e fragil)",
+    "spread": 30.1
   }
 }
