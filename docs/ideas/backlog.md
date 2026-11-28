@@ -3649,6 +3649,10 @@ pe un singur chart.
 | I-969 | Radar: frâna pe tot contul socotește și comisionul de conversie T212 ca pierdere, nu ca „bani retrași” | crypto: public/lib/cont-intreg.js, public/lib/t212.js, scripts/lib/tura-cont.mjs, scripts/lib/mesaje-colector.mjs, public/lib/acasa.js, public/lib/acasa-ecran.js, scripts/lib/tura-piata.mjs | S | P2 | propus | ideation | 2026-11-27 |
 | I-970 | Radar: riscul contului refăcut după o tranzacție reală, nu doar la 6 ore: „înainte → după” pe Discord, iar până atunci raportul spune că e de dinainte | crypto: scripts/lib/tura-cont.mjs, scripts/colector.mjs, public/lib/cont-ecran.js, public/lib/acasa-ecran.js, public/lib/acasa.js, scripts/lib/mesaje-colector.mjs | M | P2 | propus | ideation | 2026-11-27 |
 | I-971 | Radar: alerta duce la botul, poziția sau pagina ei: butonul din Alerte cu tot cu bot, plus legătura în mesajul de pe Discord | crypto: public/lib/alerte-ecran.js, public/app.js, public/lib/t212-ecran.js, scripts/lib/canal-discord.mjs, scripts/colector.mjs, scripts/lib/tura-pornire.mjs, scripts/lib/tura-cont.mjs | S | P2 | propus | ideation | 2026-11-27 |
+| I-972 | Radar „Agitate acum”: colectorul urmărește lista și anunță pe Discord când o monedă din primele 150 „se aprinde” (pagina vede doar cât e deschisă) | crypto: scripts/lib/tura-agitate.mjs (nou), scripts/colector.mjs, public/lib/agitate.js, functions/api/istoric-bot.js | M | P2 | propus | ideation | 2026-11-28 |
+| I-973 | Radar „Agitate acum”: semnul „doar pe Pionex” când mișcarea de aici e mult peste cea de pe Binance Futures (fitilă locală, carte subțire) | crypto: public/lib/agitate.js, public/lib/agitate-ecran.js | S | P2 | propus | ideation | 2026-11-28 |
+| I-974 | Radar „Agitate acum”: legătura spre graficul TradingView al contractului Pionex pe fiecare rând, cu excepție scrisă în garda de antete pentru legăturile de navigare | crypto: public/lib/agitate-ecran.js, scripts/garzi-v746.mjs | S | P3 | propus | ideation | 2026-11-28 |
+| I-975 | Radar: rândul „Agitată acum” în Tabloul botului, pentru moneda botului (mișcarea pe o oră față de obișnuitul ei) | crypto: public/lib/tablou-citire.js, public/lib/agitate.js | S | P3 | propus | ideation | 2026-11-28 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -9371,3 +9375,29 @@ Respinse de sceptici (nu se repropun): Radar: riscul pe o zi cu TOATE pozițiile
   - I-555: bara de jos;
   - I-943, I-960: schimbă CÂND pleacă alerta, nu UNDE duce.
   Nicio idee respinsă pe acest mecanism.
+
+### Idei 28.11.2026 (după v100.397, pagina „Agitate acum”): I-972…I-975
+
+### I-972 · Radar „Agitate acum”: colectorul urmărește lista și anunță pe Discord când o monedă „se aprinde” · M · P2
+- **Problema/golul:** Pagina „Agitate acum” (public/lib/agitate-ecran.js) măsoară doar cât e pe ecran: lista Pionex la 30 s și lumânările de 5 minute pe rând. O monedă din primele 150 care sare de 5× obișnuitul ei la 03:00 sau cât ești pe altă pagină nu lasă nicio urmă. Colectorul de pe VPS merge tot timpul și cere deja lista Pionex PERP pentru alte ture.
+- **Soluția:** O tură nouă a colectorului: lista Pionex PERP o dată pe minut (o cerere pentru toate monedele), prețurile ținute într-un inel de ~90 de minute pe monedă, aceleași formule (Agitate.fereastra / obisnuit) pe ferestrele de 15 minute și o oră. Mesaj pe Discord când o monedă trece de un prag scris înainte (de exemplu ≥ 3× obișnuitul ei ȘI ≥ 3% pe o oră), cel mult o dată pe monedă pe zi. Pagina citește inelul și e plină din prima secundă, fără cele ~2 minute de măsurat.
+- **Impact:** Afli de o monedă care se aprinde fără să ții pagina deschisă; pe telefon pagina se umple pe loc; zero cereri de lumânări din pagină.
+- **Riscuri/dependențe:** Prețul citit o dată pe minut pierde fitilele dintre citiri: cifrele pot ieși mai mici decât pe grafic ⇒ se spune pe pagină, iar primele rânduri pot păstra lumânările exacte. Pragul alertei e o alegere, nu o regulă probată: prea jos = zgomot pe Discord. Atinge colectorul ⇒ repornire pe VPS.
+
+### I-973 · Radar „Agitate acum”: semnul „doar pe Pionex” când mișcarea de aici e mult peste cea de pe Binance · S · P2
+- **Problema/golul:** Volumul perpetuelor pe Pionex e mic (28.11: doar 23 din 86 de monede peste 1 M USDT pe zi). O fitilă pe o carte subțire urcă moneda în clasament deși piața largă nu s-a mișcat. Pagina o etichetează doar „subțire”, după volum; nu compară prețurile.
+- **Soluția:** O cerere la Binance Futures pentru toate contractele (fapi/v1/ticker/24hr; fapi.binance.com e deja în connect-src) ⇒ amplitudinea pe 24 h de acolo lângă cea de pe Pionex. Când cea de pe Pionex e de peste ~1,5× cea de pe Binance, rândul spune „doar pe Pionex”. Monedele fără contract pe Binance rămân fără semn.
+- **Impact:** Deosebești mișcarea adevărată a monedei de o fitilă locală, înainte să pui un bot pe ea. Pe 28.11 căderea WLFI (−55%) s-a verificat de mână pe Binance (−57%): era reală.
+- **Riscuri/dependențe:** Doar pe 24 h (Binance n-are lumânări la grămadă); pe ferestrele scurte ar cere câte o cerere pe monedă. Simbolurile „în mii” (1000PEPE) trebuie potrivite (harta există în functions/_shared/tv-note.js).
+
+### I-974 · Radar „Agitate acum”: legătura spre graficul TradingView al contractului Pionex · S · P3
+- **Problema/golul:** Pasul firesc după ce vezi o monedă agitată e graficul ei (indicatorii lui sunt în TradingView). Rândul are doar „Grid ›”. Legătura a fost scrisă pe 28.11 și scoasă: garda de antete (scripts/garzi-v746.mjs, [headers]) socotește orice adresă https din JS-ul paginii drept cerere și o cere în connect-src.
+- **Soluția:** Garda primește o listă scurtă, scrisă, de legături de NAVIGARE (https://www.tradingview.com), pe care le acceptă doar dacă apar într-un href și nu într-un fetch / getJSON. Rândul primește „Grafic ↗” (PIONEX:<moneda>USDT.P, filă nouă, rel noopener).
+- **Impact:** De la listă la grafic într-o apăsare.
+- **Riscuri/dependențe:** Se schimbă o gardă de securitate ⇒ hotărârea lui; connect-src rămâne neatins.
+
+### I-975 · Radar: rândul „Agitată acum” în Tabloul botului · S · P3
+- **Problema/golul:** Tabloul arată mișcarea monedei botului pe 24 h / 3 zile / 7 zile (lib/miscare.js), dar nu spune dacă ACUM se mișcă mai mult decât obișnuiește - informația pe care o dă pagina „Agitate acum” pentru alte monede.
+- **Soluția:** Un rând în citirea Tabloului, din lumânările de 5 minute pe care Tabloul le are deja pentru graficul botului: mișcarea pe ultima oră și de câte ori e față de obișnuitul ei (Agitate.masura), cu legătură spre pagina „Agitate acum”.
+- **Impact:** Vezi pe pagina botului dacă moneda lui tocmai s-a aprins, fără altă pagină și fără cereri noi.
+- **Riscuri/dependențe:** Fapt, nu semnal - nu intră în verdict. Tabloul cere 288 de lumânări de 5 minute (24 h): „obișnuitul” ar avea 23 de ferestre de o oră în loc de 40.
