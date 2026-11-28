@@ -3653,6 +3653,9 @@ pe un singur chart.
 | I-973 | Radar „Agitate acum”: semnul „doar pe Pionex” când mișcarea de aici e mult peste cea de pe Binance Futures (fitilă locală, carte subțire) | crypto: public/lib/agitate.js, public/lib/agitate-ecran.js | S | P2 | făcut (v100.398 f83b7067; semnul se numește „peste Binance”) | ideation | 2026-11-28 |
 | I-974 | Radar „Agitate acum”: legătura spre graficul TradingView al contractului Pionex pe fiecare rând, cu excepție scrisă în garda de antete pentru legăturile de navigare | crypto: public/lib/agitate-ecran.js, scripts/garzi-v746.mjs | S | P3 | făcut (v100.398 f83b7067) | ideation | 2026-11-28 |
 | I-975 | Radar: rândul „Agitată acum” în Tabloul botului, pentru moneda botului (mișcarea pe o oră față de obișnuitul ei) | crypto: public/lib/tablou-citire.js, public/lib/agitate.js | S | P3 | făcut (v100.398 f83b7067) | ideation | 2026-11-28 |
+| I-976 | Radar „Agitate acum”: mesajele pe zi numărate de colector și judecate față de ținta de cel mult 5 (pe 7 zile întregi), ca pragul alertei să se reverifice pe viu | crypto: scripts/lib/tura-agitate.mjs, public/lib/agitate.js, public/lib/agitate-ecran.js, functions/api/istoric-bot.js | S | P2 | făcut (v100.399 67dc5466, colector v101.217) | ideation | 2026-11-28 |
+| I-977 | Radar „Agitate acum”: ce a urmat după aprindere, la o oră și la 4 ore (a continuat / s-a întors), cu verdict dat o singură dată, pe zile, după criterii scrise înaintea datelor | crypto: scripts/lib/tura-agitate.mjs, public/lib/agitate.js, public/lib/agitate-ecran.js | M | P2 | făcut (v100.399 67dc5466, colector v101.217) | ideation | 2026-11-28 |
+| I-978 | Radar „Agitate acum”: semnul „peste Binance” urmărit de colector 14 zile; dacă nu apare niciodată, poate fi scos | crypto: scripts/lib/tura-agitate.mjs, public/lib/agitate.js, public/lib/agitate-ecran.js | S | P3 | făcut (v100.399 67dc5466, colector v101.217) | ideation | 2026-11-28 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -9405,3 +9408,26 @@ Respinse de sceptici (nu se repropun): Radar: riscul pe o zi cu TOATE pozițiile
 - **Impact:** Vezi pe pagina botului dacă moneda lui tocmai s-a aprins, fără altă pagină și fără cereri noi.
 - **Riscuri/dependențe:** Fapt, nu semnal - nu intră în verdict. Tabloul cere 288 de lumânări de 5 minute (24 h): „obișnuitul” ar avea 23 de ferestre de o oră în loc de 40.
 - **Făcut 28.11.2026 (v100.398 `f83b7067`):** rândul „Agitată acum” în „Ce spune piața acum”, după „Monede de bot”, cu butonul „Agitate acum ›”; gri (informație), nu intră în verdict.
+
+### Idei 28.11.2026 (după v100.398, „Bilanțul alertelor”): I-976…I-978
+
+### I-976 · Radar „Agitate acum”: mesajele pe zi față de ținta de 5 · S · P2
+- **Problema/golul:** Pragul alertei (5% pe o oră și 3× obișnuitul) a fost ales pe un eșantion de 1,4 zile cu o zi de piață agitată: ~8 mesaje pe zi, ținta de ~5 nedovedită. Fără o numărătoare pe viu, pragul s-ar regla din nou din memorie.
+- **Soluția:** Colectorul ține pe zilele României câte mesaje au plecat și câte a oprit plafonul, cu timpul urmărit; pagina arată zilele și media ultimelor 7 zile întregi față de țintă („ține” / „peste”).
+- **Impact:** Hotărârea „schimb pragul sau nu” se ia pe 7 zile adevărate, nu pe impresie.
+- **Riscuri/dependențe:** Criteriul e scris înainte; o schimbare a regulii repornește numărătoarea. Pragul nu se schimbă singur.
+- **Făcut 28.11.2026 (v100.399 `67dc5466`, colector v101.217).**
+
+### I-977 · Radar „Agitate acum”: ce a urmat după aprindere · M · P2
+- **Problema/golul:** O alertă „s-a aprins” ridică întrebarea „o urmăresc sau o las să treacă?”. Direcția a fost probată de opt ori pe datele lui și a ieșit ban; fără o măsurătoare pe aprinderi, răspunsul rămâne o părere.
+- **Soluția:** Pentru fiecare aprindere singură cu direcție, colectorul ia prețul din lista Pionex la o oră și la 4 ore după (întârziat peste 10 minute = ratat) și numără „a continuat / s-a întors / pe loc”. Verdictul se dă o singură dată pe orizont, la 30 de zile cu aprinderi și 150 de cazuri, cu testul t pe ZILE, alfa 0,025.
+- **Impact:** Știi, cu dovada lângă, dacă aprinderea spune ceva despre direcție sau nu („nicio înclinare dovedită” e un răspuns la fel de folositor).
+- **Riscuri/dependențe:** Simulat înainte: binomialul pe cazuri dă 7–21% verdicte false când cazurile aceleiași zile sunt corelate; t pe zile 2,3–2,7%. O înclinare sub 65% nu se vede cu atâtea date. Nu e probă de strategie (fără costuri).
+- **Făcut 28.11.2026 (v100.399 `67dc5466`, colector v101.217).** Revizia independentă: verdictul doar pe zile încheiate, fără rezultate în așteptare; fișierul de stare necitit nu mai e „fișier gol”.
+
+### I-978 · Radar „Agitate acum”: „peste Binance” urmărit 14 zile · S · P3
+- **Problema/golul:** La livrarea v100.398 mișcarea de pe Pionex era egală cu cea de pe Binance la toate cele 80 de perechi: semnul „peste Binance” s-ar putea să nu apară niciodată, iar pagina îl compară doar cât e deschisă.
+- **Soluția:** Colectorul compară la 15 minute (cu limită de timp, după ce alertele au plecat) și ține pe zile citirile și monedele la care a apărut. O apariție ⇒ rămâne; 14 zile urmărite fără niciuna ⇒ „poate fi scos”. Citirile de azi sunt la vedere (zero = Binance nu răspunde colectorului).
+- **Impact:** Hotărârea de a păstra sau scoate semnul vine din date, fără să țină cineva minte.
+- **Riscuri/dependențe:** Scoaterea propriu-zisă rămâne hotărârea lui.
+- **Făcut 28.11.2026 (v100.399 `67dc5466`, colector v101.217).**
