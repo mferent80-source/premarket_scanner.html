@@ -3656,6 +3656,9 @@ pe un singur chart.
 | I-976 | Radar „Agitate acum”: mesajele pe zi numărate de colector și judecate față de ținta de cel mult 5 (pe 7 zile întregi), ca pragul alertei să se reverifice pe viu | crypto: scripts/lib/tura-agitate.mjs, public/lib/agitate.js, public/lib/agitate-ecran.js, functions/api/istoric-bot.js | S | P2 | făcut (v100.399 67dc5466, colector v101.217) | ideation | 2026-11-28 |
 | I-977 | Radar „Agitate acum”: ce a urmat după aprindere, la o oră și la 4 ore (a continuat / s-a întors), cu verdict dat o singură dată, pe zile, după criterii scrise înaintea datelor | crypto: scripts/lib/tura-agitate.mjs, public/lib/agitate.js, public/lib/agitate-ecran.js | M | P2 | făcut (v100.399 67dc5466, colector v101.217) | ideation | 2026-11-28 |
 | I-978 | Radar „Agitate acum”: semnul „peste Binance” urmărit de colector 14 zile; dacă nu apare niciodată, poate fi scos | crypto: scripts/lib/tura-agitate.mjs, public/lib/agitate.js, public/lib/agitate-ecran.js | S | P3 | făcut (v100.399 67dc5466, colector v101.217) | ideation | 2026-11-28 |
+| I-979 | Radar: alertă când un bot de semnal Pionex rulează fără Stop Loss (după 10 minute de la pornire, apoi o dată pe zi cât rămâne fără) | crypto: functions/api/bot-orders.js, public/lib/bot-semnal.js, scripts/lib/politica-alerte.mjs | S | P1 | făcut (v100.400 062f29e1, colector v101.218) | ideation | 2026-11-28 |
+| I-980 | Radar „Agitate acum”: verdictele din „Bilanțul alertelor” pleacă pe Discord, fiecare o dată | crypto: scripts/lib/tura-agitate.mjs | S | P3 | făcut (v100.400 062f29e1, colector v101.218) | ideation | 2026-11-28 |
+| I-981 | Verificatorul orar de semnale: „alertă făcută în mijlocul unei poziții a regulii ⇒ așteaptă următoarea intrare”, spusă o dată, ca informare | pine-scripts: PIONEX-COMBO/verifica_semnale.py, test_verifica_semnale.py | S | P2 | făcut (28.11.2026, activ din rularea de la 16:04; fără git) | ideation | 2026-11-28 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -9431,3 +9434,26 @@ Respinse de sceptici (nu se repropun): Radar: riscul pe o zi cu TOATE pozițiile
 - **Impact:** Hotărârea de a păstra sau scoate semnul vine din date, fără să țină cineva minte.
 - **Riscuri/dependențe:** Scoaterea propriu-zisă rămâne hotărârea lui.
 - **Făcut 28.11.2026 (v100.399 `67dc5466`, colector v101.217).**
+
+### Idei 28.11.2026 (după v100.399, „mai departe?” ⇒ „fa tot”): I-979…I-981
+
+### I-979 · Radar: alertă când un bot de semnal rulează fără Stop Loss · S · P1
+- **Problema/golul:** Pe 28.11 doi boți de semnal au fost porniți fără Stop Loss (PORTAL noaptea, WLFI la prânz). Radarul anunță la −10% și la −15%, dar nu oprește botul; fără stop în Pionex, pierderea n-are margine.
+- **Soluția:** Normalizarea botului de semnal ține stopul și ținta ca raport („0” = nepus, lipsă = nu se știe). Paza botului dă o alertă după 10 minute de la pornire și din nou la 24 h cât rămâne fără; noaptea așteaptă rezumatul.
+- **Impact:** Un bot fără stop nu mai rămâne așa din uitare.
+- **Riscuri/dependențe:** Dacă Pionex schimbă câmpurile (lossStopRatio), alerta tace (lipsă ≠ nepus).
+- **Făcut 28.11.2026 (v100.400 `062f29e1`, colector v101.218).**
+
+### I-980 · Radar „Agitate acum”: verdictele bilanțului pe Discord · S · P3
+- **Problema/golul:** Verdictele din „Bilanțul alertelor” vin peste 7 zile, 14 zile și 1–2 luni; fără un mesaj, ar trebui deschisă pagina ca să afli.
+- **Soluția:** Fiecare verdict pleacă o singură dată: mesajele pe zi (la schimbare, cel mult o dată la 7 zile), verdictul înghețat la 1 h și 4 h, „peste Binance”. Nu intră la plafonul alertelor.
+- **Impact:** Hotărârea vine la tine, nu trebuie căutată.
+- **Riscuri/dependențe:** Criteriile rămân cele scrise înaintea datelor (BILANT).
+- **Făcut 28.11.2026 (v100.400 `062f29e1`, colector v101.218).**
+
+### I-981 · Verificatorul orar: „alertă făcută în mijlocul unei poziții” · S · P2
+- **Problema/golul:** „De ce nu dă semnale?” a fost întrebat de trei ori (HYPE 26.11, BULLA 27.11, WLFI 28.11): alerta nouă pornește de la zero și nu trimite poziția în curs a regulii.
+- **Soluția:** Verificatorul reface regula IND v1.4 pe lumânările Binance (aceeași mașină de stări ca diagnoza) și, când alerta e făcută în mijlocul unei poziții, o spune o dată pe Discord („de știut: …”), fără să schimbe starea „BINE”. Scriptul Pine rămâne neatins.
+- **Impact:** Răspunsul vine singur, la cel mult o oră după alerta nouă.
+- **Riscuri/dependențe:** Doar pentru forma inputurilor v1.4; altă versiune ⇒ tăcere.
+- **Făcut 28.11.2026 (pine-scripts, fără git; copii `.inainte-28-11`).** Văzut la probă: ținta botului (+1%) îl închide fără ca TradingView să știe ⇒ verificatorul vechi strigă „Pionex n-a deschis nimic” - alarmă falsă de reparat separat.
